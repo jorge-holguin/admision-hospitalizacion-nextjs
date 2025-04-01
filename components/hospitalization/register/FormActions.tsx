@@ -1,7 +1,8 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
-import { Loader2, Save, AlertCircle, CheckCircle2,X  } from "lucide-react"
+import { Loader2, Save, AlertCircle, CheckCircle2, X, Ambulance } from "lucide-react"
+import { useRouter } from 'next/navigation'
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useState, useEffect } from 'react'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -26,6 +27,7 @@ export function FormActions({
   insuranceCode,
   onBeforeSave
 }: FormActionsProps) {
+  const router = useRouter();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
   const [checkingFua, setCheckingFua] = useState(false)
@@ -93,6 +95,10 @@ export function FormActions({
   const handleCancelConfirm = () => {
     setShowConfirmDialog(false)
   }
+  
+  const handleNavigateToEmergencia = () => {
+    router.push(`/emergencia/${patientId}`)
+  }
 
   return (
     <>
@@ -105,6 +111,16 @@ export function FormActions({
         >
           <X className="mr-2 h-4 w-4" />
           Cancelar
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={handleNavigateToEmergencia}
+          disabled={submitting || isConfirming || !patientId}
+          className="bg-[#ff9800] hover:bg-[#f57c00] text-white hover:text-white"
+        >
+          <Ambulance className="mr-2 h-4 w-4" />
+          EMERGENCIA
         </Button>
 
         <Button 

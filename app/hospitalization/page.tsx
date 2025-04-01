@@ -90,6 +90,10 @@ export default function HospitalizationSearch() {
     router.push(`/hospitalization/orders/${patientId}`);
   };
 
+  const handleEmergencySelect = (pacientId: string) => {
+    router.push(`/hospitalization/emergency/${pacientId}`);
+  };
+
   // Estado para almacenar los resultados de verificación SIS por paciente
   const [sisVerificationResults, setSisVerificationResults] = useState<Record<string, SISVerificationResult>>({});
   
@@ -198,7 +202,7 @@ export default function HospitalizationSearch() {
               variant="default" 
               size="sm" 
               className="bg-red-500 hover:bg-red-600 text-white" 
-              onClick={() => handlePatientSelect(patient.PACIENTE)}
+              onClick={() => handleEmergencySelect(patient.PACIENTE)}
             >
               <OctagonAlert className="mr-2 h-4 w-4" /> EMERGENCIA
             </Button>

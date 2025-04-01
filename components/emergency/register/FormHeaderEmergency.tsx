@@ -1,0 +1,66 @@
+import React from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+interface FormHeaderEmergencyProps {
+  fecha: string;
+  hora: string;
+  onFechaChange: (value: string) => void;
+  onHoraChange: (value: string) => void;
+  disabled?: boolean;
+  validationErrors?: Record<string, string>;
+}
+
+export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
+  fecha,
+  hora,
+  onFechaChange,
+  onHoraChange,
+  disabled = false,
+  validationErrors = {}
+}) => {
+  return (
+    <div className="mb-6">
+      <h3 className="text-lg font-semibold mb-4">Información de la Emergencia</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Fecha */}
+        <div className="space-y-2">
+          <Label htmlFor="fecha">
+            Fecha <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="fecha"
+            type="date"
+            value={fecha}
+            onChange={(e) => onFechaChange(e.target.value)}
+            disabled={disabled}
+            className={validationErrors.fecha ? 'border-red-500' : ''}
+          />
+          {validationErrors.fecha && (
+            <p className="text-sm text-red-500">{validationErrors.fecha}</p>
+          )}
+        </div>
+
+        {/* Hora */}
+        <div className="space-y-2">
+          <Label htmlFor="hora">
+            Hora <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="hora"
+            type="time"
+            value={hora}
+            onChange={(e) => onHoraChange(e.target.value)}
+            disabled={disabled}
+            className={validationErrors.hora ? 'border-red-500' : ''}
+          />
+          {validationErrors.hora && (
+            <p className="text-sm text-red-500">{validationErrors.hora}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FormHeaderEmergency;
