@@ -4,10 +4,17 @@ import React, { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Printer, Edit, Loader2 } from "lucide-react"
+import { Plus, Trash2, Printer, Edit, Loader2, ChevronDown, FileText, ClipboardList, GraduationCap, FileSpreadsheet } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { useOrdenHospitalizacion } from "@/hooks/useOrdenHospitalizacion"
 import { Spinner } from "@/components/ui/spinner"
+import { PDFViewerModal } from "@/components/ui/pdf-viewer-modal"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useParams } from "next/navigation"
 
 // Import the OrdenHospitalizacion type from the service
@@ -30,6 +37,11 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   const [isEditable, setIsEditable] = useState<boolean>(false);
   const [checkingEditStatus, setCheckingEditStatus] = useState<boolean>(true);
   const [hospitalizacionesEstado, setHospitalizacionesEstado] = useState<Record<string, string>>({});
+  
+  // Estado para el visor de PDF
+  const [pdfViewerOpen, setPdfViewerOpen] = useState<boolean>(false);
+  const [pdfUrls, setPdfUrls] = useState<string[]>([]);
+  const [pdfTitle, setPdfTitle] = useState<string>('');
   
   // Usar el hook de órdenes de hospitalización
   const {
@@ -57,19 +69,8 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : String(input);
       console.log('🔍 Fetch interceptado:', url, init);
       
-      // Verificar si es una llamada a la API de orden-hospitalizacion incorrecta
-      if (url.includes('/api/orden-hospitalizacion/') && !url.includes('/paciente/')) {
-        console.error('⚠️ LLAMADA INCORRECTA DETECTADA:', url);
-        console.error('⚠️ La URL correcta debería ser:', url.replace('/api/orden-hospitalizacion/', '/api/orden-hospitalizacion/paciente/'));
-        
-        // Obtener la traza de la pila para identificar de dónde viene la llamada
-        console.error('⚠️ Traza de la llamada incorrecta:', new Error().stack);
-        
-        // Redirigir automáticamente a la URL correcta para solucionar el problema
-        const correctedUrl = url.replace('/api/orden-hospitalizacion/', '/api/orden-hospitalizacion/paciente/');
-        console.log('🔄 Redirigiendo automáticamente a la URL correcta:', correctedUrl);
-        return originalFetch(correctedUrl, init);
-      }
+      // Ya no necesitamos verificar o redirigir llamadas a la API de paciente
+      // ya que ahora usamos la API principal con paginación
       
       return originalFetch(input, init);
     };
@@ -78,7 +79,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     console.log('📊 Rutas API esperadas para órdenes de hospitalización:');
     console.log('- /api/orden-hospitalizacion - Endpoint principal con paginación');
     console.log('- /api/orden-hospitalizacion/[id] - Obtener una orden específica por ID');
-    console.log('- /api/orden-hospitalizacion/paciente/[id] - Obtener todas las órdenes de un paciente');
+    console.log('- /api/orden-hospitalizacion/editable - Verificar si un paciente tiene órdenes editables');
     
     // Restaurar el fetch original cuando se desmonte el componente
     return () => {
@@ -104,9 +105,18 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     if (patientId) {
       loadPatientData();
       checkEditableStatus();
+      console.log('📝 [HospitalizationOrders] Estableciendo pacienteId en el hook:', patientId);
       setPacienteId(patientId);
     }
   }, [patientId]);
+  
+  // Registrar cuando cambian las órdenes de hospitalización
+  useEffect(() => {
+    console.log('📝 [HospitalizationOrders] Órdenes de hospitalización actualizadas:', {
+      cantidad: ordenesHospitalizacion.length,
+      muestra: ordenesHospitalizacion.length > 0 ? ordenesHospitalizacion[0] : 'Sin datos'
+    });
+  }, [ordenesHospitalizacion]);
 
   // Cargar datos del paciente
   const loadPatientData = async () => {
@@ -142,7 +152,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       setCheckingEditStatus(true);
       console.log('🔍 Verificando estado editable para paciente:', patientId);
       
-      const response = await fetch(`/api/hospitaliza/editable?pacienteId=${patientId}`);
+      const response = await fetch(`/api/orden-hospitalizacion/editable?pacienteId=${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al verificar estado editable: ${response.status}`);
@@ -151,7 +161,23 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       const data = await response.json();
       console.log('🔍 Estado editable recibido:', data);
       
-      setIsEditable(data.isEditable);
+      // Verificar si data.isEditable existe y es un booleano
+      if (typeof data.isEditable === 'boolean') {
+        setIsEditable(data.isEditable);
+      } else {
+        console.warn('El campo isEditable no es un booleano o no existe:', data);
+        // Por defecto, permitir edición si no hay información clara
+        setIsEditable(true);
+      }
+      
+      // Mostrar información adicional de depuración
+      if (data.source) {
+        console.log(`Fuente de datos: ${data.source}`);
+      }
+      
+      if (data.error) {
+        console.warn('Error reportado por la API:', data.error);
+      }
     } catch (error) {
       console.error('Error al verificar estado editable:', error);
       setIsEditable(false); // Por defecto, no permitir edición si hay error
@@ -166,18 +192,30 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       const fetchHospitalizacionesEstado = async () => {
         const estados: Record<string, string> = {};
         
+        // Usar el ESTADO que ya viene en las órdenes de hospitalización
         for (const orden of ordenesHospitalizacion) {
           try {
-            const response = await fetch(`/api/hospitaliza/${orden.idHOSPITALIZACION}`);
-            
-            if (response.ok) {
-              const { data } = await response.json();
-              if (data && data.ESTADO) {
-                estados[orden.idHOSPITALIZACION] = data.ESTADO;
+            // Verificar si la orden ya tiene un ESTADO
+            if (orden.ESTADO) {
+              console.log(`Usando ESTADO existente para orden ${orden.idHOSPITALIZACION}: ${orden.ESTADO}`);
+              estados[orden.idHOSPITALIZACION] = orden.ESTADO;
+            } 
+            // Solo hacer la llamada API si idHOSPITALIZACION existe y no tenemos el ESTADO
+            else if (orden.idHOSPITALIZACION && orden.idHOSPITALIZACION.trim() !== '') {
+              console.log(`Obteniendo ESTADO para orden ${orden.idHOSPITALIZACION}`);
+              const response = await fetch(`/api/orden-hospitalizacion/${orden.idHOSPITALIZACION}`);
+              
+              if (response.ok) {
+                const data = await response.json();
+                if (data && data.ESTADO) {
+                  estados[orden.idHOSPITALIZACION] = data.ESTADO;
+                }
               }
+            } else {
+              console.warn('Orden de hospitalización sin ID válido:', orden);
             }
           } catch (error) {
-            console.error(`Error al obtener estado de hospitalización ${orden.idHOSPITALIZACION}:`, error);
+            console.error(`Error al obtener estado de hospitalización ${orden.idHOSPITALIZACION || 'desconocido'}:`, error);
           }
         }
         
@@ -189,7 +227,11 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   }, [ordenesHospitalizacion]);
   
   // Función para verificar si una orden es editable según su estado
-  const isOrdenEditable = (ordenId: string): boolean => {
+  const isOrdenEditable = (ordenId?: string): boolean => {
+    // Si no hay ID o es vacío, no es editable
+    if (!ordenId || ordenId.trim() === '') {
+      return false;
+    }
     const estado = hospitalizacionesEstado[ordenId];
     return estado === '1' || estado === '2';
   };
@@ -252,11 +294,21 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     }
   }
 
-  const handleEditOrder = (orderId: string) => {
-    window.location.href = `/hospitalization/register/${patientId}?orderId=${orderId}`
+  const handleEditOrder = (orderId?: string) => {
+    if (!orderId || orderId.trim() === '') {
+      console.error('No se puede editar: ID de orden de hospitalización no válido');
+      return;
+    }
+    // Redireccionar a la vista de detalles en lugar de la página de registro
+    window.location.href = `/hospitalization/view/${patientId}?orderId=${orderId}`;
   }
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = (orderId?: string) => {
+    if (!orderId || orderId.trim() === '') {
+      console.error('No se puede eliminar: ID de orden de hospitalización no válido');
+      return;
+    }
+    
     // Implementar eliminación real con API
     if (confirm('¿Está seguro de eliminar esta orden de hospitalización?')) {
       // Aquí iría la llamada a la API para eliminar
@@ -265,13 +317,81 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     }
   }
 
-  const handlePrintOrder = (orderId: string) => {
-    // Print functionality would be implemented here
-    alert(`Imprimiendo orden ${orderId}`)
+  const handlePrintOrder = (orderId?: string, documentType?: 'filiacion' | 'orden-consentimiento' | 'consentimiento-docencia' | 'fua') => {
+    if (!orderId || orderId.trim() === '') {
+      console.error('No se puede imprimir: ID de orden de hospitalización no válido');
+      return;
+    }
+    
+    // Eliminar espacios en blanco del ID
+    const cleanId = orderId.trim();
+    
+    // Determinar el título del documento para el visor de PDF
+    const documentName = documentType === 'filiacion' ? 'Hoja de Filiación' :
+                        documentType === 'orden-consentimiento' ? 'Orden de Hospitalización + Consentimiento' :
+                        documentType === 'consentimiento-docencia' ? 'Consentimiento para actividades de docencia' :
+                        documentType === 'fua' ? 'FUA' : 'Documento';
+    
+    console.log(`Preparando visualización de ${documentName} para orden ${cleanId}`);
+    
+    // Configurar las URLs y abrir el visor de PDF según el tipo de documento
+    switch(documentType) {
+      case 'filiacion':
+        // Para la hoja de filiación, necesitamos hacer una llamada a la API local primero
+        fetch(`/api/filiacion/${patientId}`)
+          .then(response => {
+            if (!response.ok) throw new Error('Error al obtener datos de filiación');
+            return response.json();
+          })
+          .then(data => {
+            console.log('Datos de filiación obtenidos:', data);
+            // Configurar el visor de PDF con la URL de la hoja de filiación
+            setPdfTitle('Hoja de Filiación');
+            setPdfUrls([`/api/print/filiacion/${patientId}`]);
+            setPdfViewerOpen(true);
+          })
+          .catch(error => {
+            console.error('Error al obtener datos de filiación:', error);
+            alert('Error al generar la hoja de filiación');
+          });
+        break;
+      
+      case 'orden-consentimiento':
+        // Configurar el visor de PDF con las URLs de orden y consentimiento
+        setPdfTitle('Orden de Hospitalización + Consentimiento');
+        setPdfUrls([
+          `http://192.168.0.21:8080/api/reporte/pdf/orden-hospitalizacion/${cleanId}`,
+          `http://192.168.0.21:8080/api/reporte/pdf/consentimiento-hospitalizacion/${cleanId}`
+        ]);
+        setPdfViewerOpen(true);
+        break;
+      
+      case 'consentimiento-docencia':
+        // Implementar cuando esté disponible la API
+        alert('Funcionalidad de impresión de consentimiento para docencia en desarrollo');
+        break;
+      
+      case 'fua':
+        // Implementar cuando esté disponible la API
+        alert('Funcionalidad de impresión de FUA en desarrollo');
+        break;
+      
+      default:
+        alert('Tipo de documento no reconocido');
+        break;
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* PDF Viewer Modal */}
+      <PDFViewerModal
+        open={pdfViewerOpen}
+        onClose={() => setPdfViewerOpen(false)}
+        pdfUrls={pdfUrls}
+        title={pdfTitle}
+      />
+      
       {/* Header */}
       <Navbar 
         title="SIGSALUD" 
@@ -335,19 +455,20 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                       <TableHead className="font-semibold">Paciente</TableHead>
                       <TableHead className="font-semibold">Historia</TableHead>
                       <TableHead className="font-semibold">Consultorio</TableHead>
-                      <TableHead className="font-semibold">Fecha Ing</TableHead>
-                      <TableHead className="font-semibold">Hora Ing</TableHead>
+                      <TableHead className="font-semibold">Médico</TableHead>
+                      <TableHead className="font-semibold">Fecha Ingreso</TableHead>
+                      <TableHead className="font-semibold">Hora Ingreso</TableHead>
                       <TableHead className="font-semibold">Origen</TableHead>
                       <TableHead className="font-semibold">Seguro</TableHead>
                       <TableHead className="font-semibold">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ordenesHospitalizacion.map((orden) => (
+                    {ordenesHospitalizacion.map((orden, index) => (
                       <TableRow
-                        key={orden.idHOSPITALIZACION}
+                        key={orden.idHOSPITALIZACION ? orden.idHOSPITALIZACION : `orden-${index}`}
                         className="hover:bg-blue-50 transition-colors cursor-pointer"
-                        onClick={() => handleEditOrder(orden.idHOSPITALIZACION)}
+                        onClick={() => orden.idHOSPITALIZACION ? handleEditOrder(orden.idHOSPITALIZACION) : null}
                       >
                         <TableCell className="font-medium text-blue-800">{orden.idHOSPITALIZACION}</TableCell>
                         <TableCell>
@@ -356,6 +477,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                         </TableCell>
                         <TableCell>{orden.Historia || patientId}</TableCell>
                         <TableCell>{orden.CONSULNOMBRE}</TableCell>
+                        <TableCell>{orden.MEDICONOMBRE || 'No especificado'}</TableCell>
                         <TableCell>{formatDate(orden.FECHA1)}</TableCell>
                         <TableCell>{orden.HORA1}</TableCell>
                         <TableCell>{orden.ORIGENOMBRE}</TableCell>
@@ -374,17 +496,69 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                 <Edit className="w-4 h-4" />
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handlePrintOrder(orden.idHOSPITALIZACION)
-                              }}
-                            >
-                              <Printer className="w-4 h-4" />
-                            </Button>
-                            {isOrdenEditable(orden.idHOSPITALIZACION) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-white hover:bg-blue-50 border-blue-200"
+                                >
+                                  <Printer className="w-4 h-4 mr-1 text-blue-600" />
+                                  <ChevronDown className="h-3 w-3 text-blue-600" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64 p-2">
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (orden.idHOSPITALIZACION) {
+                                      handlePrintOrder(orden.idHOSPITALIZACION, 'filiacion')
+                                    }
+                                  }}
+                                >
+                                  <FileText className="w-4 h-4 text-blue-600" />
+                                  <span>Hoja de Filiación</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (orden.idHOSPITALIZACION) {
+                                      handlePrintOrder(orden.idHOSPITALIZACION, 'orden-consentimiento')
+                                    }
+                                  }}
+                                >
+                                  <ClipboardList className="w-4 h-4 text-green-600" />
+                                  <span>Orden de Hospitalización + Consentimiento</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (orden.idHOSPITALIZACION) {
+                                      handlePrintOrder(orden.idHOSPITALIZACION, 'consentimiento-docencia')
+                                    }
+                                  }}
+                                >
+                                  <GraduationCap className="w-4 h-4 text-amber-600" />
+                                  <span>Consentimiento para actividades de docencia</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (orden.idHOSPITALIZACION) {
+                                      handlePrintOrder(orden.idHOSPITALIZACION, 'fua')
+                                    }
+                                  }}
+                                >
+                                  <FileSpreadsheet className="w-4 h-4 text-purple-600" />
+                                  <span>FUA</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            {orden.idHOSPITALIZACION && isOrdenEditable(orden.idHOSPITALIZACION) && (
                               <Button
                                 size="sm"
                                 variant="outline"

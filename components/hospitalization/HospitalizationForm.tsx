@@ -410,6 +410,11 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Mostrar diálogo de confirmación
+    if (!confirm('¿Está seguro de generar la orden de hospitalización?')) {
+      return; // Si el usuario cancela, no continuar
+    }
+    
     try {
       // Mostrar que se está procesando
       setSubmitting(true);
@@ -523,83 +528,118 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Columna izquierda */}
             <div className="space-y-6">
-              <OrigenSelector
-                value={formData.hospitalizationOrigin}
-                onChange={(value, origenData) => {
-                  setFormData({ ...formData, hospitalizationOrigin: value });
-                  console.log('Origen seleccionado:', origenData);
-                }}
-                disabled={fieldsLocked}
-                required
-                className="w-full"
-                patientId={patientId}
-                onAttentionOriginChange={(attentionOrigin) => {
-                  setFormData(prev => ({ ...prev, attentionOrigin }));
-                }}
-                onMedicoChange={(medicoValue, medicoData) => {
-                  setFormData(prev => ({ ...prev, authorizingDoctor: medicoValue }));
-                }}
-                onDiagnosticoChange={(diagnosticoValue, diagnosticoData) => {
-                  setFormData(prev => ({ ...prev, diagnosis: diagnosticoValue }));
-                }}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="origen" className="text-sm font-semibold text-red-600">
+                  <span className="text-red-500">●</span> Código de Origen de Atención <span className="text-red-500">*</span>
+                </Label>
+                <OrigenSelector
+                  value={formData.hospitalizationOrigin}
+                  onChange={(value, origenData) => {
+                    setFormData({ ...formData, hospitalizationOrigin: value });
+                    console.log('Origen seleccionado:', origenData);
+                  }}
+                  disabled={fieldsLocked}
+                  required
+                  className="w-full"
+                  patientId={patientId}
+                  onAttentionOriginChange={(attentionOrigin) => {
+                    setFormData(prev => ({ ...prev, attentionOrigin }));
+                  }}
+                  onMedicoChange={(medicoValue, medicoData) => {
+                    setFormData(prev => ({ ...prev, authorizingDoctor: medicoValue }));
+                  }}
+                  onDiagnosticoChange={(diagnosticoValue, diagnosticoData) => {
+                    setFormData(prev => ({ ...prev, diagnosis: diagnosticoValue }));
+                  }}
+                />
+              </div>
               
-              <ConsultorioSelector
-                value={formData.hospitalizedIn}
-                onChange={(value) => setFormData({ ...formData, hospitalizedIn: value })}
-                disabled={fieldsLocked}
-                className="w-full"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="consultorio" className="text-sm font-semibold text-red-600">
+                  <span className="text-red-500">●</span> Hospitalizado en <span className="text-red-500">*</span>
+                </Label>
+                <ConsultorioSelector
+                  value={formData.hospitalizedIn}
+                  onChange={(value) => setFormData({ ...formData, hospitalizedIn: value })}
+                  disabled={fieldsLocked}
+                  className="w-full"
+                />
+              </div>
               
-              <SeguroSelector
-                value={formData.financing}
-                onChange={(value) => setFormData({ ...formData, financing: value })}
-                disabled={fieldsLocked}
-                className="w-full"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
+                  <span className="text-red-500">●</span> Financiamiento <span className="text-red-500">*</span>
+                </Label>
+                <SeguroSelector
+                  value={formData.financing}
+                  onChange={(value) => setFormData({ ...formData, financing: value })}
+                  disabled={fieldsLocked}
+                  className="w-full"
+                />
+              </div>
             </div>
             
             {/* Columna derecha */}
             <div className="space-y-6">
-              <div>
-                <Label className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Origen de Atención: <span className="text-red-500">*</span>
+              <div className="space-y-2">
+                <Label htmlFor="attentionOrigin" className="text-sm font-semibold text-red-600">
+                  <span className="text-red-500">●</span> Procedencia del Paciente <span className="text-red-500">*</span>
                 </Label>
                 <Input
+                  id="attentionOrigin"
                   value={formData.attentionOrigin}
                   onChange={(e) => setFormData({ ...formData, attentionOrigin: e.target.value })}
-                  className="mt-1 font-medium"
+                  className="font-medium"
                   disabled={true} // Siempre en modo solo lectura
                   required
                 />
               </div>
               
-              <MedicoSelector
-                value={formData.authorizingDoctor}
-                onChange={(value, medicoData) => {
-                  console.log('Médico seleccionado:', medicoData);
-                  setFormData({ ...formData, authorizingDoctor: value });
-                }}
-                disabled={fieldsLocked}
-                className="w-full"
-                // No pasamos consultorioId para permitir buscar cualquier médico
-              />
+              <div className="space-y-2">
+                <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
+                  <span className="text-red-500">●</span> Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
+                </Label>
+                <MedicoSelector
+                  value={formData.authorizingDoctor}
+                  onChange={(value, medicoData) => {
+                    console.log('Médico seleccionado:', medicoData);
+                    setFormData({ ...formData, authorizingDoctor: value });
+                  }}
+                  disabled={fieldsLocked}
+                  className="w-full"
+                  // No pasamos consultorioId para permitir buscar cualquier médico
+                />
+              </div>
               
-              <DiagnosticoSelector
-                value={formData.diagnosis}
-                onChange={(value, diagnosticoData) => {
-                  console.log('Diagnóstico seleccionado:', diagnosticoData);
-                  setFormData({ ...formData, diagnosis: value });
-                }}
-                disabled={fieldsLocked}
-                origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
-              />
+              <div className="space-y-2">
+                <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
+                  <span className="text-red-500">●</span> Diagnóstico <span className="text-red-500">*</span>
+                </Label>
+                <DiagnosticoSelector
+                  value={formData.diagnosis}
+                  onChange={(value, diagnosticoData) => {
+                    console.log('Diagnóstico seleccionado:', diagnosticoData);
+                    setFormData({ ...formData, diagnosis: value });
+                  }}
+                  disabled={fieldsLocked}
+                  origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
           
           {/* Campo de observaciones eliminado según requerimiento */}
           
-          <div className="flex justify-end space-x-4 mt-8">
+          {/* Mensaje informativo */}
+          <div className="flex items-center mt-6 mb-2 text-sm text-blue-600">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>El Código de Origen de Atención no es requerido si el nombre es RN</span>
+          </div>
+          
+          <div className="flex justify-end space-x-4 mt-4">
             <Button 
               type="button" 
               variant="outline" 

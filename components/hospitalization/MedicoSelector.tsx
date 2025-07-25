@@ -87,9 +87,6 @@ export const MedicoSelector: React.FC<MedicoSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
-        <span className="text-red-500">●</span> Médico <span className="text-red-500">*</span>
-      </Label>
       <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -97,7 +94,7 @@ export const MedicoSelector: React.FC<MedicoSelectorProps> = ({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between",
+              "w-full justify-between h-10",
               !value && "text-gray-500",
               disabled && "opacity-70 cursor-not-allowed"
             )}

@@ -35,6 +35,61 @@ export interface OrdenHospitalizacion {
 
 export const ordenHospitalizacionService = {
   /**
+   * Check if a patient has editable hospitalization orders (ESTADO = '1' or ESTADO = '2')
+   */
+  async checkEditableStatus(pacienteId: string) {
+    try {
+      console.log(`Verificando estado editable para paciente: ${pacienteId}`);
+      
+      // Primero verificar si la vista existe
+      try {
+        const viewCheck = await prisma.$queryRawUnsafe(`
+          SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS 
+          WHERE TABLE_NAME = 'V_HOSPITALIZA'
+        `);
+        
+        const viewExists = Array.isArray(viewCheck) && viewCheck.length > 0;
+        console.log(`Vista V_HOSPITALIZA existe: ${viewExists}`);
+        
+        if (!viewExists) {
+          console.log('Usando tabla HOSPITALIZA en lugar de vista V_HOSPITALIZA');
+          // Si la vista no existe, intentar con la tabla directamente
+          const result = await prisma.$queryRawUnsafe(`
+            SELECT TOP 1 * FROM HOSPITALIZA
+            WHERE PACIENTE = '${pacienteId}' AND (ESTADO = '1' OR ESTADO = '2')
+          `);
+          
+          const isEditable = Array.isArray(result) && result.length > 0;
+          console.log(`Estado editable (usando tabla) para paciente ${pacienteId}: ${isEditable}`);
+          console.log('Resultado de la consulta:', JSON.stringify(result));
+          return { isEditable, source: 'table' };
+        }
+      } catch (viewError) {
+        console.error('Error al verificar si la vista existe:', viewError);
+        // Continuar con la consulta original si hay un error al verificar la vista
+      }
+      
+      // Verificar si existe un registro con ESTADO = '1' o ESTADO = '2' para este paciente
+      const query = `
+        SELECT TOP 1 * FROM V_HOSPITALIZA
+        WHERE PACIENTE = '${pacienteId}' AND (ESTADO = '1' OR ESTADO = '2')
+      `;
+      
+      console.log('Ejecutando consulta:', query);
+      const result = await prisma.$queryRawUnsafe(query);
+      console.log('Resultado de la consulta:', JSON.stringify(result));
+      
+      // Si hay resultados, significa que hay órdenes editables
+      const isEditable = Array.isArray(result) && result.length > 0;
+      
+      console.log(`Estado editable para paciente ${pacienteId}: ${isEditable}`);
+      return { isEditable, source: 'view' };
+    } catch (error) {
+      console.error('Error al verificar estado editable:', error);
+      return { isEditable: false, error: String(error), source: 'error' };
+    }
+  },
+  /**
    * Get paginated orden hospitalización records with optional filtering using raw SQL
    */
   async getPaginatedOrdenHospitalizacion(
@@ -94,8 +149,18 @@ export const ordenHospitalizacionService = {
       
       console.log(`Encontrados ${data.length} registros de orden hospitalización de un total de ${total}`);
       
-      // Convertir fechas a formato string ISO para mejor manejo en el frontend
+      // Convertir fechas a formato string ISO y asegurar que idHOSPITALIZACION esté presente
       const processedData = data.map((record: any) => {
+        // Asegurarse de que idHOSPITALIZACION esté presente y sea un string
+        if (record.idHOSPITALIZACION === undefined && record.IDHOSPITALIZACION !== undefined) {
+          console.log('Corrigiendo campo idHOSPITALIZACION usando IDHOSPITALIZACION');
+          record.idHOSPITALIZACION = String(record.IDHOSPITALIZACION);
+        } else if (record.idHOSPITALIZACION === undefined && record.ID_HOSPITALIZACION !== undefined) {
+          console.log('Corrigiendo campo idHOSPITALIZACION usando ID_HOSPITALIZACION');
+          record.idHOSPITALIZACION = String(record.ID_HOSPITALIZACION);
+        }
+        
+        // Procesar la fecha
         if (record.FECHA1) {
           try {
             // Intentar convertir la fecha a un formato estándar
@@ -113,19 +178,45 @@ export const ordenHospitalizacionService = {
             record.FECHA1 = String(record.FECHA1);
           }
         }
+        
+        // Registrar para depuración
+        console.log('Registro procesado:', {
+          idHOSPITALIZACION: record.idHOSPITALIZACION,
+          IDHOSPITALIZACION: record.IDHOSPITALIZACION,
+          ID_HOSPITALIZACION: record.ID_HOSPITALIZACION
+        });
+        
         return record;
       });
       
-      // Formato esperado por el hook
-      return serializeBigInt({
-        data: processedData,
-        pagination: {
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize),
-        },
-      });
+      // Si estamos filtrando por pacienteId, devolvemos los datos en un formato compatible con el endpoint anterior
+      if (filter.pacienteId) {
+        console.log(`Devolviendo datos en formato compatible para pacienteId ${filter.pacienteId}`);
+        return serializeBigInt({
+          success: true,
+          data: processedData,
+          pagination: {
+            total,
+            page,
+            pageSize,
+            totalPages: Math.ceil(total / pageSize),
+          },
+        });
+      } else {
+        // Formato estándar para otros casos
+        return serializeBigInt({
+          success: true,
+          data: {
+            records: processedData,
+            pagination: {
+              total,
+              page,
+              pageSize,
+              totalPages: Math.ceil(total / pageSize),
+            },
+          },
+        });
+      }
     } catch (error) {
       console.error('Error en getPaginatedOrdenHospitalizacion:', error instanceof Error ? error.message : 'Error desconocido', error);
       throw error;
@@ -137,6 +228,12 @@ export const ordenHospitalizacionService = {
    */
   async getOrdenHospitalizacionById(id: string) {
     try {
+      // Validar que el ID sea válido
+      if (!id || id === 'undefined' || id.trim() === '') {
+        console.error(`ID de orden hospitalización inválido: "${id}"`);
+        return null;
+      }
+      
       console.log(`Buscando registro de orden hospitalización con ID: ${id}`);
       
       // Usar CONVERT para formatear las fechas en SQL Server 2008 R2
@@ -146,7 +243,7 @@ export const ordenHospitalizacionService = {
           CONVERT(VARCHAR(10), FECHA_NACIMIENTO, 103) AS FECHA_NACIMIENTO_STR,
           CONVERT(VARCHAR(10), FECHA1, 103) AS FECHA1_STR
         FROM V_HOSPITALIZA 
-        WHERE idHOSPITALIZACION = '${id}'
+        WHERE idHOSPITALIZACION = '${id.trim()}'
       `;
       
       const result = await prisma.$queryRawUnsafe(query);

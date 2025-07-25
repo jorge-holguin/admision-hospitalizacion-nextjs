@@ -63,11 +63,10 @@ export function useOrdenHospitalizacion({
     setError(null);
     
     try {
-      // Registrar la URL que se va a utilizar
-      const apiUrl = `/api/orden-hospitalizacion/paciente/${debouncedPacienteId}`;
-      console.log('📝 [useOrdenHospitalizacion] Llamando a API:', apiUrl);
+      // Usar la API principal con paginación en lugar de la API específica de paciente
+      const apiUrl = `/api/orden-hospitalizacion?page=${pagination.page}&pageSize=${pagination.pageSize}&pacienteId=${debouncedPacienteId}`;
+      console.log('📝 [useOrdenHospitalizacion] Llamando a API principal con paginación:', apiUrl);
       
-      // Use the correct endpoint for fetching orders by patient ID
       const response = await fetch(apiUrl);
       
       console.log('📝 [useOrdenHospitalizacion] Estado de respuesta API:', response.status, response.statusText);
@@ -77,17 +76,55 @@ export function useOrdenHospitalizacion({
         throw new Error(`Error al obtener órdenes de hospitalización: ${response.status}`);
       }
       
-      const data = await response.json();
+      const result = await response.json();
       console.log('📝 [useOrdenHospitalizacion] Datos recibidos:', { 
-        esArray: Array.isArray(data), 
-        longitud: Array.isArray(data) ? data.length : 'N/A',
-        muestra: Array.isArray(data) && data.length > 0 ? data[0] : 'Sin datos'
+        success: result.success,
+        data: result.data ? {
+          length: result.data.records?.length || 0,
+          sample: result.data.records?.length > 0 ? result.data.records[0] : 'Sin datos'
+        } : 'No hay datos',
+        pagination: result.data?.pagination || 'No hay paginación'
       });
       
-      // Since the paciente endpoint returns an array directly without pagination
-      // we need to handle the pagination on the client side
-      const allData = Array.isArray(data) ? data : [];
-      const total = allData.length;
+      // La API principal devuelve los datos en diferentes formatos dependiendo del endpoint
+      let data = [];
+      let total = 0;
+      
+      console.log('📝 [useOrdenHospitalizacion] Estructura de respuesta:', { 
+        tieneSuccess: 'success' in result,
+        tieneData: 'data' in result,
+        tipoData: result.data ? (Array.isArray(result.data) ? 'array' : 'objeto') : 'no hay data',
+        tienePagination: result.pagination ? 'si' : 'no',
+        esArray: Array.isArray(result)
+      });
+      
+      if (result.success && result.data && Array.isArray(result.data)) {
+        // Formato para filtrado por pacienteId: { success: true, data: [...], pagination: {...} }
+        data = result.data;
+        total = result.pagination?.total || data.length;
+        console.log('📝 [useOrdenHospitalizacion] API devolvió formato para pacienteId');
+      } else if (result.success && result.data && result.data.records) {
+        // Formato estándar: { success: true, data: { records: [...], pagination: {...} } }
+        data = result.data.records;
+        total = result.data.pagination?.total || data.length;
+        console.log('📝 [useOrdenHospitalizacion] API devolvió formato estándar');
+      } else if (Array.isArray(result)) {
+        // Formato antiguo: array directo
+        data = result;
+        total = result.length;
+        console.log('📝 [useOrdenHospitalizacion] API devolvió array directo (formato antiguo)');
+      } else if (result.data && !Array.isArray(result.data) && !result.data.records) {
+        // Caso especial: objeto data sin records
+        console.log('📝 [useOrdenHospitalizacion] Estructura de datos inesperada:', result);
+        data = [];
+        total = 0;
+      }
+      
+      console.log('📝 [useOrdenHospitalizacion] Datos procesados:', { 
+        dataLength: data.length,
+        total,
+        muestra: data.length > 0 ? data[0] : 'Sin datos'
+      });
       const totalPages = Math.ceil(total / pagination.pageSize);
       
       console.log('📝 [useOrdenHospitalizacion] Aplicando paginación del lado del cliente:', { 
@@ -96,18 +133,12 @@ export function useOrdenHospitalizacion({
         páginaActual: pagination.page 
       });
       
-      // Apply pagination on the client side
-      const start = (pagination.page - 1) * pagination.pageSize;
-      const end = start + pagination.pageSize;
-      const paginatedData = allData.slice(start, end);
-      
-      console.log('📝 [useOrdenHospitalizacion] Datos paginados:', { 
-        desde: start, 
-        hasta: end, 
-        registrosMostrados: paginatedData.length 
+      // La API ya devuelve los datos paginados, no necesitamos hacer paginación del lado del cliente
+      console.log('📝 [useOrdenHospitalizacion] Usando datos paginados de la API:', { 
+        registrosMostrados: data.length 
       });
       
-      setOrdenesHospitalizacion(paginatedData);
+      setOrdenesHospitalizacion(data);
       setPagination(prev => ({
         ...prev,
         total,

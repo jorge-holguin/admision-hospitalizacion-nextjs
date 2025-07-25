@@ -1,19 +1,20 @@
 "use client"
 
-import { useSearchParams, useParams, useRouter } from 'next/navigation'
-import { Navbar } from "@/components/Navbar"
-import { HospitalizationForm } from '@/components/hospitalization/HospitalizationForm'
+import { useParams, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { Navbar } from '@/components/Navbar'
+import { HospitalizationView } from '@/components/hospitalization/HospitalizationView'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
-export default function HospitalizationRegisterPage() {
+export default function HospitalizationViewPage() {
   const router = useRouter();
   // Usar useParams hook para obtener los parámetros de ruta
   const params = useParams();
   const patientId = params.patientId as string;
   
   // Registrar para depuración
-  console.log('PatientId obtenido:', patientId);
+  console.log('PatientId obtenido en vista:', patientId);
   
   // Obtener el orderId de los parámetros de búsqueda
   const searchParams = useSearchParams()
@@ -32,13 +33,20 @@ export default function HospitalizationRegisterPage() {
           <Button 
             variant="outline" 
             onClick={handleGoBack}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver a Órdenes de Hospitalización
           </Button>
+          <h1 className="text-2xl font-bold">Visualización de Hospitalización</h1>
+          <p className="text-gray-600">
+            {orderId ? `Orden #${orderId}` : 'Sin orden seleccionada'}
+          </p>
         </div>
-        <HospitalizationForm patientId={patientId} orderId={orderId} />
+        <HospitalizationView 
+          patientId={patientId} 
+          orderId={orderId} 
+        />
       </main>
     </>
   )

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,12 +26,19 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Crear una referencia para controlar si ya se ha hecho la llamada a la API
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    // Evitar llamadas duplicadas usando una referencia
+    if (fetchedRef.current) return;
+    
     const fetchSeguros = async () => {
       try {
         setLoading(true);
         setError(null);
         
+        console.log('Iniciando llamada a API de seguros');
         const response = await fetch('/api/seguros');
         
         if (!response.ok) {
@@ -39,7 +46,11 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
         }
         
         const data = await response.json();
+        console.log('Datos de seguros recibidos:', data.length);
         setSeguros(data);
+        
+        // Marcar que ya se ha hecho la llamada
+        fetchedRef.current = true;
       } catch (error) {
         console.error('Error al cargar seguros:', error);
         setError('Error al cargar seguros');
@@ -65,9 +76,6 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
-        <span className="text-red-500">●</span> Seguro / Financiamiento <span className="text-red-500">*</span>
-      </Label>
       <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -75,7 +83,7 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between",
+              "w-full justify-between h-10",
               !value && "text-gray-500",
               disabled && "opacity-70 cursor-not-allowed"
             )}

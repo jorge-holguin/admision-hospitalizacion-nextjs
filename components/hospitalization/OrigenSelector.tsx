@@ -169,10 +169,6 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <Label className="text-sm font-semibold text-red-600">
-        {required && <span className="text-red-500">●</span>} Origen de la Hospitalización:{" "}
-        {required && <span className="text-red-500">*</span>}
-      </Label>
       <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -180,7 +176,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between mt-1 font-medium text-left",
+              "w-full justify-between font-medium text-left h-10",
               !value && "text-gray-500",
               disabled && "bg-gray-100 cursor-not-allowed"
             )}

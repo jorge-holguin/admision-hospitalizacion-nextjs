@@ -14,6 +14,7 @@ interface DiagnosticoSelectorProps {
   onChange: (value: string, diagnosticoData?: Diagnostico) => void;
   disabled?: boolean;
   origenId?: string;
+  className?: string;
 }
 
 export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({ 
@@ -21,6 +22,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   onChange, 
   disabled = false,
   origenId,
+  className = '',
 }) => {
   console.log(`DiagnosticoSelector inicializado con origenId: ${origenId || 'ninguno'}`);
   
@@ -179,10 +181,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   };
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
-        <span className="text-red-500">●</span> Diagnóstico <span className="text-red-500">*</span>
-      </Label>
+    <div className={`space-y-2 ${className}`}>
       <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -190,7 +189,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between",
+              "w-full justify-between h-10",
               !value && "text-gray-500",
               disabled && "opacity-70 cursor-not-allowed"
             )}
