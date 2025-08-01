@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
+import Image from 'next/image';
 
 interface PatientInfoCardProps {
   patientId: string;
@@ -18,6 +19,9 @@ interface PatientData {
   birthDate: string;
   age: string;
   insurance: string;
+  phone: string;
+  district: string;
+  photo?: string;
 }
 
 export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, className = '', onDataLoaded }) => {
@@ -31,7 +35,10 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
     sex: "",
     birthDate: "",
     age: "",
-    insurance: ""
+    insurance: "",
+    phone: "",
+    district: "",
+    photo: ""
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +80,10 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
           sex: data.SEXO === 'M' ? 'Masculino' : data.SEXO === 'F' ? 'Femenino' : data.SEXO || '',
           birthDate: data.FECHA_NACIMIENTO || data.FECNAC || '',
           age: data.EDAD || '',
-          insurance: data.NOMBRE_SEGURO?.trim() || data.SEGURO?.trim() || ''
+          insurance: data.NOMBRE_SEGURO?.trim() || data.SEGURO?.trim() || '',
+          phone: data.TELEFONO1 || '',
+          district: data.DISTRITO || '',
+          photo: data.STRING_FOTO || ''
         };
         
         console.log('PatientData mapeado:', patientDataObj);
@@ -141,30 +151,41 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
     );
   }
 
+  // Construir el nombre completo del paciente
+  const fullName = [
+    patientData.names,
+    patientData.paternalSurname,
+    patientData.maternalSurname
+  ].filter(Boolean).join(' ');
+
   return (
     <Card className={className}>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Historia Clínica</p>
-            <p className="text-lg font-semibold">{patientData.historyNumber || '-'}</p>
+      <CardHeader className="pb-0">
+        <div className="flex flex-col items-center">
+          <div className="relative h-60 w-40 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 mb-4">
+            {patientData.photo ? (
+              <Image 
+                src={`data:image/jpeg;base64,${patientData.photo}`}
+                alt="Foto del paciente"
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Nombres</p>
-            <p className="text-lg font-semibold">{patientData.names || '-'}</p>
+          <div className="text-center mb-2">
+            <h2 className="text-xl font-bold">{fullName || 'Paciente sin nombre'}</h2>
+            <p className="text-sm text-gray-500">HC: {patientData.historyNumber || '-'}</p>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Apellido Paterno</p>
-            <p className="text-lg font-semibold">{patientData.paternalSurname || '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Apellido Materno</p>
-            <p className="text-lg font-semibold">{patientData.maternalSurname || '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Documento</p>
-            <p className="text-lg font-semibold">{patientData.document || '-'}</p>
-          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="flex flex-col space-y-3">
           <div>
             <p className="text-sm font-medium text-gray-500">Sexo</p>
             <p className="text-lg font-semibold">{patientData.sex || '-'}</p>
@@ -180,6 +201,14 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
           <div>
             <p className="text-sm font-medium text-gray-500">Seguro</p>
             <p className="text-lg font-semibold">{patientData.insurance || '-'}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Teléfono</p>
+            <p className="text-lg font-semibold">{patientData.phone || '-'}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Distrito</p>
+            <p className="text-lg font-semibold">{patientData.district || '-'}</p>
           </div>
         </div>
       </CardContent>

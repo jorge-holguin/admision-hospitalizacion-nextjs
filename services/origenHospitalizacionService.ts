@@ -12,6 +12,7 @@ export interface OrigenHospitalizacion {
   NOMBRES?: string
   DNI?: string
   DX?: string
+  SEGURO?: string
   // Campos adicionales para debugging
   [key: string]: any
 }
@@ -75,7 +76,11 @@ export class OrigenHospitalizacionService {
             WHEN ORIGEN = 'CE' THEN (SELECT TOP 1 DX_DES FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = CODIGO AND DX LIKE '[A-Z]%' ORDER BY DX)
             WHEN ORIGEN = 'EM' THEN (SELECT TOP 1 DX_DES FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = CODIGO AND DX LIKE '[A-Z]%' ORDER BY DX)
             ELSE NULL
-          END AS DX_DES
+          END AS DX_DES,
+          CASE
+            WHEN EXISTS (SELECT 1 FROM dbo.PACIENTE WITH (NOLOCK) WHERE PACIENTE = FilteredResults.PACIENTE) THEN (SELECT TOP 1 SEGURO FROM dbo.PACIENTE WITH (NOLOCK) WHERE PACIENTE = FilteredResults.PACIENTE)
+            ELSE NULL
+          END AS SEGURO
         FROM (
           SELECT ROW_NUMBER() OVER (ORDER BY FECHA DESC) AS RowNum, ORIGEN, CODIGO, CONSULTORIO, NOM_CONSULTORIO, PACIENTE, FECHA, MEDICO, NOM_MEDICO
           FROM V_ORIGEN_HOSPITALIZA WITH (NOLOCK)
@@ -105,7 +110,7 @@ export class OrigenHospitalizacionService {
       try {
         console.log('Intentando consulta alternativa con UNION ALL para CE y EM...')
         const result = await prisma.$queryRaw<OrigenHospitalizacion[]>`
-          SELECT TOP ${params.take || 10} ORIGEN, CODIGO, CONSULTORIO, NOM_CONSULTORIO, PACIENTE, FECHA, MEDICO, NOM_MEDICO, NOMBRES, DNI, DX
+          SELECT TOP ${params.take || 10} ORIGEN, CODIGO, CONSULTORIO, NOM_CONSULTORIO, PACIENTE, FECHA, MEDICO, NOM_MEDICO, NOMBRES, DNI, DX, SEGURO
           FROM (
             SELECT 
               'CE' AS ORIGEN, 
@@ -120,6 +125,7 @@ export class OrigenHospitalizacionService {
               RTRIM(ISNULL(D.DOCUMENTO, A.DNI)) AS DNI,
               (SELECT TOP 1 DX FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = A.ID_CITA AND DX LIKE '[A-Z]%' ORDER BY DX) AS DX,
               (SELECT TOP 1 DX_DES FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = A.ID_CITA AND DX LIKE '[A-Z]%' ORDER BY DX) AS DX_DES,
+              D.SEGURO AS SEGURO,
               A.FECHA AS FECHA_ORDEN
             FROM dbo.ATENCIONC AS A WITH (NOLOCK)
             INNER JOIN dbo.CONSULTORIO AS B WITH (NOLOCK) ON A.CONSULTORIO = B.CONSULTORIO 
@@ -144,6 +150,7 @@ export class OrigenHospitalizacionService {
               RTRIM(ISNULL(D.DOCUMENTO, RTRIM(ISNULL(A.DOCUMENTO, '')))) AS DNI,
               (SELECT TOP 1 DX FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = A.EMERGENCIA_ID AND DX LIKE '[A-Z]%' ORDER BY DX) AS DX,
               (SELECT TOP 1 DX_DES FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = A.EMERGENCIA_ID AND DX LIKE '[A-Z]%' ORDER BY DX) AS DX_DES,
+              D.SEGURO AS SEGURO,
               A.FECHA AS FECHA_ORDEN
             FROM dbo.EMERGENCIA AS A WITH (NOLOCK)
             INNER JOIN dbo.CONSULTORIO AS B WITH (NOLOCK) ON A.CONSULTORIO = B.CONSULTORIO 
@@ -194,7 +201,11 @@ export class OrigenHospitalizacionService {
               WHERE AD.ID_CITA = V.CODIGO AND AD.DX LIKE '[A-Z]%'
             )
             ELSE NULL
-          END AS DX
+          END AS DX,
+          CASE
+            WHEN EXISTS (SELECT 1 FROM dbo.PACIENTE WITH (NOLOCK) WHERE PACIENTE = V.PACIENTE) THEN (SELECT TOP 1 SEGURO FROM dbo.PACIENTE WITH (NOLOCK) WHERE PACIENTE = V.PACIENTE)
+            ELSE NULL
+          END AS SEGURO
         FROM V_ORIGEN_HOSPITALIZA V WITH (NOLOCK)
         LEFT JOIN dbo.ATENCIONC A WITH (NOLOCK) ON V.ORIGEN = 'CE' AND V.CODIGO = A.ID_CITA
         LEFT JOIN dbo.EMERGENCIA E WITH (NOLOCK) ON V.ORIGEN = 'EM' AND V.CODIGO = E.EMERGENCIA_ID
@@ -213,7 +224,7 @@ export class OrigenHospitalizacionService {
       try {
         console.log('Intentando consulta alternativa para findOne con CE y EM...')
         const query = `
-          SELECT ORIGEN, CODIGO, CONSULTORIO, NOM_CONSULTORIO, PACIENTE, FECHA, MEDICO, NOM_MEDICO, NOMBRES, DNI, DX
+          SELECT ORIGEN, CODIGO, CONSULTORIO, NOM_CONSULTORIO, PACIENTE, FECHA, MEDICO, NOM_MEDICO, NOMBRES, DNI, DX, SEGURO
           FROM (
             SELECT 
               'CE' AS ORIGEN, 
@@ -230,7 +241,8 @@ export class OrigenHospitalizacionService {
                 SELECT STRING_AGG(CONCAT(RTRIM(DX), ' ', DX_DES), ' , ') 
                 FROM dbo.ATENCIOND WITH (NOLOCK) 
                 WHERE ID_CITA = A.ID_CITA AND DX LIKE '[A-Z]%'
-              ) AS DX
+              ) AS DX,
+              D.SEGURO AS SEGURO
             FROM dbo.ATENCIONC AS A WITH (NOLOCK)
             INNER JOIN dbo.CONSULTORIO AS B WITH (NOLOCK) ON A.CONSULTORIO = B.CONSULTORIO 
             INNER JOIN dbo.MEDICO AS C WITH (NOLOCK) ON A.MEDICO = C.MEDICO  
@@ -254,7 +266,8 @@ export class OrigenHospitalizacionService {
                 SELECT STRING_AGG(CONCAT(RTRIM(DX), ' ', DX_DES), ' , ') 
                 FROM dbo.ATENCIOND WITH (NOLOCK) 
                 WHERE ID_CITA = A.EMERGENCIA_ID AND DX LIKE '[A-Z]%'
-              ) AS DX
+              ) AS DX,
+              D.SEGURO AS SEGURO
             FROM dbo.EMERGENCIA AS A WITH (NOLOCK)
             INNER JOIN dbo.CONSULTORIO AS B WITH (NOLOCK) ON A.CONSULTORIO = B.CONSULTORIO 
             INNER JOIN dbo.MEDICO AS C WITH (NOLOCK) ON A.MEDICO = C.MEDICO

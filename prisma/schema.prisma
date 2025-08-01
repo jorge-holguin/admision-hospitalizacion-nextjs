@@ -1869,13 +1869,15 @@ model ENTIDAD {
   PACIENTE_PACIENTE_ENTIDADToENTIDAD PACIENTE[] @relation("PACIENTE_ENTIDADToENTIDAD")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ENTIDADSIS {
-  ENTIDADSIS String  @id @db.NChar(10)
+  ENTIDADSIS String  @db.NChar(10)
   NOMBRE     String  @db.NChar(100)
   ESTADO     String? @db.VarChar(1)
   COD_DISA   String? @db.VarChar(3)
 
   @@index([ENTIDADSIS], map: "IX_ENTIDADSIS_entidadsis")
+  @@ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -2675,6 +2677,9 @@ model HOSPITALIZA {
   observacion_egreso    String?               @db.Text
   MEDICO                String?               @db.Char(4)
   FECHA_HOSPITALIZACION DateTime?             @db.DateTime
+  ACOMPANANTE_NOMBRE    String?               @db.VarChar(100)
+  ACOMPANANTE_DIRECCION String?               @db.VarChar(200)
+  ACOMPANANTE_TELEFONO  String?               @db.VarChar(20)
   ATENCION_GINE_CE      ATENCION_GINE_CE?
   CE_DET_WEB            CE_DET_WEB[]
   HOSP_ANTECEDENTES_CE  HOSP_ANTECEDENTES_CE?
@@ -3419,11 +3424,14 @@ model LABORATORIO {
   ITEM_copy1_ITEM_copy1_LABORATORIOToLABORATORIO ITEM_copy1[] @relation("ITEM_copy1_LABORATORIOToLABORATORIO")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model LOCALIDAD {
-  Localidad String  @id @db.Char(12)
+  Localidad String  @db.Char(12)
   Nombre    String  @default(" ", map: "DF_Localidad_Nombre") @db.VarChar(50)
   Activo    Int     @default(1, map: "DF_Localidad_Activo") @db.TinyInt
   Ubigeo    String? @db.Char(7)
+
+  @@ignore
 }
 
 model LOG_ERROR {
@@ -4326,8 +4334,8 @@ model PATRON_LABO {
   ID_GPATRON        Int?
   UPS               String?            @db.VarChar(10)
   ORDEN             Int?
-  CPT_LABORATORIO CPT_LABORATORIO[] @ignore
-  GRUPO_PATRON_LABO GRUPO_PATRON_LABO? @relation(fields: [ID_GPATRON], references: [ID_GPATRON], onDelete: NoAction, onUpdate: NoAction, map: "ID_GPATRON") @ignore
+  CPT_LABORATORIO   CPT_LABORATORIO[] @ignore
+  GRUPO_PATRON_LABO GRUPO_PATRON_LABO? @relation(fields: [ID_GPATRON], references: [ID_GPATRON], onDelete: NoAction, onUpdate: NoAction, map: "ID_GPATRON")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -5565,7 +5573,7 @@ model TB_KIT_CONSUMO_VARIABLE_DET {
   id_kit                  Int
   id_medicamento          String                  @db.Char(7)
   cantidad                Decimal                 @db.Decimal(10, 2)
-TB_KIT_CONSUMO_VARIABLE TB_KIT_CONSUMO_VARIABLE @relation(fields: [id_kit], references: [id_kit], onUpdate: NoAction, map: "FK_KIT_CONSUMO_VARIABLE_DET_KIT_CONSUMO_VARIABLE") @ignore
+  TB_KIT_CONSUMO_VARIABLE TB_KIT_CONSUMO_VARIABLE @relation(fields: [id_kit], references: [id_kit], onUpdate: NoAction, map: "FK_KIT_CONSUMO_VARIABLE_DET_KIT_CONSUMO_VARIABLE")
 
   @@ignore
 }
@@ -6642,6 +6650,16 @@ model Web_Services_Sis {
   IdGrupoPoblacional String?   @db.Char(2)
   MsgConfidencial    String?   @db.VarChar(500)
   FechaConsulta      DateTime? @db.DateTime
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model nueva_tabla {
+  PACIENTE     String?   @db.VarChar(100)
+  DNI          String?   @db.VarChar(20)
+  DOCUMENTO    String    @db.VarChar(20)
+  FECHA_OTORGA DateTime? @db.DateTime
 
   @@ignore
 }

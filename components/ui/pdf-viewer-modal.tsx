@@ -1,21 +1,24 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
-import { Printer, X, Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
+import { Download, Printer, ArrowLeft, FileText } from "lucide-react"
+import { mergePDFs, downloadMergedPDF, printMergedPDF } from '@/utils/pdfUtils'
+import { useRouter } from 'next/navigation'
 
 interface PDFViewerModalProps {
   open: boolean
   onClose: () => void
   pdfUrls: string[]
   title: string
+  patientId?: string // ID del paciente para el botón "Ir a Órdenes"
 }
 
-export function PDFViewerModal({ open, onClose, pdfUrls, title }: PDFViewerModalProps) {
+export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDFViewerModalProps) {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [currentPdfIndex, setCurrentPdfIndex] = useState(0)
   const [pdfData, setPdfData] = useState<string[]>([])
 
   useEffect(() => {
@@ -37,9 +40,19 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title }: PDFViewerModal
           
           const results = await Promise.all(pdfDataPromises)
           setPdfData(results)
+          setLoading(false)
+          
+          // Esperar a que se carguen los PDFs y luego preparar para imprimir automáticamente
+          setTimeout(async () => {
+            try {
+              console.log('Preparando impresión automática de documento combinado')
+              await printMergedPDF(results)
+            } catch (error) {
+              console.error('Error en impresión automática:', error)
+            }
+          }, 2000)
         } catch (error) {
           console.error('Error loading PDFs:', error)
-        } finally {
           setLoading(false)
         }
       }
@@ -48,43 +61,29 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title }: PDFViewerModal
     }
   }, [open, pdfUrls])
 
-  const handlePrint = () => {
-    if (pdfData[currentPdfIndex]) {
-      const iframe = document.createElement('iframe')
-      iframe.style.display = 'none'
-      iframe.src = pdfData[currentPdfIndex]
-      document.body.appendChild(iframe)
-      
-      iframe.onload = () => {
-        setTimeout(() => {
-          iframe.contentWindow?.focus()
-          iframe.contentWindow?.print()
-          document.body.removeChild(iframe)
-        }, 100)
-      }
+  // Función para imprimir todos los PDFs como un solo documento
+  const handlePrint = async () => {
+    try {
+      console.log('Preparando impresión de documento combinado');
+      setLoading(true);
+      await printMergedPDF(pdfData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error al imprimir documento combinado:', error);
+      setLoading(false);
     }
   }
 
-  const handleDownload = () => {
-    if (pdfData[currentPdfIndex]) {
-      const link = document.createElement('a')
-      link.href = pdfData[currentPdfIndex]
-      link.download = `documento-${currentPdfIndex + 1}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }
-  }
-
-  const goToPreviousPdf = () => {
-    if (currentPdfIndex > 0) {
-      setCurrentPdfIndex(currentPdfIndex - 1)
-    }
-  }
-
-  const goToNextPdf = () => {
-    if (currentPdfIndex < pdfData.length - 1) {
-      setCurrentPdfIndex(currentPdfIndex + 1)
+  // Función para descargar todos los PDFs como un solo documento
+  const handleDownload = async () => {
+    try {
+      console.log('Preparando descarga de documento combinado');
+      setLoading(true);
+      await downloadMergedPDF(pdfData, 'documentos-hospitalizacion.pdf');
+      setLoading(false);
+    } catch (error) {
+      console.error('Error al descargar documento combinado:', error);
+      setLoading(false);
     }
   }
 
@@ -95,9 +94,9 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title }: PDFViewerModal
           <DialogTitle className="text-xl flex items-center justify-between">
             <span>{title}</span>
             <div className="flex items-center space-x-2 text-sm font-normal">
-              {pdfData.length > 1 && (
+              {pdfData.length > 0 && (
                 <span className="text-gray-600">
-                  Documento {currentPdfIndex + 1} de {pdfData.length}
+                  {pdfData.length} documento(s)
                 </span>
               )}
             </div>
@@ -108,46 +107,29 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title }: PDFViewerModal
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Spinner size="lg" />
-              <span className="ml-2">Cargando documento...</span>
+              <span className="ml-2">Cargando documentos...</span>
             </div>
           ) : pdfData.length > 0 ? (
-            <iframe 
-              src={pdfData[currentPdfIndex]} 
-              className="w-full h-full border-0"
-              title={`PDF Viewer ${currentPdfIndex + 1}`}
-            />
+            <div className="w-full h-full overflow-y-auto">
+              {pdfData.map((pdfUrl, index) => (
+                <div key={index} className="mb-4 last:mb-0">
+                  <iframe 
+                    src={pdfUrl} 
+                    className="w-full h-[500px] border-0"
+                    title={`PDF Viewer ${index + 1}`}
+                  />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-red-500">Error al cargar el documento</p>
+              <p className="text-red-500">Error al cargar los documentos</p>
             </div>
           )}
         </div>
         
         <DialogFooter className="flex justify-between items-center pt-4">
-          <div className="flex space-x-2">
-            {pdfData.length > 1 && (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={goToPreviousPdf} 
-                  disabled={currentPdfIndex === 0}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Anterior
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={goToNextPdf} 
-                  disabled={currentPdfIndex === pdfData.length - 1}
-                >
-                  Siguiente
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </>
-            )}
-          </div>
+          <div></div> {/* Espacio vacío para mantener la alineación */}
           
           <div className="flex space-x-2">
             <Button 
@@ -168,9 +150,22 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title }: PDFViewerModal
               <Printer className="w-4 h-4 mr-2" />
               Imprimir
             </Button>
-            <Button variant="default" size="sm" onClick={onClose}>
-              <X className="w-4 h-4 mr-2" />
-              Cerrar
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push(`/hospitalization/orders/${patientId}`)} 
+              disabled={!patientId}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Ir a Órdenes
+            </Button>
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={() => router.push('/hospitalization')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver a Hospitalización
             </Button>
           </div>
         </DialogFooter>

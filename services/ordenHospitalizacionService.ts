@@ -237,15 +237,21 @@ export const ordenHospitalizacionService = {
       console.log(`Buscando registro de orden hospitalización con ID: ${id}`);
       
       // Usar CONVERT para formatear las fechas en SQL Server 2008 R2
+      // Incluir los campos de acompañante en la consulta
       const query = `
         SELECT 
-          *,
-          CONVERT(VARCHAR(10), FECHA_NACIMIENTO, 103) AS FECHA_NACIMIENTO_STR,
-          CONVERT(VARCHAR(10), FECHA1, 103) AS FECHA1_STR
-        FROM V_HOSPITALIZA 
-        WHERE idHOSPITALIZACION = '${id.trim()}'
+          V.*,
+          CONVERT(VARCHAR(10), V.FECHA_NACIMIENTO, 103) AS FECHA_NACIMIENTO_STR,
+          CONVERT(VARCHAR(10), V.FECHA1, 103) AS FECHA1_STR,
+          H.ACOMPANANTE_NOMBRE,
+          H.ACOMPANANTE_DIRECCION,
+          H.ACOMPANANTE_TELEFONO
+        FROM V_HOSPITALIZA V
+        LEFT JOIN HOSPITALIZA H ON V.idHOSPITALIZACION = H.IDHOSPITALIZACION
+        WHERE V.idHOSPITALIZACION = '${id.trim()}'
       `;
       
+      console.log('Ejecutando consulta:', query);
       const result = await prisma.$queryRawUnsafe(query);
       
       if (Array.isArray(result) && result.length > 0) {

@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar"
 import { useOrdenHospitalizacion } from "@/hooks/useOrdenHospitalizacion"
 import { Spinner } from "@/components/ui/spinner"
 import { PDFViewerModal } from "@/components/ui/pdf-viewer-modal"
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +43,12 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   const [pdfViewerOpen, setPdfViewerOpen] = useState<boolean>(false);
   const [pdfUrls, setPdfUrls] = useState<string[]>([]);
   const [pdfTitle, setPdfTitle] = useState<string>('');
+  
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [deleteItemId, setDeleteItemId] = useState<string>('');
+  const [deleteItemName, setDeleteItemName] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   
   // Usar el hook de órdenes de hospitalización
   const {
@@ -303,17 +310,54 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     window.location.href = `/hospitalization/view/${patientId}?orderId=${orderId}`;
   }
 
-  const handleDeleteOrder = (orderId?: string) => {
+  // Método para iniciar el proceso de eliminación
+  const handleDeleteOrder = (orderId?: string, patientName?: string) => {
     if (!orderId || orderId.trim() === '') {
       console.error('No se puede eliminar: ID de orden de hospitalización no válido');
       return;
     }
     
-    // Implementar eliminación real con API
-    if (confirm('¿Está seguro de eliminar esta orden de hospitalización?')) {
-      // Aquí iría la llamada a la API para eliminar
-      // Por ahora solo actualizamos la UI
+    // Eliminar espacios en blanco del ID
+    const cleanId = orderId.trim();
+    
+    // Configurar el diálogo de confirmación
+    setDeleteItemId(cleanId);
+    setDeleteItemName(patientName || `Hospitalización ${cleanId}`);
+    setDeleteDialogOpen(true);
+  }
+  
+  // Método para confirmar la eliminación
+  const confirmDeleteOrder = async () => {
+    try {
+      setIsDeleting(true);
+      console.log(`Eliminando hospitalización con ID: ${deleteItemId}`);
+      
+      // Llamar a la API DELETE para eliminar la hospitalización
+      const response = await fetch(`/api/hospitaliza/${deleteItemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error al eliminar: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Resultado de eliminación:', result);
+      
+      // Cerrar el diálogo
+      setDeleteDialogOpen(false);
+      
+      // Actualizar la lista de órdenes
       refresh();
+    } catch (error) {
+      console.error('Error al eliminar hospitalización:', error);
+      alert(`Error al eliminar la hospitalización: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -328,7 +372,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     
     // Determinar el título del documento para el visor de PDF
     const documentName = documentType === 'filiacion' ? 'Hoja de Filiación' :
-                        documentType === 'orden-consentimiento' ? 'Orden de Hospitalización + Consentimiento' :
+                        documentType === 'orden-consentimiento' ? 'Orden de Hospitalización' :
                         documentType === 'consentimiento-docencia' ? 'Consentimiento para actividades de docencia' :
                         documentType === 'fua' ? 'FUA' : 'Documento';
     
@@ -337,38 +381,29 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     // Configurar las URLs y abrir el visor de PDF según el tipo de documento
     switch(documentType) {
       case 'filiacion':
-        // Para la hoja de filiación, necesitamos hacer una llamada a la API local primero
-        fetch(`/api/filiacion/${patientId}`)
-          .then(response => {
-            if (!response.ok) throw new Error('Error al obtener datos de filiación');
-            return response.json();
-          })
-          .then(data => {
-            console.log('Datos de filiación obtenidos:', data);
-            // Configurar el visor de PDF con la URL de la hoja de filiación
-            setPdfTitle('Hoja de Filiación');
-            setPdfUrls([`/api/print/filiacion/${patientId}`]);
-            setPdfViewerOpen(true);
-          })
-          .catch(error => {
-            console.error('Error al obtener datos de filiación:', error);
-            alert('Error al generar la hoja de filiación');
-          });
+        // Configurar el visor de PDF con las URLs de orden y c onsentimiento
+        setPdfTitle('Hoja de Filiación');
+        setPdfUrls([
+          `http://192.168.0.21:8080/api/reporte/pdf/hoja-filiacion/${cleanId}`,
+        ]);
+        setPdfViewerOpen(true);
         break;
       
       case 'orden-consentimiento':
         // Configurar el visor de PDF con las URLs de orden y consentimiento
-        setPdfTitle('Orden de Hospitalización + Consentimiento');
+        setPdfTitle('Orden de Hospitalización');
         setPdfUrls([
           `http://192.168.0.21:8080/api/reporte/pdf/orden-hospitalizacion/${cleanId}`,
-          `http://192.168.0.21:8080/api/reporte/pdf/consentimiento-hospitalizacion/${cleanId}`
         ]);
         setPdfViewerOpen(true);
         break;
       
       case 'consentimiento-docencia':
-        // Implementar cuando esté disponible la API
-        alert('Funcionalidad de impresión de consentimiento para docencia en desarrollo');
+        setPdfTitle('Consentimiento para actividades de docencia');
+        setPdfUrls([
+          `http://192.168.0.21:8080/api/reporte/pdf/consentimiento-hospitalizacion/${cleanId}`
+        ]);
+        setPdfViewerOpen(true);
         break;
       
       case 'fua':
@@ -384,14 +419,25 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* PDF Viewer Modal */}
+      {/* Visor de PDF */}
       <PDFViewerModal
         open={pdfViewerOpen}
         onClose={() => setPdfViewerOpen(false)}
         pdfUrls={pdfUrls}
         title={pdfTitle}
+        patientId={patientId}
       />
       
+      {/* Diálogo de confirmación de eliminación */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={confirmDeleteOrder}
+        title="Confirmar eliminación"
+        description="Esta acción eliminará permanentemente el registro de hospitalización. ¿Está seguro de continuar?"
+        itemName={deleteItemName}
+        isLoading={isDeleting}
+      />
       {/* Header */}
       <Navbar 
         title="SIGSALUD" 
@@ -530,7 +576,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                   }}
                                 >
                                   <ClipboardList className="w-4 h-4 text-green-600" />
-                                  <span>Orden de Hospitalización + Consentimiento</span>
+                                  <span>Orden de Hospitalización</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
@@ -565,7 +611,9 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                 className="text-red-600 hover:bg-red-50 bg-transparent"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleDeleteOrder(orden.idHOSPITALIZACION)
+                                  const pacienteName = orden.Paciente || 
+                                    (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : `Paciente ${patientId}`);
+                                  handleDeleteOrder(orden.idHOSPITALIZACION, pacienteName)
                                 }}
                               >
                                 <Trash2 className="w-4 h-4" />

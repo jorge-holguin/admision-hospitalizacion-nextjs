@@ -86,6 +86,84 @@ export const filiacionService = {
       const skip = (page - 1) * pageSize;
       console.log('Buscando registros de filiación con parámetros:', { skip, take: pageSize, filter });
       
+      // Si es una búsqueda por nombre, usar la API externa
+      if (filter.nombres && filter.nombres.trim() !== '') {
+        console.log('Usando API externa para búsqueda por nombre:', filter.nombres);
+        try {
+          // Llamar a la API externa para búsqueda por nombre
+          const apiUrl = `http://192.168.0.21:8080/api/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(filter.nombres)}`;
+          console.log('Llamando a API externa:', apiUrl);
+          
+          const response = await fetch(apiUrl, { 
+            // Aumentar el tiempo de espera para la respuesta
+            signal: AbortSignal.timeout(10000) // 10 segundos de timeout
+          });
+          
+          if (!response.ok) {
+            console.error(`Error en la consulta externa: Status ${response.status}`);
+            throw new Error(`Error en la consulta externa: ${response.status}`);
+          }
+          
+          const apiData = await response.json();
+          console.log(`API externa devolvió ${Array.isArray(apiData) ? apiData.length : 'no'} resultados`, apiData);
+          
+          // Verificar que apiData sea un array
+          if (!Array.isArray(apiData)) {
+            console.error('La API externa no devolvió un array:', apiData);
+            // Si no es un array, devolver un array vacío para evitar errores
+            return serializeBigInt({
+              data: [],
+              pagination: {
+                total: 0,
+                page,
+                pageSize,
+                totalPages: 0,
+              },
+            });
+          }
+          
+          // Mapear los datos de la API al formato esperado por el frontend
+          const processedData = apiData.map((item: any) => ({
+            PACIENTE: item.paciente || '',
+            HISTORIA: item.historia || '',
+            NOMBRES: item.nombres || '',
+            SEXO: item.sexo || '',
+            DIRECCION: item.direccion || '',
+            FECHA_NACIMIENTO: item.fechaNacimiento || '',
+            DISTRITO: item.distrito || '',
+            NOMBRE_DOCUMENTO: item.nombreDocumento || '',
+            DOCUMENTO: item.documento || '',
+            NOMBRE_SEGURO: item.nombreSeguro || '',
+            Nombre_Localidad: item.nombreLocalidad || '',
+            Distrito_Dir: item.distritoDir || ''
+          }));
+          
+          // Devolver los resultados en el formato esperado
+          return serializeBigInt({
+            data: processedData,
+            pagination: {
+              total: processedData.length,
+              page,
+              pageSize,
+              totalPages: Math.ceil(processedData.length / pageSize),
+            },
+          });
+        } catch (apiError) {
+          console.error('Error al consultar API externa:', apiError);
+          // En lugar de lanzar un error, devolver un resultado vacío
+          return serializeBigInt({
+            data: [],
+            pagination: {
+              total: 0,
+              page,
+              pageSize,
+              totalPages: 0,
+            },
+          });
+        }
+      }
+      
+      // Para otros tipos de búsqueda, usar la consulta SQL original
       // Verificar primero si la vista existe
       try {
         const checkView = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION'`;
@@ -106,6 +184,8 @@ export const filiacionService = {
         conditions.push(`DOCUMENTO LIKE '%${filter.documento}%'`);
       }
       
+      // Nota: Ya no necesitamos esta condición para nombres, ya que se maneja arriba
+      // pero la mantenemos por si acaso se llama sin el filtro de nombres
       if (filter.nombres) {
         conditions.push(`(NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`);
       }

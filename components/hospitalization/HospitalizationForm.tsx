@@ -3,17 +3,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
+import { PDFViewerModal } from '@/components/ui/pdf-viewer-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from "@/components/ui/spinner"
-import { Loader2, Save } from 'lucide-react'
+import { toast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import { Loader2, Save } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService'
 import { Seguro } from '@/services/seguroService'
 import { Diagnostico } from '@/services/diagnosticoService'
 import { HospitalizacionDetalle } from '@/services/hospitalizaService'
-
 // Componentes reutilizables
 import { PatientInfoCard } from '@/components/hospitalization/PatientInfoCard'
 import { OrigenSelector } from '@/components/hospitalization/OrigenSelector'
@@ -34,9 +37,15 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
   // Estado para loading y error handling
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditable, setIsEditable] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [pdfUrls, setPdfUrls] = useState<string[]>([]);
+  const [pdfTitle, setPdfTitle] = useState('');
   const [filiacionData, setFiliacionData] = useState<any>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isEditable, setIsEditable] = useState(true);
+  const [fieldsLocked, setFieldsLocked] = useState(false);
   
   // Estado para el origen de hospitalización
   const [origenes, setOrigenes] = useState<OrigenHospitalizacion[]>([])
@@ -44,7 +53,6 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
   const [searchOrigin, setSearchOrigin] = useState('')
   const [selectedOrigin, setSelectedOrigin] = useState<OrigenHospitalizacion | null>(null)
   const [showAllOrigins, setShowAllOrigins] = useState(false)
-  const [fieldsLocked, setFieldsLocked] = useState(false);
   
   // Estado para los seguros
   const [seguros, setSeguros] = useState<Seguro[]>([]);
@@ -93,7 +101,11 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
     hospitalizedIn: "",
     authorizingDoctor: "",
     financing: "",
-    diagnosis: ""
+    diagnosis: "",
+    // Campos del acompañante
+    companionName: "",
+    companionPhone: "",
+    companionAddress: ""
     // Campo observations eliminado según requerimiento
   });
 
@@ -367,101 +379,279 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
   }, [orderId, formData.authorizingDoctor]);
 
 
-  // Function to calculate age from birthdate
+  // Función para formatear la hora en formato 'hh:mm AM/PM'
+  const formatTime = (time: string): string => {
+    if (!time) return '';
+    
+    // Convertir de formato 24h a 12h con AM/PM
+    const [hours, minutes] = time.split(':');
+    const hoursNum = parseInt(hours, 10);
+    const period = hoursNum >= 12 ? 'PM' : 'AM';
+    const hours12 = hoursNum % 12 || 12; // Convertir 0 a 12
+    
+    return `${hours12.toString().padStart(2, '0')}:${minutes} ${period}`;
+  };
+
+  // Function to calculate age from birthdate in format '000a00m00d'
   const calculateAge = (birthDate: string | Date | null | undefined): string => {
-    if (!birthDate) return "";
+    if (!birthDate) return '000a00m00d';
     
     try {
-      let date: Date;
+      let birthDateObj: Date;
       
       if (typeof birthDate === 'string') {
         // Check if it's in format YYYY-MM-DD
         const match = birthDate.match(/(\d{4})-(\d{2})-(\d{2})/);
         if (match) {
           const [_, year, month, day] = match;
-          date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          birthDateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         } else {
           // Try to parse as is
-          date = new Date(birthDate);
+          birthDateObj = new Date(birthDate);
         }
+      } else if (birthDate instanceof Date) {
+        birthDateObj = birthDate;
       } else {
-        date = new Date(birthDate);
+        return '000a00m00d';
       }
       
-      if (isNaN(date.getTime())) {
-        return "";
+      if (isNaN(birthDateObj.getTime())) {
+        return '000a00m00d';
       }
       
       const today = new Date();
-      let age = today.getFullYear() - date.getFullYear();
-      const m = today.getMonth() - date.getMonth();
       
-      if (m < 0 || (m === 0 && today.getDate() < date.getDate())) {
-        age--;
+      let years = today.getFullYear() - birthDateObj.getFullYear();
+      let months = today.getMonth() - birthDateObj.getMonth();
+      let days = today.getDate() - birthDateObj.getDate();
+      
+      // Ajustar si los días son negativos
+      if (days < 0) {
+        months--;
+        // Días en el mes anterior
+        const prevMonthDate = new Date(today.getFullYear(), today.getMonth(), 0);
+        days = prevMonthDate.getDate() + days;
       }
       
-      return age.toString();
+      // Ajustar si los meses son negativos
+      if (months < 0) {
+        years--;
+        months += 12;
+      }
+      
+      // Formatear como '000a00m00d'
+      const formattedYears = years.toString().padStart(3, '0');
+      const formattedMonths = months.toString().padStart(2, '0');
+      const formattedDays = days.toString().padStart(2, '0');
+      
+      return `${formattedYears}a${formattedMonths}m${formattedDays}d`;
     } catch (error) {
       console.error('Error calculating age:', error);
-      return "";
+      return '000a00m00d';
     }
+  };
+  // Función para validar campos requeridos
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    // Validar campos del acompañante (marcados con text-red-500)
+    if (!formData.companionName.trim()) {
+      errors.companionName = "El nombre del acompañante es obligatorio";
+    }
+    
+    if (!formData.companionPhone.trim()) {
+      errors.companionPhone = "El teléfono del acompañante es obligatorio";
+    } else if (!/^[0-9]+$/.test(formData.companionPhone)) {
+      errors.companionPhone = "El teléfono debe contener solo números";
+    }
+    
+    if (!formData.companionAddress.trim()) {
+      errors.companionAddress = "El domicilio del acompañante es obligatorio";
+    }
+    
+    // Validar campos de hospitalización marcados como requeridos
+    if (!formData.hospitalizedIn.trim()) {
+      errors.hospitalizedIn = "El consultorio es obligatorio";
+    }
+    
+    if (!formData.financing.trim()) {
+      errors.financing = "El financiamiento es obligatorio";
+    }
+    
+    if (!formData.attentionOrigin.trim()) {
+      errors.attentionOrigin = "La procedencia del paciente es obligatoria";
+    }
+    
+    if (!formData.authorizingDoctor.trim()) {
+      errors.authorizingDoctor = "El médico que autoriza es obligatorio";
+    }
+    
+    if (!formData.diagnosis.trim()) {
+      errors.diagnosis = "El diagnóstico es obligatorio";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mostrar diálogo de confirmación
-    if (!confirm('¿Está seguro de generar la orden de hospitalización?')) {
-      return; // Si el usuario cancela, no continuar
+    // Validar formulario antes de mostrar diálogo de confirmación
+    if (!validateForm()) {
+      // Mostrar mensaje de error general
+      toast({
+        title: "Error de validación",
+        description: "Por favor complete todos los campos obligatorios marcados con *",
+        variant: "destructive"
+      });
+      // Hacer scroll al primer error
+      const firstErrorField = document.querySelector('.border-red-500');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
     }
+    
+    // Mostrar diálogo de confirmación personalizado
+    setShowConfirmDialog(true);
+  };
+  
+  // Función para procesar el formulario después de la confirmación
+  // Función para obtener el siguiente ID de hospitalización
+  const fetchNextHospitalizacionId = async () => {
+    try {
+      const response = await fetch('/api/hospitaliza?next-id=true');
+      if (!response.ok) {
+        throw new Error('Error al obtener el siguiente ID de hospitalización');
+      }
+      const data = await response.json();
+      return data.nextId;
+    } catch (error) {
+      console.error('Error al obtener el siguiente ID:', error);
+      return null;
+    }
+  };
+  
+  const processForm = async () => {
     
     try {
       // Mostrar que se está procesando
       setSubmitting(true);
       
-      // Extraer valores del formulario
-      const idHospitalizacion = '25001960'; // Generado o fijo según requerimiento
-      const origenId = formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : '';
-      const medicoCode = formData.authorizingDoctor ? formData.authorizingDoctor.split(' ')[0] : '';
-      const consultorioCode = formData.hospitalizedIn ? formData.hospitalizedIn.split(' ')[0] : '';
-      const fechaFormateada = formData.date ? formData.date.replace(/-/g, '') : '';
-      const diagnosticoCode = formData.diagnosis ? formData.diagnosis.split(' ')[0] : '';
-      const seguroCode = formData.insurance ? formData.insurance.split(' ')[0] : '20';
-      const edadCalculada = calculateAge(formData.birthDate);
-      const nombreCompleto = `${formData.paternalSurname || ''} ${formData.maternalSurname || ''} ${formData.names || ''} `;
+      // Obtener el siguiente ID de hospitalización
+      const nextId = await fetchNextHospitalizacionId();
+      if (!nextId) {
+        toast({
+          title: "Error",
+          description: "No se pudo obtener el siguiente ID de hospitalización",
+          variant: "destructive"
+        });
+        setSubmitting(false);
+        return;
+      }
       
-      // Crear objeto con los valores
+      // Extraer valores del formulario
+      // IDHOSPITALIZACION será generado automáticamente por el servicio
+      
+      // Extraer el ID del origen y determinar si es emergencia (EM) o consulta externa (CE)
+      const origenId = formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : '';
+      // Verificar si el origen contiene "EMERGENCIA" para determinar si es EM o CE
+      const origenText = formData.hospitalizationOrigin || '';
+      const origenCode = origenText.toUpperCase().includes('EMERGENCIA') ? 'EM' : 'CE';
+      
+      console.log('Origen seleccionado:', origenText, '-> Código:', origenCode);
+      
+      const medicoCode = formData.authorizingDoctor ? formData.authorizingDoctor.split(' ')[0].trim() : '';
+      const consultorioCode = formData.hospitalizedIn ? formData.hospitalizedIn.split(' ')[0].trim() : '';
+      
+      // Formatear fecha como YYYYMMDD (formato requerido por SQL Server)
+      const fechaObj = formData.date ? new Date(formData.date) : new Date();
+      // Formato YYYYMMDD sin guiones
+      const fechaFormateada = `${fechaObj.getFullYear()}${String(fechaObj.getMonth() + 1).padStart(2, '0')}${String(fechaObj.getDate()).padStart(2, '0')}`; // Formato YYYYMMDD
+      
+      const diagnosticoCode = formData.diagnosis ? formData.diagnosis.split(' ')[0].trim() : '';
+      const seguroCode = formData.financing ? formData.financing.split(' ')[0].trim() : '20';
+      const edadCalculada = calculateAge(formData.birthDate);
+      const nombreCompleto = `${formData.paternalSurname || ''} ${formData.maternalSurname || ''} ${formData.names || ''} `.trim();
+      
+      // Validar que el teléfono sea numérico
+      if (formData.companionPhone && !/^\d+$/.test(formData.companionPhone)) {
+        alert('El teléfono del acompañante debe contener solo números');
+        setSubmitting(false);
+        return;
+      }
+      
+      // Crear objeto con los valores correctamente formateados
       const valoresSQL = {
-        IDHOSPITALIZACION: idHospitalizacion,
+        // Incluir el IDHOSPITALIZACION obtenido del servicio
+        IDHOSPITALIZACION: nextId,
         PACIENTE: patientId,
         NOMBRES: nombreCompleto,
-        CONSULTORIO1: `${consultorioCode}  `,
-        HORA1: formData.time,
-        FECHA1: fechaFormateada,
-        ORIGEN: origenId,
-        SEGURO: `${seguroCode} `,
+        CONSULTORIO1: consultorioCode.padEnd(6, ' ').substring(0, 6), // Exactamente 6 caracteres
+        HORA1: formatTime(formData.time), // Formato hh:mm AM/PM
+        FECHA1: fechaFormateada, // Formato YYYY-MM-DD
+        ORIGEN: origenCode, // 'EM' o 'CE' basado en el texto del origen
+        SEGURO: seguroCode,
         MEDICO1: medicoCode,
         ESTADO: '2',
         USUARIO: 'SUPERVISOR',
         DIAGNOSTICO: diagnosticoCode,
-        EDAD: edadCalculada || '000a00m00d',
-        ORIGENID: `${origenId}  `
+        EDAD: edadCalculada, // Formato '000a00m00d'
+        ORIGENID: origenId.trim().substring(0, 10), // Máximo 10 caracteres
+        // Datos del acompañante
+        ACOMPANANTE_NOMBRE: formData.companionName || '',
+        ACOMPANANTE_TELEFONO: formData.companionPhone || '',
+        ACOMPANANTE_DIRECCION: formData.companionAddress || ''
       };
       
-      // Mostrar el objeto JSON en la consola
-      console.log('Valores para SQL:', valoresSQL);
+      // Mostrar el objeto JSON en la consola para validación
+      console.log('Datos de hospitalización a enviar:', JSON.stringify(valoresSQL, null, 2));
       
-      // Estructura SQL con los valores del formulario
-      const sqlInsert = `select * from INSERT INTO Hospitaliza(IDHOSPITALIZACION,PACIENTE,NOMBRES,CONSULTORIO1,HORA1,FECHA1,ORIGEN,SEGURO,MEDICO1,ESTADO,USUARIO,DIAGNOSTICO,EDAD,ORIGENID) VALUES('${valoresSQL.IDHOSPITALIZACION}','${valoresSQL.PACIENTE}','${valoresSQL.NOMBRES}','${valoresSQL.CONSULTORIO1}','${valoresSQL.HORA1}','${valoresSQL.FECHA1}','${valoresSQL.ORIGEN}','${valoresSQL.SEGURO}','${valoresSQL.MEDICO1}','${valoresSQL.ESTADO}','${valoresSQL.USUARIO}','${valoresSQL.DIAGNOSTICO}','${valoresSQL.EDAD}','${valoresSQL.ORIGENID}')`;
+      // Mostrar un alert con los datos para validación
+      alert('Revisa la consola para ver los datos que se enviarán. Presiona OK para continuar.');
       
-      // Mostrar en consola el formato SQL
-      console.log('SQL Query:', sqlInsert);
+      // Enviar los datos al API de hospitalización
+      const response = await fetch('/api/hospitaliza', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(valoresSQL),
+      });
       
-      // Simular éxito sin hacer la petición real
-      setTimeout(() => {
-        setSubmitting(false);
-        alert('Consulta SQL y valores JSON mostrados en consola');
-      }, 500);
+      // Procesar la respuesta
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la hospitalización');
+      }
+      
+      const result = await response.json();
+      console.log('Hospitalización creada:', result);
+      
+      // Mostrar mensaje de éxito
+      setSubmitting(false);
+      toast({
+        title: "Hospitalización creada",
+        description: `Se ha creado la hospitalización con ID: ${result.IDHOSPITALIZACION}`,
+        variant: "default"
+      });
+      
+      // Obtener el ID limpio para los PDFs
+      const cleanId = result.IDHOSPITALIZACION.trim();
+      
+      // Configurar los PDFs para mostrar (orden de hospitalización y consentimiento)
+      setPdfTitle('Documentos de Hospitalización');
+      setPdfUrls([
+        `http://192.168.0.21:8080/api/reporte/pdf/orden-hospitalizacion/${cleanId}`,
+        `http://192.168.0.21:8080/api/reporte/pdf/consentimiento-hospitalizacion/${cleanId}`,
+        `http://192.168.0.21:8080/api/reporte/pdf/hoja-filiacion/${cleanId}`
+      ]);
+      
+      // Abrir el visor de PDF
+      setPdfViewerOpen(true);
+      
+      // No redirigimos automáticamente para permitir que el usuario vea e imprima los PDFs
       
     } catch (error: any) {
       console.error('Error:', error);
@@ -500,174 +690,319 @@ export function HospitalizationForm({ patientId, orderId }: HospitalizationFormP
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardContent className="pt-6">
-          {/* Form Header - Solo fecha y hora, sin campo de historia duplicado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-100 rounded-lg">
-            <div className="md:col-span-2">
-              <DateTimeFields
-                dateValue={formData.date}
-                timeValue={formData.time}
-                onDateChange={(value) => setFormData({ ...formData, date: value })}
-                onTimeChange={(value) => setFormData({ ...formData, time: value })}
-                disabled={fieldsLocked}
-                autoFill={true}
+    <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
+      <Toaster />
+      {/* Diálogo de confirmación */}
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={() => {
+          setShowConfirmDialog(false);
+          processForm();
+        }}
+        title="Confirmar hospitalización"
+        description="¿Está seguro de generar la orden de hospitalización? Esta acción no se puede deshacer."
+        confirmText="Generar orden"
+        cancelText="Cancelar"
+        isLoading={submitting}
+      />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sidebar with Patient Information */}
+        <div className="lg:col-span-1">
+          <Card className="h-full">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4">Datos del Paciente</h3>
+              <PatientInfoCard
+                patientId={patientId}
+                onDataLoaded={handlePatientDataLoaded}
               />
-            </div>
-          </div>
-
-          {/* Patient Information */}
-          <PatientInfoCard
-            patientId={patientId}
-            className="mb-6"
-            onDataLoaded={handlePatientDataLoaded}
-          />
-          
-          {/* Formulario en dos columnas como en la imagen compartida */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Columna izquierda */}
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="origen" className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Código de Origen de Atención <span className="text-red-500">*</span>
-                </Label>
-                <OrigenSelector
-                  value={formData.hospitalizationOrigin}
-                  onChange={(value, origenData) => {
-                    setFormData({ ...formData, hospitalizationOrigin: value });
-                    console.log('Origen seleccionado:', origenData);
-                  }}
-                  disabled={fieldsLocked}
-                  required
-                  className="w-full"
-                  patientId={patientId}
-                  onAttentionOriginChange={(attentionOrigin) => {
-                    setFormData(prev => ({ ...prev, attentionOrigin }));
-                  }}
-                  onMedicoChange={(medicoValue, medicoData) => {
-                    setFormData(prev => ({ ...prev, authorizingDoctor: medicoValue }));
-                  }}
-                  onDiagnosticoChange={(diagnosticoValue, diagnosticoData) => {
-                    setFormData(prev => ({ ...prev, diagnosis: diagnosticoValue }));
-                  }}
-                />
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Main form content */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardContent className="pt-6">
+              {/* Form Header - Historia, fecha y hora */}
+              <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 mb-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <Label htmlFor="historyNumber" className="font-medium">Nº Historia: <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="historyNumber"
+                      value={formData.historyNumber}
+                      readOnly
+                      className="font-medium mt-2"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <DateTimeFields
+                      dateValue={formData.date}
+                      timeValue={formData.time}
+                      onDateChange={(value) => setFormData({ ...formData, date: value })}
+                      onTimeChange={(value) => setFormData({ ...formData, time: value })}
+                      disabled={fieldsLocked}
+                      autoFill={true}
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Datos del Acompañante */}
+                   
+              {/* Datos del Acompañante */}
+              <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-blue-50 p-4 rounded-lg border border-gray-200">
+                <div className="space-y-2">
+                  <Label htmlFor="companionName" className="font-medium text-red-500">● Nombres y apellidos del acompañante *</Label>
+                  <Input
+                    id="companionName"
+                    value={formData.companionName}
+                    onChange={(e) => {
+                      setFormData({ ...formData, companionName: e.target.value });
+                      // Limpiar error cuando el usuario empieza a escribir
+                      if (validationErrors.companionName && e.target.value.trim()) {
+                        setValidationErrors({...validationErrors, companionName: ''});
+                      }
+                    }}
+                    className={`w-full font-medium ${validationErrors.companionName ? 'border-red-500' : ''}`}
+                    placeholder="Ingrese nombre del acompañante"
+                    disabled={fieldsLocked}
+                  />
+                  {validationErrors.companionName && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.companionName}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companionPhone" className="font-medium text-red-500">● Teléfono del acompañante *</Label>
+                  <Input
+                    id="companionPhone"
+                    value={formData.companionPhone}
+                    onChange={(e) => {
+                      // Solo permitir números
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      setFormData({ ...formData, companionPhone: value });
+                      // Limpiar error cuando el usuario empieza a escribir
+                      if (validationErrors.companionPhone && value) {
+                        setValidationErrors({...validationErrors, companionPhone: ''});
+                      }
+                    }}
+                    className={`w-full font-medium ${validationErrors.companionPhone ? 'border-red-500' : ''}`}
+                    placeholder="Ingrese teléfono del acompañante"
+                    disabled={fieldsLocked}
+                  />
+                  {validationErrors.companionPhone && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.companionPhone}</p>
+                  )}
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="companionAddress" className="font-medium text-red-500">● Domicilio del acompañante *</Label>
+                  <Input
+                    id="companionAddress"
+                    value={formData.companionAddress}
+                    onChange={(e) => {
+                      setFormData({ ...formData, companionAddress: e.target.value });
+                      // Limpiar error cuando el usuario empieza a escribir
+                      if (validationErrors.companionAddress && e.target.value.trim()) {
+                        setValidationErrors({...validationErrors, companionAddress: ''});
+                      }
+                    }}
+                    className={`w-full font-medium ${validationErrors.companionAddress ? 'border-red-500' : ''}`}
+                    placeholder="Ingrese domicilio del acompañante"
+                    disabled={fieldsLocked}
+                  />
+                  {validationErrors.companionAddress && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.companionAddress}</p>
+                  )}
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="consultorio" className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Hospitalizado en <span className="text-red-500">*</span>
-                </Label>
-                <ConsultorioSelector
-                  value={formData.hospitalizedIn}
-                  onChange={(value) => setFormData({ ...formData, hospitalizedIn: value })}
-                  disabled={fieldsLocked}
-                  className="w-full"
-                />
+              {/* Datos de Hospitalización */}
+              <h3 className="text-lg font-semibold mb-4">Datos de Hospitalización</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-green-50 p-4 rounded-lg border border-gray-200">
+                {/* Columna izquierda */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="origen" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Código de Origen de Atención <span className="text-red-500">*</span>
+                    </Label>
+                    <OrigenSelector
+                      value={formData.hospitalizationOrigin}
+                      onChange={(value, origenData) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          hospitalizationOrigin: value
+                        }));
+                        setSelectedOrigin(origenData || null);
+                        
+                        // Limpiar error de validación
+                        if (validationErrors.hospitalizationOrigin) {
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            hospitalizationOrigin: ''
+                          }));
+                        }
+                      }}
+                      disabled={fieldsLocked}
+                      required
+                      patientId={patientId}
+                      onAttentionOriginChange={(value) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          attentionOrigin: value
+                        }));
+                      }}
+                      onMedicoChange={(value, medicoData) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          authorizingDoctor: value
+                        }));
+                        setSelectedMedico(medicoData || null);
+                      }}
+                      onDiagnosticoChange={(value, diagnosticoData) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          diagnosis: value
+                        }));
+                        setSelectedDiagnostico(diagnosticoData || null);
+                      }}
+                      onSeguroChange={(value, seguroData) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          financing: value
+                        }));
+                        setSelectedSeguro(seguroData || null);
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="consultorio" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Hospitalizado en <span className="text-red-500">*</span>
+                    </Label>
+                    <ConsultorioSelector
+                      value={formData.hospitalizedIn}
+                      onChange={(value) => setFormData({ ...formData, hospitalizedIn: value })}
+                      disabled={fieldsLocked}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Financiamiento <span className="text-red-500">*</span>
+                    </Label>
+                    <SeguroSelector
+                      value={formData.financing}
+                      onChange={(value) => setFormData({ ...formData, financing: value })}
+                      disabled={fieldsLocked}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                
+                {/* Columna derecha */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="attentionOrigin" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Procedencia del Paciente <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="attentionOrigin"
+                      value={formData.attentionOrigin}
+                      onChange={(e) => setFormData({ ...formData, attentionOrigin: e.target.value })}
+                      className="font-medium"
+                      disabled={true} // Siempre en modo solo lectura
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
+                    </Label>
+                    <MedicoSelector
+                      value={formData.authorizingDoctor}
+                      onChange={(value, medicoData) => {
+                        console.log('Médico seleccionado:', medicoData);
+                        setFormData({ ...formData, authorizingDoctor: value });
+                      }}
+                      disabled={fieldsLocked}
+                      className="w-full"
+                      // No pasamos consultorioId para permitir buscar cualquier médico
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Diagnóstico <span className="text-red-500">*</span>
+                    </Label>
+                    <DiagnosticoSelector
+                      value={formData.diagnosis}
+                      onChange={(value, diagnosticoData) => {
+                        console.log('Diagnóstico seleccionado:', diagnosticoData);
+                        setFormData({ ...formData, diagnosis: value });
+                      }}
+                      disabled={fieldsLocked}
+                      origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+         
+              
+              {/* Campo de observaciones eliminado según requerimiento */}
+              
+              {/* Mensaje informativo */}
+              <div className="flex items-center mt-6 mb-2 text-sm text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>El Código de Origen de Atención no es requerido si el nombre es "RN".</span>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Financiamiento <span className="text-red-500">*</span>
-                </Label>
-                <SeguroSelector
-                  value={formData.financing}
-                  onChange={(value) => setFormData({ ...formData, financing: value })}
-                  disabled={fieldsLocked}
-                  className="w-full"
-                />
+              <div className="flex justify-end space-x-4 mt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleCancel}
+                  disabled={submitting}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={submitting || fieldsLocked}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            {/* Columna derecha */}
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="attentionOrigin" className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Procedencia del Paciente <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="attentionOrigin"
-                  value={formData.attentionOrigin}
-                  onChange={(e) => setFormData({ ...formData, attentionOrigin: e.target.value })}
-                  className="font-medium"
-                  disabled={true} // Siempre en modo solo lectura
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
-                </Label>
-                <MedicoSelector
-                  value={formData.authorizingDoctor}
-                  onChange={(value, medicoData) => {
-                    console.log('Médico seleccionado:', medicoData);
-                    setFormData({ ...formData, authorizingDoctor: value });
-                  }}
-                  disabled={fieldsLocked}
-                  className="w-full"
-                  // No pasamos consultorioId para permitir buscar cualquier médico
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
-                  <span className="text-red-500">●</span> Diagnóstico <span className="text-red-500">*</span>
-                </Label>
-                <DiagnosticoSelector
-                  value={formData.diagnosis}
-                  onChange={(value, diagnosticoData) => {
-                    console.log('Diagnóstico seleccionado:', diagnosticoData);
-                    setFormData({ ...formData, diagnosis: value });
-                  }}
-                  disabled={fieldsLocked}
-                  origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Campo de observaciones eliminado según requerimiento */}
-          
-          {/* Mensaje informativo */}
-          <div className="flex items-center mt-6 mb-2 text-sm text-blue-600">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>El Código de Origen de Atención no es requerido si el nombre es RN</span>
-          </div>
-          
-          <div className="flex justify-end space-x-4 mt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleCancel}
-              disabled={submitting}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={submitting || fieldsLocked}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      
+      {/* Visor de PDF para documentos de hospitalización */}
+      <PDFViewerModal
+        open={pdfViewerOpen}
+        onClose={() => setPdfViewerOpen(false)}
+        pdfUrls={pdfUrls}
+        title={pdfTitle}
+        patientId={patientId}
+      />
     </form>
   );
 }

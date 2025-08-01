@@ -158,6 +158,9 @@ export function HospitalizationView({ patientId, orderId }: HospitalizationViewP
     loadData();
   }, [orderId]); // Ya no dependemos de patientId porque no hacemos fetch de filiación
 
+  // Estado para el mensaje de éxito
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
   // Función para manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +173,21 @@ export function HospitalizationView({ patientId, orderId }: HospitalizationViewP
     setSubmitting(true);
     
     try {
+      // Obtener los valores de los campos de acompañante
+      const companionName = orderData?.ACOMPANANTE_NOMBRE || '';
+      const companionPhone = orderData?.ACOMPANANTE_TELEFONO || '';
+      const companionAddress = orderData?.ACOMPANANTE_DIRECCION || '';
+      
+      // Extraer solo los IDs numéricos de los campos
+      const consultorioCode = formData.consultorio ? formData.consultorio.split(' ')[0].trim() : '';
+      const origenCode = formData.origin ? formData.origin.split(' ')[0].trim() : '';
+      const seguroCode = formData.seguro ? formData.seguro.split(' ')[0].trim() : '';
+      const medicoCode = formData.medico ? formData.medico.split(' ')[0].trim() : '';
+      const diagnosticoCode = formData.diagnostico ? formData.diagnostico.split(' ')[0].trim() : '';
+      
+      // Formatear la fecha como YYYYMMDD para SQL Server
+      const fechaFormateada = formData.date ? formData.date.replace(/-/g, '') : '';
+      
       // Preparar datos para enviar a la API
       const updateData = {
         orderId: orderId,
@@ -182,61 +200,43 @@ export function HospitalizationView({ patientId, orderId }: HospitalizationViewP
         seguro: formData.seguro,
         medico: formData.medico,
         diagnostico: formData.diagnostico,
-        estado: orderData?.ESTADO || '2'
+        estado: orderData?.ESTADO || '2',
+        acompanante_nombre: companionName,
+        acompanante_telefono: companionPhone,
+        acompanante_direccion: companionAddress
       };
       
       console.log('Enviando datos actualizados:', updateData);
       
-      // Si el estado es '2', mostrar la consulta SQL que se ejecutaría
-      if (orderData?.ESTADO === '2') {
-        // Extraer solo los IDs numéricos de los campos
-        const consultorioId = formData.consultorio ? formData.consultorio.split(' ')[0].trim() : '';
-        const origenId = formData.origin ? formData.origin.split(' ')[0].trim() : '';
-        const seguroId = formData.seguro ? formData.seguro.split(' ')[0].trim() : '';
-        const medicoId = formData.medico ? formData.medico.split(' ')[0].trim() : '';
-        const diagnosticoId = formData.diagnostico ? formData.diagnostico.split(' ')[0].trim() : '';
-        
-        // Construir objeto con los valores para SQL siguiendo el ejemplo de HospitalizationForm
-        const valoresSQL = {
-          IDHOSPITALIZACION: orderId,
-          PACIENTE: patientId,
-          NOMBRES: orderData?.NOMBRES || '',
-          CONSULTORIO1: `${consultorioId}  `,
-          HORA1: formData.time,
-          FECHA1: formData.date,
-          ORIGEN: origenId,
-          SEGURO: `${seguroId} `,
-          MEDICO1: medicoId,
-          ESTADO: '2',
-          USUARIO: 'SUPERVISOR',
-          DIAGNOSTICO: diagnosticoId,
-          EDAD: orderData?.EDAD || '000a00m00d',
-          ORIGENID: `${origenId}  `
-        };
-        
-        // Mostrar el objeto JSON en la consola
-        console.log('Valores para SQL:', valoresSQL);
-        
-        // Construir la consulta SQL (UPDATE en lugar de INSERT)
-        const sqlQuery = `UPDATE Hospitaliza
-SET PACIENTE = '${valoresSQL.PACIENTE}',
-    NOMBRES = '${valoresSQL.NOMBRES}',
-    CONSULTORIO1 = '${valoresSQL.CONSULTORIO1}',
-    HORA1 = '${valoresSQL.HORA1}',
-    FECHA1 = '${valoresSQL.FECHA1}',
-    ORIGEN = '${valoresSQL.ORIGEN}',
-    SEGURO = '${valoresSQL.SEGURO}',
-    MEDICO1 = '${valoresSQL.MEDICO1}',
-    ESTADO = '${valoresSQL.ESTADO}',
-    USUARIO = '${valoresSQL.USUARIO}',
-    DIAGNOSTICO = '${valoresSQL.DIAGNOSTICO}',
-    EDAD = '${valoresSQL.EDAD}',
-    ORIGENID = '${valoresSQL.ORIGENID}'
-WHERE IDHOSPITALIZACION = '${valoresSQL.IDHOSPITALIZACION}';`;
-        
-        console.log('SQL Query:', sqlQuery);
-        alert(`SQL Query: ${sqlQuery}`);
-      }
+      // Crear objeto con los valores correctamente formateados para SQL
+      const valoresSQL = {
+        // Incluir el IDHOSPITALIZACION obtenido del servicio
+        IDHOSPITALIZACION: orderId,
+        PACIENTE: patientId,
+        NOMBRES: orderData?.NOMBRES || '',
+        CONSULTORIO1: consultorioCode.padEnd(6, ' ').substring(0, 6), // Exactamente 6 caracteres
+        HORA1: formData.time, // Formato hh:mm AM/PM
+        FECHA1: fechaFormateada, // Formato YYYYMMDD
+        ORIGEN: origenCode === 'EM' ? 'EM' : 'CE', // 'EM' o 'CE' basado en el texto del origen
+        SEGURO: seguroCode,
+        MEDICO1: medicoCode,
+        ESTADO: '2',
+        USUARIO: 'SUPERVISOR',
+        DIAGNOSTICO: diagnosticoCode,
+        EDAD: orderData?.EDAD || '000a00m00d', // Formato '000a00m00d'
+        ORIGENID: origenCode.trim().substring(0, 10), // Máximo 10 caracteres
+        // Datos del acompañante
+        ACOMPANANTE_NOMBRE: companionName || '',
+        ACOMPANANTE_TELEFONO: companionPhone || '',
+        ACOMPANANTE_DIRECCION: companionAddress || ''
+      };
+      
+      // Mostrar el objeto JSON en la consola
+      console.log('Valores para SQL:', valoresSQL);
+      
+      // Mostrar la consulta SQL en una alerta
+      const sqlQueryPreview = JSON.stringify(valoresSQL, null, 2);
+      alert(`Valores SQL para actualización:\n${sqlQueryPreview}`);
       
       // Enviar datos a la API
       const response = await fetch(`/api/orden-hospitalizacion/${orderId}`, {
@@ -244,7 +244,10 @@ WHERE IDHOSPITALIZACION = '${valoresSQL.IDHOSPITALIZACION}';`;
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify({
+          ...updateData,
+          valoresSQL // Incluir los valores SQL formateados
+        }),
       });
       
       if (!response.ok) {
@@ -252,10 +255,13 @@ WHERE IDHOSPITALIZACION = '${valoresSQL.IDHOSPITALIZACION}';`;
       }
       
       // Mostrar mensaje de éxito
-      alert('Datos guardados correctamente');
+      setShowSuccessMessage(true);
       
-      // Redirigir a la lista de hospitalizaciones
-      router.push('/hospitalization/list');
+      // Redirigir después de un breve retraso
+      setTimeout(() => {
+        router.push(`/hospitalization/orders/${patientId}`);
+      }, 2000);
+      
     } catch (error) {
       console.error('Error al guardar los datos:', error);
       alert('Error al guardar los datos. Por favor, inténtelo de nuevo.');
@@ -327,209 +333,321 @@ WHERE IDHOSPITALIZACION = '${valoresSQL.IDHOSPITALIZACION}';`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardContent className="pt-6">
-          {/* Form Header - Fecha y hora de ingreso */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-100 rounded-lg">
-            <div className="md:col-span-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="dateField" className="block text-sm font-medium mb-1">Fecha de Ingreso</Label>
+      {/* Mensaje de éxito */}
+      {showSuccessMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold">¡Éxito! </strong>
+          <span className="block sm:inline">Se actualizó la hospitalización correctamente.</span>
+          <span className="block mt-2">Redirigiendo a la lista de órdenes...</span>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sidebar with Patient Information */}
+        <div className="lg:col-span-1 flex flex-col">
+          <Card className="h-full flex-1">
+            <CardContent className="pt-6 h-full flex flex-col">
+              <h3 className="text-lg font-semibold mb-4">Datos del Paciente</h3>
+              <div className="flex-1">
+                <PatientInfoCard
+                  patientId={patientId}
+                  onDataLoaded={(data) => console.log('Datos de paciente cargados en PatientInfoCard:', data)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Main content */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardContent className="pt-6">
+              {/* Form Header - Historia, fecha y hora */}
+              <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 mb-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <Label htmlFor="historyNumber" className="font-medium">Nº Historia:</Label>
+                    <Input
+                      id="historyNumber"
+                      value={formData.hospitalizationId}
+                      readOnly
+                      disabled={true}
+                      className="font-medium mt-2"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="dateField" className="font-medium">Fecha de Ingreso:</Label>
+                        <Input
+                          id="dateField"
+                          value={orderData?.FECHA1 || ''}
+                          disabled={true}
+                          className="font-medium mt-2"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="timeField" className="font-medium">Hora de Ingreso:</Label>
+                        <Input
+                          id="timeField"
+                          value={orderData?.HORA1 || ''}
+                          disabled={true}
+                          className="font-medium mt-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          
+              {/* Datos del Acompañante */}
+              <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-blue-50 p-4 rounded-lg border border-gray-200">
+                <div className="space-y-2">
+                  <Label htmlFor="companionName" className="font-medium text-red-500">Nombres y apellidos del acompañante *</Label>
                   <Input
-                    id="dateField"
-                    value={orderData?.FECHA1 || ''}
-                    disabled={true}
-                    className="w-full"
+                    id="companionName"
+                    value={orderData?.ACOMPANANTE_NOMBRE || ''}
+                    onChange={(e) => {
+                      if (isEditable) {
+                        setOrderData({...orderData, ACOMPANANTE_NOMBRE: e.target.value});
+                      }
+                    }}
+                    readOnly={!isEditable}
+                    disabled={fieldsLocked}
+                    className="w-full font-medium"
+                    placeholder={isEditable ? "Ingrese nombre del acompañante" : "No registrado"}
                   />
                 </div>
-                <div className="flex-1">
-                  <Label htmlFor="timeField" className="block text-sm font-medium mb-1">Hora de Ingreso</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="companionPhone" className="font-medium text-red-500">Teléfono del acompañante *</Label>
                   <Input
-                    id="timeField"
-                    value={orderData?.HORA1 || ''}
-                    disabled={true}
-                    className="w-full"
+                    id="companionPhone"
+                    value={orderData?.ACOMPANANTE_TELEFONO || ''}
+                    onChange={(e) => {
+                      if (isEditable) {
+                        setOrderData({...orderData, ACOMPANANTE_TELEFONO: e.target.value});
+                      }
+                    }}
+                    readOnly={!isEditable}
+                    disabled={fieldsLocked}
+                    className="w-full font-medium"
+                    placeholder={isEditable ? "Ingrese teléfono del acompañante" : "No registrado"}
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="companionAddress" className="font-medium text-red-500">Domicilio del acompañante *</Label>
+                  <Input
+                    id="companionAddress"
+                    value={orderData?.ACOMPANANTE_DIRECCION || ''}
+                    onChange={(e) => {
+                      if (isEditable) {
+                        setOrderData({...orderData, ACOMPANANTE_DIRECCION: e.target.value});
+                      }
+                    }}
+                    readOnly={!isEditable}
+                    disabled={fieldsLocked}
+                    className="w-full font-medium"
+                    placeholder={isEditable ? "Ingrese domicilio del acompañante" : "No registrado"}
                   />
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Patient Information */}
-          <PatientInfoCard
-            patientId={patientId}
-            className="mb-6"
-            onDataLoaded={(data) => console.log('Datos de paciente cargados en PatientInfoCard:', data)}
-          />
-          
-          {/* Formulario en dos columnas como en la imagen compartida */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
-            {/* Fila 1, Columna 1: Código de Origen de Atención */}
-            <div>
-              <Label className="text-sm font-semibold text-red-600 block mb-2">
-                <span className="text-red-500">●</span> Código de Origen de Atención<span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="hospitalizationId"
-                value={formData.hospitalizationId}
-                disabled={true}
-                className="w-full h-10"
-              />
-            </div>
-            
-            {/* Fila 1, Columna 2: Procedencia del Paciente */}
-            <div>
-              <Label className="text-sm font-semibold text-red-600 block mb-2">
-                <span className="text-red-500">●</span> Procedencia del Paciente <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="origin"
-                value={`${formData.origin} [${formData.originName}]`}
-                onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                disabled={true} // Este campo siempre está deshabilitado
-                className="w-full h-10 font-medium"
-                required
-              />
-            </div>
-            
-            {/* Fila 2, Columna 1: Hospitalizado en */}
-            <div>
-              <Label className="text-sm font-semibold text-red-600 block mb-2">
-                <span className="text-red-500">●</span> Hospitalizado en <span className="text-red-500">*</span>
-              </Label> 
-              {isEditable ? (
-                <ConsultorioSelector
-                  value={formData.consultorio}
-                  onChange={(value) => setFormData({ ...formData, consultorio: value.split(' ')[0], consultorioName: value.split(' ')[1]?.replace(/[\[\]]/g, '') || '' })}
-                  disabled={false}
-                  className="w-full"
-                />
-              ) : (
-                <Input
-                  id="consultorio"
-                  value={`${formData.consultorio} [${formData.consultorioName}]`}
-                  onChange={(e) => setFormData({ ...formData, consultorio: e.target.value })}
-                  disabled={true}
-                  className="w-full h-10"
-                  required
-                />
-              )}
-            </div>
-            
-            {/* Fila 2, Columna 2: Médico */}
-            <div>
-              <Label className="text-sm font-semibold text-red-600 block mb-2">
-                <span className="text-red-500">●</span> Médico <span className="text-red-500">*</span>
-              </Label>
-              {isEditable ? (
-                <MedicoSelector
-                  value={formData.medico}
-                  onChange={(value, medicoData) => {
-                    console.log('Médico seleccionado:', medicoData);
-                    setFormData({ ...formData, medico: value.split(' ')[0], medicoName: value.split(' ')[1]?.replace(/[\[\]]/g, '') || '' });
-                  }}
-                  disabled={false}
-                  className="w-full"
-                />
-              ) : (
-                <Input
-                  id="medico"
-                  value={`${formData.medico} [${formData.medicoName}]`}
-                  onChange={(e) => setFormData({ ...formData, medico: e.target.value })}
-                  disabled={true}
-                  className="w-full h-10"
-                  required
-                />
-              )}
-            </div>
-            
-            {/* Fila 3, Columna 1: Financiamiento */}
-            <div>
-              <Label className="text-sm font-semibold text-red-600 block mb-2">
-                <span className="text-red-500">●</span> Financiamiento <span className="text-red-500">*</span>
-              </Label> 
-              {isEditable ? (
-                <SeguroSelector
-                  value={formData.seguro}
-                  onChange={(value) => setFormData({ ...formData, seguro: value.split(' ')[0], seguroName: value.split(' ')[1]?.replace(/[\[\]]/g, '') || '' })}
-                  disabled={false}
-                  className="w-full"
-                />
-              ) : (
-                <Input
-                  id="seguro"
-                  value={`${formData.seguro} [${formData.seguroName}]`}
-                  onChange={(e) => setFormData({ ...formData, seguro: e.target.value })}
-                  disabled={true}
-                  className="w-full h-10"
-                  required
-                />
-              )}
-            </div>
-            
-            {/* Fila 3, Columna 2: Diagnóstico */}
-            <div>
-              <Label className="text-sm font-semibold text-red-600 block mb-2">
-                <span className="text-red-500">●</span> Diagnóstico <span className="text-red-500">*</span>
-              </Label>
-              {isEditable ? (
-                <DiagnosticoSelector
-                  value={formData.diagnostico}
-                  onChange={(value, diagnosticoData) => {
-                    console.log('Diagnóstico seleccionado:', diagnosticoData);
-                    setFormData({ ...formData, diagnostico: value });
-                  }}
-                  disabled={false}
-                  origenId={formData.hospitalizationId ? formData.hospitalizationId.split(' ')[0].trim() : ''}
-                  className="w-full"
-                />
-              ) : (
-                <Input
-                  id="diagnostico"
-                  value={formData.diagnostico}
-                  onChange={(e) => setFormData({ ...formData, diagnostico: e.target.value })}
-                  disabled={true}
-                  className="w-full h-10"
-                  required
-                />
-              )}
-            </div>
-          </div>
-          
-          {/* Botones de acción */}
-          <div className="flex justify-end space-x-4 mt-8">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleGoBack}
-              disabled={submitting}
-            >
-              {isEditable ? 'Cancelar' : 'Volver'}
-            </Button>
-            
-            {/* Solo mostrar botón de guardar si es editable (estado '2') */}
-            {isEditable && (
-              <Button 
-                type="submit" 
-                disabled={submitting}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Guardar
-                  </>
+              
+              {/* Datos de Hospitalización */}
+              <h3 className="text-lg font-semibold mb-4">Datos de Hospitalización</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-green-50 p-4 rounded-lg border border-gray-200">
+                {/* Columna izquierda */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="origen" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Código de Origen de Atención
+                    </Label>
+                    <Input
+                      id="origen"
+                      value={formData.hospitalizationId || ''}
+                      readOnly
+                      disabled={true}
+                      className="w-full font-medium"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="consultorio" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Hospitalizado en
+                    </Label>
+                    {isEditable ? (
+                      <ConsultorioSelector
+                        value={`${formData.consultorio} - ${formData.consultorioName}`}
+                        onChange={(value) => {
+                          const parts = value.split(' - ');
+                          setFormData({
+                            ...formData,
+                            consultorio: parts[0],
+                            consultorioName: parts.length > 1 ? parts[1] : ''
+                          });
+                        }}
+                        disabled={fieldsLocked}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Input
+                        id="consultorio"
+                        value={`${formData.consultorio} - ${formData.consultorioName}`}
+                        readOnly
+                        disabled={fieldsLocked}
+                        className="w-full font-medium"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Financiamiento
+                    </Label>
+                    {isEditable ? (
+                      <SeguroSelector
+                        value={`${formData.seguro} - ${formData.seguroName}`}
+                        onChange={(value) => {
+                          const parts = value.split(' - ');
+                          setFormData({
+                            ...formData,
+                            seguro: parts[0],
+                            seguroName: parts.length > 1 ? parts[1] : ''
+                          });
+                        }}
+                        disabled={fieldsLocked}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Input
+                        id="seguro"
+                        value={`${formData.seguro} - ${formData.seguroName}`}
+                        readOnly
+                        disabled={true}
+                        className="w-full font-medium"
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Columna derecha */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="attentionOrigin" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Procedencia del Paciente
+                    </Label>
+                    <Input
+                        id="attentionOrigin"
+                        value={`${formData.origin} - ${formData.originName}`}
+                        readOnly
+                        disabled={true}
+                        className="w-full font-medium"
+                      />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Médico que autoriza la Hospitalización
+                    </Label>
+                    {isEditable ? (
+                      <MedicoSelector
+                        value={`${formData.medico} - ${formData.medicoName}`}
+                        onChange={(value, medicoData) => {
+                          const parts = value.split(' - ');
+                          setFormData({
+                            ...formData,
+                            medico: parts[0],
+                            medicoName: parts.length > 1 ? parts[1] : ''
+                          });
+                        }}
+                        disabled={fieldsLocked}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Input
+                        id="medico"
+                        value={`${formData.medico} - ${formData.medicoName}`}
+                        readOnly
+                        disabled={fieldsLocked}
+                        className="w-full font-medium"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
+                      <span className="text-red-500">●</span> Diagnóstico
+                    </Label>
+                    {isEditable ? (
+                      <DiagnosticoSelector
+                        value={formData.diagnostico}
+                        onChange={(value, diagnosticoData) => {
+                          setFormData({
+                            ...formData,
+                            diagnostico: value
+                          });
+                        }}
+                        disabled={fieldsLocked}
+                        origenId={formData.origin}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Input
+                        id="diagnostico"
+                        value={formData.diagnostico}
+                        readOnly
+                        disabled={fieldsLocked}
+                        className="w-full font-medium"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Mensaje informativo */}
+              <div className="flex items-center mt-6 mb-2 text-sm text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>El Código de Origen de Atención no es requerido si el nombre es "RN".</span>
+              </div>
+              
+              {/* Botones de acción */}
+              <div className="flex justify-end space-x-4 mt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleGoBack}
+                  disabled={submitting}
+                >
+                  Cancelar
+                </Button>
+                
+                {isEditable && (
+                  <Button 
+                    type="submit" 
+                    disabled={submitting || fieldsLocked}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Guardar
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </form>
   );
 }

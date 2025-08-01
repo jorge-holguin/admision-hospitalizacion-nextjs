@@ -21,6 +21,7 @@ interface OrigenSelectorProps {
   onAttentionOriginChange?: (attentionOrigin: string) => void;
   onMedicoChange?: (medicoValue: string, medicoData?: any) => void;
   onDiagnosticoChange?: (diagnosticoValue: string, diagnosticoData?: any) => void;
+  onSeguroChange?: (seguroValue: string, seguroData?: any) => void;
 }
 
 export const OrigenSelector: React.FC<OrigenSelectorProps> = ({ 
@@ -35,7 +36,8 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
   patientId,
   onAttentionOriginChange,
   onMedicoChange,
-  onDiagnosticoChange
+  onDiagnosticoChange,
+  onSeguroChange
 }) => {
   const [open, setOpen] = useState(false);
   const [origenes, setOrigenes] = useState<OrigenHospitalizacion[]>([]);
@@ -153,6 +155,39 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         }
       } catch (error) {
         console.error('Error al procesar el diagnóstico:', error);
+      }
+    }
+    
+    // Actualizar el seguro seleccionado si existe en el origen
+    if (onSeguroChange && origen.SEGURO) {
+      try {
+        console.log('Seguro original:', origen.SEGURO);
+        const seguroCode = origen.SEGURO.trim();
+        
+        if (seguroCode) {
+          // Buscar el nombre del seguro en la API
+          fetch(`/api/seguros?code=${encodeURIComponent(seguroCode)}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data && data.length > 0) {
+                const seguro = data[0];
+                const seguroValue = `${seguro.Seguro} - ${seguro.Nombre}`;
+                console.log('Seguro encontrado:', seguroValue);
+                onSeguroChange(seguroValue, seguro);
+              } else {
+                // Si no se encuentra el seguro, usar solo el código
+                console.log('No se encontró información del seguro, usando solo el código');
+                onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
+              }
+            })
+            .catch(error => {
+              console.error('Error al buscar información del seguro:', error);
+              // En caso de error, usar solo el código
+              onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
+            });
+        }
+      } catch (error) {
+        console.error('Error al procesar el seguro:', error);
       }
     }
     

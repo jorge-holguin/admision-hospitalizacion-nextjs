@@ -55,26 +55,26 @@ export const DateTimeFields: React.FC<DateTimeFieldsProps> = ({
   }, [autoFill, disabled, dateValue, timeValue, onDateChange, onTimeChange]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-4">
+      <div>
         <Label htmlFor="date">Fecha de Ingreso</Label>
         <Input
           type="date"
           id="date"
           value={dateValue || getCurrentDate()}
           onChange={(e) => onDateChange(e.target.value)}
-          className="w-full"
+          className="w-full mt-2"
           disabled={disabled}
         />
       </div>
-      <div className="space-y-2">
+      <div>
         <Label htmlFor="time">Hora de Ingreso</Label>
         <Input
           type="time"
           id="time"
           value={timeValue || getCurrentTime()}
           onChange={(e) => onTimeChange(e.target.value)}
-          className="w-full"
+          className="w-full mt-2"
           disabled={disabled}
         />
       </div>

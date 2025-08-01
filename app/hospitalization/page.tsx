@@ -38,8 +38,9 @@ export default function HospitalizationSearch() {
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   
-  // Apply debounce to search term with 500ms delay
-  const debouncedSearchTerm = useDebounce(searchTerm, 500)
+  // Apply debounce to search term with variable delay based on search type
+  const debounceDelay = searchType === "nombres" ? 1000 : 500; // Longer delay for name search
+  const debouncedSearchTerm = useDebounce(searchTerm, debounceDelay)
   
   const {
     data: patients,
@@ -55,9 +56,9 @@ export default function HospitalizationSearch() {
   // Effect to trigger search when debounced search term changes
   useEffect(() => {
     if (debouncedSearchTerm !== undefined) {
-      // Only search if it's a name search or if the term has at least 8 characters for documento/historia
+      // Only search if it meets minimum character requirements based on search type
       if (
-        searchType === "nombres" ||
+        (searchType === "nombres" && debouncedSearchTerm.length >= 5) || // At least 5 chars for name search
         (searchType === "documento" && debouncedSearchTerm.length >= 8) ||
         (searchType === "historia" && debouncedSearchTerm.length >= 8)
       ) {
@@ -259,10 +260,6 @@ export default function HospitalizationSearch() {
       header: "Distrito Actual",
     },
     {
-      key: "DISTRITO",
-      header: "Distrito Nacimiento",
-    },
-    {
       key: "actions",
       header: "Acciones",
       cell: (patient: any) => (
@@ -360,38 +357,35 @@ export default function HospitalizationSearch() {
                 </select>
               </div>
               <div className="relative flex-1">
-                {isSearching || isLoading ? (
-                  <Loader2 className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 animate-spin" />
-                ) : (
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                )}
-                <div className="relative w-full">
-                  <Input
-                    type="search"
-                    placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : "DNI (mín. 8 dígitos)"}`}
-                    className="pl-8 pr-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                {/* Search icon (always visible) */}
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                
+                <Input
+                  placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : "DNI (mín. 8 dígitos)"}`}
+                  className="pl-8 pr-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={isLoading}
+                />
+                
+                {/* Single clear button - using Input's built-in type="search" would create a duplicate X */}
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setHasSearched(false)
+                      handleFilterChange({})
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     disabled={isLoading}
-                  />
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchTerm("")
-                        setHasSearched(false)
-                        handleFilterChange({})
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      disabled={isLoading}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
-                  )}
-                </div>
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                )}
               </div>
               <Button 
                 type="submit" 
