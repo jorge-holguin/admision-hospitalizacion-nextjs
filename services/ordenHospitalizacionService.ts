@@ -234,10 +234,13 @@ export const ordenHospitalizacionService = {
         return null;
       }
       
-      console.log(`Buscando registro de orden hospitalización con ID: ${id}`);
+      console.log(`Buscando registro de orden hospitalización con ID: "${id}"`);
       
       // Usar CONVERT para formatear las fechas en SQL Server 2008 R2
-      // Incluir los campos de acompañante en la consulta
+      // Incluir los campos de acompañante y ORIGENID en la consulta
+      const idTrimmed = id.trim();
+      console.log(`ID después de trim: "${idTrimmed}" (longitud: ${idTrimmed.length})`);
+      
       const query = `
         SELECT 
           V.*,
@@ -245,10 +248,11 @@ export const ordenHospitalizacionService = {
           CONVERT(VARCHAR(10), V.FECHA1, 103) AS FECHA1_STR,
           H.ACOMPANANTE_NOMBRE,
           H.ACOMPANANTE_DIRECCION,
-          H.ACOMPANANTE_TELEFONO
+          H.ACOMPANANTE_TELEFONO,
+          H.ORIGENID
         FROM V_HOSPITALIZA V
         LEFT JOIN HOSPITALIZA H ON V.idHOSPITALIZACION = H.IDHOSPITALIZACION
-        WHERE V.idHOSPITALIZACION = '${id.trim()}'
+        WHERE V.idHOSPITALIZACION = '${idTrimmed}'
       `;
       
       console.log('Ejecutando consulta:', query);
@@ -378,6 +382,17 @@ export const ordenHospitalizacionService = {
       const fechaFormateada = data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       const horaFormateada = data.time || new Date().toTimeString().split(' ')[0];
       
+      // Determinar el valor de ORIGEN basado en procedencia
+      let origenValue = data.hospitalizationOrigin || '';
+      
+      // Si la procedencia es RN, establecer ORIGEN como 'RN'
+      if (data.procedencia === 'RN') {
+        console.log('Procedencia es RN - estableciendo ORIGEN como RN');
+        origenValue = 'RN';
+      }
+      
+      console.log('Valor de ORIGEN a insertar:', origenValue);
+      
       // Consulta SQL para insertar un nuevo registro
       const query = `
         INSERT INTO HOSPITALIZA (
@@ -394,7 +409,7 @@ export const ordenHospitalizacionService = {
           '${data.pacienteId}', 
           '${fechaFormateada}', 
           '${horaFormateada}', 
-          '${data.hospitalizationOrigin || ''}', 
+          '${origenValue}', 
           '${data.insurance || ''}', 
           '${data.authorizingDoctor || ''}', 
           '${data.diagnosis || ''}', 

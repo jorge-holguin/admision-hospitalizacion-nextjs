@@ -24,8 +24,6 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   origenId,
   className = '',
 }) => {
-  console.log(`DiagnosticoSelector inicializado con origenId: ${origenId || 'ninguno'}`);
-  
   const [open, setOpen] = useState(false);
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
   const [allDiagnosticos, setAllDiagnosticos] = useState<Diagnostico[]>([]);
@@ -36,43 +34,43 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
 
   // Cargar diagnósticos iniciales o diagnóstico específico si hay un ID de origen
   useEffect(() => {
-    console.log(`useEffect de carga inicial ejecutándose. origenId: ${origenId || 'ninguno'}, tipo: ${typeof origenId}`);
-    
     const fetchDiagnosticos = async () => {
       try {
         setLoading(true);
         setError(null);
         
         // Si tenemos un ID de origen, SIEMPRE usamos ese ID directamente
-        if (origenId) {
-          console.log(`Buscando diagnóstico específico para ID: ${origenId}, tipo: ${typeof origenId}, longitud: ${origenId.length}`);
-          
+        if (origenId) {          
           // Verificar si el origenId es válido (no está vacío)
           if (origenId.trim() === '') {
-            console.log('origenId está vacío, saltando a búsqueda general');
           } else {
             try {
               const url = `/api/diagnosticos/${encodeURIComponent(origenId)}`;
-              console.log(`URL de búsqueda de diagnóstico específico: ${url}`);
               const response = await fetch(url);
             
               if (!response.ok) {
                 if (response.status === 404) {
-                  console.log(`No se encontró diagnóstico específico para ID: ${origenId}. Habilitando búsqueda general.`);
                   // Si no se encuentra el diagnóstico, continuamos con la búsqueda general
                 } else {
                   throw new Error(`Error al cargar diagnóstico: ${response.status}`);
                 }
+              } else if (response.status === 204) {
+                // Si recibimos un 204 (No Content), continuamos con la búsqueda general
+                // No intentamos parsear JSON ya que no hay contenido
               } else {
                 // Si encontramos un diagnóstico específico, lo mostramos y terminamos
-                const data = await response.json();
-                
-                if (data && data.Codigo) {
-                  setDiagnosticos([data]);
-                  setAllDiagnosticos([data]);
-                  console.log(`Cargado diagnóstico específico: ${data.Codigo} - ${data.Nombre}`);
-                  setLoading(false);
-                  return;
+                try {
+                  const data = await response.json();
+                  
+                  if (data && data.Codigo) {
+                    setDiagnosticos([data]);
+                    setAllDiagnosticos([data]);
+                    setLoading(false);
+                    return;
+                  }
+                } catch (error) {
+                  console.error('Error al parsear respuesta JSON:', error);
+                  // Continuamos con la búsqueda general en caso de error de parsing
                 }
               }
             } catch (error) {
@@ -83,9 +81,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         }
         
         // Si no hay ID de origen o no se encontró diagnóstico específico, cargamos los primeros 10 diagnósticos
-        const url = '/api/diagnosticos/emergencia?limit=20';
-        console.log('Cargando los primeros 20 diagnósticos para selección');
-        
+        const url = '/api/diagnosticos/emergencia?limit=20';        
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -96,15 +92,12 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         
         if (Array.isArray(data) && data.length > 0) {
           setDiagnosticos(data);
-          setAllDiagnosticos(data);
-          console.log(`Cargados ${data.length} diagnósticos para selección`);
+          setAllDiagnosticos(data);          
         } else {
-          console.log('No se encontraron diagnósticos');
           setDiagnosticos([]);
           setAllDiagnosticos([]);
         }
       } catch (error) {
-        console.error('Error al cargar diagnósticos:', error);
         setError('Error al cargar diagnósticos');
       } finally {
         setLoading(false);
@@ -118,7 +111,6 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   useEffect(() => {
     // Si hay un ID de origen y ya tenemos un diagnóstico cargado, no permitimos búsqueda
     if (origenId && allDiagnosticos.length === 1 && allDiagnosticos[0].Codigo) {
-      console.log(`Ya tenemos un diagnóstico específico cargado para ID: ${origenId}. No se permite búsqueda.`);
       return;
     }
     
@@ -140,7 +132,6 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         
         // Buscar en todos los diagnósticos disponibles
         const url = `/api/diagnosticos/emergencia?search=${encodeURIComponent(debouncedSearchTerm)}&limit=50`;
-        console.log(`Buscando diagnósticos con término: ${debouncedSearchTerm}`);
         
         const response = await fetch(url);
         
@@ -152,10 +143,8 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         
         if (Array.isArray(data) && data.length > 0) {
           setDiagnosticos(data);
-          console.log(`Encontrados ${data.length} diagnósticos para "${debouncedSearchTerm}"`);
         } else {
           setDiagnosticos([]);
-          console.log(`No se encontraron diagnósticos para "${debouncedSearchTerm}"`);
         }
       } catch (error) {
         console.error(`Error al buscar diagnósticos con término "${debouncedSearchTerm}":`, error);
@@ -189,14 +178,14 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between h-10",
+              "w-full justify-between h-10 flex items-center",
               !value && "text-gray-500",
               disabled && "opacity-70 cursor-not-allowed"
             )}
             disabled={disabled}
           >
-            {value || "Seleccione diagnóstico"}
-            {!disabled && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+            <div className="truncate mr-2 text-left">{value || "Seleccione diagnóstico"}</div>
+            {!disabled && <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 flex-shrink-0" />}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">

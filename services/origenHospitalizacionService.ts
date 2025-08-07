@@ -209,7 +209,8 @@ export class OrigenHospitalizacionService {
         FROM V_ORIGEN_HOSPITALIZA V WITH (NOLOCK)
         LEFT JOIN dbo.ATENCIONC A WITH (NOLOCK) ON V.ORIGEN = 'CE' AND V.CODIGO = A.ID_CITA
         LEFT JOIN dbo.EMERGENCIA E WITH (NOLOCK) ON V.ORIGEN = 'EM' AND V.CODIGO = E.EMERGENCIA_ID
-        WHERE V.CODIGO = '${id}'
+        -- Para RN, no necesitamos un JOIN específico ya que no tiene tabla asociada
+        WHERE V.CODIGO = '${id}' OR V.ORIGEN = 'RN'
         OPTION (RECOMPILE)
       `
       console.log('Query findOne a ejecutar:', query)
@@ -273,6 +274,24 @@ export class OrigenHospitalizacionService {
             INNER JOIN dbo.MEDICO AS C WITH (NOLOCK) ON A.MEDICO = C.MEDICO
             LEFT JOIN dbo.PACIENTE AS D WITH (NOLOCK) ON A.PACIENTE = D.PACIENTE
             WHERE A.EMERGENCIA_ID = '${id}'
+            
+            UNION ALL
+            
+            SELECT 
+              'RN' AS ORIGEN, 
+              '${id}' AS CODIGO, 
+              '' AS CONSULTORIO, 
+              'RECIÉN NACIDO' AS NOM_CONSULTORIO, 
+              P.PACIENTE, 
+              GETDATE() AS FECHA, 
+              '' AS MEDICO, 
+              '' AS NOM_MEDICO,
+              RTRIM(ISNULL(P.NOMBRES, CONCAT(RTRIM(ISNULL(P.NOMBRE, '')), ' ', RTRIM(ISNULL(P.PATERNO, '')), ' ', RTRIM(ISNULL(P.MATERNO, ''))))) AS NOMBRES,
+              RTRIM(ISNULL(P.DOCUMENTO, '')) AS DNI,
+              '' AS DX,
+              P.SEGURO AS SEGURO
+            FROM dbo.PACIENTE AS P WITH (NOLOCK)
+            WHERE P.PACIENTE = '${id}'
           ) AS CombinedResults
           OPTION (RECOMPILE)
         `

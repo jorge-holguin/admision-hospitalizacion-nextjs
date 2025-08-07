@@ -44,14 +44,14 @@ export function DeleteConfirmationDialog({
         </div>
         
         <div className="p-6">
-          <DialogDescription className="text-base text-gray-700">
+          <DialogDescription className="text-base text-gray-700 mb-4">
             {description}
-            {itemName && (
-              <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <span className="font-medium">{itemName}</span>
-              </div>
-            )}
           </DialogDescription>
+          {itemName && (
+            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <span className="font-medium">{itemName}</span>
+            </div>
+          )}
         </div>
         
         <DialogFooter className="flex flex-row justify-end gap-2 p-4 bg-gray-50 border-t border-gray-100">

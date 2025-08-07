@@ -15,6 +15,7 @@ export interface HospitalizaData {
   MEDICO1: string;
   ESTADO: string;
   USUARIO: string;
+  USUARIO_IMP?: string | null;
   DIAGNOSTICO: string;
   EDAD: string;
   ORIGENID: string;
@@ -103,7 +104,7 @@ class HospitalizaService {
       // Preparar los campos y valores para la inserción
       const fields = [
         'IDHOSPITALIZACION', 'PACIENTE', 'NOMBRES', 'CONSULTORIO1', 'HORA1', 
-        'FECHA1', 'ORIGEN', 'SEGURO', 'MEDICO1', 'ESTADO', 'USUARIO', 
+        'FECHA1', 'ORIGEN', 'SEGURO', 'MEDICO1', 'ESTADO', 'USUARIO', 'USUARIO_IMP',
         'DIAGNOSTICO', 'EDAD', 'ORIGENID'
       ];
       
@@ -138,6 +139,7 @@ class HospitalizaService {
         data.MEDICO1,
         data.ESTADO,
         data.USUARIO,
+        data.USUARIO_IMP || data.USUARIO, // Usar USUARIO como valor predeterminado si USUARIO_IMP no está definido
         data.DIAGNOSTICO,
         data.EDAD,
         data.ORIGENID

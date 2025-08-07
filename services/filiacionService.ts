@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils';
 
+const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+
 export interface FiliacionFilter {
   historia?: string;
   documento?: string;
@@ -91,7 +93,7 @@ export const filiacionService = {
         console.log('Usando API externa para búsqueda por nombre:', filter.nombres);
         try {
           // Llamar a la API externa para búsqueda por nombre
-          const apiUrl = `http://192.168.0.21:8080/api/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(filter.nombres)}`;
+          const apiUrl = `${API_BACKEND_URL}/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(filter.nombres)}`;
           console.log('Llamando a API externa:', apiUrl);
           
           const response = await fetch(apiUrl, { 
@@ -441,3 +443,4 @@ export const filiacionService = {
     }
   },
 };
+  

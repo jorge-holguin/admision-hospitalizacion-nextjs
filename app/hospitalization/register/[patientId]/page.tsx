@@ -2,18 +2,16 @@
 
 import { useSearchParams, useParams, useRouter } from 'next/navigation'
 import { Navbar } from "@/components/Navbar"
-import { HospitalizationForm } from '@/components/hospitalization/HospitalizationForm'
+import { HospitalizationFormRefactored } from '@/components/hospitalization/register/HospitalizationFormRefactored'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
+import { HospitalizationForm } from '@/components/hospitalization/HospitalizationForm'
 
 export default function HospitalizationRegisterPage() {
   const router = useRouter();
   // Usar useParams hook para obtener los parámetros de ruta
   const params = useParams();
   const patientId = params.patientId as string;
-  
-  // Registrar para depuración
-  console.log('PatientId obtenido:', patientId);
   
   // Obtener el orderId de los parámetros de búsqueda
   const searchParams = useSearchParams()
@@ -42,7 +40,7 @@ export default function HospitalizationRegisterPage() {
         <h1 className="text-2xl font-bold mb-2">HOSPITALIZACIÓN</h1>
         <h2 className="text-lg font-medium mb-6 text-gray-600">Registro de Orden de Hospitalización</h2>
         
-        <HospitalizationForm patientId={patientId} orderId={orderId} />
+        <HospitalizationFormRefactored patientId={patientId} orderId={orderId} />
       </main>
     </div>
   )

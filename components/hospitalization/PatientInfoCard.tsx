@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
 import Image from 'next/image';
@@ -25,7 +25,6 @@ interface PatientData {
 }
 
 export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, className = '', onDataLoaded }) => {
-  console.log('PatientInfoCard renderizado con patientId:', patientId);
   const [patientData, setPatientData] = useState<PatientData>({
     historyNumber: "",
     paternalSurname: "",
@@ -42,6 +41,33 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // Precargar la imagen cuando tengamos la URL
+  useEffect(() => {
+    if (patientData.photo) {
+      // Usamos el método seguro para crear una imagen
+      const cachedImage = document.createElement('img');
+      cachedImage.src = `data:image/jpeg;base64,${patientData.photo}`;
+      
+      // Si la imagen ya está completa (en caché), actualizamos el estado inmediatamente
+      if (cachedImage.complete) {
+        setImageLoaded(true);
+      } else {
+        // Si no está en caché, esperamos a que cargue
+        cachedImage.onload = () => setImageLoaded(true);
+      }
+      
+      // Aseguramos que la imagen se muestre después de un tiempo máximo
+      // incluso si hay algún problema con los eventos de carga
+      const timer = setTimeout(() => {
+        setImageLoaded(true);
+      }, 1000); // 1 segundo máximo de espera
+      
+      return () => clearTimeout(timer);
+    }
+  }, [patientData.photo]);
 
   // Cargar datos del paciente cuando cambia el patientId
   useEffect(() => {
@@ -55,8 +81,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
         setLoading(true);
         setError(null);
         
-        console.log('Fetching patient data for ID:', patientId);
-        
         // Fetch patient data from filiacion API
         const filiacionResponse = await fetch(`/api/filiacion/${patientId}`);
         
@@ -65,7 +89,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
         }
         
         const responseData = await filiacionResponse.json();
-        console.log('Datos de filiación recibidos en PatientInfoCard:', responseData);
         
         // La estructura de la respuesta tiene un objeto data que contiene los datos del paciente
         const data = responseData.data || responseData;
@@ -85,8 +108,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
           district: data.DISTRITO || '',
           photo: data.STRING_FOTO || ''
         };
-        
-        console.log('PatientData mapeado:', patientDataObj);
         
         // Actualizamos el estado con los datos del paciente
         setPatientData(patientDataObj);
@@ -164,12 +185,27 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
         <div className="flex flex-col items-center">
           <div className="relative h-60 w-40 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 mb-4">
             {patientData.photo ? (
-              <Image 
-                src={`data:image/jpeg;base64,${patientData.photo}`}
-                alt="Foto del paciente"
-                fill
-                style={{ objectFit: 'cover' }}
-              />
+              <>
+                {/* Placeholder mientras carga la imagen */}
+                {!imageLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  </div>
+                )}
+                <Image 
+                  src={`data:image/jpeg;base64,${patientData.photo}`}
+                  alt="Foto del paciente"
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  style={{ 
+                    objectFit: 'cover',
+                    opacity: imageLoaded ? 1 : 0,
+                    transition: 'opacity 0.2s ease-in-out'
+                  }}
+                  onLoadingComplete={() => setImageLoaded(true)}
+                />
+              </>
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -40,7 +40,6 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
         
         // Usar la ruta correcta sin parámetros innecesarios
         const url = `/api/consultorio`;
-        console.log('Cargando consultorios desde:', url);
         
         const response = await fetch(url);
         
@@ -49,12 +48,10 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
         }
         
         const data = await response.json();
-        console.log('Datos de consultorios recibidos:', data);
         
         if (data && data.items && Array.isArray(data.items)) {
           setConsultorios(data.items);
         } else {
-          console.error('Formato de respuesta inesperado:', data);
           setError('Formato de respuesta inesperado');
         }
       } catch (error) {

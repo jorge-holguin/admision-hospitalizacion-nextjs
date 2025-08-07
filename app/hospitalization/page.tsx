@@ -12,8 +12,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { DataTable } from "@/components/ui/data-table"
 import { useFiliacion } from "@/hooks/useFiliacion"
 import { useRouter } from "next/navigation"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
+import { SISVerification, SISVerificationResult } from "@/components/SISVerification"
+
+// API del BACKEND 
+const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 
 // Debounce helper function
 function useDebounce<T>(value: T, delay: number): T {
@@ -38,8 +40,8 @@ export default function HospitalizationSearch() {
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   
-  // Apply debounce to search term with variable delay based on search type
-  const debounceDelay = searchType === "nombres" ? 1000 : 500; // Longer delay for name search
+  // Aplicar debounce al término de búsqueda con retardo variable basado en el tipo de búsqueda
+  const debounceDelay = searchType === "nombres" ? 1000 : 500; // Retardo más largo para la búsqueda por nombre
   const debouncedSearchTerm = useDebounce(searchTerm, debounceDelay)
   
   const {
@@ -53,12 +55,12 @@ export default function HospitalizationSearch() {
     refreshData
   } = useFiliacion()
 
-  // Effect to trigger search when debounced search term changes
+  // useEffect para activar la búsqueda cuando el término de búsqueda se modifica
   useEffect(() => {
     if (debouncedSearchTerm !== undefined) {
-      // Only search if it meets minimum character requirements based on search type
+      // Solo buscar si cumple con los requisitos mínimos de caracteres basados en el tipo de búsqueda
       if (
-        (searchType === "nombres" && debouncedSearchTerm.length >= 5) || // At least 5 chars for name search
+        (searchType === "nombres" && debouncedSearchTerm.length >= 5) || // Al menos 5 caracteres para la búsqueda por nombre
         (searchType === "documento" && debouncedSearchTerm.length >= 8) ||
         (searchType === "historia" && debouncedSearchTerm.length >= 8)
       ) {
@@ -88,99 +90,18 @@ export default function HospitalizationSearch() {
     router.push(`/hospitalization/orders/${patientId}`);
   };
 
-  // Estado para manejar la verificación SIS
-  const [sisVerificationState, setSisVerificationState] = useState<{
-    isLoading: boolean;
-    patientId: string | null;
-    result: string | null;
-    isSuccess: boolean | null;
-  }>({
-    isLoading: false,
-    patientId: null,
-    result: null,
-    isSuccess: null
-  });
-
-  // Función para verificar SIS
-  const handleVerifySIS = async (patientId: string, documento: string) => {
-    if (!documento) {
-      toast({
-        title: "Error",
-        description: "No se encontró número de documento para este paciente",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSisVerificationState({
-      isLoading: true,
-      patientId: patientId,
-      result: null,
-      isSuccess: null
-    });
-
-    try {
-      const response = await fetch('http://192.168.0.21:8080/api/sis/validar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          intOpcion: "1",
-          strTipoDocumento: "1",
-          strNroDocumento: documento,
-          strTipoFormato: "2",
-          strNroContrato: documento
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en la consulta: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const resultado = data.resultado;
-      
-      setSisVerificationState({
-        isLoading: false,
-        patientId: patientId,
-        result: resultado,
-        isSuccess: resultado === "DATOS EXITOSOS"
-      });
-
-      // Mostrar toast con el resultado
-      if (resultado === "DATOS EXITOSOS") {
-        toast({
-          title: "SIS Activo",
-          description: "El paciente cuenta con SIS activo",
-          variant: "default",
-          className: "bg-green-50 border-green-200 text-green-800"
-        });
-      } else {
-        toast({
-          title: "SIS No Activo",
-          description: "No se encontró afiliación SIS para el DNI consultado",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error al verificar SIS:', error);
-      setSisVerificationState({
-        isLoading: false,
-        patientId: patientId,
-        result: "Error en la consulta",
-        isSuccess: false
-      });
-      
-      toast({
-        title: "Error",
-        description: "No se pudo conectar con el servicio de verificación SIS",
-        variant: "destructive"
-      });
-    }
+  // Estado para almacenar los resultados de verificación SIS por paciente
+  const [sisVerificationResults, setSisVerificationResults] = useState<Record<string, SISVerificationResult>>({});
+  
+  // Función para manejar la finalización de la verificación SIS
+  const handleSISVerificationComplete = (result: SISVerificationResult) => {
+    setSisVerificationResults(prev => ({
+      ...prev,
+      [result.patientId]: result
+    }));
   };
 
-  // Define columns for the DataTable
+  // Definición de columnas para la DataTable
   const columns = [
     {
       key: "HISTORIA",
@@ -273,40 +194,13 @@ export default function HospitalizationSearch() {
             >
               <Home className="mr-2 h-4 w-4" /> HOSPITALIZAR
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-green-500 text-green-600 hover:bg-green-50" 
-              onClick={() => handleVerifySIS(patient.PACIENTE, patient.DOCUMENTO)}
-              disabled={sisVerificationState.isLoading && sisVerificationState.patientId === patient.PACIENTE}
-            >
-              {sisVerificationState.isLoading && sisVerificationState.patientId === patient.PACIENTE ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" /> Verificar SIS
-                </>
-              )}
-            </Button>
+            <SISVerification 
+              patientId={patient.PACIENTE}
+              documento={patient.DOCUMENTO}
+              buttonSize="sm"
+              onVerificationComplete={handleSISVerificationComplete}
+            />
           </div>
-          
-          {/* Mostrar resultado de verificación SIS */}
-          {sisVerificationState.patientId === patient.PACIENTE && sisVerificationState.result && !sisVerificationState.isLoading && (
-            <Alert className={sisVerificationState.isSuccess ? 
-              "bg-green-50 border-green-200 text-green-800" : 
-              "bg-red-50 border-red-200 text-red-800"}
-            >
-              <CheckCircle className={`h-4 w-4 ${sisVerificationState.isSuccess ? "text-green-600" : "text-red-600"}`} />
-              <AlertTitle>{sisVerificationState.isSuccess ? "SIS Activo" : "SIS No Activo"}</AlertTitle>
-              <AlertDescription>
-                {sisVerificationState.isSuccess ? 
-                  "El paciente cuenta con SIS activo" : 
-                  "No se encontró afiliación SIS para el DNI consultado"}
-              </AlertDescription>
-            </Alert>
-          )}
         </div>
       ),
     },

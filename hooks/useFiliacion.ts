@@ -80,7 +80,6 @@ export function useFiliacion() {
         }
       }
 
-      console.log('Fetching filiacion with params:', params.toString())
       const response = await fetch(`/api/filiacion?${params.toString()}`)
 
       if (!response.ok) {

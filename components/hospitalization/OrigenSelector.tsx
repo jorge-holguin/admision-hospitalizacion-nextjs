@@ -18,6 +18,7 @@ interface OrigenSelectorProps {
   onLoadDiagnosticos?: (origen: 'CE' | 'EM', codigo?: string) => void;
   className?: string;
   patientId?: string;
+  origenFilter?: string; // Nueva prop para filtrar por procedencia (EM, CE, RN)
   onAttentionOriginChange?: (attentionOrigin: string) => void;
   onMedicoChange?: (medicoValue: string, medicoData?: any) => void;
   onDiagnosticoChange?: (diagnosticoValue: string, diagnosticoData?: any) => void;
@@ -34,6 +35,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
   onLoadDiagnosticos,
   className = '',
   patientId,
+  origenFilter, // Nueva prop para filtrar por procedencia
   onAttentionOriginChange,
   onMedicoChange,
   onDiagnosticoChange,
@@ -54,6 +56,11 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       if (search) queryParams.append('search', search);
       if (!showAllOrigins) queryParams.append('onlyPending', 'true');
       
+      // Añadir filtro por procedencia si está definido (EM o CE)
+      if (origenFilter && (origenFilter === 'EM' || origenFilter === 'CE')) {
+        queryParams.append('origen', origenFilter);
+      }
+      
       let url = '/api/origen-hospitalizacion';
       
       // Si hay un ID de paciente, usar el endpoint específico para pacientes
@@ -69,7 +76,16 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       
       const data = await response.json();
       // La API puede devolver { items: [...], total: number } o { data: [...], total: number }
-      setOrigenes(data.items || data.data || []);
+      let origenesFiltrados = data.items || data.data || [];
+      
+      // Filtrar los orígenes por el campo ORIGEN si está definido el origenFilter
+      if (origenFilter && (origenFilter === 'EM' || origenFilter === 'CE')) {
+        origenesFiltrados = origenesFiltrados.filter(origen => 
+          origen.ORIGEN === origenFilter
+        );
+      }
+      
+      setOrigenes(origenesFiltrados);
     } catch (error) {
       console.error('Error al cargar orígenes de hospitalización:', error);
       setError('Error al cargar orígenes de hospitalización');
@@ -80,7 +96,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
   
   useEffect(() => {
     searchHospitalizationOrigins(searchTerm);
-  }, [showAllOrigins]);
+  }, [showAllOrigins, origenFilter]);
 
   // Encontrar el origen seleccionado basado en el valor actual
   const selectedOrigen = origenes.find(origen => {
@@ -161,7 +177,6 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     // Actualizar el seguro seleccionado si existe en el origen
     if (onSeguroChange && origen.SEGURO) {
       try {
-        console.log('Seguro original:', origen.SEGURO);
         const seguroCode = origen.SEGURO.trim();
         
         if (seguroCode) {
@@ -172,11 +187,9 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
               if (data && data.length > 0) {
                 const seguro = data[0];
                 const seguroValue = `${seguro.Seguro} - ${seguro.Nombre}`;
-                console.log('Seguro encontrado:', seguroValue);
                 onSeguroChange(seguroValue, seguro);
               } else {
                 // Si no se encuentra el seguro, usar solo el código
-                console.log('No se encontró información del seguro, usando solo el código');
                 onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
               }
             })

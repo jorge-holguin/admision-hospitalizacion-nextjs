@@ -10,13 +10,23 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Validar datos requeridos
-    const requiredFields = [
+    const baseRequiredFields = [
       'IDHOSPITALIZACION', 'PACIENTE', 'NOMBRES', 'CONSULTORIO1', 
       'HORA1', 'FECHA1', 'ORIGEN', 'SEGURO', 'MEDICO1', 
-      'ESTADO', 'USUARIO', 'DIAGNOSTICO', 'EDAD', 'ORIGENID'
+      'ESTADO', 'USUARIO', 'DIAGNOSTICO', 'EDAD'
     ];
     
-    const missingFields = requiredFields.filter(field => !data[field]);
+    // ORIGENID es requerido solo si ORIGEN no es 'RN'
+    const requiredFields = data.ORIGEN === 'RN' 
+      ? baseRequiredFields 
+      : [...baseRequiredFields, 'ORIGENID'];
+    
+    // Si ORIGEN es 'RN', aseguramos que ORIGENID sea un string vacío
+    if (data.ORIGEN === 'RN') {
+      data.ORIGENID = '';
+    }
+    
+    const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null);
     if (missingFields.length > 0) {
       return NextResponse.json(
         { error: `Faltan campos requeridos: ${missingFields.join(', ')}` },

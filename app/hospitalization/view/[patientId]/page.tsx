@@ -3,7 +3,7 @@
 import { useParams, useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
-import { HospitalizationView } from '@/components/hospitalization/HospitalizationView'
+import { HospitalizationViewRefactored } from '@/components/hospitalization/view'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
@@ -43,7 +43,7 @@ export default function HospitalizationViewPage() {
             {orderId ? `Orden #${orderId}` : 'Sin orden seleccionada'}
           </p>
         </div>
-        <HospitalizationView 
+        <HospitalizationViewRefactored 
           patientId={patientId} 
           orderId={orderId} 
         />

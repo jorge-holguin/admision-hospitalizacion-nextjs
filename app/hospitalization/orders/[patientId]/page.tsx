@@ -4,12 +4,17 @@ import React, { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Printer, Edit, Loader2, ChevronDown, FileText, ClipboardList, GraduationCap, FileSpreadsheet } from "lucide-react"
+import { Plus, Trash2, Printer, Edit, ChevronDown, FileText, ClipboardList, GraduationCap, FileSpreadsheet, Eye } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
-import { useOrdenHospitalizacion } from "@/hooks/useOrdenHospitalizacion"
-import { Spinner } from "@/components/ui/spinner"
-import { PDFViewerModal } from "@/components/ui/pdf-viewer-modal"
-import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+import { useToast } from '@/components/ui/use-toast';
+import { Spinner } from '@/components/ui/spinner';
+import { PDFViewerModal } from '@/components/ui/pdf-viewer-modal';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { useOrdenHospitalizacion } from '@/hooks/useOrdenHospitalizacion';
+// Importar componentes personalizados
+import { formatDate } from '@/components/hospitalization/DateFormatter';
+import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter';
+import { useOrderOperations } from '@/components/hospitalization/OrderOperations';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +23,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useParams } from "next/navigation"
 
-// Import the OrdenHospitalizacion type from the service
-import { OrdenHospitalizacion as OrdenHospitalizacionType } from '@/services/ordenHospitalizacionService';
+// Variables de entorno ya importadas desde DocumentPrinter
 
-// Create a wrapper component that uses the useParams hook
+// Crear un componente envoltorio que utiliza el hook useParams
 export default function HospitalizationOrdersPage() {
-  // Use the useParams hook to get the patientId
+  // Utilizar el hook useParams para obtener el patientId
   const params = useParams();
   const patientId = params.patientId as string;
   
@@ -32,6 +36,9 @@ export default function HospitalizationOrdersPage() {
 
 // The actual component that receives patientId as a prop
 function HospitalizationOrders({ patientId }: { patientId: string }) {
+  // Hooks
+  const { toast } = useToast();
+  
   // Estado para almacenar los datos del paciente
   const [pacienteData, setPacienteData] = useState<any>(null);
   const [pacienteLoading, setPacienteLoading] = useState<boolean>(true);
@@ -44,11 +51,24 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   const [pdfUrls, setPdfUrls] = useState<string[]>([]);
   const [pdfTitle, setPdfTitle] = useState<string>('');
   
-  // Estado para el diálogo de confirmación de eliminación
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [deleteItemId, setDeleteItemId] = useState<string>('');
-  const [deleteItemName, setDeleteItemName] = useState<string>('');
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  // Hooks personalizados para operaciones
+  const { handleDirectPrint, printHospitalizationDocument } = useDocumentPrinter();
+  
+  const orderOperations = useOrderOperations({
+    onOrderDeleted: () => refresh()
+  });
+  
+  // Destructurar las propiedades y métodos del hook de operaciones
+  const { 
+    deleteDialogOpen, 
+    deleteItemId, 
+    deleteItemName, 
+    isDeleting, 
+    handleDeleteOrder, 
+    confirmDeleteOrder, 
+    handleEditOrder, 
+    setDeleteDialogOpen 
+  } = orderOperations;
   
   // Usar el hook de órdenes de hospitalización
   const {
@@ -73,20 +93,12 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     // Sobrescribir temporalmente el método fetch para registrar todas las llamadas
     const originalFetch = window.fetch;
     window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : String(input);
-      console.log('🔍 Fetch interceptado:', url, init);
-      
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : String(input);      
       // Ya no necesitamos verificar o redirigir llamadas a la API de paciente
       // ya que ahora usamos la API principal con paginación
       
       return originalFetch(input, init);
     };
-    
-    // Registrar información sobre las rutas disponibles
-    console.log('📊 Rutas API esperadas para órdenes de hospitalización:');
-    console.log('- /api/orden-hospitalizacion - Endpoint principal con paginación');
-    console.log('- /api/orden-hospitalizacion/[id] - Obtener una orden específica por ID');
-    console.log('- /api/orden-hospitalizacion/editable - Verificar si un paciente tiene órdenes editables');
     
     // Restaurar el fetch original cuando se desmonte el componente
     return () => {
@@ -96,15 +108,8 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   
   // Agregar un efecto para verificar si hay otros componentes o hooks que puedan estar causando el problema
   useEffect(() => {
-    console.log('🔎 Verificando hooks y componentes activos en la página de órdenes de hospitalización');
-    console.log('- useOrdenHospitalizacion está configurado con pacienteId:', patientId);
-    
     // Intentar detectar otros hooks o componentes que puedan estar haciendo llamadas incorrectas
     const allScripts = document.querySelectorAll('script');
-    console.log(`- Número de scripts en la página: ${allScripts.length}`);
-    
-    // Verificar si hay algún error en la consola relacionado con las rutas API
-    console.log('- Verificando errores de red en la consola...');
   }, [patientId]);
 
   // Establecer el pacienteId cuando el componente se monta
@@ -112,34 +117,25 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     if (patientId) {
       loadPatientData();
       checkEditableStatus();
-      console.log('📝 [HospitalizationOrders] Estableciendo pacienteId en el hook:', patientId);
       setPacienteId(patientId);
     }
   }, [patientId]);
   
   // Registrar cuando cambian las órdenes de hospitalización
   useEffect(() => {
-    console.log('📝 [HospitalizationOrders] Órdenes de hospitalización actualizadas:', {
-      cantidad: ordenesHospitalizacion.length,
-      muestra: ordenesHospitalizacion.length > 0 ? ordenesHospitalizacion[0] : 'Sin datos'
-    });
   }, [ordenesHospitalizacion]);
 
   // Cargar datos del paciente
   const loadPatientData = async () => {
     try {
-      setPacienteLoading(true);
-      console.log('📋 Obteniendo datos del paciente desde:', `/api/filiacion/${patientId}`);
-      
+      setPacienteLoading(true);      
       const response = await fetch(`/api/filiacion/${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al obtener datos del paciente: ${response.status}`);
       }
       
-      const data = await response.json();
-      console.log('📋 Datos del paciente recibidos:', data);
-      
+      const data = await response.json();      
       // Verificar la estructura de la respuesta y extraer los datos del paciente
       if (data.success && data.data) {
         setPacienteData(data.data);
@@ -156,9 +152,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   // Verificar si el paciente tiene un registro de hospitalización con ESTADO = '1'
   const checkEditableStatus = async () => {
     try {
-      setCheckingEditStatus(true);
-      console.log('🔍 Verificando estado editable para paciente:', patientId);
-      
+      setCheckingEditStatus(true);      
       const response = await fetch(`/api/orden-hospitalizacion/editable?pacienteId=${patientId}`);
       
       if (!response.ok) {
@@ -166,7 +160,6 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       }
       
       const data = await response.json();
-      console.log('🔍 Estado editable recibido:', data);
       
       // Verificar si data.isEditable existe y es un booleano
       if (typeof data.isEditable === 'boolean') {
@@ -179,7 +172,6 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       
       // Mostrar información adicional de depuración
       if (data.source) {
-        console.log(`Fuente de datos: ${data.source}`);
       }
       
       if (data.error) {
@@ -193,23 +185,21 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     }
   };
 
-  // Efecto para obtener el estado de cada hospitalización cuando se cargan las órdenes
+  // Efecto para obtener los estados de las órdenes de hospitalización
   useEffect(() => {
-    if (ordenesHospitalizacion.length > 0) {
+    if (ordenesHospitalizacion && ordenesHospitalizacion.length > 0) {
       const fetchHospitalizacionesEstado = async () => {
         const estados: Record<string, string> = {};
         
-        // Usar el ESTADO que ya viene en las órdenes de hospitalización
+        // Iterar sobre cada orden para obtener su estado actual
         for (const orden of ordenesHospitalizacion) {
           try {
             // Verificar si la orden ya tiene un ESTADO
             if (orden.ESTADO) {
-              console.log(`Usando ESTADO existente para orden ${orden.idHOSPITALIZACION}: ${orden.ESTADO}`);
               estados[orden.idHOSPITALIZACION] = orden.ESTADO;
             } 
             // Solo hacer la llamada API si idHOSPITALIZACION existe y no tenemos el ESTADO
             else if (orden.idHOSPITALIZACION && orden.idHOSPITALIZACION.trim() !== '') {
-              console.log(`Obteniendo ESTADO para orden ${orden.idHOSPITALIZACION}`);
               const response = await fetch(`/api/orden-hospitalizacion/${orden.idHOSPITALIZACION}`);
               
               if (response.ok) {
@@ -243,178 +233,62 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     return estado === '1' || estado === '2';
   };
 
-  // Formatear fecha para mostrar
-  const formatDate = (date: Date | string | null | undefined): string => {
-    if (!date) return '-';
+  // Función para obtener datos del paciente para una nueva orden
+  const fetchPatientData = async () => {
     try {
-      // If the date is already a Date object, use it directly
-      const dateObj = date instanceof Date ? date : new Date(date);
-      if (isNaN(dateObj.getTime())) {
-        // If invalid date, return the original value as string
-        return typeof date === 'string' ? date : '-';
+      const res = await fetch(`/api/filiacion/${patientId}`);
+      if (!res.ok) {
+        throw new Error(`Error al obtener datos del paciente: ${res.status}`);
       }
-      // Format the date using Intl.DateTimeFormat
-      return new Intl.DateTimeFormat('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).format(dateObj);
-    } catch (error) {
-      console.error('Error al formatear fecha:', error);
-      return typeof date === 'string' ? date : '-';
+      const response = await res.json();
+      
+      // Store the patient data
+      if (response.success && response.data) {
+        setPacienteData(response.data);
+      } else if (response.NOMBRES) {
+        setPacienteData(response);
+      }
+      
+      return response;
+    } catch (err) {
+      // Manejar error silenciosamente
+      return null;
     }
   };
-
+  
+  // Función para crear una nueva orden
   const handleNewOrder = () => {
-    // Ensure we have the patient data before redirecting
+    // Si no tenemos datos del paciente y no están cargando, intentar obtenerlos primero
     if (!pacienteData && !pacienteLoading) {
-      // If we don't have patient data yet, fetch it first
-      console.log('📋 Obteniendo datos del paciente para nueva orden desde:', `/api/filiacion/${patientId}`);
-      fetch(`/api/filiacion/${patientId}`)
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`Error al obtener datos del paciente: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then(response => {
-          console.log('📋 Datos del paciente recibidos para nueva orden:', response);
-          
-          // Store the patient data and then redirect
-          if (response.success && response.data) {
-            setPacienteData(response.data);
-          } else if (response.NOMBRES) {
-            setPacienteData(response);
-          }
-          
-          // Redirect to the registration page with the patient ID
-          window.location.href = `/hospitalization/register/${patientId}`;
-        })
-        .catch(err => {
-          console.error('Error al obtener datos del paciente para nueva orden:', err);
-          // Redirect anyway even if we couldn't get the patient data
+      fetchPatientData()
+        .finally(() => {
+          // Redireccionar a la página de registro con el ID del paciente
           window.location.href = `/hospitalization/register/${patientId}`;
         });
     } else {
-      // We already have the patient data or it's loading, so just redirect
+      // Ya tenemos los datos del paciente o están cargando, así que solo redireccionamos
       window.location.href = `/hospitalization/register/${patientId}`;
     }
   }
 
-  const handleEditOrder = (orderId?: string) => {
-    if (!orderId || orderId.trim() === '') {
-      console.error('No se puede editar: ID de orden de hospitalización no válido');
-      return;
-    }
-    // Redireccionar a la vista de detalles en lugar de la página de registro
-    window.location.href = `/hospitalization/view/${patientId}?orderId=${orderId}`;
-  }
 
-  // Método para iniciar el proceso de eliminación
-  const handleDeleteOrder = (orderId?: string, patientName?: string) => {
-    if (!orderId || orderId.trim() === '') {
-      console.error('No se puede eliminar: ID de orden de hospitalización no válido');
-      return;
-    }
-    
-    // Eliminar espacios en blanco del ID
-    const cleanId = orderId.trim();
-    
-    // Configurar el diálogo de confirmación
-    setDeleteItemId(cleanId);
-    setDeleteItemName(patientName || `Hospitalización ${cleanId}`);
-    setDeleteDialogOpen(true);
-  }
-  
-  // Método para confirmar la eliminación
-  const confirmDeleteOrder = async () => {
-    try {
-      setIsDeleting(true);
-      console.log(`Eliminando hospitalización con ID: ${deleteItemId}`);
-      
-      // Llamar a la API DELETE para eliminar la hospitalización
-      const response = await fetch(`/api/hospitaliza/${deleteItemId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error al eliminar: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('Resultado de eliminación:', result);
-      
-      // Cerrar el diálogo
-      setDeleteDialogOpen(false);
-      
-      // Actualizar la lista de órdenes
-      refresh();
-    } catch (error) {
-      console.error('Error al eliminar hospitalización:', error);
-      alert(`Error al eliminar la hospitalización: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    } finally {
-      setIsDeleting(false);
-    }
-  }
+
+
+
 
   const handlePrintOrder = (orderId?: string, documentType?: 'filiacion' | 'orden-consentimiento' | 'consentimiento-docencia' | 'fua') => {
     if (!orderId || orderId.trim() === '') {
-      console.error('No se puede imprimir: ID de orden de hospitalización no válido');
+      toast({
+        title: 'Error',
+        description: 'No se puede imprimir: ID de orden de hospitalización no válido',
+        variant: 'destructive'
+      });
       return;
     }
     
     // Eliminar espacios en blanco del ID
     const cleanId = orderId.trim();
-    
-    // Determinar el título del documento para el visor de PDF
-    const documentName = documentType === 'filiacion' ? 'Hoja de Filiación' :
-                        documentType === 'orden-consentimiento' ? 'Orden de Hospitalización' :
-                        documentType === 'consentimiento-docencia' ? 'Consentimiento para actividades de docencia' :
-                        documentType === 'fua' ? 'FUA' : 'Documento';
-    
-    console.log(`Preparando visualización de ${documentName} para orden ${cleanId}`);
-    
-    // Configurar las URLs y abrir el visor de PDF según el tipo de documento
-    switch(documentType) {
-      case 'filiacion':
-        // Configurar el visor de PDF con las URLs de orden y c onsentimiento
-        setPdfTitle('Hoja de Filiación');
-        setPdfUrls([
-          `http://192.168.0.21:8080/api/reporte/pdf/hoja-filiacion/${cleanId}`,
-        ]);
-        setPdfViewerOpen(true);
-        break;
-      
-      case 'orden-consentimiento':
-        // Configurar el visor de PDF con las URLs de orden y consentimiento
-        setPdfTitle('Orden de Hospitalización');
-        setPdfUrls([
-          `http://192.168.0.21:8080/api/reporte/pdf/orden-hospitalizacion/${cleanId}`,
-        ]);
-        setPdfViewerOpen(true);
-        break;
-      
-      case 'consentimiento-docencia':
-        setPdfTitle('Consentimiento para actividades de docencia');
-        setPdfUrls([
-          `http://192.168.0.21:8080/api/reporte/pdf/consentimiento-hospitalizacion/${cleanId}`
-        ]);
-        setPdfViewerOpen(true);
-        break;
-      
-      case 'fua':
-        // Implementar cuando esté disponible la API
-        alert('Funcionalidad de impresión de FUA en desarrollo');
-        break;
-      
-      default:
-        alert('Tipo de documento no reconocido');
-        break;
-    }
+    printHospitalizationDocument(cleanId, documentType || 'orden-consentimiento');
   }
 
   return (
@@ -461,7 +335,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                     </div>
                   ) : (
                     <div className="text-sm font-normal mt-1">
-                      Paciente: {pacienteData?.NOMBRES || ''} {pacienteData?.APELLIDOS || ''} - HC: <strong>{patientId}</strong>
+                      Paciente: {pacienteData?.NOMBRES || ''} {pacienteData?.APELLIDOS || ''} - HC: <strong>{pacienteData?.HISTORIA}</strong>
                     </div>
                   )}
                 </div>
@@ -513,15 +387,14 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                     {ordenesHospitalizacion.map((orden, index) => (
                       <TableRow
                         key={orden.idHOSPITALIZACION ? orden.idHOSPITALIZACION : `orden-${index}`}
-                        className="hover:bg-blue-50 transition-colors cursor-pointer"
-                        onClick={() => orden.idHOSPITALIZACION ? handleEditOrder(orden.idHOSPITALIZACION) : null}
+                        className="hover:bg-blue-50 transition-colors"
                       >
                         <TableCell className="font-medium text-blue-800">{orden.idHOSPITALIZACION}</TableCell>
                         <TableCell>
-                          {orden.Paciente || (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : '')}
-                          <div className="text-xs text-gray-500 mt-1">Código: {patientId}</div>
+                          {patientId}
+                          <div className="text-xs text-gray-500 mt-1">{orden.Paciente || (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : '')}</div>
                         </TableCell>
-                        <TableCell>{orden.Historia || patientId}</TableCell>
+                        <TableCell>{orden.HISTORIA}</TableCell>
                         <TableCell>{orden.CONSULNOMBRE}</TableCell>
                         <TableCell>{orden.MEDICONOMBRE || 'No especificado'}</TableCell>
                         <TableCell>{formatDate(orden.FECHA1)}</TableCell>
@@ -530,13 +403,20 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                         <TableCell>{orden.SEGURONOMBRE}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-white hover:bg-blue-50 border-blue-200"
+                              onClick={() => orden.idHOSPITALIZACION ? handleEditOrder(orden.idHOSPITALIZACION, patientId) : null}
+                            >
+                              <Eye className="w-4 h-4 text-blue-600" />
+                            </Button>
                             {isOrdenEditable(orden.idHOSPITALIZACION) && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleEditOrder(orden.idHOSPITALIZACION)
+                                  handleEditOrder(orden.idHOSPITALIZACION, patientId)
                                 }}
                               >
                                 <Edit className="w-4 h-4" />
@@ -612,7 +492,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   const pacienteName = orden.Paciente || 
-                                    (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : `Paciente ${patientId}`);
+                                    (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : `${patientId}`);
                                   handleDeleteOrder(orden.idHOSPITALIZACION, pacienteName)
                                 }}
                               >

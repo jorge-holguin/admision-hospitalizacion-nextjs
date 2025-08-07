@@ -1,6 +1,6 @@
 // Authentication utility functions
 
-const API_BASE_URL = "http://192.168.0.17:9006";
+const API_AUTH = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
 // User interface based on JWT payload
 export interface UserInfo {
@@ -25,7 +25,7 @@ export interface UserInfo {
  */
 export async function refreshToken(token: string): Promise<string | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh-token`, {
+    const response = await fetch(`${API_AUTH}/api/v1/auth/refresh-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

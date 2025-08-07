@@ -11,8 +11,9 @@ import { User, Lock } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/components/AuthProvider"
 
+
 // API base URL
-const API_BASE_URL = "http://192.168.0.17:9006";
+const API_AUTH = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -26,7 +27,7 @@ export default function LoginPage() {
     setError("");
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+      const response = await fetch(`${API_AUTH}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

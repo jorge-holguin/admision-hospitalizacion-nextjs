@@ -33,13 +33,10 @@ export async function GET(
     const diagnostico = await diagnosticoService.findById(id)
     
     if (!diagnostico) {
-      // Si no se encuentra un diagnóstico específico, devolvemos un 404
-      // El frontend habilitará la búsqueda general cuando reciba este 404
+      // Si no se encuentra un diagnóstico específico, devolvemos un 204 (No Content)
+      // El frontend habilitará la búsqueda general cuando reciba este 204
       console.log(`No se encontró diagnóstico con ID: ${id}. El frontend habilitará la búsqueda general.`)
-      return NextResponse.json(
-        { error: `No se encontró diagnóstico con ID: ${id}` },
-        { status: 404 }
-      )
+      return new NextResponse(null, { status: 204 })
     }
     
     console.log(`Diagnóstico encontrado: ${diagnostico.Codigo} - ${diagnostico.Nombre}`)

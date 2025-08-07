@@ -10,8 +10,8 @@ import { Lock } from "lucide-react"
 import { getAuthToken } from "@/lib/auth"
 import { Navbar } from "@/components/Navbar"
 
-// API base URL
-const API_BASE_URL = "http://192.168.0.17:9006";
+// API de Autenticación del Sistema de Hospitalización
+const API_AUTH = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function ChangePasswordPage() {
     setError("");
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/restaurar-contrasena-usuario`, {
+      const response = await fetch(`${API_AUTH}/api/v1/auth/restaurar-contrasena-usuario`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

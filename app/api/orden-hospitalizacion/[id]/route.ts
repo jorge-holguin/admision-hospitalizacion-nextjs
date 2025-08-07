@@ -69,6 +69,8 @@ export async function PUT(
           ORIGEN = '${valoresSQL.ORIGEN || ''}',
           SEGURO = '${valoresSQL.SEGURO || ''}',
           MEDICO1 = '${valoresSQL.MEDICO1 || ''}',
+          USUARIO = '${valoresSQL.USUARIO || ''}',
+          USUARIO_IMP = '${valoresSQL.USUARIO_IMP || valoresSQL.USUARIO || ''}',
           DIAGNOSTICO = '${valoresSQL.DIAGNOSTICO || data.diagnostico || ''}',
           ACOMPANANTE_NOMBRE = '${valoresSQL.ACOMPANANTE_NOMBRE || data.acompanante_nombre || ''}',
           ACOMPANANTE_DIRECCION = '${valoresSQL.ACOMPANANTE_DIRECCION || data.acompanante_direccion || ''}',

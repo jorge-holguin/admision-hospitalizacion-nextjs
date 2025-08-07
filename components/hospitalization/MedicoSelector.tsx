@@ -53,7 +53,6 @@ export const MedicoSelector: React.FC<MedicoSelectorProps> = ({
           url += `?${params.toString()}`;
         }
         
-        console.log(`Buscando médicos: ${url}`);
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -63,7 +62,6 @@ export const MedicoSelector: React.FC<MedicoSelectorProps> = ({
         const data = await response.json();
         setMedicos(data);
       } catch (error) {
-        console.error('Error al cargar médicos:', error);
         setError('Error al cargar médicos');
       } finally {
         setLoading(false);

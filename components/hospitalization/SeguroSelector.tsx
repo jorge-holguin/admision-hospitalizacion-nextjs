@@ -8,6 +8,32 @@ import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
 import { Seguro } from '@/services/seguroService';
 
+// Función para obtener el nombre completo del código de financiamiento
+const getFinancingCodeName = (code: string): string => {
+  switch (code) {
+    case '0':
+      return '0 - PAGANTE';
+    case '17':
+      return '17 - OTROS PROGRAMAS';
+    case '20':
+      return '20 - SIS PEAS (DU046)';
+    case '21':
+      return '21 - SIS PEAS COMPLEMENTARIO';
+    case '22':
+      return '22 - SIS INDEPENDIENTE';
+    case '23':
+      return '23 - SIS EMPRENDEDOR (NRUS)';
+    case '24':
+      return '24 - SIS MICROEMPRESAS';
+    case '25':
+      return '25 - SIS TEMPORAL';
+    case '02':
+      return '02 - SOAT';
+    default:
+      return code; // Si no hay coincidencia, devuelve solo el código
+  }
+};
+
 interface SeguroSelectorProps {
   value: string;
   onChange: (value: string, seguroData?: Seguro) => void;
@@ -38,7 +64,6 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
         setLoading(true);
         setError(null);
         
-        console.log('Iniciando llamada a API de seguros');
         const response = await fetch('/api/seguros');
         
         if (!response.ok) {
@@ -46,7 +71,6 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
         }
         
         const data = await response.json();
-        console.log('Datos de seguros recibidos:', data.length);
         setSeguros(data);
         
         // Marcar que ya se ha hecho la llamada
@@ -62,9 +86,14 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
     fetchSeguros();
   }, []);
 
-  const selectedSeguro = seguros.find(seguro => 
-    value === `${seguro.Seguro} - ${seguro.Nombre}`
-  );
+  // Buscar el seguro seleccionado, considerando diferentes formatos posibles
+  const selectedSeguro = seguros.find(seguro => {
+    // Puede venir como "25" o como "25 - SIS TEMPORAL"
+    if (value === seguro.Seguro || value === `${seguro.Seguro} - ${seguro.Nombre}`) {
+      return true;
+    }
+    return false;
+  });
 
   const handleSelect = (selectedValue: string) => {
     const selected = seguros.find(seguro => 
@@ -72,6 +101,30 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
     );
     onChange(selectedValue, selected);
     setOpen(false);
+  };
+
+  // Función para mostrar el valor formateado en el botón
+  const displayValue = () => {
+    if (!value) return "Seleccione seguro";
+    
+    // Si el valor ya contiene un guión, puede ser que ya tenga el formato correcto
+    if (value.includes(' - ')) {
+      // Verificar si es un formato completo como "25 - SIS TEMPORAL"
+      const parts = value.split(' - ');
+      if (parts.length === 2) {
+        // Verificar si el código está en nuestro switch case
+        const code = parts[0];
+        if (getFinancingCodeName(code) !== code) {
+          // Si el código tiene un nombre definido, usamos ese formato
+          return getFinancingCodeName(code);
+        }
+        // Si no, devolvemos el valor tal cual
+        return value;
+      }
+    }
+    
+    // Si solo tenemos el código (ej: "25"), usamos la función para obtener el nombre completo
+    return getFinancingCodeName(value);
   };
 
   return (
@@ -89,7 +142,7 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
             )}
             disabled={disabled}
           >
-            {value || "Seleccione seguro"}
+            {displayValue()}
             {!disabled && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
           </Button>
         </PopoverTrigger>
