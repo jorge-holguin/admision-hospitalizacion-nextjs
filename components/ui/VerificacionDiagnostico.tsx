@@ -58,7 +58,8 @@ const VerificacionDiagnostico = forwardRef<VerificacionDiagnosticoRef, Verificac
           
           // Realizar la consulta a la API
           const response = await fetch(
-            `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=${encodeURIComponent(codigoDiagnostico)}`,
+            
+            `${process.env.NEXT_PUBLIC_API_CIEX_URL}/ciex?busqueda=${encodeURIComponent(codigoDiagnostico)}`,
             {
               headers: {
                 'Authorization': `Bearer ${authToken}`,

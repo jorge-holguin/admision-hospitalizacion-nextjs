@@ -892,6 +892,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                   <Label htmlFor="diagnostico" className="text-sm font-semibold text-black-600">
                     Diagnóstico <span className="text-red-500">*</span>
                   </Label>
+                  {/* Eliminamos el console.log inline que causaba error de lint */}
                   <DiagnosticoSelector
                     value={formData.diagnosis}
                     onChange={(value, diagnosticoData) => {
@@ -900,7 +901,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                     }}
                     disabled={fieldsLocked}
                     origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
-                    tipoOrigen={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : 'CE'} // Tipo de origen para determinar qué API usar
+                    tipoOrigen={formData.procedencia} // Usar procedencia directamente como tipo de origen
                     className="w-full"
                   />
                   

@@ -32,10 +32,13 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   value, 
   onChange, 
   disabled = false,
-  origenId,
-  className = '',
-  tipoOrigen,
+  origenId = '',
+  tipoOrigen = 'CE',
+  className = ''
 }) => {
+  // Console log para verificar el valor de tipoOrigen recibido
+  console.log(`[DiagnosticoSelector] tipoOrigen recibido: ${tipoOrigen}`);
+
   const [open, setOpen] = useState(false);
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
   const [allDiagnosticos, setAllDiagnosticos] = useState<Diagnostico[]>([]);
@@ -72,17 +75,25 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         setLoading(true);
         setError(null);
         
+        console.log(`[DiagnosticoSelector] Carga inicial - tipoOrigen: ${tipoOrigen}, origenId: ${origenId}`);
+        
         // Si tenemos un ID de origen, intentamos cargar ese diagnóstico específico
         if (origenId && origenId.trim() !== '') {
           try {
             // Para 'EM' y 'RN' usar la API de CIEX, para 'CE' usar la API de diagnósticos de emergencia
             if (tipoOrigen === 'EM' || tipoOrigen === 'RN') {
-              // Usar la API de CIEX para buscar por ID
+              console.log(`[DiagnosticoSelector] Usando API CIEX para origen ${tipoOrigen}`);
+
+              // Usar la API de CIEX para buscar por ID - URL directa mientras se resuelve el problema con las variables de entorno
               const url = `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=${encodeURIComponent(origenId)}`;
+              const token = getAuthToken();
+              
+              console.log(`[DiagnosticoSelector] URL de carga inicial CIEX: ${url}`);
+              console.log(`[DiagnosticoSelector] Token disponible para carga inicial: ${token ? 'Sí' : 'No'} (primeros 5 caracteres: ${token.substring(0, 5)}...)`);
               
               const response = await fetch(url, {
                 headers: {
-                  'Authorization': `Bearer ${getAuthToken()}`
+                  'Authorization': `Bearer ${token}`
                 }
               });
               
@@ -123,12 +134,15 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         // Si no hay ID de origen o no se encontró diagnóstico específico, cargamos diagnósticos generales
         // Para 'EM' y 'RN' usar la API de CIEX, para 'CE' usar la API de diagnósticos de emergencia
         if (tipoOrigen === 'EM' || tipoOrigen === 'RN') {
-          // Usar la API de CIEX
+          // Usar la API de CIEX - URL directa mientras se resuelve el problema con las variables de entorno
           const url = `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=`;
+          const token = getAuthToken();
+          
+          console.log(`[DiagnosticoSelector] URL de carga inicial general CIEX: ${url}`);
           
           const response = await fetch(url, {
             headers: {
-              'Authorization': `Bearer ${getAuthToken()}`
+              'Authorization': `Bearer ${token}`
             }
           });
           
@@ -195,6 +209,8 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         return;
       }
       
+      console.log(`[DiagnosticoSelector] Búsqueda - término: "${debouncedSearchTerm}", tipoOrigen: ${tipoOrigen}`);
+      
       try {
         setLoading(true);
         setError(null);
@@ -202,12 +218,18 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         // Determinar qué API usar según el tipo de origen
         // Para 'EM' y 'RN' usar la API de CIEX, para 'CE' usar la API de diagnósticos de emergencia
         if (tipoOrigen === 'EM' || tipoOrigen === 'RN') {
-          // Usar la API de CIEX
+          console.log(`[DiagnosticoSelector] Búsqueda usando API CIEX para origen ${tipoOrigen}`);
+
+          // Usar la API de CIEX - URL directa mientras se resuelve el problema con las variables de entorno
           const url = `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=${encodeURIComponent(debouncedSearchTerm)}`;
+          const token = getAuthToken();
+          
+          console.log(`[DiagnosticoSelector] URL de búsqueda CIEX: ${url}`);
+          console.log(`[DiagnosticoSelector] Token disponible: ${token ? 'Sí' : 'No'} (primeros 5 caracteres: ${token.substring(0, 5)}...)`);
           
           const response = await fetch(url, {
             headers: {
-              'Authorization': `Bearer ${getAuthToken()}`
+              'Authorization': `Bearer ${token}`
             }
           });
           
