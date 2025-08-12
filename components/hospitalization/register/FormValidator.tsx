@@ -11,6 +11,10 @@ interface FormData {
   authorizingDoctor: string;
   financing: string;
   diagnosis: string;
+  companionName: string;
+  companionPhone: string;
+  companionAddress: string;
+  procedencia: string;
   [key: string]: string;
 }
 
@@ -22,16 +26,41 @@ interface ValidationResult {
 export function validateHospitalizationForm(formData: FormData): ValidationResult {
   const errors: Record<string, string> = {};
   
-  console.log('Validando formulario con procedencia:', formData.procedencia);
+  // Validar siempre los campos del acompañante, independientemente de la procedencia
+  const companionFields = [
+    { key: 'companionName', label: 'Nombres y apellidos del acompañante' },
+    { key: 'companionPhone', label: 'Teléfono del acompañante' },
+    { key: 'companionAddress', label: 'Domicilio del acompañante' }
+  ];
   
-  // Si la procedencia es RN, solo validamos fecha y hora
+  companionFields.forEach(field => {
+    if (!formData[field.key]?.trim()) {
+      errors[field.key] = `El campo ${field.label} es obligatorio`;
+    }
+  });
+  
+  // Validar fecha y hora (siempre requeridos)
+  const commonRequiredFields = [
+    { key: 'date', label: 'Fecha' },
+    { key: 'time', label: 'Hora' }
+  ];
+  
+  commonRequiredFields.forEach(field => {
+    if (!formData[field.key]?.trim()) {
+      errors[field.key] = `El campo ${field.label} es obligatorio`;
+    }
+  });
+  
+  // Si la procedencia es RN, no validamos el código de origen de atención
   if (formData.procedencia === 'RN') {
     console.log('Procedencia es RN - aplicando validación especial');
     
-    // Para RN, solo validamos fecha y hora
+    // Para RN, validamos todos los campos excepto el código de origen de atención
     const rnRequiredFields = [
-      { key: 'date', label: 'Fecha' },
-      { key: 'time', label: 'Hora' }
+      { key: 'hospitalizedIn', label: 'Hospitalizado en' },
+      { key: 'authorizingDoctor', label: 'Médico Autorizante' },
+      { key: 'financing', label: 'Financiamiento' },
+      { key: 'diagnosis', label: 'Diagnóstico' }
     ];
     
     rnRequiredFields.forEach(field => {
@@ -44,10 +73,7 @@ export function validateHospitalizationForm(formData: FormData): ValidationResul
     console.log('Procedencia no es RN - aplicando validación normal');
     
     const requiredFields = [
-      { key: 'date', label: 'Fecha' },
-      { key: 'time', label: 'Hora' },
-      { key: 'hospitalizationOrigin', label: 'Origen de Hospitalización' },
-      { key: 'attentionOrigin', label: 'Origen de Atención' },
+      { key: 'hospitalizationOrigin', label: 'Código de Origen de Atención' },
       { key: 'hospitalizedIn', label: 'Hospitalizado en' },
       { key: 'authorizingDoctor', label: 'Médico Autorizante' },
       { key: 'financing', label: 'Financiamiento' },

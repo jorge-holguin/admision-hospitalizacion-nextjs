@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
-import { Loader2, Save, ArrowLeft } from 'lucide-react'
+import { Loader2, Save, ArrowLeft, X } from 'lucide-react'
 
 interface ViewActionsProps {
   onSave: (e: React.FormEvent) => void;
@@ -19,15 +19,16 @@ export function ViewActions({ onSave, onCancel, submitting, isEditable }: ViewAc
             type="button" 
             variant="outline" 
             onClick={onCancel}
-            className="flex items-center gap-2"
+            className="bg-[#e91e63] hover:bg-[#d81b60] text-white hover:text-white"
           >
+            <X className="h-4 w-4" />
             Cancelar
           </Button>
           
           <Button 
             type="submit" 
             disabled={submitting} 
-            className="flex items-center gap-2"
+            className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
             onClick={(e) => onSave(e)}
           >
             {submitting ? (

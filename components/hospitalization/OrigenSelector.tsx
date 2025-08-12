@@ -134,9 +134,6 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     
     // Actualizar el diagnóstico seleccionado
     if (onDiagnosticoChange && origen.DX) {
-      // Si hay un diagnóstico en el origen, seleccionarlo
-      console.log('Diagnóstico original:', origen.DX);
-      
       try {
         // El formato puede ser "CODIGO DESCRIPCION" o "CODIGO , DESCRIPCION"
         let dxString = typeof origen.DX === 'string' ? origen.DX.trim() : '';
@@ -160,9 +157,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         }
         
         const dxValue = dxCode && dxName ? `${dxCode} - ${dxName}` : dxCode;
-        
-        console.log('Diagnóstico procesado:', { dxCode, dxName, dxValue });
-        
+                
         if (dxValue) {
           onDiagnosticoChange(dxValue, {
             Codigo: dxCode,

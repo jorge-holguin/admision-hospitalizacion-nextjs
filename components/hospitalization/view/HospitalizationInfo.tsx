@@ -26,7 +26,6 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
   useEffect(() => {
     // Solo actualizamos si hay un cambio real de procedencia y no es la carga inicial
     if (formData.procedencia && procedencia !== formData.procedencia) {
-      console.log('Procedencia cambiada de', formData.procedencia, 'a', procedencia, '- Limpiando hospitalizationId');
       setFormData({
         ...formData,
         procedencia,
@@ -58,12 +57,12 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
   return (
     <>
       <h3 className="text-lg font-semibold mb-4">Datos de Hospitalización</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-green-50 p-4 rounded-lg border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-gray-100 p-4 rounded-lg border border-gray-200">
         {/* Columna izquierda */}
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="procedencia" className="text-sm font-semibold text-red-600">
-              <span className="text-red-500">●</span> Procedencia del Paciente
+            <Label htmlFor="procedencia" className="text-sm font-semibold text-black-600">
+              Procedencia del Paciente <span className="text-red-500">*</span>
             </Label>
             {isEditable ? (
               <ProcedenciaSelector
@@ -84,8 +83,8 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="consultorio" className="text-sm font-semibold text-red-600">
-              <span className="text-red-500">●</span> Hospitalizado en
+            <Label htmlFor="consultorio" className="text-sm font-semibold text-black-600">
+              Hospitalizado en <span className="text-red-500">*</span>
             </Label>
             {isEditable ? (
               <ConsultorioSelector
@@ -113,8 +112,8 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
-              <span className="text-red-500">●</span> Financiamiento
+            <Label htmlFor="seguro" className="text-sm font-semibold text-black-600">
+              Financiamiento <span className="text-red-500">*</span>
             </Label>
             {isEditable ? (
               <SeguroSelector
@@ -145,8 +144,8 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
         {/* Columna derecha */}
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="origen" className="text-sm font-semibold text-red-600">
-              <span className="text-red-500">●</span> Código de Origen de Atención
+            <Label htmlFor="origen" className="text-sm font-semibold text-black-600">
+              Código de Origen de Atención <span className="text-red-500">*</span>
             </Label>
             {isEditable && !isOrigenDisabled ? (
               <OrigenSelector
@@ -174,8 +173,8 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
-              <span className="text-red-500">●</span> Médico que autoriza la Hospitalización
+            <Label htmlFor="medico" className="text-sm font-semibold text-black-600">
+              Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
             </Label>
             {isEditable ? (
               <MedicoSelector
@@ -203,8 +202,8 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
-              <span className="text-red-500">●</span> Diagnóstico
+            <Label htmlFor="diagnostico" className="text-sm font-semibold text-black-600">
+              Diagnóstico <span className="text-red-500">*</span>
             </Label>
             {isEditable ? (
               <DiagnosticoSelector

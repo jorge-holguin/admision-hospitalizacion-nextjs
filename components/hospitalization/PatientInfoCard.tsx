@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
-import Image from 'next/image';
+import ImageWithLoader from '@/components/ui/ImageWithLoader';
 
 interface PatientInfoCardProps {
   patientId: string;
@@ -41,33 +41,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const imageRef = useRef<HTMLImageElement>(null);
-
-  // Precargar la imagen cuando tengamos la URL
-  useEffect(() => {
-    if (patientData.photo) {
-      // Usamos el método seguro para crear una imagen
-      const cachedImage = document.createElement('img');
-      cachedImage.src = `data:image/jpeg;base64,${patientData.photo}`;
-      
-      // Si la imagen ya está completa (en caché), actualizamos el estado inmediatamente
-      if (cachedImage.complete) {
-        setImageLoaded(true);
-      } else {
-        // Si no está en caché, esperamos a que cargue
-        cachedImage.onload = () => setImageLoaded(true);
-      }
-      
-      // Aseguramos que la imagen se muestre después de un tiempo máximo
-      // incluso si hay algún problema con los eventos de carga
-      const timer = setTimeout(() => {
-        setImageLoaded(true);
-      }, 1000); // 1 segundo máximo de espera
-      
-      return () => clearTimeout(timer);
-    }
-  }, [patientData.photo]);
 
   // Cargar datos del paciente cuando cambia el patientId
   useEffect(() => {
@@ -105,7 +78,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
           age: data.EDAD || '',
           insurance: data.NOMBRE_SEGURO?.trim() || data.SEGURO?.trim() || '',
           phone: data.TELEFONO1 || '',
-          district: data.DISTRITO || '',
+          district: data.Distrito_Dir || '',
           photo: data.STRING_FOTO || ''
         };
         
@@ -185,27 +158,16 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
         <div className="flex flex-col items-center">
           <div className="relative h-60 w-40 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 mb-4">
             {patientData.photo ? (
-              <>
-                {/* Placeholder mientras carga la imagen */}
-                {!imageLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                  </div>
-                )}
-                <Image 
-                  src={`data:image/jpeg;base64,${patientData.photo}`}
-                  alt="Foto del paciente"
-                  fill
-                  priority
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  style={{ 
-                    objectFit: 'cover',
-                    opacity: imageLoaded ? 1 : 0,
-                    transition: 'opacity 0.2s ease-in-out'
-                  }}
-                  onLoadingComplete={() => setImageLoaded(true)}
-                />
-              </>
+              <ImageWithLoader 
+                src={`data:image/jpeg;base64,${patientData.photo}`}
+                alt="Foto del paciente"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 33vw"
+                loadingClassName="opacity-0"
+                loadedClassName="opacity-100"
+                className="object-cover transition-opacity duration-200"
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,7 +205,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, cla
             <p className="text-lg font-semibold">{patientData.phone || '-'}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Distrito</p>
+            <p className="text-sm font-medium text-gray-500">Distrito Actual</p>
             <p className="text-lg font-semibold">{patientData.district || '-'}</p>
           </div>
         </div>

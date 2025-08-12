@@ -384,107 +384,115 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ordenesHospitalizacion.map((orden, index) => (
-                      <TableRow
-                        key={orden.idHOSPITALIZACION ? orden.idHOSPITALIZACION : `orden-${index}`}
-                        className="hover:bg-blue-50 transition-colors"
-                      >
-                        <TableCell className="font-medium text-blue-800">{orden.idHOSPITALIZACION}</TableCell>
-                        <TableCell>
-                          {patientId}
-                          <div className="text-xs text-gray-500 mt-1">{orden.Paciente || (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : '')}</div>
-                        </TableCell>
-                        <TableCell>{orden.HISTORIA}</TableCell>
-                        <TableCell>{orden.CONSULNOMBRE}</TableCell>
-                        <TableCell>{orden.MEDICONOMBRE || 'No especificado'}</TableCell>
-                        <TableCell>{formatDate(orden.FECHA1)}</TableCell>
-                        <TableCell>{orden.HORA1}</TableCell>
-                        <TableCell>{orden.ORIGENOMBRE}</TableCell>
-                        <TableCell>{orden.SEGURONOMBRE}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-white hover:bg-blue-50 border-blue-200"
-                              onClick={() => orden.idHOSPITALIZACION ? handleEditOrder(orden.idHOSPITALIZACION, patientId) : null}
-                            >
-                              <Eye className="w-4 h-4 text-blue-600" />
-                            </Button>
-                            {isOrdenEditable(orden.idHOSPITALIZACION) && (
+                    {ordenesHospitalizacion.map((orden, index) => {
+                      // Verificar si la orden está eliminada lógicamente (ESTADO='0')
+                      const isDeleted = orden.ESTADO === '0';
+                      
+                      return (
+                        <TableRow
+                          key={orden.idHOSPITALIZACION ? orden.idHOSPITALIZACION : `orden-${index}`}
+                          className={`transition-colors ${isDeleted ? 'bg-gray-100 opacity-70' : 'hover:bg-blue-50'}`}
+                        >
+                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-800'}`}>{orden.idHOSPITALIZACION}</TableCell>
+                          <TableCell>
+                            {patientId}
+                            <div className="text-xs text-gray-500 mt-1">{orden.Paciente || (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : '')}</div>
+                          </TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.HISTORIA}</TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.CONSULNOMBRE}</TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.MEDICONOMBRE || 'No especificado'}</TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{formatDate(orden.FECHA1)}</TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.HORA1}</TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.ORIGENOMBRE}</TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.SEGURONOMBRE}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              {/* View button - active when state is '3', disabled when state is '2' or deleted */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-white hover:bg-blue-50 border-blue-200"
+                                onClick={() => orden.idHOSPITALIZACION ? handleEditOrder(orden.idHOSPITALIZACION, patientId) : null}
+                                disabled={isDeleted || hospitalizacionesEstado[orden.idHOSPITALIZACION] === '2'}
+                              >
+                                <Eye className="w-4 h-4 text-blue-600" />
+                              </Button>
+                              
+                              {/* Edit button - always shown, but disabled when not editable or deleted */}
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={(e) => {
                                   handleEditOrder(orden.idHOSPITALIZACION, patientId)
                                 }}
+                                disabled={isDeleted || !isOrdenEditable(orden.idHOSPITALIZACION)}
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white hover:bg-blue-50 border-blue-200"
-                                >
-                                  <Printer className="w-4 h-4 mr-1 text-blue-600" />
-                                  <ChevronDown className="h-3 w-3 text-blue-600" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-64 p-2">
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (orden.idHOSPITALIZACION) {
-                                      handlePrintOrder(orden.idHOSPITALIZACION, 'filiacion')
-                                    }
-                                  }}
-                                >
-                                  <FileText className="w-4 h-4 text-blue-600" />
-                                  <span>Hoja de Filiación</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (orden.idHOSPITALIZACION) {
-                                      handlePrintOrder(orden.idHOSPITALIZACION, 'orden-consentimiento')
-                                    }
-                                  }}
-                                >
-                                  <ClipboardList className="w-4 h-4 text-green-600" />
-                                  <span>Orden de Hospitalización</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (orden.idHOSPITALIZACION) {
-                                      handlePrintOrder(orden.idHOSPITALIZACION, 'consentimiento-docencia')
-                                    }
-                                  }}
-                                >
-                                  <GraduationCap className="w-4 h-4 text-amber-600" />
-                                  <span>Consentimiento para actividades de docencia</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (orden.idHOSPITALIZACION) {
-                                      handlePrintOrder(orden.idHOSPITALIZACION, 'fua')
-                                    }
-                                  }}
-                                >
-                                  <FileSpreadsheet className="w-4 h-4 text-purple-600" />
-                                  <span>FUA</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            {orden.idHOSPITALIZACION && isOrdenEditable(orden.idHOSPITALIZACION) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-white hover:bg-blue-50 border-blue-200"
+                                    disabled={isDeleted}
+                                  >
+                                    <Printer className="w-4 h-4 mr-1 text-blue-600" />
+                                    <ChevronDown className="h-3 w-3 text-blue-600" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-64 p-2">
+                                  <DropdownMenuItem
+                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (orden.idHOSPITALIZACION) {
+                                        handlePrintOrder(orden.idHOSPITALIZACION, 'filiacion')
+                                      }
+                                    }}
+                                  >
+                                    <FileText className="w-4 h-4 text-blue-600" />
+                                    <span>Hoja de Filiación</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (orden.idHOSPITALIZACION) {
+                                        handlePrintOrder(orden.idHOSPITALIZACION, 'orden-consentimiento')
+                                      }
+                                    }}
+                                  >
+                                    <ClipboardList className="w-4 h-4 text-green-600" />
+                                    <span>Orden de Hospitalización</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (orden.idHOSPITALIZACION) {
+                                        handlePrintOrder(orden.idHOSPITALIZACION, 'consentimiento-docencia')
+                                      }
+                                    }}
+                                  >
+                                    <GraduationCap className="w-4 h-4 text-amber-600" />
+                                    <span>Consentimiento para actividades de docencia</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (orden.idHOSPITALIZACION) {
+                                        handlePrintOrder(orden.idHOSPITALIZACION, 'fua')
+                                      }
+                                    }}
+                                  >
+                                    <FileSpreadsheet className="w-4 h-4 text-purple-600" />
+                                    <span>FUA</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              {/* Delete button - always shown, but disabled when not editable or deleted */}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -495,14 +503,15 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                     (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : `${patientId}`);
                                   handleDeleteOrder(orden.idHOSPITALIZACION, pacienteName)
                                 }}
+                                disabled={isDeleted || !isOrdenEditable(orden.idHOSPITALIZACION)}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
 

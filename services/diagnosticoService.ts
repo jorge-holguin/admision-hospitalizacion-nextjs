@@ -29,13 +29,13 @@ export class DiagnosticoService {
         sqlQuery = `
           SELECT TOP ${limit} Codigo, Nombre 
           FROM CIEXHIS_V2 
-          WHERE Codigo LIKE '[A-Z]%'
+          WHERE Codigo LIKE '[A-Z]%' AND Tipo = 'CX'
         `
       } else {
         sqlQuery = `
           SELECT Codigo, Nombre 
           FROM CIEXHIS_V2 
-          WHERE Codigo LIKE '[A-Z]%'
+          WHERE Codigo LIKE '[A-Z]%' AND Tipo = 'CX'
         `
       }
       

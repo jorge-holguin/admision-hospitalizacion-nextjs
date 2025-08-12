@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Spinner } from "@/components/ui/spinner"
@@ -29,6 +29,8 @@ import { FormActions } from './FormActions'
 import { HospitalizationDetails } from './HospitalizationDetails'
 import { validateHospitalizationForm } from './FormValidator'
 import { useSelectsState } from './FormUtils'
+import FuaStatusAlert from './FuaStatusAlert'
+import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
 
 // Tipos
 import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService'
@@ -47,6 +49,7 @@ const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 export function HospitalizationFormRefactored({ patientId, orderId }: HospitalizationFormProps) {
   const router = useRouter();
   const { user } = useAuth(); // Moved inside the component
+  const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null);
   
   // Estado para loading y error handling
   const [loading, setLoading] = useState(true);
@@ -236,21 +239,19 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
       // Mostrar que se está procesando
       setSubmitting(true);
       
-      console.log('Iniciando procesamiento del formulario', { formData });
-      
       // Obtener el siguiente ID de hospitalización
       const nextId = await fetchNextHospitalizacionId();
-      console.log('ID de hospitalización obtenido:', nextId);
-      
       if (!nextId) {
         toast({
           title: "Error",
-          description: "No se pudo obtener el siguiente ID de hospitalización",
+          description: "No se pudo obtener un ID de hospitalización",
           variant: "destructive"
         });
         setSubmitting(false);
         return;
       }
+      
+      // La verificación del diagnóstico ya se realizó en onBeforeSave
       
       // La validación ya se realizó en handleSubmit, pero verificamos nuevamente
       // para asegurarnos de que todo esté en orden antes de enviar
@@ -470,6 +471,45 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
           variant: "default"
         });
         
+        // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
+        const seguroCode = result.SEGURO?.trim();
+        if (["0", "02", "17"].includes(seguroCode)) {
+          try {
+            console.log(`Asegurando cuenta para hospitalización ${result.IDHOSPITALIZACION.trim()} con seguro ${seguroCode}...`);
+            console.log('Datos que se envían al endpoint:', {
+              paciente: result.PACIENTE,
+              seguro: seguroCode,
+              usuario: user?.sub || 'SISTEMA',
+              nombre: result.NOMBRES?.trim() || ''
+            });
+            const asegurarResponse = await fetch(`/api/hospitaliza/${result.IDHOSPITALIZACION.trim()}/asegurar-cuenta`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                paciente: result.PACIENTE,
+                seguro: seguroCode,
+                usuario: user?.sub || 'SISTEMA',
+                nombre: result.NOMBRES?.trim() || ''
+              })
+            });
+            
+            const asegurarResult = await asegurarResponse.json();
+            console.log('Resultado de asegurar cuenta:', asegurarResult);
+            
+            if (asegurarResult.ok) {
+              console.log(`Cuenta asegurada correctamente: ${asegurarResult.cuentaId || 'N/A'}`);
+            } else {
+              console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
+            }
+          } catch (error) {
+            console.error('Error al asegurar la cuenta:', error);
+          }
+        } else {
+          console.log(`No se requiere asegurar cuenta para seguro: ${seguroCode}`);
+        }
+        
         // Obtener el ID limpio para los PDFs
         const cleanId = result.IDHOSPITALIZACION.trim();
         
@@ -572,6 +612,12 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
+      {/* Alerta de estado FUA - Posicionada al inicio del formulario */}
+      <FuaStatusAlert 
+        patientId={patientId} 
+        insuranceCode={selectedSeguro?.Seguro || formData.insurance?.split(' - ')[0]}
+      />
+      
       <Toaster />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sidebar with Patient Information */}
@@ -619,9 +665,9 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
               
               {/* Datos del Acompañante */}
               <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-blue-50 p-4 rounded-lg border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-gray-100 p-4 rounded-lg border border-gray-200">
                 <div className="space-y-2">
-                  <Label htmlFor="companionName" className="font-medium text-red-500">● Nombres y apellidos del acompañante *</Label>
+                  <Label htmlFor="companionName" className="font-medium text-black-600">Nombres y apellidos del acompañante <span className="text-red-500">*</span></Label>
                   <Input
                     id="companionName"
                     value={formData.companionName}
@@ -641,7 +687,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="companionPhone" className="font-medium text-red-500">● Teléfono del acompañante *</Label>
+                  <Label htmlFor="companionPhone" className="font-medium text-black-600">Teléfono del acompañante <span className="text-red-500">*</span></Label>
                   <Input
                     id="companionPhone"
                     value={formData.companionPhone}
@@ -663,7 +709,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                   )}
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="companionAddress" className="font-medium text-red-500">● Domicilio del acompañante *</Label>
+                  <Label htmlFor="companionAddress" className="font-medium text-black-600">Domicilio del acompañante <span className="text-red-500">*</span></Label>
                   <Input
                     id="companionAddress"
                     value={formData.companionAddress}
@@ -686,11 +732,11 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
               
               {/* Datos de Hospitalización */}
               <h3 className="text-lg font-semibold mb-4">Datos de Hospitalización</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-green-50 p-4 rounded-lg border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-gray-100 p-4 rounded-lg border border-gray-200">
                 {/* Fila 1: Procedencia del Paciente | Código de Origen de Atención */}
                 <div className="space-y-2">
-                  <Label htmlFor="procedencia" className="text-sm font-semibold text-red-600">
-                    <span className="text-red-500">●</span> Procedencia del Paciente <span className="text-red-500">*</span>
+                  <Label htmlFor="procedencia" className="text-sm font-semibold text-black-600">
+                    Procedencia del Paciente <span className="text-red-500">*</span>
                   </Label>
                   <ProcedenciaSelector
                     value={formData.procedencia || 'EM'}
@@ -742,8 +788,8 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="origen" className="text-sm font-semibold text-red-600">
-                    <span className="text-red-500">●</span> Código de Origen de Atención <span className="text-red-500">*</span>
+                  <Label htmlFor="origen" className="text-sm font-semibold text-black-600">
+                    Código de Origen de Atención <span className="text-red-500">*</span>
                   </Label>
                   <OrigenSelector
                     value={formData.procedencia === 'RN' ? '' : formData.hospitalizationOrigin}
@@ -799,8 +845,8 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                 
                 {/* Fila 2: Hospitalizado en | Médico que autoriza */}
                 <div className="space-y-2">
-                  <Label htmlFor="consultorio" className="text-sm font-semibold text-red-600">
-                    <span className="text-red-500">●</span> Hospitalizado en <span className="text-red-500">*</span>
+                  <Label htmlFor="consultorio" className="text-sm font-semibold text-black-600">
+                    Hospitalizado en <span className="text-red-500">*</span>
                   </Label>
                   <ConsultorioSelector
                     value={formData.hospitalizedIn}
@@ -811,8 +857,8 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="medico" className="text-sm font-semibold text-red-600">
-                    <span className="text-red-500">●</span> Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
+                  <Label htmlFor="medico" className="text-sm font-semibold text-black-600">
+                    Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
                   </Label>
                   <MedicoSelector
                     value={formData.authorizingDoctor}
@@ -828,8 +874,8 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                 
                 {/* Fila 3: Financiamiento | Diagnóstico */}
                 <div className="space-y-2">
-                  <Label htmlFor="seguro" className="text-sm font-semibold text-red-600">
-                    <span className="text-red-500">●</span> Financiamiento <span className="text-red-500">*</span>
+                  <Label htmlFor="seguro" className="text-sm font-semibold text-black-600">
+                    Financiamiento <span className="text-red-500">*</span>
                   </Label>
                   <SeguroSelector
                     value={formData.financing}
@@ -843,8 +889,8 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="diagnostico" className="text-sm font-semibold text-red-600">
-                    <span className="text-red-500">●</span> Diagnóstico <span className="text-red-500">*</span>
+                  <Label htmlFor="diagnostico" className="text-sm font-semibold text-black-600">
+                    Diagnóstico <span className="text-red-500">*</span>
                   </Label>
                   <DiagnosticoSelector
                     value={formData.diagnosis}
@@ -854,8 +900,41 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                     }}
                     disabled={fieldsLocked}
                     origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
+                    tipoOrigen={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : 'CE'} // Tipo de origen para determinar qué API usar
                     className="w-full"
                   />
+                  
+                  {/* Componente de verificación de diagnóstico solo para origen CE */}
+                  {formData.hospitalizationOrigin && formData.hospitalizationOrigin.split(' ')[0] === 'CE' && (
+                    <div className="mt-2">
+                      <VerificacionDiagnostico
+                        ref={verificacionDiagnosticoRef}
+                        diagnostico={formData.diagnosis}
+                        onResultado={(resultado) => {
+                          if (!resultado.valido) {
+                            toast({
+                              title: "Error en el diagnóstico",
+                              description: resultado.mensaje || "El diagnóstico no es válido",
+                              variant: "destructive"
+                            });
+                          } else if (resultado.reemplazo && !resultado.multiples) {
+                            toast({
+                              title: "Diagnóstico validado",
+                              description: `Se utilizará: ${resultado.reemplazo}`,
+                              variant: "default"
+                            });
+                          } else if (resultado.multiples) {
+                            toast({
+                              title: "Múltiples diagnósticos encontrados",
+                              description: resultado.mensaje || "Se encontraron múltiples diagnósticos similares",
+                              variant: "default"
+                            });
+                          }
+                        }}
+                        className="mt-2"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
          
@@ -889,6 +968,43 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
         onCancel={handleCancel}
         submitting={submitting}
         isEditable={isEditable}
+        patientId={patientId}
+        insuranceCode={formData.financing}
+        onBeforeSave={async () => {
+          // Validar el formulario antes de mostrar el diálogo de confirmación
+          const validation = validateHospitalizationForm(formData);
+          if (!validation.isValid) {
+            setValidationErrors(validation.errors);
+            toast({
+              title: "Error de validación",
+              description: "Por favor complete todos los campos obligatorios",
+              variant: "destructive"
+            });
+            return false;
+          }
+          
+          // Verificar el diagnóstico antes de procesar el formulario solo para origen 'CE'
+          const origenCode = formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : 'CE';
+          
+          if (formData.diagnosis && origenCode === 'CE' && verificacionDiagnosticoRef.current) {
+            const resultado = await verificacionDiagnosticoRef.current.verificar();
+            
+            if (!resultado.valido) {
+              // Si el diagnóstico no es válido, detener el proceso
+              return false;
+            }
+            
+            // Si hay un reemplazo sugerido, actualizar el diagnóstico
+            if (resultado.reemplazo && !resultado.multiples) {
+              setFormData(prev => ({
+                ...prev,
+                diagnosis: resultado.reemplazo || prev.diagnosis
+              }));
+            }
+          }
+          
+          return true;
+        }}
       />
     </form>
   );

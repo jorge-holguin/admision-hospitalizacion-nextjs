@@ -274,36 +274,62 @@ export const filiacionService = {
     try {
       console.log(`Buscando registro de filiación con ID: ${id}`);
       
-      const query = `SELECT * FROM V_FILIACION WHERE PACIENTE = '${id}'`;
+      // Verificar primero si la vista existe
+      try {
+        const viewCheck = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION'`;
+        console.log('Verificación de vista V_FILIACION:', viewCheck);
+      } catch (checkError) {
+        console.error('Error al verificar la vista V_FILIACION:', checkError);
+        // No lanzar error aquí, continuar con la consulta principal
+      }
+      
+      // Validar el ID antes de usarlo en la consulta SQL
+      if (!id || typeof id !== 'string') {
+        console.error(`ID inválido: ${id}`);
+        return null;
+      }
+      
+      // Escapar comillas simples en el ID para prevenir SQL injection
+      const safeId = id.replace(/'/g, "''");
+      
+      // Usar una consulta más robusta con TOP para asegurar compatibilidad con SQL Server 2008
+      const query = `SELECT TOP 1 * FROM V_FILIACION WHERE PACIENTE = '${safeId}'`;
+      console.log('Ejecutando consulta:', query);
+      
       const result = await prisma.$queryRawUnsafe(query);
+      
+      if (!result) {
+        console.log(`Resultado nulo para ID ${id}`);
+        return null;
+      }
       
       if (Array.isArray(result) && result.length > 0) {
         console.log(`Registro de filiación encontrado con ID ${id}`);
         
         // Procesar el registro para manejar correctamente las fechas
-        const record = result[0];
+        const record = {...result[0]}; // Crear una copia para evitar modificar el objeto original
         
-        // Procesar FECHA_NACIMIENTO de la misma manera que en getPaginatedFiliacion
-        if (record.FECHA_NACIMIENTO) {
-          try {
-            // Intentar convertir la fecha a un formato estándar
-            const fecha = new Date(record.FECHA_NACIMIENTO);
-            if (!isNaN(fecha.getTime())) {
-              // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
-              record.FECHA_NACIMIENTO = fecha.toISOString().split('T')[0];
-              console.log(`FECHA_NACIMIENTO procesada: ${record.FECHA_NACIMIENTO}`);
-            } else {
-              // Si no se puede convertir, asegurarse de que sea un string
-              record.FECHA_NACIMIENTO = String(record.FECHA_NACIMIENTO);
-              console.log(`FECHA_NACIMIENTO no convertible: ${record.FECHA_NACIMIENTO}`);
+        // Procesar todas las fechas en el registro
+        const dateFields = ['FECHA_NACIMIENTO', 'FECHA_APERTURA', 'SYSINSERT', 'SYSUPDATE', 'FECHA_CONSULTA'];
+        
+        for (const fieldName of dateFields) {
+          if (record[fieldName]) {
+            try {
+              // Intentar convertir la fecha a un formato estándar
+              const fecha = new Date(record[fieldName]);
+              if (!isNaN(fecha.getTime())) {
+                // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
+                record[fieldName] = fecha.toISOString().split('T')[0];
+              } else {
+                // Si no se puede convertir, asegurarse de que sea un string
+                record[fieldName] = String(record[fieldName]);
+              }
+            } catch (error) {
+              console.error(`Error al procesar fecha ${fieldName}:`, error);
+              // En caso de error, mantener el valor original como string
+              record[fieldName] = String(record[fieldName]);
             }
-          } catch (error) {
-            console.error('Error al procesar fecha:', error);
-            // En caso de error, mantener el valor original como string
-            record.FECHA_NACIMIENTO = String(record.FECHA_NACIMIENTO);
           }
-        } else {
-          console.log('FECHA_NACIMIENTO no está presente en el registro');
         }
         
         return serializeBigInt(record);
@@ -313,7 +339,8 @@ export const filiacionService = {
       return null;
     } catch (error) {
       console.error(`Error en getFiliacionById(${id}):`, error instanceof Error ? error.message : 'Error desconocido');
-      throw error;
+      // En lugar de propagar el error, devolver null para que la API pueda manejar la respuesta
+      return null;
     }
   },
   

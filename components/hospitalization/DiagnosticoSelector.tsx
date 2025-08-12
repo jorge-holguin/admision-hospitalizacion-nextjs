@@ -15,6 +15,17 @@ interface DiagnosticoSelectorProps {
   disabled?: boolean;
   origenId?: string;
   className?: string;
+  tipoOrigen?: string; // 'CE', 'EM', 'RN'
+}
+
+// Interfaz para los datos de la API CIEX
+interface CiexItem {
+  cie10?: string;
+  descripcion?: string;
+}
+
+interface CiexResponse {
+  data?: CiexItem[];
 }
 
 export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({ 
@@ -23,6 +34,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   disabled = false,
   origenId,
   className = '',
+  tipoOrigen,
 }) => {
   const [open, setOpen] = useState(false);
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
@@ -32,6 +44,27 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  // Función para transformar datos de CIEX al formato de Diagnostico
+  const transformCiexData = (ciexItems: CiexItem[]): Diagnostico[] => {
+    return ciexItems.map(item => ({
+      Codigo: item.cie10?.trim() || '',
+      Descripcion: item.descripcion || '',
+      Nombre: item.descripcion || '',
+      CodigoCompleto: `${item.cie10?.trim() || ''} - ${item.descripcion || ''}`,
+      // Otros campos requeridos por la interfaz Diagnostico
+      Estado: 'A',
+      FechaRegistro: new Date().toISOString()
+    }));
+  };
+
+  // Función para obtener el token de autenticación
+  const getAuthToken = (): string => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('authToken') || '';
+    }
+    return '';
+  };
+
   // Cargar diagnósticos iniciales o diagnóstico específico si hay un ID de origen
   useEffect(() => {
     const fetchDiagnosticos = async () => {
@@ -39,65 +72,101 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         setLoading(true);
         setError(null);
         
-        // Si tenemos un ID de origen, SIEMPRE usamos ese ID directamente
-        if (origenId) {          
-          // Verificar si el origenId es válido (no está vacío)
-          if (origenId.trim() === '') {
-          } else {
-            try {
-              const url = `/api/diagnosticos/${encodeURIComponent(origenId)}`;
-              const response = await fetch(url);
-            
-              if (!response.ok) {
-                if (response.status === 404) {
-                  // Si no se encuentra el diagnóstico, continuamos con la búsqueda general
-                } else {
-                  throw new Error(`Error al cargar diagnóstico: ${response.status}`);
+        // Si tenemos un ID de origen, intentamos cargar ese diagnóstico específico
+        if (origenId && origenId.trim() !== '') {
+          try {
+            // Para 'EM' y 'RN' usar la API de CIEX, para 'CE' usar la API de diagnósticos de emergencia
+            if (tipoOrigen === 'EM' || tipoOrigen === 'RN') {
+              // Usar la API de CIEX para buscar por ID
+              const url = `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=${encodeURIComponent(origenId)}`;
+              
+              const response = await fetch(url, {
+                headers: {
+                  'Authorization': `Bearer ${getAuthToken()}`
                 }
-              } else if (response.status === 204) {
-                // Si recibimos un 204 (No Content), continuamos con la búsqueda general
-                // No intentamos parsear JSON ya que no hay contenido
-              } else {
-                // Si encontramos un diagnóstico específico, lo mostramos y terminamos
-                try {
-                  const data = await response.json();
-                  
-                  if (data && data.Codigo) {
-                    setDiagnosticos([data]);
-                    setAllDiagnosticos([data]);
-                    setLoading(false);
-                    return;
-                  }
-                } catch (error) {
-                  console.error('Error al parsear respuesta JSON:', error);
-                  // Continuamos con la búsqueda general en caso de error de parsing
+              });
+              
+              if (!response.ok) {
+                throw new Error(`Error al cargar diagnóstico de CIEX: ${response.status}`);
+              }
+              
+              const ciexData: CiexResponse = await response.json();
+              
+              if (ciexData.data && Array.isArray(ciexData.data) && ciexData.data.length > 0) {
+                const transformedData = transformCiexData(ciexData.data);
+                setDiagnosticos(transformedData);
+                setAllDiagnosticos(transformedData);
+                return; // Terminamos aquí si encontramos el diagnóstico
+              }
+            } else {
+              // Usar la API original para 'CE'
+              const url = `/api/diagnosticos/${encodeURIComponent(origenId)}`;
+              
+              const response = await fetch(url);
+              
+              if (response.ok && response.status !== 204) {
+                const data = await response.json();
+                
+                if (data && data.Codigo) {
+                  setDiagnosticos([data]);
+                  setAllDiagnosticos([data]);
+                  return; // Terminamos aquí si encontramos el diagnóstico
                 }
               }
-            } catch (error) {
-              console.error('Error al buscar diagnóstico específico:', error);
-              // Continuamos con la búsqueda general en caso de error
             }
+          } catch (error) {
+            console.error(`Error al cargar diagnóstico específico para origen ${origenId}:`, error);
+            // Continuamos con la carga general en caso de error
           }
         }
         
-        // Si no hay ID de origen o no se encontró diagnóstico específico, cargamos los primeros 10 diagnósticos
-        const url = '/api/diagnosticos/emergencia?limit=20';        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Error al cargar diagnósticos: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          setDiagnosticos(data);
-          setAllDiagnosticos(data);          
+        // Si no hay ID de origen o no se encontró diagnóstico específico, cargamos diagnósticos generales
+        // Para 'EM' y 'RN' usar la API de CIEX, para 'CE' usar la API de diagnósticos de emergencia
+        if (tipoOrigen === 'EM' || tipoOrigen === 'RN') {
+          // Usar la API de CIEX
+          const url = `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=`;
+          
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${getAuthToken()}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error al cargar diagnósticos de CIEX: ${response.status}`);
+          }
+          
+          const ciexData: CiexResponse = await response.json();
+          
+          if (ciexData.data && Array.isArray(ciexData.data) && ciexData.data.length > 0) {
+            const transformedData = transformCiexData(ciexData.data);
+            setDiagnosticos(transformedData);
+            setAllDiagnosticos(transformedData);
+          } else {
+            setDiagnosticos([]);
+            setAllDiagnosticos([]);
+          }
         } else {
-          setDiagnosticos([]);
-          setAllDiagnosticos([]);
+          // Usar la API original para 'CE'
+          const url = '/api/diagnosticos/emergencia?limit=20';
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            throw new Error(`Error al cargar diagnósticos: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (Array.isArray(data) && data.length > 0) {
+            setDiagnosticos(data);
+            setAllDiagnosticos(data);
+          } else {
+            setDiagnosticos([]);
+            setAllDiagnosticos([]);
+          }
         }
       } catch (error) {
+        console.error('Error al cargar diagnósticos:', error);
         setError('Error al cargar diagnósticos');
       } finally {
         setLoading(false);
@@ -105,7 +174,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
     };
     
     fetchDiagnosticos();
-  }, [origenId]);
+  }, [origenId, tipoOrigen]);
   
   // Efecto para buscar diagnósticos cuando cambia el término de búsqueda
   useEffect(() => {
@@ -130,21 +199,48 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         setLoading(true);
         setError(null);
         
-        // Buscar en todos los diagnósticos disponibles
-        const url = `/api/diagnosticos/emergencia?search=${encodeURIComponent(debouncedSearchTerm)}&limit=50`;
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Error al buscar diagnósticos: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          setDiagnosticos(data);
+        // Determinar qué API usar según el tipo de origen
+        // Para 'EM' y 'RN' usar la API de CIEX, para 'CE' usar la API de diagnósticos de emergencia
+        if (tipoOrigen === 'EM' || tipoOrigen === 'RN') {
+          // Usar la API de CIEX
+          const url = `http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1/ciex?busqueda=${encodeURIComponent(debouncedSearchTerm)}`;
+          
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${getAuthToken()}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error al buscar diagnósticos en CIEX: ${response.status}`);
+          }
+          
+          const ciexData: CiexResponse = await response.json();
+          
+          if (ciexData.data && Array.isArray(ciexData.data) && ciexData.data.length > 0) {
+            // Transformar los datos de CIEX al formato esperado por el componente
+            const transformedData = transformCiexData(ciexData.data);
+            setDiagnosticos(transformedData);
+          } else {
+            setDiagnosticos([]);
+          }
         } else {
-          setDiagnosticos([]);
+          // Usar la API original para 'CE'
+          const url = `/api/diagnosticos/emergencia?search=${encodeURIComponent(debouncedSearchTerm)}&limit=50`;
+          
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            throw new Error(`Error al buscar diagnósticos: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (Array.isArray(data) && data.length > 0) {
+            setDiagnosticos(data);
+          } else {
+            setDiagnosticos([]);
+          }
         }
       } catch (error) {
         console.error(`Error al buscar diagnósticos con término "${debouncedSearchTerm}":`, error);
@@ -155,7 +251,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
     };
     
     searchDiagnosticos();
-  }, [debouncedSearchTerm, origenId, allDiagnosticos]);
+  }, [debouncedSearchTerm, origenId, allDiagnosticos, tipoOrigen]);
 
   const selectedDiagnostico = diagnosticos.find(diagnostico => 
     value === `${diagnostico.Codigo} - ${diagnostico.Nombre}`

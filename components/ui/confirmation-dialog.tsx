@@ -19,6 +19,9 @@ interface ConfirmationDialogProps {
   confirmText?: string;
   cancelText?: string;
   isLoading?: boolean;
+  additionalContent?: React.ReactNode;
+  confirmDisabled?: boolean;
+  isConfirming?: boolean;
 }
 
 export function ConfirmationDialog({
@@ -30,6 +33,9 @@ export function ConfirmationDialog({
   confirmText = "Confirmar",
   cancelText = "Cancelar",
   isLoading = false,
+  additionalContent,
+  confirmDisabled = false,
+  isConfirming = false,
 }: ConfirmationDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -45,6 +51,11 @@ export function ConfirmationDialog({
             {description}
           </DialogDescription>
         </DialogHeader>
+        {additionalContent && (
+          <div className="py-2">
+            {additionalContent}
+          </div>
+        )}
         <DialogFooter className="flex flex-row justify-end gap-2 pt-4">
           <Button
             variant="outline"
@@ -56,10 +67,10 @@ export function ConfirmationDialog({
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || isConfirming || confirmDisabled}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white sm:w-auto"
           >
-            {isLoading ? (
+            {isLoading || isConfirming ? (
               <>
                 <span className="mr-2 h-4 w-4 animate-spin">◌</span>
                 Procesando...

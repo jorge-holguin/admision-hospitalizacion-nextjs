@@ -2680,6 +2680,8 @@ model HOSPITALIZA {
   ACOMPANANTE_NOMBRE    String?               @db.VarChar(100)
   ACOMPANANTE_DIRECCION String?               @db.VarChar(200)
   ACOMPANANTE_TELEFONO  String?               @db.VarChar(20)
+  FECHA_BAJA            DateTime?             @db.DateTime
+  USUARIO_BAJA          String?               @db.VarChar(50)
   ATENCION_GINE_CE      ATENCION_GINE_CE?
   CE_DET_WEB            CE_DET_WEB[]
   HOSP_ANTECEDENTES_CE  HOSP_ANTECEDENTES_CE?

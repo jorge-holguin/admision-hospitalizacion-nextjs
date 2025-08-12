@@ -110,7 +110,6 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
   // Función para imprimir todos los PDFs como un solo documento
   const handlePrint = async () => {
     try {
-      console.log('Preparando impresión de documento combinado')
       setLoading(true)
       await printMergedPDF(pdfData)
       setLoading(false)
@@ -123,7 +122,6 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
   // Función para descargar todos los PDFs como un solo documento
   const handleDownload = async () => {
     try {
-      console.log('Preparando descarga de documento combinado')
       setLoading(true)
       await downloadMergedPDF(pdfData, 'documentos-hospitalizacion.pdf')
       setLoading(false)

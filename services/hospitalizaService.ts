@@ -271,6 +271,89 @@ class HospitalizaService {
       throw error;
     }
   }
+
+  /**
+   * Realiza una eliminación lógica de un registro de hospitalización por su ID
+   * Actualiza ESTADO='0', FECHA_BAJA, USUARIO_BAJA y opcionalmente MOTIVO
+   * Si el seguro es de tipo ["0", "02", "17"] (Pagante, SOAT, Otros Programas),
+   * también elimina registros huérfanos de CUENTA para ese paciente con ESTADO='0'
+   */
+  async logicalDeleteById(id: string, usuarioBaja: string, motivo?: string) {
+    try {
+      console.log(`Realizando eliminación lógica de hospitalización con ID: ${id}`);
+      
+      // 1. Obtener la información de la hospitalización para verificar el tipo de seguro
+      // Usar SQL raw en lugar de Prisma ORM para evitar problemas con SQL Server 2008 R2
+      const hospitalizacionResult = await prisma.$queryRaw`
+        SELECT PACIENTE, SEGURO, ESTADO
+        FROM HOSPITALIZA
+        WHERE IDHOSPITALIZACION = ${id}
+      `;
+      
+      // Verificar si se encontró la hospitalización
+      const hospitalizacion = Array.isArray(hospitalizacionResult) && hospitalizacionResult.length > 0 
+        ? hospitalizacionResult[0] 
+        : null;
+      
+      if (!hospitalizacion) {
+        throw new Error(`Hospitalización con ID ${id} no encontrada`);
+      }
+      
+      // Si ya está eliminada lógicamente (ESTADO='0'), no hacer nada
+      if (hospitalizacion.ESTADO === '0') {
+        return { 
+          success: true, 
+          message: `Hospitalización ${id} ya estaba marcada como eliminada`, 
+          deletedHospitalizacion: 0,
+          deletedCuentas: 0
+        };
+      }
+      
+      // 2. Actualizar el registro de hospitalización (eliminación lógica)
+      const fechaBaja = new Date(); // Fecha actual en UTC
+      
+      // Usar SQL raw para evitar problemas con SQL Server 2008 R2
+      const updateResult = await prisma.$executeRaw`
+        UPDATE HOSPITALIZA 
+        SET 
+          ESTADO = '0',
+          FECHA_BAJA = ${fechaBaja},
+          USUARIO_BAJA = ${usuarioBaja}
+        WHERE IDHOSPITALIZACION = ${id}
+      `;
+      
+      let deletedCuentas = 0;
+      
+      // 3. Si el seguro es de tipo ["0", "02", "17"], eliminar cuentas huérfanas
+      const segurosParaLimpiarCuentas = ["0", "02", "17"]; // Pagante, SOAT, Otros Programas
+      
+      if (segurosParaLimpiarCuentas.includes(hospitalizacion.SEGURO)) {
+        console.log(`Seguro ${hospitalizacion.SEGURO} requiere limpieza de cuentas huérfanas`);
+        
+        // Eliminar cuentas huérfanas con ESTADO='0' para este paciente
+        const deleteResult = await prisma.$executeRaw`
+          DELETE FROM CUENTA 
+          WHERE PACIENTE = ${hospitalizacion.PACIENTE}
+          AND ESTADO = '0'
+        `;
+        
+        deletedCuentas = Number(deleteResult) || 0;
+        console.log(`Se eliminaron ${deletedCuentas} cuentas huérfanas`);
+      }
+      
+      const result = { 
+        success: true, 
+        message: `Hospitalización ${id} marcada como eliminada correctamente`, 
+        deletedHospitalizacion: Number(updateResult) || 0,
+        deletedCuentas
+      };
+      
+      return result;
+    } catch (error: any) {
+      console.error(`Error al realizar eliminación lógica de hospitalización ${id}:`, error);
+      throw error;
+    }
+  }
 }
 
 export default new HospitalizaService();

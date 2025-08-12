@@ -64,7 +64,6 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
   const fetchHospitalizationDetails = async (id: string) => {
     try {
       setLoading(true);
-      console.log(`Intentando cargar detalles de hospitalización con ID: ${id}`);
       const response = await fetch(`/api/orden-hospitalizacion/${id}`);
       
       if (!response.ok) {
@@ -75,7 +74,6 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
       }
       
       const data = await response.json();
-      console.log('Datos recibidos de la API:', data);
       
       setOrderData(data);
       
@@ -218,12 +216,10 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
         // Obtener el usuario del localStorage
         USUARIO: (() => {
           const username = typeof window !== 'undefined' ? localStorage.getItem('username') : null;
-          console.log('Usuario obtenido del localStorage:', username);
           return username || 'SUPERVISOR';
         })(),
         USUARIO_IMP: (() => {
           const username = typeof window !== 'undefined' ? localStorage.getItem('username') : null;
-          console.log('Usuario para USUARIO_IMP:', username);
           return username || null;
         })(),
         DIAGNOSTICO: diagnosticoCode,
