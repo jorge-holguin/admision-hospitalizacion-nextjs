@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
-import { FuaCheckResult } from '@/services/fuaService'
+import { FuaCheckResult } from '@/services/hospitalizacion/fuaService'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface FuaStatusAlertProps {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkActiveFua, getActiveFuaQuery, getAllPatientFuasQuery } from '@/services/fuaService';
+import { checkActiveFua, getActiveFuaQuery, getAllPatientFuasQuery } from '@/services/hospitalizacion/fuaService';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {

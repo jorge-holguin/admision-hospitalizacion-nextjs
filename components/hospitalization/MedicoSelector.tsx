@@ -7,7 +7,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
 import { useDebounce } from '@/hooks/useDebounce';
-import { Medico } from '@/services/medicoService';
+import { Medico } from '@/services/hospitalizacion/medicoService';
 
 interface MedicoSelectorProps {
   value: string;

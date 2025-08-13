@@ -27,9 +27,9 @@ import { useSelectsState } from './FormUtils'
 import FuaStatusAlert from './FuaStatusAlert'
 
 // Tipos
-import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService'
-import { Seguro } from '@/services/seguroService'
-import { Diagnostico } from '@/services/diagnosticoService'
+import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService'
+import { Seguro } from '@/services/hospitalizacion/seguroService'
+import { Diagnostico } from '@/services/hospitalizacion/diagnosticoService'
 
 import { useAuth } from '@/components/AuthProvider';
 

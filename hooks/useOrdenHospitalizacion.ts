@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { OrdenHospitalizacion } from '@/services/ordenHospitalizacionService';
+import { OrdenHospitalizacion } from '@/services/hospitalizacion/ordenHospitalizacionService';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface PaginationState {

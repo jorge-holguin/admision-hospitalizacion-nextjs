@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { FiliacionFilter } from "@/services/filiacionService"
+import { FiliacionFilter } from "@/services/hospitalizacion/filiacionService"
 
 interface Filiacion {
   PACIENTE: string

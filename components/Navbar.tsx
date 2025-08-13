@@ -83,7 +83,7 @@ export function Navbar({
                 <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
                   <p className="font-medium">Mi cuenta</p>
                 </div>
-                <Link 
+                {/* <Link 
                   href="/profile"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   onClick={() => setDropdownOpen(false)}
@@ -98,7 +98,7 @@ export function Navbar({
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   <span>Configuración</span>
-                </Link>
+                </Link> */}
                 <button 
                   onClick={() => {
                     setDropdownOpen(false)

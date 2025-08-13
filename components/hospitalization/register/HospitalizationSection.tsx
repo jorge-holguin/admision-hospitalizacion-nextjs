@@ -2,9 +2,9 @@ import React from 'react';
 import { ProcedenciaSection } from './ProcedenciaSection';
 import { ConsultorioMedicoSection } from './ConsultorioMedicoSection';
 import { FinanciamientoDiagnosticoSection } from './FinanciamientoDiagnosticoSection';
-import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService';
-import { Seguro } from '@/services/seguroService';
-import { Diagnostico } from '@/services/diagnosticoService';
+import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService';
+import { Seguro } from '@/services/hospitalizacion/seguroService';
+import { Diagnostico } from '@/services/hospitalizacion/diagnosticoService';
 import { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico';
 
 interface HospitalizationSectionProps {

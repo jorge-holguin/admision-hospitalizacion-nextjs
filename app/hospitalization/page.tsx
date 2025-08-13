@@ -218,12 +218,12 @@ export default function HospitalizationSearch() {
 
           <Button
             variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
+            size="lg"
+            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700"
             onClick={() => (window.location.href = "/dashboard")}
           >
-            <Home className="h-4 w-4" />
-            Dashboard
+            <Home className="h-10 w-10" />
+            <span className="text-lg font-medium">Dashboard</span>
           </Button>
         </div>
         <div className="mb-6">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { filiacionService } from '@/services/filiacionService'
+import { filiacionService } from '@/services/hospitalizacion/filiacionService'
 
 export async function GET(
   req: NextRequest,

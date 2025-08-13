@@ -2,7 +2,7 @@ import React from 'react';
 import { Label } from "@/components/ui/label";
 import { ProcedenciaSelector } from '@/components/hospitalization/ProcedenciaSelector';
 import { OrigenSelector } from '@/components/hospitalization/OrigenSelector';
-import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService';
+import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService';
 
 interface ProcedenciaSectionProps {
   procedencia: string;

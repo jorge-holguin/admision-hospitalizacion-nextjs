@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn, extractCode } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
-import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService';
+import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService';
 
 interface OrigenSelectorProps {
   value: string;

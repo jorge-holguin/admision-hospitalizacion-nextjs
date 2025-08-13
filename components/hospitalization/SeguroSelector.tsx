@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
-import { Seguro } from '@/services/seguroService';
+import { Seguro } from '@/services/hospitalizacion/seguroService';
 
 // Función para obtener el nombre completo del código de financiamiento
 const getFinancingCodeName = (code: string): string => {

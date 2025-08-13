@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import hospitalizaService, { HospitalizaData } from '@/services/hospitalizaService';
+import hospitalizaService, { HospitalizaData } from '@/services/hospitalizacion/hospitalizaService';
 import { revalidatePath } from 'next/cache';
 
 // GET /api/hospitaliza - Obtener hospitalizaciones o el siguiente ID

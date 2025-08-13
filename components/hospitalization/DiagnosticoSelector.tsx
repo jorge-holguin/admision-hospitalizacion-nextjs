@@ -5,7 +5,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
-import { Diagnostico } from '@/services/diagnosticoService';
+import { Diagnostico } from '@/services/hospitalizacion/diagnosticoService';
 import { useDebounce } from '@/hooks/useDebounce';
 
 // API URLs

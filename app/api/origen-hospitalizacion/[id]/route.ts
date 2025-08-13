@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { origenHospitalizacionService } from '@/services/origenHospitalizacionService'
+import { origenHospitalizacionService } from '@/services/hospitalizacion/origenHospitalizacionService'
 
 interface Params {
   params: {
