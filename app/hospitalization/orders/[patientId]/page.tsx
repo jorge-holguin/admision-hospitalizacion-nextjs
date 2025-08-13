@@ -395,25 +395,14 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                           className={`transition-colors ${isDeleted ? 'bg-gray-100 opacity-70' : 'hover:bg-blue-50'}`}
                         >
                           <TableCell>
-                            {orden.ESTADO === '0' && (
-                              <span className="px-2 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700">
-                                ANULADO
-                              </span>
-                            )}
-                            {orden.ESTADO === '2' && (
-                              <span className="px-2 py-1 text-xs font-medium rounded-md bg-yellow-100 text-yellow-800">
-                                ACTIVO
-                              </span>
-                            )}
-                            {orden.ESTADO === '3' && (
-                              <span className="px-2 py-1 text-xs font-medium rounded-md bg-green-100 text-green-700">
-                                ACEPTADA
-                              </span>
-                            )}
-                            {!['0', '2', '3'].includes(orden.ESTADO || '') && (
-                              <span className="px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-700">
-                                {orden.ESTADO || 'N/A'}
-                              </span>
+                            {orden.ESTADO === '0' ? (
+                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-200 text-gray-800">ANULADO</span>
+                            ) : orden.ESTADO === '2' ? (
+                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-yellow-200 text-yellow-800">ACTIVO</span>
+                            ) : orden.ESTADO === '3' ? (
+                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-200 text-green-800">ACEPTADA</span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-md text-xs font-medium">{orden.ESTADO}</span>
                             )}
                           </TableCell>
                           <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-800'}`}>{orden.idHOSPITALIZACION}</TableCell>
