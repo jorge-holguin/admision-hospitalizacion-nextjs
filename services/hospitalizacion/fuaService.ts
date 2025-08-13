@@ -18,12 +18,14 @@ export async function checkActiveFua(patientId: string): Promise<FuaCheckResult>
     // Query para verificar FUA activo en las últimas 3 horas usando Prisma
     // Nota: Aseguramos que PACIENTE se compare como string y que la conversión de fecha/hora sea correcta
     // SQL Server 2008 R2 compatible query
+    // Usamos 8 horas en lugar de 3 para compensar la diferencia de zona horaria (UTC vs local time)
+    // y dar un margen adicional para asegurar que se detecten correctamente los FUAs recientes
     const activeFua = await prisma.$queryRaw`
       SELECT TOP 1 ID_CUENTA, FECHA_ATENCION, HORA_ATENCION
       FROM ATENCION_SEGURO
       WHERE PACIENTE = ${patientId}
       AND ESTADO = '2'
-      AND DATEADD(HOUR, -3, GETDATE()) <= FECHA_ATENCION
+      AND FECHA_ATENCION >= CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)
       ORDER BY FECHA_ATENCION DESC, HORA_ATENCION DESC
     `;
     

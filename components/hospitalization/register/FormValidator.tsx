@@ -87,6 +87,14 @@ export function validateHospitalizationForm(formData: FormData): ValidationResul
     });
   }
   
+  // Validación específica para el médico autorizante - no debe ser "0 - NINGUNO" o empezar con "0 -"
+  if (!formData.authorizingDoctor?.trim() || 
+      formData.authorizingDoctor?.trim() === '0' || 
+      formData.authorizingDoctor?.trim().startsWith('0 -') || 
+      formData.authorizingDoctor?.trim().includes('NINGUNO')) {
+    errors.authorizingDoctor = 'Debe seleccionar un médico válido, no puede ser "0 - NINGUNO"';
+  }
+  
   // Validar formato de fecha
   if (formData.date && !/^\d{4}-\d{2}-\d{2}$/.test(formData.date)) {
     errors.date = 'El formato de fecha debe ser YYYY-MM-DD';

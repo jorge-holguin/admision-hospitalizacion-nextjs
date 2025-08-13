@@ -275,18 +275,34 @@ export const filiacionService = {
       console.log(`Buscando registro de filiación con ID: ${id}`);
       
       // Verificar primero si la vista existe
+      let viewExists = false;
       try {
         const viewCheck = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION'`;
         console.log('Verificación de vista V_FILIACION:', viewCheck);
+        
+        // Verificar si la vista existe basado en el resultado
+        if (Array.isArray(viewCheck) && viewCheck.length > 0) {
+          viewExists = true;
+          console.log('Vista V_FILIACION encontrada');
+        } else {
+          console.error('Vista V_FILIACION no encontrada en la base de datos');
+          throw new Error('Vista V_FILIACION no existe en la base de datos');
+        }
       } catch (checkError) {
         console.error('Error al verificar la vista V_FILIACION:', checkError);
-        // No lanzar error aquí, continuar con la consulta principal
+        throw new Error(`Error al verificar la vista V_FILIACION: ${checkError instanceof Error ? checkError.message : 'Error desconocido'}`);
       }
       
       // Validar el ID antes de usarlo en la consulta SQL
       if (!id || typeof id !== 'string') {
         console.error(`ID inválido: ${id}`);
-        return null;
+        throw new Error(`ID inválido: ${id}`);
+      }
+      
+      // Verificar formato del ID (asumiendo que debe ser numérico)
+      if (!/^\d+$/.test(id)) {
+        console.error(`Formato de ID inválido (debe ser numérico): ${id}`);
+        throw new Error(`Formato de ID inválido (debe ser numérico): ${id}`);
       }
       
       // Escapar comillas simples en el ID para prevenir SQL injection
@@ -296,7 +312,14 @@ export const filiacionService = {
       const query = `SELECT TOP 1 * FROM V_FILIACION WHERE PACIENTE = '${safeId}'`;
       console.log('Ejecutando consulta:', query);
       
-      const result = await prisma.$queryRawUnsafe(query);
+      let result;
+      try {
+        result = await prisma.$queryRawUnsafe(query);
+        console.log('Resultado de la consulta:', result ? 'Datos obtenidos' : 'Sin resultados');
+      } catch (queryError) {
+        console.error('Error al ejecutar la consulta SQL:', queryError);
+        throw new Error(`Error al ejecutar la consulta SQL: ${queryError instanceof Error ? queryError.message : 'Error desconocido'}`);
+      }
       
       if (!result) {
         console.log(`Resultado nulo para ID ${id}`);
@@ -338,9 +361,13 @@ export const filiacionService = {
       console.log(`No se encontró registro de filiación con ID ${id}`);
       return null;
     } catch (error) {
-      console.error(`Error en getFiliacionById(${id}):`, error instanceof Error ? error.message : 'Error desconocido');
-      // En lugar de propagar el error, devolver null para que la API pueda manejar la respuesta
-      return null;
+      console.error(`Error en getFiliacionById(${id}):`, error);
+      if (error instanceof Error) {
+        console.error('Mensaje de error:', error.message);
+        console.error('Stack trace:', error.stack);
+      }
+      // Propagar el error para que la API pueda manejarlo adecuadamente
+      throw error;
     }
   },
   

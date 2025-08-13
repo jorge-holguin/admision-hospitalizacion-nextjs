@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import emergenciaService from '@/services/emergencia/emergenciaService';
+import emergenciaService from '@/services/emergencia/listaEmergenciaService';
 
 /**
  * GET /api/emergencia

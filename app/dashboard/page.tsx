@@ -87,7 +87,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-     {/*      <Card
+    {/*       <Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-green-200"
             onClick={handleEmergenciaClick}
           >
