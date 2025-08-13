@@ -6,31 +6,25 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Loader2, Save } from "lucide-react"
 import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter'
 import { printMultiplePdfsViaDirectApi, printMergedPDF } from '@/utils/pdfUtils'
 
 // Componentes reutilizables
-import { PatientInfoCard } from '@/components/hospitalization/PatientInfoCard'
-import { OrigenSelector } from '@/components/hospitalization/OrigenSelector'
-import { ConsultorioSelector } from '@/components/hospitalization/ConsultorioSelector'
-import { MedicoSelector } from '@/components/hospitalization/MedicoSelector'
-import { SeguroSelector } from '@/components/hospitalization/SeguroSelector'
-import { DiagnosticoSelector } from '@/components/hospitalization/DiagnosticoSelector'
-import { ProcedenciaSelector } from '@/components/hospitalization/ProcedenciaSelector';
-import { DateTimeFields } from '@/components/hospitalization/DateTimeFields'
+import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
 
-// Componentes nuevos refactorizados
+// Componentes modulares refactorizados
+import { PatientSection } from './PatientSection'
+import { CompanionSection } from './CompanionSection'
+import { HospitalizationSection } from './HospitalizationSection'
 import { CompanionForm } from './CompanionForm'
 import { FormActions } from './FormActions'
+import { FormHeader } from './FormHeader'
 import { HospitalizationDetails } from './HospitalizationDetails'
 import { validateHospitalizationForm } from './FormValidator'
 import { useSelectsState } from './FormUtils'
 import FuaStatusAlert from './FuaStatusAlert'
-import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
 
 // Tipos
 import { OrigenHospitalizacion } from '@/services/origenHospitalizacionService'
@@ -49,7 +43,7 @@ const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 export function HospitalizationFormRefactored({ patientId, orderId }: HospitalizationFormProps) {
   const router = useRouter();
   const { user } = useAuth(); // Moved inside the component
-  const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null);
+  const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null) as React.RefObject<VerificacionDiagnosticoRef>;
   
   // Estado para loading y error handling
   const [loading, setLoading] = useState(true);
@@ -624,10 +618,9 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
         <div className="lg:col-span-1">
           <Card className="h-full">
             <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">Datos del Paciente</h3>
-              <PatientInfoCard
+              <PatientSection
                 patientId={patientId}
-                onDataLoaded={handlePatientDataLoaded}
+                onPatientDataLoaded={handlePatientDataLoaded}
               />
             </CardContent>
           </Card>
@@ -638,323 +631,137 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
           <Card>
             <CardContent className="pt-6">
               {/* Form Header - Historia, fecha y hora */}
-              <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 mb-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-1">
-                    <Label htmlFor="historyNumber" className="font-medium">Nº Historia: <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="historyNumber"
-                      value={formData.historyNumber}
-                      readOnly
-                      className="font-medium mt-2"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <DateTimeFields
-                      dateValue={formData.date}
-                      timeValue={formData.time}
-                      onDateChange={(value) => setFormData({ ...formData, date: value })}
-                      onTimeChange={(value) => setFormData({ ...formData, time: value })}
-                      disabled={fieldsLocked}
-                      autoFill={true}
-                    />
-                  </div>
-                </div>
-              </div>
+              <FormHeader
+                date={formData.date}
+                time={formData.time}
+                historyNumber={formData.historyNumber}
+                onDateChange={(value) => handleFormChange('date', value)}
+                onTimeChange={(value) => handleFormChange('time', value)}
+                disabled={fieldsLocked}
+                validationErrors={validationErrors}
+              />
               
               {/* Datos del Acompañante */}
-              <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-gray-100 p-4 rounded-lg border border-gray-200">
-                <div className="space-y-2">
-                  <Label htmlFor="companionName" className="font-medium text-black-600">Nombres y apellidos del acompañante <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="companionName"
-                    value={formData.companionName}
-                    onChange={(e) => {
-                      setFormData({ ...formData, companionName: e.target.value });
-                      // Limpiar error cuando el usuario empieza a escribir
-                      if (validationErrors.companionName && e.target.value.trim()) {
-                        setValidationErrors({...validationErrors, companionName: ''});
-                      }
-                    }}
-                    className={`w-full font-medium ${validationErrors.companionName ? 'border-red-500' : ''}`}
-                    placeholder="Ingrese nombre del acompañante"
-                    disabled={fieldsLocked}
-                  />
-                  {validationErrors.companionName && (
-                    <p className="text-red-500 text-sm mt-1">{validationErrors.companionName}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="companionPhone" className="font-medium text-black-600">Teléfono del acompañante <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="companionPhone"
-                    value={formData.companionPhone}
-                    onChange={(e) => {
-                      // Solo permitir números
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      setFormData({ ...formData, companionPhone: value });
-                      // Limpiar error cuando el usuario empieza a escribir
-                      if (validationErrors.companionPhone && value) {
-                        setValidationErrors({...validationErrors, companionPhone: ''});
-                      }
-                    }}
-                    className={`w-full font-medium ${validationErrors.companionPhone ? 'border-red-500' : ''}`}
-                    placeholder="Ingrese teléfono del acompañante"
-                    disabled={fieldsLocked}
-                  />
-                  {validationErrors.companionPhone && (
-                    <p className="text-red-500 text-sm mt-1">{validationErrors.companionPhone}</p>
-                  )}
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="companionAddress" className="font-medium text-black-600">Domicilio del acompañante <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="companionAddress"
-                    value={formData.companionAddress}
-                    onChange={(e) => {
-                      setFormData({ ...formData, companionAddress: e.target.value });
-                      // Limpiar error cuando el usuario empieza a escribir
-                      if (validationErrors.companionAddress && e.target.value.trim()) {
-                        setValidationErrors({...validationErrors, companionAddress: ''});
-                      }
-                    }}
-                    className={`w-full font-medium ${validationErrors.companionAddress ? 'border-red-500' : ''}`}
-                    placeholder="Ingrese domicilio del acompañante"
-                    disabled={fieldsLocked}
-                  />
-                  {validationErrors.companionAddress && (
-                    <p className="text-red-500 text-sm mt-1">{validationErrors.companionAddress}</p>
-                  )}
-                </div>
-              </div>
+              <CompanionSection
+                companionName={formData.companionName}
+                companionPhone={formData.companionPhone}
+                companionAddress={formData.companionAddress}
+                companionDni={formData.companionDni}
+                companionEmail={formData.companionEmail}
+                companionRelationship={formData.companionRelationship}
+                onCompanionChange={(field, value) => {
+                  handleFormChange(field, value);
+                }}
+                validationErrors={validationErrors}
+                disabled={fieldsLocked}
+              />
               
               {/* Datos de Hospitalización */}
-              <h3 className="text-lg font-semibold mb-4">Datos de Hospitalización</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-gray-100 p-4 rounded-lg border border-gray-200">
-                {/* Fila 1: Procedencia del Paciente | Código de Origen de Atención */}
-                <div className="space-y-2">
-                  <Label htmlFor="procedencia" className="text-sm font-semibold text-black-600">
-                    Procedencia del Paciente <span className="text-red-500">*</span>
-                  </Label>
-                  <ProcedenciaSelector
-                    value={formData.procedencia || 'EM'}
-                    onChange={(value) => {
-                      // Al cambiar la procedencia, limpiamos los campos dependientes
-                      if (value === 'RN') {
-                        // Si es RN, limpiamos y deshabilitamos el código de origen
-                        setFormData(prev => ({
-                          ...prev,
-                          procedencia: value,
-                          hospitalizationOrigin: '', // Limpiamos el código de origen
-                          hospitalizedIn: '', // Limpiamos el hospitalizado en
-                          authorizingDoctor: '', // Limpiamos el médico
-                          diagnosis: '', // Limpiamos el diagnóstico
-                          financing: '' // Limpiamos el financiamiento
-                        }));
-                        setSelectedOrigin(null);
-                        setSelectedMedico(null);
-                        setSelectedDiagnostico(null);
-                        setSelectedSeguro(null); // Limpiamos el seguro seleccionado
-                      } else {
-                        // Si es EM o CE, solo limpiamos los campos pero no los deshabilitamos
-                        setFormData(prev => ({
-                          ...prev,
-                          procedencia: value,
-                          hospitalizationOrigin: '', // Limpiamos el código de origen
-                          hospitalizedIn: '', // Limpiamos el hospitalizado en
-                          authorizingDoctor: '', // Limpiamos el médico
-                          diagnosis: '', // Limpiamos el diagnóstico
-                          financing: '' // Limpiamos el financiamiento
-                        }));
-                        setSelectedOrigin(null);
-                        setSelectedMedico(null);
-                        setSelectedDiagnostico(null);
-                        setSelectedSeguro(null); // Limpiamos el seguro seleccionado
-                      }
-                      
-                      // Limpiar errores de validación relacionados
-                      setValidationErrors(prev => ({
-                        ...prev,
-                        hospitalizationOrigin: '',
-                        authorizingDoctor: '',
-                        diagnosis: ''
-                      }));
-                    }}
-                    disabled={fieldsLocked}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="origen" className="text-sm font-semibold text-black-600">
-                    Código de Origen de Atención <span className="text-red-500">*</span>
-                  </Label>
-                  <OrigenSelector
-                    value={formData.procedencia === 'RN' ? '' : formData.hospitalizationOrigin}
-                    onChange={(value, origenData) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        hospitalizationOrigin: value
-                      }));
-                      
-                      setSelectedOrigin(origenData || null);
-                      
-                      // Limpiar error de validación
-                      if (validationErrors.hospitalizationOrigin) {
-                        setValidationErrors(prev => ({
-                          ...prev,
-                          hospitalizationOrigin: ''
-                        }));
-                      }
-                    }}
-                    origenFilter={formData.procedencia} // Filtrar por procedencia
-                    disabled={formData.procedencia === 'RN' || fieldsLocked} // Deshabilitar si es RN
-                    required
-                    patientId={patientId}
-                    onAttentionOriginChange={(value) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        attentionOrigin: value
-                      }));
-                    }}
-                    onMedicoChange={(value, medicoData) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        authorizingDoctor: value
-                      }));
-                      setSelectedMedico(medicoData || null);
-                    }}
-                    onDiagnosticoChange={(value, diagnosticoData) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        diagnosis: value
-                      }));
-                      setSelectedDiagnostico(diagnosticoData || null);
-                    }}
-                    onSeguroChange={(value, seguroData) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        financing: value
-                      }));
-                      setSelectedSeguro(seguroData || null);
-                    }}
-                  />
-                </div>
-                
-                {/* Fila 2: Hospitalizado en | Médico que autoriza */}
-                <div className="space-y-2">
-                  <Label htmlFor="consultorio" className="text-sm font-semibold text-black-600">
-                    Hospitalizado en <span className="text-red-500">*</span>
-                  </Label>
-                  <ConsultorioSelector
-                    value={formData.hospitalizedIn}
-                    onChange={(value) => setFormData({ ...formData, hospitalizedIn: value })}
-                    disabled={fieldsLocked}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="medico" className="text-sm font-semibold text-black-600">
-                    Médico que autoriza la Hospitalización <span className="text-red-500">*</span>
-                  </Label>
-                  <MedicoSelector
-                    value={formData.authorizingDoctor}
-                    onChange={(value, medicoData) => {
-                      setFormData({ ...formData, authorizingDoctor: value });
-                      setSelectedMedico(medicoData || null);
-                    }}
-                    disabled={fieldsLocked}
-                    className="w-full"
-                    // No pasamos consultorioId para permitir buscar cualquier médico
-                  />
-                </div>
-                
-                {/* Fila 3: Financiamiento | Diagnóstico */}
-                <div className="space-y-2">
-                  <Label htmlFor="seguro" className="text-sm font-semibold text-black-600">
-                    Financiamiento <span className="text-red-500">*</span>
-                  </Label>
-                  <SeguroSelector
-                    value={formData.financing}
-                    onChange={(value, seguroData) => {
-                      setFormData({ ...formData, financing: value });
-                      setSelectedSeguro(seguroData || null);
-                    }}
-                    disabled={fieldsLocked}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="diagnostico" className="text-sm font-semibold text-black-600">
-                    Diagnóstico <span className="text-red-500">*</span>
-                  </Label>
-                  {/* Eliminamos el console.log inline que causaba error de lint */}
-                  <DiagnosticoSelector
-                    value={formData.diagnosis}
-                    onChange={(value, diagnosticoData) => {
-                      setFormData({ ...formData, diagnosis: value });
-                      setSelectedDiagnostico(diagnosticoData || null);
-                    }}
-                    disabled={fieldsLocked}
-                    origenId={formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : ''} // Extraemos el código de origen del valor seleccionado
-                    tipoOrigen={formData.procedencia} // Usar procedencia directamente como tipo de origen
-                    className="w-full"
-                  />
+              <HospitalizationSection
+                formData={{
+                  procedencia: formData.procedencia,
+                  hospitalizationOrigin: formData.hospitalizationOrigin,
+                  hospitalizedIn: formData.hospitalizedIn,
+                  authorizingDoctor: formData.authorizingDoctor,
+                  financing: formData.financing,
+                  diagnosis: formData.diagnosis
+                }}
+                patientId={patientId}
+                validationErrors={validationErrors}
+                disabled={fieldsLocked}
+                verificacionDiagnosticoRef={verificacionDiagnosticoRef}
+                onFormChange={handleFormChange}
+                onOrigenChange={(value, origenData) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    hospitalizationOrigin: value
+                  }));
                   
-                  {/* Componente de verificación de diagnóstico solo para origen CE */}
-                  {formData.hospitalizationOrigin && formData.hospitalizationOrigin.split(' ')[0] === 'CE' && (
-                    <div className="mt-2">
-                      <VerificacionDiagnostico
-                        ref={verificacionDiagnosticoRef}
-                        diagnostico={formData.diagnosis}
-                        onResultado={(resultado) => {
-                          if (!resultado.valido) {
-                            toast({
-                              title: "Error en el diagnóstico",
-                              description: resultado.mensaje || "El diagnóstico no es válido",
-                              variant: "destructive"
-                            });
-                          } else if (resultado.reemplazo && !resultado.multiples) {
-                            toast({
-                              title: "Diagnóstico validado",
-                              description: `Se utilizará: ${resultado.reemplazo}`,
-                              variant: "default"
-                            });
-                          } else if (resultado.multiples) {
-                            toast({
-                              title: "Múltiples diagnósticos encontrados",
-                              description: resultado.mensaje || "Se encontraron múltiples diagnósticos similares",
-                              variant: "default"
-                            });
-                          }
-                        }}
-                        className="mt-2"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-         
-              
-              {/* Campo de observaciones eliminado según requerimiento */}
-              
-              {/* Mensaje informativo */}
-              <div className="flex items-center mt-6 mb-2 text-sm text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>El Código de Origen de Atención no es requerido si el nombre es "RN".</span>
-              </div>
+                  setSelectedOrigin(origenData || null);
+                  
+                  // Limpiar error de validación
+                  if (validationErrors.hospitalizationOrigin) {
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      hospitalizationOrigin: ''
+                    }));
+                  }
+                }}
+                onAttentionOriginChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    attentionOrigin: value
+                  }));
+                }}
+                onMedicoChange={(value, medicoData) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    authorizingDoctor: value
+                  }));
+                  setSelectedMedico(medicoData || null);
+                }}
+                onDiagnosticoChange={(value, diagnosticoData) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    diagnosis: value
+                  }));
+                  setSelectedDiagnostico(diagnosticoData || null);
+                }}
+                onSeguroChange={(value, seguroData) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    financing: value
+                  }));
+                  setSelectedSeguro(seguroData || null);
+                }}
+                onProcedenciaChange={(value) => {
+                  // Al cambiar la procedencia, limpiamos los campos dependientes
+                  if (value === 'RN') {
+                    // Si es RN, limpiamos y deshabilitamos el código de origen
+                    setFormData(prev => ({
+                      ...prev,
+                      procedencia: value,
+                      hospitalizationOrigin: '', // Limpiamos el código de origen
+                      hospitalizedIn: '', // Limpiamos el hospitalizado en
+                      authorizingDoctor: '', // Limpiamos el médico
+                      diagnosis: '', // Limpiamos el diagnóstico
+                      financing: '' // Limpiamos el financiamiento
+                    }));
+                    setSelectedOrigin(null);
+                    setSelectedMedico(null);
+                    setSelectedDiagnostico(null);
+                    setSelectedSeguro(null); // Limpiamos el seguro seleccionado
+                  } else {
+                    // Si es EM o CE, solo limpiamos los campos pero no los deshabilitamos
+                    setFormData(prev => ({
+                      ...prev,
+                      procedencia: value,
+                      hospitalizationOrigin: '', // Limpiamos el código de origen
+                      hospitalizedIn: '', // Limpiamos el hospitalizado en
+                      authorizingDoctor: '', // Limpiamos el médico
+                      diagnosis: '', // Limpiamos el diagnóstico
+                      financing: '' // Limpiamos el financiamiento
+                    }));
+                    setSelectedOrigin(null);
+                    setSelectedMedico(null);
+                    setSelectedDiagnostico(null);
+                    setSelectedSeguro(null); // Limpiamos el seguro seleccionado
+                  }
+                  
+                  // Limpiar errores de validación relacionados
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    hospitalizationOrigin: '',
+                    authorizingDoctor: '',
+                    diagnosis: ''
+                  }));
+                }}
+              />
             </CardContent>
           </Card>
         </div>
       </div>
       
-      {/* Se eliminó el visor de PDF para usar impresión directa */}
       
       {/* Componente para cargar datos de hospitalización existente */}
       <HospitalizationDetails

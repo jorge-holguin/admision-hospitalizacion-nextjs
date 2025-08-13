@@ -310,7 +310,10 @@ class HospitalizaService {
       }
       
       // 2. Actualizar el registro de hospitalización (eliminación lógica)
-      const fechaBaja = new Date(); // Fecha actual en UTC
+      // Crear fecha en zona horaria local (Lima, GMT-5)
+      const fechaUTC = new Date();
+      // Ajustar a la zona horaria de Lima (GMT-5)
+      const fechaBaja = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
       
       // Usar SQL raw para evitar problemas con SQL Server 2008 R2
       const updateResult = await prisma.$executeRaw`
