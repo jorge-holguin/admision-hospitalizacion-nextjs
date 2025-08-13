@@ -87,7 +87,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-     {/*      <Card
+          <Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-green-200"
             onClick={handleEmergenciaClick}
           >
@@ -98,7 +98,7 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-gray-800 mb-2">EMERGENCIA</h3>
               <p className="text-gray-600 text-sm">Gestión de pacientes en emergencia</p>
             </CardContent>
-          </Card> */}
+          </Card>
         </div>
 
         {/* Quick Stats */}
