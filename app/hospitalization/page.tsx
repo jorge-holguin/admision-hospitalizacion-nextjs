@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Home, Loader2, Search, CheckCircle } from "lucide-react"
+import { Home, Loader2, Search,OctagonAlert, CheckCircle } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -194,12 +194,21 @@ export default function HospitalizationSearch() {
             >
               <Home className="mr-2 h-4 w-4" /> HOSPITALIZAR
             </Button>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="bg-red-500 hover:bg-red-600 text-white" 
+              onClick={() => handlePatientSelect(patient.PACIENTE)}
+            >
+              <OctagonAlert className="mr-2 h-4 w-4" /> EMERGENCIA
+            </Button>
             <SISVerification 
               patientId={patient.PACIENTE}
               documento={patient.DOCUMENTO}
               buttonSize="sm"
               onVerificationComplete={handleSISVerificationComplete}
             />
+            
           </div>
         </div>
       ),
