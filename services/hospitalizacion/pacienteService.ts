@@ -21,8 +21,7 @@ export const pacienteService = {
     { page = 1, pageSize = 10 }: PaginationOptions
   ) {
     try {
-      const skip = (page - 1) * pageSize;
-      console.log('Buscando pacientes con parámetros:', { skip, take: pageSize, filter });
+      console.log('Buscando pacientes con parámetros:', { page, pageSize, filter });
       
       // Construir el objeto where para los filtros
       const where: any = {};
@@ -51,58 +50,53 @@ export const pacienteService = {
       // Obtener el total de registros
       const total = await prisma.pACIENTE.count({ where });
       
-      // Obtener los datos paginados
-      const data = await prisma.pACIENTE.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { NOMBRES: 'asc' },
-        select: {
-          PACIENTE: true,
-          HISTORIA: true,
-          NOMBRES: true,
-          PATERNO: true,
-          MATERNO: true,
-          NOMBRE: true,
-          SEXO: true,
-          FECHA_NACIMIENTO: true,
-          EDAD: true,
-          DOCUMENTO: true,
-          TIPO_DOCUMENTO: true,
-          DIRECCION: true,
-          TELEFONO1: true,
-          ESTADO_CIVIL: true,
-          FECHA_APERTURA: true,
-          HORA_APERTURA: true,
-          PADRE: true,
-          MADRE: true,
-          DISTRITO: true,
-          LUGAR_NACIMIENTO: true,
-          OCUPACION: true,
-          GRADO_INSTRUCCION: true,
-          CONYUGE_NOMBRE: true,
-          SEGURO: true,
-          ENTIDAD: true,
-          ANIO: true,
-          HIJOS: true,
-          CONYUGE_OCUPACION: true,
-          CONSULTORIO: true,
-          SYSINSERT: true,
-          SYSUPDATE: true,
-          FECHA_CONSULTA: true,
-          TURNO_CONSULTA: true,
-          FLAG: true,
-          RELIGION: true,
-          USUARIO_IMP: true,
-          HISTORIA_ANT: true,
-          STRING_FOTO: true,
-        }
-      });
+      // Para versiones antiguas de SQL Server, usamos TOP y un subquery
+      // en lugar de OFFSET/FETCH
       
-      console.log(`Encontrados ${data.length} pacientes de un total de ${total}`);
+      // Construir la consulta SQL manualmente
+      let whereClause = '';
+      
+      if (filter.historia) {
+        whereClause += ` AND HISTORIA LIKE '%${filter.historia}%'`;
+      }
+      
+      if (filter.documento) {
+        whereClause += ` AND DOCUMENTO LIKE '%${filter.documento}%'`;
+      }
+      
+      if (filter.nombres) {
+        whereClause += ` AND (NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`;
+      }
+      
+      // Calcular el número de registros a saltar
+      const recordsToSkip = (page - 1) * pageSize;
+      
+      // Consulta SQL compatible con SQL Server 2008 y anteriores
+      const query = `
+        SELECT TOP ${pageSize} * FROM (
+          SELECT 
+            PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO, 
+            FECHA_NACIMIENTO, EDAD, DOCUMENTO, TIPO_DOCUMENTO, DIRECCION, 
+            TELEFONO1, ESTADO_CIVIL, FECHA_APERTURA, HORA_APERTURA, PADRE, 
+            MADRE, DISTRITO, LUGAR_NACIMIENTO, OCUPACION, GRADO_INSTRUCCION, 
+            CONYUGE_NOMBRE, SEGURO, ENTIDAD, ANIO, HIJOS, CONYUGE_OCUPACION, 
+            CONSULTORIO, SYSINSERT, SYSUPDATE, FECHA_CONSULTA, TURNO_CONSULTA, 
+            FLAG, RELIGION, USUARIO_IMP, HISTORIA_ANT,
+            ROW_NUMBER() OVER (ORDER BY NOMBRES ASC) AS RowNum
+          FROM dbo.PACIENTE
+          WHERE 1=1 ${whereClause}
+        ) AS PacientesPaginados
+        WHERE RowNum > ${recordsToSkip}
+        ORDER BY RowNum
+      `;
+      
+      // Ejecutar la consulta nativa
+      const data = await prisma.$queryRawUnsafe(query);
+      
+      console.log(`Encontrados ${Array.isArray(data) ? data.length : 0} pacientes de un total de ${total}`);
       
       return serializeBigInt({
-        data,
+        data: Array.isArray(data) ? data : [],
         pagination: {
           total,
           page,
@@ -123,49 +117,22 @@ export const pacienteService = {
     try {
       console.log(`Buscando paciente con ID: ${id}`);
       
-      const paciente = await prisma.pACIENTE.findUnique({
-        where: { PACIENTE: id },
-        select: {
-          PACIENTE: true,
-          HISTORIA: true,
-          NOMBRES: true,
-          PATERNO: true,
-          MATERNO: true,
-          NOMBRE: true,
-          SEXO: true,
-          FECHA_NACIMIENTO: true,
-          EDAD: true,
-          DOCUMENTO: true,
-          TIPO_DOCUMENTO: true,
-          DIRECCION: true,
-          TELEFONO1: true,
-          ESTADO_CIVIL: true,
-          FECHA_APERTURA: true,
-          HORA_APERTURA: true,
-          PADRE: true,
-          MADRE: true,
-          DISTRITO: true,
-          LUGAR_NACIMIENTO: true,
-          OCUPACION: true,
-          GRADO_INSTRUCCION: true,
-          CONYUGE_NOMBRE: true,
-          SEGURO: true,
-          ENTIDAD: true,
-          ANIO: true,
-          HIJOS: true,
-          CONYUGE_OCUPACION: true,
-          CONSULTORIO: true,
-          SYSINSERT: true,
-          SYSUPDATE: true,
-          FECHA_CONSULTA: true,
-          TURNO_CONSULTA: true,
-          FLAG: true,
-          RELIGION: true,
-          USUARIO_IMP: true,
-          HISTORIA_ANT: true,
-          STRING_FOTO: true,
-        }
-      });
+      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
+      const query = `
+        SELECT 
+          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
+          FECHA_NACIMIENTO, EDAD, DOCUMENTO, TIPO_DOCUMENTO, DIRECCION,
+          TELEFONO1, ESTADO_CIVIL, FECHA_APERTURA, HORA_APERTURA, PADRE,
+          MADRE, DISTRITO, LUGAR_NACIMIENTO, OCUPACION, GRADO_INSTRUCCION,
+          CONYUGE_NOMBRE, SEGURO, ENTIDAD, ANIO, HIJOS, CONYUGE_OCUPACION,
+          CONSULTORIO, SYSINSERT, SYSUPDATE, FECHA_CONSULTA, TURNO_CONSULTA,
+          FLAG, RELIGION, USUARIO_IMP, HISTORIA_ANT
+        FROM dbo.PACIENTE
+        WHERE PACIENTE = '${id}'
+      `;
+      
+      const result = await prisma.$queryRawUnsafe(query);
+      const paciente = Array.isArray(result) && result.length > 0 ? result[0] : null;
       
       console.log(`Paciente encontrado:`, paciente || 'No encontrado');
       return serializeBigInt(paciente);
@@ -182,30 +149,20 @@ export const pacienteService = {
     try {
       console.log(`Buscando pacientes por historia: ${historia}`);
       
-      const pacientes = await prisma.pACIENTE.findMany({
-        where: {
-          HISTORIA: {
-            contains: historia,
-          },
-        },
-        take: 10,
-        orderBy: { NOMBRES: 'asc' },
-        select: {
-          PACIENTE: true,
-          HISTORIA: true,
-          NOMBRES: true,
-          PATERNO: true,
-          MATERNO: true,
-          NOMBRE: true,
-          SEXO: true,
-          DOCUMENTO: true,
-          FECHA_NACIMIENTO: true,
-          EDAD: true,
-        }
-      });
+      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
+      const query = `
+        SELECT TOP 10
+          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
+          DOCUMENTO, FECHA_NACIMIENTO, EDAD
+        FROM dbo.PACIENTE
+        WHERE HISTORIA LIKE '%${historia}%'
+        ORDER BY NOMBRES ASC
+      `;
       
-      console.log(`Encontrados ${pacientes.length} pacientes por historia`);
-      return serializeBigInt(pacientes);
+      const pacientes = await prisma.$queryRawUnsafe(query);
+      
+      console.log(`Encontrados ${Array.isArray(pacientes) ? pacientes.length : 0} pacientes por historia`);
+      return serializeBigInt(Array.isArray(pacientes) ? pacientes : []);
     } catch (error) {
       console.error(`Error en searchByHistoria(${historia}):`, error instanceof Error ? error.message : 'Error desconocido');
       throw error;
@@ -219,30 +176,20 @@ export const pacienteService = {
     try {
       console.log(`Buscando pacientes por documento: ${documento}`);
       
-      const pacientes = await prisma.pACIENTE.findMany({
-        where: {
-          DOCUMENTO: {
-            contains: documento,
-          },
-        },
-        take: 10,
-        orderBy: { NOMBRES: 'asc' },
-        select: {
-          PACIENTE: true,
-          HISTORIA: true,
-          NOMBRES: true,
-          PATERNO: true,
-          MATERNO: true,
-          NOMBRE: true,
-          SEXO: true,
-          DOCUMENTO: true,
-          FECHA_NACIMIENTO: true,
-          EDAD: true,
-        }
-      });
+      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
+      const query = `
+        SELECT TOP 10
+          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
+          DOCUMENTO, FECHA_NACIMIENTO, EDAD
+        FROM dbo.PACIENTE
+        WHERE DOCUMENTO LIKE '%${documento}%'
+        ORDER BY NOMBRES ASC
+      `;
       
-      console.log(`Encontrados ${pacientes.length} pacientes por documento`);
-      return serializeBigInt(pacientes);
+      const pacientes = await prisma.$queryRawUnsafe(query);
+      
+      console.log(`Encontrados ${Array.isArray(pacientes) ? pacientes.length : 0} pacientes por documento`);
+      return serializeBigInt(Array.isArray(pacientes) ? pacientes : []);
     } catch (error) {
       console.error(`Error en searchByDocumento(${documento}):`, error instanceof Error ? error.message : 'Error desconocido');
       throw error;
@@ -256,33 +203,20 @@ export const pacienteService = {
     try {
       console.log(`Buscando pacientes por nombre: ${name}`);
       
-      const pacientes = await prisma.pACIENTE.findMany({
-        where: {
-          OR: [
-            { NOMBRES: { contains: name } },
-            { PATERNO: { contains: name } },
-            { MATERNO: { contains: name } },
-            { NOMBRE: { contains: name } },
-          ],
-        },
-        take: 100,
-        orderBy: { NOMBRES: 'asc' },
-        select: {
-          PACIENTE: true,
-          HISTORIA: true,
-          NOMBRES: true,
-          PATERNO: true,
-          MATERNO: true,
-          NOMBRE: true,
-          SEXO: true,
-          DOCUMENTO: true,
-          FECHA_NACIMIENTO: true,
-          EDAD: true,
-        }
-      });
+      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
+      const query = `
+        SELECT TOP 100
+          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
+          DOCUMENTO, FECHA_NACIMIENTO, EDAD
+        FROM dbo.PACIENTE
+        WHERE NOMBRES LIKE '%${name}%' OR PATERNO LIKE '%${name}%' OR MATERNO LIKE '%${name}%' OR NOMBRE LIKE '%${name}%'
+        ORDER BY NOMBRES ASC
+      `;
       
-      console.log(`Encontrados ${pacientes.length} pacientes por nombre`);
-      return serializeBigInt(pacientes);
+      const pacientes = await prisma.$queryRawUnsafe(query);
+      
+      console.log(`Encontrados ${Array.isArray(pacientes) ? pacientes.length : 0} pacientes por nombre`);
+      return serializeBigInt(Array.isArray(pacientes) ? pacientes : []);
     } catch (error) {
       console.error(`Error en searchByName(${name}):`, error instanceof Error ? error.message : 'Error desconocido');
       throw error;
@@ -296,32 +230,31 @@ export const pacienteService = {
     try {
       console.log('Contando pacientes con filtros:', filter);
       
-      // Construir el objeto where para los filtros
-      const where: any = {};
+      // Construir la condición WHERE para el SQL nativo
+      let whereClause = '1=1';
       
       if (filter.historia) {
-        where.HISTORIA = {
-          contains: filter.historia,
-        };
+        whereClause += ` AND HISTORIA LIKE '%${filter.historia}%'`;
       }
       
       if (filter.documento) {
-        where.DOCUMENTO = {
-          contains: filter.documento,
-        };
+        whereClause += ` AND DOCUMENTO LIKE '%${filter.documento}%'`;
       }
       
       if (filter.nombres) {
-        where.OR = [
-          { NOMBRES: { contains: filter.nombres } },
-          { PATERNO: { contains: filter.nombres } },
-          { MATERNO: { contains: filter.nombres } },
-          { NOMBRE: { contains: filter.nombres } },
-        ];
+        whereClause += ` AND (NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`;
       }
       
-      // Obtener el total de registros
-      const total = await prisma.pACIENTE.count({ where });
+      // Consulta SQL para contar registros
+      const query = `
+        SELECT COUNT(*) as total
+        FROM dbo.PACIENTE
+        WHERE ${whereClause}
+      `;
+      
+      // Ejecutar la consulta nativa
+      const result = await prisma.$queryRawUnsafe(query);
+      const total = Array.isArray(result) && result.length > 0 ? Number(result[0].total) : 0;
       
       console.log(`Total de pacientes: ${total}`);
       

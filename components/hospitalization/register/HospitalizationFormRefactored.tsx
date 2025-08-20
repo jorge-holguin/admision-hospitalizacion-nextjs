@@ -11,6 +11,7 @@ import { Loader2, Save } from "lucide-react"
 import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter'
 import { printMultiplePdfsViaDirectApi, printMergedPDF } from '@/utils/pdfUtils'
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
+import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
 
 // Componentes reutilizables
 import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
@@ -50,7 +51,6 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [filiacionData, setFiliacionData] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isEditable, setIsEditable] = useState(true);
@@ -190,11 +190,6 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
       diagnosis: data.diagnosis
     }));
     
-    // Si hay datos de filiación en la respuesta, actualizar el estado
-    if (data.rawData) {
-      setFiliacionData(data.rawData);
-    }
-    
     if (data.origenData) {
       setSelectedOrigin(data.origenData);
     }
@@ -308,115 +303,31 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
         return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
       };
       
-      // Obtener la edad directamente desde la API de filiación y formatearla correctamente
-      const getEdad = () => {
-        console.log('filiacionData:', filiacionData);
+      // Obtener la edad directamente desde la API de paciente
+      const getEdad = async () => {
+        console.log('Obteniendo edad desde pacienteApiService para paciente:', patientId);
         
-        // Verificar si existe filiacionData
-        if (!filiacionData) {
-          console.log('filiacionData no existe');
+        try {
+          // Usar el servicio de pacienteApiService para obtener la edad formateada
+          const formattedAge = await pacienteApiService.getFormattedAge(patientId);
+          
+          // El servicio ahora siempre devuelve un valor válido (nunca null)
+          console.log('Edad formateada obtenida:', formattedAge);
+          return formattedAge;
+        } catch (error) {
+          console.error('Error al obtener la edad desde la API:', error);
+          // En caso de error, devolver un valor por defecto
           return '000a00m00d';
         }
-        
-        console.log('Claves en filiacionData:', Object.keys(filiacionData));
-        
-        // Verificar si ya tenemos una edad formateada como string en el formato correcto (000a00m00d)
-        if (typeof filiacionData.EDAD === 'string' && /^\d{3}a\d{2}m\d{2}d$/.test(filiacionData.EDAD)) {
-          console.log('EDAD ya formateada encontrada:', filiacionData.EDAD);
-          return filiacionData.EDAD;
-        }
-        
-        // Verificar si tenemos la edad en formato de fecha de nacimiento
-        if (filiacionData.FECHA_NACIMIENTO) {
-          try {
-            console.log('Calculando edad a partir de FECHA_NACIMIENTO:', filiacionData.FECHA_NACIMIENTO);
-            
-            // Convertir la fecha de nacimiento a objeto Date
-            const fechaNacimiento = new Date(filiacionData.FECHA_NACIMIENTO);
-            const hoy = new Date();
-            
-            // Calcular años, meses y días
-            let años = hoy.getFullYear() - fechaNacimiento.getFullYear();
-            let meses = hoy.getMonth() - fechaNacimiento.getMonth();
-            let dias = hoy.getDate() - fechaNacimiento.getDate();
-            
-            // Ajustar si los días son negativos
-            if (dias < 0) {
-              meses--;
-              // Obtener el último día del mes anterior
-              const ultimoDiaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
-              dias += ultimoDiaMesAnterior;
-            }
-            
-            // Ajustar si los meses son negativos
-            if (meses < 0) {
-              años--;
-              meses += 12;
-            }
-            
-            // Formatear como '000a00m00d'
-            const edadFormateada = `${años.toString().padStart(3, '0')}a${meses.toString().padStart(2, '0')}m${dias.toString().padStart(2, '0')}d`;
-            console.log('Edad calculada a partir de fecha de nacimiento:', edadFormateada);
-            return edadFormateada;
-          } catch (error) {
-            console.error('Error al calcular edad a partir de fecha de nacimiento:', error);
-          }
-        }
-        
-        // Si tenemos la edad como número (años), convertirla al formato requerido
-        if (filiacionData.EDAD !== undefined && filiacionData.EDAD !== null) {
-          try {
-            console.log('EDAD numérica encontrada:', filiacionData.EDAD);
-            // Convertir a número si es string
-            const edadAños = typeof filiacionData.EDAD === 'string' ? parseInt(filiacionData.EDAD) : filiacionData.EDAD;
-            
-            if (!isNaN(edadAños)) {
-              // Formatear como '000a00m00d' (solo años, 0 meses, 0 días)
-              const edadFormateada = `${edadAños.toString().padStart(3, '0')}a00m00d`;
-              console.log('Edad formateada a partir de EDAD numérica:', edadFormateada);
-              return edadFormateada;
-            }
-          } catch (error) {
-            console.error('Error al formatear edad numérica:', error);
-          }
-        }
-        
-        // Buscar cualquier campo que contenga 'EDAD' o 'edad'
-        const edadKey = Object.keys(filiacionData).find(key => 
-          key.toUpperCase().includes('EDAD') && filiacionData[key] !== undefined && filiacionData[key] !== null);
-        
-        if (edadKey) {
-          console.log(`Campo relacionado con edad encontrado: ${edadKey}:`, filiacionData[edadKey]);
-          try {
-            const edadValor = filiacionData[edadKey];
-            
-            // Si ya está en formato '000a00m00d', usarlo directamente
-            if (typeof edadValor === 'string' && /^\d{3}a\d{2}m\d{2}d$/.test(edadValor)) {
-              return edadValor;
-            }
-            
-            // Si es un número, convertirlo al formato requerido
-            const edadNum = typeof edadValor === 'string' ? parseInt(edadValor) : edadValor;
-            if (!isNaN(edadNum)) {
-              return `${edadNum.toString().padStart(3, '0')}a00m00d`;
-            }
-          } catch (error) {
-            console.error(`Error al procesar campo ${edadKey}:`, error);
-          }
-        }
-        
-        // Si no está disponible, devolver un valor por defecto
-        console.log('No se encontró ningún campo de edad válido en filiacionData');
-        return '000a00m00d';
       };
       
-      const edadCalculada = getEdad();
+      const edadCalculada = await getEdad();
       
       // Asegurar que el nombre completo esté correctamente formateado
-      // Usar los datos de filiación si están disponibles, o los datos del formulario si no lo están
-      const apellidoPaterno = filiacionData?.paternalSurname || formData.paternalSurname || '';
-      const apellidoMaterno = filiacionData?.maternalSurname || formData.maternalSurname || '';
-      const nombres = filiacionData?.names || formData.names || '';
+      // Usar los datos del formulario directamente
+      const apellidoPaterno = formData.paternalSurname || '';
+      const apellidoMaterno = formData.maternalSurname || '';
+      const nombres = formData.names || '';
       const nombreCompleto = `${apellidoPaterno} ${apellidoMaterno} ${nombres}`.trim();
       
       // Verificar que el nombre no esté vacío
