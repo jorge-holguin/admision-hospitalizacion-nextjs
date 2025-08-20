@@ -167,14 +167,7 @@ export function FormActions({
                   <p className="font-semibold">No se ha encontrado un FUA activo para este paciente en las últimas 3 horas.</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="bypass-fua" 
-                    checked={bypassFuaCheck} 
-                    onCheckedChange={(checked) => setBypassFuaCheck(checked === true)}
-                  />
-                  <Label htmlFor="bypass-fua" className="text-sm font-medium text-red-600">
-                    Hospitalizar de todos modos (sin FUA activo)
-                  </Label>
+
                 </div>
               </div>
             )}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { extractUserSurnameFromToken } from '@/utils/jwtUtils';
 
 interface OrderOperationsProps {
   onOrderDeleted?: () => void;
@@ -42,38 +43,10 @@ export function useOrderOperations(props?: OrderOperationsProps) {
     try {
       setIsDeleting(true);
       
-      // Obtener el apellido del usuario desde el token JWT en localStorage
+      // Obtener el apellido del usuario desde el token JWT usando la utilidad
       let usuario = 'SISTEMA';
       try {
-        // Función para extraer el primer apellido del nombre completo en el token
-        const extractFirstSurname = () => {
-          try {
-            // Obtener el token del localStorage
-            const authToken = localStorage.getItem('authToken');
-            if (!authToken) return 'SUPERVISOR';
-            
-            // Decodificar el token (solo la parte del payload)
-            const tokenParts = authToken.split('.');
-            if (tokenParts.length !== 3) return 'SUPERVISOR';
-            
-            // Decodificar la parte del payload (segunda parte)
-            const payload = JSON.parse(atob(tokenParts[1]));
-            
-            // Extraer el nombre completo
-            const nombreCompleto = payload.nombreCompleto;
-            if (!nombreCompleto) return 'SUPERVISOR';
-            
-            // Obtener el primer apellido (primera palabra)
-            const primerApellido = nombreCompleto.split(' ')[0];
-            return primerApellido || 'SUPERVISOR';
-          } catch (error) {
-            console.error('Error al extraer el primer apellido del token:', error);
-            return 'SUPERVISOR';
-          }
-        };
-        
-        // Obtener el primer apellido del token
-        usuario = extractFirstSurname();
+        usuario = extractUserSurnameFromToken();
       } catch (e) {
         console.error('Error al obtener datos de usuario del token JWT:', e);
       }

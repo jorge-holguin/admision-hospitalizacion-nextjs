@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import hospitalizaService from '@/services/hospitalizacion/hospitalizaService';
 import { revalidatePath } from 'next/cache';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // GET /api/hospitaliza/[id] - Obtener una hospitalización por ID
 export async function GET(
@@ -31,6 +34,58 @@ export async function GET(
     console.error('Error al obtener hospitalización:', error);
     return NextResponse.json(
       { error: error.message || 'Error al obtener la hospitalización' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/hospitaliza/[id] - Actualizar campos específicos de una hospitalización
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = params.id;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Se requiere el ID de la hospitalización' },
+        { status: 400 }
+      );
+    }
+    
+    // Obtener los datos del cuerpo de la solicitud
+    const body = await request.json();
+    console.log(`Actualizando hospitalización ${id} con datos:`, body);
+    
+    // Verificar si se está actualizando el CUENTAID
+    if (body.CUENTAID) {
+      console.log(`Actualizando CUENTAID a ${body.CUENTAID} para hospitalización ${id}`);
+      
+      // Actualizar el registro usando SQL raw para evitar problemas con SQL Server 2008 R2
+      await prisma.$executeRaw`
+        UPDATE HOSPITALIZA 
+        SET CUENTAID = ${body.CUENTAID}
+        WHERE IDHOSPITALIZACION = ${id}
+      `;
+      
+      // Revalidar la ruta para actualizar la UI
+      revalidatePath('/hospitalization/orders');
+      
+      return NextResponse.json({ 
+        success: true, 
+        message: `CUENTAID actualizado correctamente para hospitalización ${id}` 
+      });
+    }
+    
+    return NextResponse.json(
+      { error: 'No se especificaron campos para actualizar' },
+      { status: 400 }
+    );
+  } catch (error: any) {
+    console.error('Error al actualizar hospitalización:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al actualizar la hospitalización' },
       { status: 500 }
     );
   }

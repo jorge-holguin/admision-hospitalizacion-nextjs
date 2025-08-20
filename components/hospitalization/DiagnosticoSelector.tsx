@@ -85,26 +85,39 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   
   // Función para hacer peticiones a la API CIEX
   const fetchFromCiexApi = async (searchQuery: string): Promise<DiagnosticoExtendido[]> => {
-    const url = `${API_CIEX_URL}?busqueda=${encodeURIComponent(searchQuery)}`;
+    // Normalizar la consulta (eliminar espacios extra, convertir a minúsculas)
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    
+    console.log(`[DiagnosticoSelector] Buscando en API CIEX: "${normalizedQuery}"`); 
+    
+    // Construir URL con el término de búsqueda
+    const url = `${API_CIEX_URL}?busqueda=${encodeURIComponent(normalizedQuery)}`;
     const token = getAuthToken();
     
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error en API CIEX: ${response.status}`);
       }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error en API CIEX: ${response.status}`);
+      
+      const ciexData: CiexResponse = await response.json();
+      
+      if (ciexData.data && Array.isArray(ciexData.data)) {
+        console.log(`[DiagnosticoSelector] API CIEX devolvió ${ciexData.data.length} resultados`);
+        return transformCiexData(ciexData.data);
+      }
+      
+      console.log('[DiagnosticoSelector] API CIEX no devolvió resultados o formato inválido');
+      return [];
+    } catch (error) {
+      console.error('[DiagnosticoSelector] Error al consultar API CIEX:', error);
+      throw error;
     }
-    
-    const ciexData: CiexResponse = await response.json();
-    
-    if (ciexData.data && Array.isArray(ciexData.data) && ciexData.data.length > 0) {
-      return transformCiexData(ciexData.data);
-    }
-    
-    return [];
   };
   
   // Función para hacer peticiones a la API de diagnósticos
@@ -151,7 +164,16 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
       if (useCiexApi()) {
         // Para 'EM' y 'RN' usar siempre la API CIEX
         console.log(`[DiagnosticoSelector] Usando API CIEX para origen ${tipoOrigen}`);
-        results = await fetchFromCiexApi(queryToUse);
+        
+        // Si es una búsqueda por código o descripción
+        if (queryToUse) {
+          results = await fetchFromCiexApi(queryToUse);
+        } else {
+          // Si no hay término de búsqueda, cargar algunos diagnósticos comunes
+          const commonCodes = ['Z590', 'Z348', 'J00X', 'A09X']; // Códigos comunes como ejemplo
+          const commonCode = commonCodes[Math.floor(Math.random() * commonCodes.length)];
+          results = await fetchFromCiexApi(commonCode);
+        }
       } else {
         // Para 'CE' usar la API de diagnósticos
         if (isSpecificId) {
@@ -200,11 +222,15 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
     }
     
     // Si el término de búsqueda es muy corto, no realizar la búsqueda en API
-    if (debouncedSearchTerm.length < 2) {
+    // A menos que parezca un código CIEX (como Z590)
+    const isCiexCode = /^[A-Z]\d{2,3}[A-Z]?$/i.test(debouncedSearchTerm.trim());
+    if (debouncedSearchTerm.length < 2 && !isCiexCode) {
       return;
     }
     
-    loadDiagnosticos(debouncedSearchTerm, false); // Búsqueda con término
+    // Realizar la búsqueda con el término (código o descripción)
+    console.log(`[DiagnosticoSelector] Iniciando búsqueda con término: "${debouncedSearchTerm}"`);
+    loadDiagnosticos(debouncedSearchTerm, false);
   }, [debouncedSearchTerm, origenId, allDiagnosticos, tipoOrigen]);
 
   // Crear un diagnóstico inicial si tenemos un valor pero no está en la lista de diagnósticos
@@ -265,10 +291,13 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
       <PopoverContent className="w-[400px] p-0">
         <Command>
           <CommandInput 
-            placeholder="Buscar diagnóstico..." 
+            placeholder="Buscar por código o descripción..." 
             onValueChange={handleSearch} 
             value={searchTerm}
           />
+          <div className="px-2 py-1 text-xs text-muted-foreground">
+            Ejemplos: "Z590" (código) o "cadera" (descripción)
+          </div>
           <CommandList>
             {loading && (
               <div className="flex items-center justify-center p-4">
@@ -286,22 +315,31 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
             )}
             {!loading && !error && diagnosticos.length > 0 && (
               <CommandGroup>
-                {diagnosticos.map((diagnostico) => (
-                  <CommandItem
-                    key={diagnostico.Codigo}
-                    value={diagnostico.Codigo}
-                    onSelect={handleSelect}
-                    className="flex items-start"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-bold">{diagnostico.Codigo}</span>
-                      <span className="text-sm text-muted-foreground">{diagnostico.Descripcion || diagnostico.Nombre}</span>
-                    </div>
-                    {selectedDiagnostico?.Codigo === diagnostico.Codigo && (
-                      <Check className="ml-auto h-4 w-4 flex-shrink-0" />
-                    )}
-                  </CommandItem>
-                ))}
+                {diagnosticos.map((diagnostico) => {
+                  // Preparar el valor para la búsqueda (código y descripción)
+                  const searchValue = `${diagnostico.Codigo} ${diagnostico.Descripcion || diagnostico.Nombre}`.toLowerCase();
+                  
+                  return (
+                    <CommandItem
+                      key={diagnostico.Codigo}
+                      value={searchValue} // Usar tanto código como descripción para la búsqueda
+                      onSelect={() => handleSelect(diagnostico.Codigo)}
+                      className="flex items-start py-2"
+                    >
+                      <div className="flex flex-col w-full">
+                        <div className="flex justify-between w-full">
+                          <span className="font-bold text-primary">{diagnostico.Codigo}</span>
+                          {selectedDiagnostico?.Codigo === diagnostico.Codigo && (
+                            <Check className="h-4 w-4 flex-shrink-0 text-primary" />
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground line-clamp-2">
+                          {diagnostico.Descripcion || diagnostico.Nombre}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             )}
           </CommandList>
