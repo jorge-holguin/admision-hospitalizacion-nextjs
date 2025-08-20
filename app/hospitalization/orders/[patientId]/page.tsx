@@ -464,7 +464,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                     }}
                                   >
                                     <FileText className="w-4 h-4 text-blue-600" />
-                                    <span>Hoja de Filiación</span>
+                                    <span>Hoja Filiación</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
@@ -476,7 +476,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                     }}
                                   >
                                     <ClipboardList className="w-4 h-4 text-green-600" />
-                                    <span>Orden de Hospitalización</span>
+                                    <span>Orden + Consentimiento</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
@@ -488,9 +488,9 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                     }}
                                   >
                                     <GraduationCap className="w-4 h-4 text-amber-600" />
-                                    <span>Consentimiento para actividades de docencia</span>
+                                    <span>Consentimiento Docencia</span>
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
+                                 {/*  <DropdownMenuItem
                                     className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
                                     onClick={(e) => {
                                       e.stopPropagation()
@@ -501,7 +501,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                                   >
                                     <FileSpreadsheet className="w-4 h-4 text-purple-600" />
                                     <span>FUA</span>
-                                  </DropdownMenuItem>
+                                  </DropdownMenuItem> */}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                               {/* Delete button - always shown, but disabled when not editable or deleted */}
