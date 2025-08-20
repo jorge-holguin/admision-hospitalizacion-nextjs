@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 
-const API_BASE = "http://localhost:3001/api";
+
+interface OptionItem {
+  value: string;
+  display: string;
+  description?: string;
+  data: any;
+}
 
 interface EmergencySectionProps {
   formData: any;
@@ -20,6 +26,17 @@ interface EmergencySectionProps {
   onConsultorioChange: (value: string, consultorioData: any) => void;
   onFormaIngresoChange: (value: string, formaData: any) => void;
   onSeguroChange: (value: string, seguroData: any) => void;
+  onMedicoChange: (value: string, medicoData: any) => void;
+  onDiagnosticoChange: (value: string, diagnosticoData: any) => void;
+  // Optional preloaded options to avoid duplicate API calls
+  preloadedMotivos?: any[];
+  preloadedConsultorios?: any[];
+  preloadedFormasIngreso?: any[];
+  preloadedSeguros?: any[];
+  loadingMotivos?: boolean;
+  loadingConsultorios?: boolean;
+  loadingFormas?: boolean;
+  loadingSeguros?: boolean;
 }
 
 export const EmergencySection: React.FC<EmergencySectionProps> = ({
@@ -32,6 +49,16 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   onConsultorioChange,
   onFormaIngresoChange,
   onSeguroChange,
+  onMedicoChange,
+  onDiagnosticoChange,
+  preloadedMotivos,
+  preloadedConsultorios,
+  preloadedFormasIngreso,
+  preloadedSeguros,
+  loadingMotivos: externalLoadingMotivos,
+  loadingConsultorios: externalLoadingConsultorios,
+  loadingFormas: externalLoadingFormas,
+  loadingSeguros: externalLoadingSeguros,
 }) => {
   // ===== Opciones locales =====
   const TIPO_ATENCION_OPTIONS = [
@@ -39,23 +66,28 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     { value: "U", display: "(U) - Urgencias" },
   ];
 
-  const CONDICION_PACIENTE_OPTIONS = [
-    { value: "CRITICO", display: "Crítico" },
-    { value: "GRAVE", display: "Grave" },
-    { value: "ESTABLE", display: "Estable" },
-  ];
-
   // ===== Estados remotos =====
-  const [motivos, setMotivos] = useState<any[]>([]);
-  const [consultorios, setConsultorios] = useState<any[]>([]);
-  const [formasIngreso, setFormasIngreso] = useState<any[]>([]);
-  const [seguros, setSeguros] = useState<any[]>([]);
+  const [internalMotivos, setInternalMotivos] = useState<any[]>([]);
+  const [internalConsultorios, setInternalConsultorios] = useState<any[]>([]);
+  const [internalFormasIngreso, setInternalFormasIngreso] = useState<any[]>([]);
+  const [internalSeguros, setInternalSeguros] = useState<any[]>([]);
 
   // ===== Loading =====
-  const [loadingMotivos, setLoadingMotivos] = useState(false);
-  const [loadingConsultorios, setLoadingConsultorios] = useState(false);
-  const [loadingFormas, setLoadingFormas] = useState(false);
-  const [loadingSeguros, setLoadingSeguros] = useState(false);
+  const [internalLoadingMotivos, setInternalLoadingMotivos] = useState(false);
+  const [internalLoadingConsultorios, setInternalLoadingConsultorios] = useState(false);
+  const [internalLoadingFormas, setInternalLoadingFormas] = useState(false);
+  const [internalLoadingSeguros, setInternalLoadingSeguros] = useState(false);
+  
+  // Use preloaded options if available, otherwise use internal state
+  const motivos = preloadedMotivos || internalMotivos;
+  const consultorios = preloadedConsultorios || internalConsultorios;
+  const formasIngreso = preloadedFormasIngreso || internalFormasIngreso;
+  const seguros = preloadedSeguros || internalSeguros;
+  
+  const loadingMotivos = externalLoadingMotivos !== undefined ? externalLoadingMotivos : internalLoadingMotivos;
+  const loadingConsultorios = externalLoadingConsultorios !== undefined ? externalLoadingConsultorios : internalLoadingConsultorios;
+  const loadingFormas = externalLoadingFormas !== undefined ? externalLoadingFormas : internalLoadingFormas;
+  const loadingSeguros = externalLoadingSeguros !== undefined ? externalLoadingSeguros : internalLoadingSeguros;
 
   // ===== Búsquedas =====
   const [searchTipoAtencion, setSearchTipoAtencion] = useState("");
@@ -90,85 +122,116 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
   // ===== Cargas remotas =====
   const loadMotivos = async (search: string = "") => {
+    // Skip loading if preloaded options are provided
+    if (preloadedMotivos) return;
+    
     try {
-      setLoadingMotivos(true);
+      setInternalLoadingMotivos(true);
       const res = await fetch(
-        `${API_BASE}/motivo-emergencia?search=${encodeURIComponent(search)}`
+        `/api/motivo-emergencia?search=${encodeURIComponent(search)}`
       );
       if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
       const items = json.items ?? json.data ?? [];
       const filtered = items.filter((x: any) => !("ACTIVO" in x) || x.ACTIVO === "1");
-      setMotivos(filtered);
+      setInternalMotivos(filtered);
     } catch (e) {
       console.error("Error motivos:", e);
-      setMotivos([]);
+      setInternalMotivos([]);
     } finally {
-      setLoadingMotivos(false);
+      setInternalLoadingMotivos(false);
     }
   };
 
   const loadConsultorios = async (search: string = "") => {
+    // Skip loading if preloaded options are provided
+    if (preloadedConsultorios) return;
+    
     try {
-      setLoadingConsultorios(true);
+      setInternalLoadingConsultorios(true);
       const res = await fetch(
-        `${API_BASE}/consultorio?search=${encodeURIComponent(search)}`
+        `/api/consultorio?search=${encodeURIComponent(search)}`
       );
       if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
       const items = json.items ?? json.data ?? [];
-      setConsultorios(items);
+      setInternalConsultorios(items);
     } catch (e) {
       console.error("Error consultorios:", e);
-      setConsultorios([]);
+      setInternalConsultorios([]);
     } finally {
-      setLoadingConsultorios(false);
+      setInternalLoadingConsultorios(false);
     }
   };
 
   const loadFormasIngreso = async (search: string = "") => {
     try {
-      setLoadingFormas(true);
+      setInternalLoadingFormas(true);
       const res = await fetch(
-        `${API_BASE}/forma-ingreso?search=${encodeURIComponent(search)}`
+        `/api/forma-ingreso?search=${encodeURIComponent(search)}`
       );
       if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
       const items = json.items ?? json.data ?? [];
       const filtered = items.filter((x: any) => !("ACTIVO" in x) || x.ACTIVO === "1");
-      setFormasIngreso(filtered);
+      setInternalFormasIngreso(filtered);
     } catch (e) {
       console.error("Error formas ingreso:", e);
-      setFormasIngreso([]);
+      setInternalFormasIngreso([]);
     } finally {
-      setLoadingFormas(false);
+      setInternalLoadingFormas(false);
     }
   };
 
   const loadSeguros = async (search: string = "") => {
+    // Skip loading if preloaded options are provided
+    if (preloadedSeguros) return;
+    
     try {
-      setLoadingSeguros(true);
+      console.log('Cargando seguros, búsqueda:', search);
+      setInternalLoadingSeguros(true);
       const res = await fetch(
-        `${API_BASE}/seguros?search=${encodeURIComponent(search)}`
+        `/api/seguros${search ? `?search=${encodeURIComponent(search)}` : ''}`
       );
       if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
-      const items = json.items ?? json.data ?? [];
-      setSeguros(items);
+      console.log('Respuesta API seguros:', json);
+      
+      // Determinar la estructura de datos correcta
+      let items = [];
+      if (json.items) {
+        items = json.items;
+        console.log('Usando json.items para seguros');
+      } else if (json.data) {
+        items = json.data;
+        console.log('Usando json.data para seguros');
+      } else if (Array.isArray(json)) {
+        items = json;
+        console.log('Usando array directo para seguros');
+      } else {
+        console.error('Estructura de datos de seguros desconocida:', json);
+        items = [];
+      }
+      
+      console.log('Items de seguros procesados:', items);
+      setInternalSeguros(items);
     } catch (e) {
       console.error("Error seguros:", e);
-      setSeguros([]);
+      setInternalSeguros([]);
     } finally {
-      setLoadingSeguros(false);
+      setInternalLoadingSeguros(false);
     }
   };
 
   useEffect(() => {
-    loadMotivos();
-    loadConsultorios();
-    loadFormasIngreso();
-    loadSeguros();
-  }, []);
+    // Only load catalogs if not disabled (edit mode)
+    if (!disabled) {
+      loadMotivos();
+      loadConsultorios();
+      loadFormasIngreso();
+      loadSeguros();
+    }
+  }, [disabled]);
 
   // ===== SearchableSelect (fuente normal) =====
   const SearchableSelect = ({
@@ -266,14 +329,6 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     )
     .map((o) => ({ value: o.value, display: o.display, data: o }));
 
-  const formatCondicion = CONDICION_PACIENTE_OPTIONS
-    .filter(
-      (o) =>
-        !searchCondicion ||
-        o.display.toLowerCase().includes(searchCondicion.toLowerCase())
-    )
-    .map((o) => ({ value: o.value, display: o.display, data: o }));
-
   const formatMotivos = motivos
     .filter(
       (m) =>
@@ -312,18 +367,21 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       data: f,
     }));
 
-  const formatSeguros = seguros
-    .filter(
-      (s) =>
-        !searchSeguro ||
-        s.NOMBRE?.toLowerCase().includes(searchSeguro.toLowerCase())
-    )
-    .map((s) => ({
-      value: s.SEGURO,
-      display: `(${s.SEGURO}) - ${s.NOMBRE}`,
-      description: s.DESCRIPCION,
-      data: s,
-    }));
+  const formatSeguros = useMemo(() => {
+    console.log('Datos de seguros disponibles:', seguros);
+    return seguros
+      .filter(
+        (s) => !searchSeguro || 
+          (s.Nombre?.toLowerCase().includes(searchSeguro.toLowerCase()) || 
+           s.NOMBRE?.toLowerCase().includes(searchSeguro.toLowerCase()))
+      )
+      .map((s) => ({
+        value: s.Seguro || s.SEGURO,
+        display: `(${s.Seguro || s.SEGURO}) - ${s.Nombre || s.NOMBRE}`,
+        description: "",
+        data: s,
+      }));
+  }, [seguros, searchSeguro]);
 
   // Helper para mostrar display actual a partir del code guardado
   const displayFrom = (
@@ -332,8 +390,8 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   ) => opts.find((o) => o.value === code)?.display || "";
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Datos de la Emergencia</h3>
+    <div className="space-y-6 mt-8" data-testid="emergency-section">
+      <h3 className="text-lg font-semibold mb-4">Datos de la Emergencia</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Tipo de Atención (E/U) */}
@@ -344,29 +402,11 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           loading={false}
           search={searchTipoAtencion}
           onSearchChange={setSearchTipoAtencion}
-          onSelect={(opt: any) => onFormChange("tipoAtencion", opt.value)}
+          onSelect={(opt: OptionItem) => onFormChange("tipoAtencion", opt.value)}
           selectName="tipoAtencion"
           required
           error={validationErrors.tipoAtencion}
           placeholder="Seleccionar tipo de atención..."
-        />
-
-        {/* Condición del Paciente */}
-        <SearchableSelect
-          label="Condición del Paciente"
-          value={displayFrom(
-            CONDICION_PACIENTE_OPTIONS,
-            formData.condicionPaciente
-          )}
-          options={formatCondicion}
-          loading={false}
-          search={searchCondicion}
-          onSearchChange={setSearchCondicion}
-          onSelect={(opt: any) => onFormChange("condicionPaciente", opt.value)}
-          selectName="condicionPaciente"
-          required
-          error={validationErrors.condicionPaciente}
-          placeholder="Seleccionar condición..."
         />
 
         {/* Motivo de Ingreso */}
@@ -380,7 +420,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             setSearchMotivo(v);
             loadMotivos(v);
           }}
-          onSelect={(opt: any) => {
+          onSelect={(opt: OptionItem) => {
             onFormChange("motivoEmergencia", opt.value);
             onFormChange("motivoEmergenciaDisplay", opt.display);
             onMotivoChange(opt.value, opt.data);
@@ -402,7 +442,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             setSearchConsultorio(v);
             loadConsultorios(v);
           }}
-          onSelect={(opt: any) => {
+          onSelect={(opt: OptionItem) => {
             onFormChange("consultorio", opt.value);
             onFormChange("consultorioDisplay", opt.display);
             onConsultorioChange(opt.value, opt.data);
@@ -424,7 +464,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             setSearchForma(v);
             loadFormasIngreso(v);
           }}
-          onSelect={(opt: any) => {
+          onSelect={(opt: OptionItem) => {
             onFormChange("formaIngreso", opt.value);
             onFormChange("formaIngresoDisplay", opt.display);
             onFormaIngresoChange(opt.value, opt.data);
@@ -446,7 +486,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             setSearchSeguro(v);
             loadSeguros(v);
           }}
-          onSelect={(opt: any) => {
+          onSelect={(opt: OptionItem) => {
             onFormChange("seguro", opt.value);
             onFormChange("seguroDisplay", opt.display);
             onSeguroChange(opt.value, opt.data);

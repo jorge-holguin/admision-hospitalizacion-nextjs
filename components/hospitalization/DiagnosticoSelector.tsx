@@ -6,6 +6,14 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
 import { Diagnostico } from '@/services/hospitalizacion/diagnosticoService';
+
+// Extender la interfaz Diagnostico para incluir campos adicionales que necesitamos
+interface DiagnosticoExtendido extends Diagnostico {
+  Descripcion?: string;
+  CodigoCompleto?: string;
+  Estado?: string;
+  FechaRegistro?: string;
+}
 import { useDebounce } from '@/hooks/useDebounce';
 
 // API URLs
@@ -45,15 +53,15 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   console.log(`[DiagnosticoSelector] tipoOrigen recibido: ${tipoOrigen}`);
 
   const [open, setOpen] = useState(false);
-  const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
-  const [allDiagnosticos, setAllDiagnosticos] = useState<Diagnostico[]>([]);
+  const [diagnosticos, setDiagnosticos] = useState<DiagnosticoExtendido[]>([]);
+  const [allDiagnosticos, setAllDiagnosticos] = useState<DiagnosticoExtendido[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Función para transformar datos de CIEX al formato de Diagnostico
-  const transformCiexData = (ciexItems: CiexItem[]): Diagnostico[] => {
+  const transformCiexData = (ciexItems: CiexItem[]): DiagnosticoExtendido[] => {
     return ciexItems.map(item => ({
       Codigo: item.cie10?.trim() || '',
       Descripcion: item.descripcion || '',
@@ -76,12 +84,9 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   const useCiexApi = () => tipoOrigen === 'EM' || tipoOrigen === 'RN';
   
   // Función para hacer peticiones a la API CIEX
-  const fetchFromCiexApi = async (searchQuery: string): Promise<Diagnostico[]> => {
+  const fetchFromCiexApi = async (searchQuery: string): Promise<DiagnosticoExtendido[]> => {
     const url = `${API_CIEX_URL}?busqueda=${encodeURIComponent(searchQuery)}`;
     const token = getAuthToken();
-    
-    console.log(`[DiagnosticoSelector] URL CIEX: ${url}`);
-    console.log(`[DiagnosticoSelector] Token disponible: ${token ? 'Sí' : 'No'} (primeros 5 caracteres: ${token.substring(0, 5)}...)`);
     
     const response = await fetch(url, {
       headers: {
@@ -103,7 +108,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   };
   
   // Función para hacer peticiones a la API de diagnósticos
-  const fetchFromDiagnosticosApi = async (searchQuery: string, isSpecificId = false): Promise<Diagnostico[]> => {
+  const fetchFromDiagnosticosApi = async (searchQuery: string, isSpecificId = false): Promise<DiagnosticoExtendido[]> => {
     const baseUrl = isSpecificId 
       ? `${API_DIAGNOSTICOS_URL}/${encodeURIComponent(searchQuery)}` 
       : `${API_DIAGNOSTICOS_EMERGENCIA_URL}?search=${encodeURIComponent(searchQuery)}&limit=50`;
@@ -135,10 +140,11 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
       setLoading(true);
       setError(null);
       
-      const isSpecificId = isInitialLoad && origenId && origenId.trim() !== '';
+      // Verificar si tenemos un código de origen específico (como "250081334")
+      const isSpecificId = isInitialLoad && origenId && origenId.trim() !== '' && origenId.length > 3;
       const queryToUse = isSpecificId ? origenId : searchQuery;
       
-      console.log(`[DiagnosticoSelector] ${isInitialLoad ? 'Carga inicial' : 'Búsqueda'} - tipoOrigen: ${tipoOrigen}, query: ${queryToUse}`);
+      console.log(`[DiagnosticoSelector] ${isInitialLoad ? 'Carga inicial' : 'Búsqueda'} - tipoOrigen: ${tipoOrigen}, origenId: ${origenId}, query: ${queryToUse}`);
       
       let results: Diagnostico[] = [];
       
@@ -150,9 +156,11 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
         // Para 'CE' usar la API de diagnósticos
         if (isSpecificId) {
           // Si es un ID específico, usar la API de diagnósticos por ID
+          console.log(`[DiagnosticoSelector] Cargando diagnóstico específico con ID: ${queryToUse}`);
           results = await fetchFromDiagnosticosApi(queryToUse, true);
         } else {
           // Si es una búsqueda general, usar la API de diagnósticos de emergencia
+          console.log(`[DiagnosticoSelector] Realizando búsqueda general con término: ${queryToUse}`);
           results = await fetchFromDiagnosticosApi(queryToUse, false);
         }
       }
@@ -199,9 +207,28 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
     loadDiagnosticos(debouncedSearchTerm, false); // Búsqueda con término
   }, [debouncedSearchTerm, origenId, allDiagnosticos, tipoOrigen]);
 
+  // Crear un diagnóstico inicial si tenemos un valor pero no está en la lista de diagnósticos
+  const [initialDiagnostico, setInitialDiagnostico] = useState<DiagnosticoExtendido | null>(null);
+  
+  useEffect(() => {
+    // Si tenemos un valor inicial pero no está en la lista de diagnósticos
+    if (value && !diagnosticos.some(d => d.Codigo === value) && !initialDiagnostico) {
+      // Crear un diagnóstico temporal con el código proporcionado
+      // en lugar de hacer una llamada a la API
+      const tempDiagnostico: DiagnosticoExtendido = {
+        Codigo: value,
+        Nombre: value,
+        CodigoCompleto: value,
+        Estado: 'A'
+      };
+      setInitialDiagnostico(tempDiagnostico);
+      console.log(`[DiagnosticoSelector] Usando diagnóstico temporal para código: ${value}`);
+    }
+  }, [value, diagnosticos]);
+  
   const selectedDiagnostico = diagnosticos.find(diagnostico => 
     diagnostico.Codigo === value || diagnostico.CodigoCompleto === value
-  );
+  ) || initialDiagnostico;
   
   const handleSelect = (codigo: string) => {
     const selected = diagnosticos.find(d => d.Codigo === codigo || d.CodigoCompleto === codigo);
@@ -226,7 +253,9 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
           disabled={disabled}
         >
           {selectedDiagnostico ? (
-            <span className="truncate">{selectedDiagnostico.CodigoCompleto || selectedDiagnostico.Codigo}</span>
+            <span className="truncate">{selectedDiagnostico.CodigoCompleto || `${selectedDiagnostico.Codigo} - ${selectedDiagnostico.Nombre}`}</span>
+          ) : value ? (
+            <span className="truncate">{value}</span>
           ) : (
             <span className="text-muted-foreground">Seleccionar diagnóstico</span>
           )}

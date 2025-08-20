@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { formatDate } from '@/lib/utils';
+"use client"
+
+import React, { useState, useEffect, useRef } from 'react';
+import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { User, Calendar, Phone, MapPin, FileText, Activity, CreditCard, Heart, VenusAndMars, House, Home, Book } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
+import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
 
 interface PatientInfoCardProps {
   patientId: string;
+  hospitalizationOrderId?: string;
   className?: string;
-  onDataLoaded?: (data: PatientData) => void;
+  onDataLoaded?: (data: any) => void;
 }
 
 interface PatientData {
@@ -15,198 +24,372 @@ interface PatientData {
   maternalSurname: string;
   names: string;
   document: string;
+  documentType: string;
   sex: string;
   birthDate: string;
   age: string;
   insurance: string;
   phone: string;
+  phone2: string;
   district: string;
+  locality: string;
+  localityDescription: string;
+  address: string;
+  currentDistrict: string;
+  religion: string;
+  desc_religion: string;
+  maritalStatus: string;
   photo?: string;
+  fullName?: string;
 }
 
-export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ patientId, className = '', onDataLoaded }) => {
-  const [patientData, setPatientData] = useState<PatientData>({
-    historyNumber: "",
-    paternalSurname: "",
-    maternalSurname: "",
-    names: "",
-    document: "",
-    sex: "",
-    birthDate: "",
-    age: "",
-    insurance: "",
-    phone: "",
-    district: "",
-    photo: ""
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface DiagnosisData {
+  code: string;
+  description: string;
+}
 
-  // Cargar datos del paciente cuando cambia el patientId
+export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
+  patientId,
+  hospitalizationOrderId,
+  className = '',
+  onDataLoaded
+}) => {
+  // Usar el contexto para obtener datos del paciente
+  const { fetchPatientData, isLoading, error: fetchError } = useFetchPatientData(patientId);
+  const { getPatientData } = usePatientData();
+  
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [hospitalizationData, setHospitalizationData] = useState<any>(null);
+  const [diagnosisData, setDiagnosisData] = useState<DiagnosisData | null>(null);
+  const [loading, setLoading] = useState(isLoading);
+  const [error, setError] = useState<string | null>(fetchError);
+
+  // Efecto para cargar los datos del paciente usando el contexto
   useEffect(() => {
-    const fetchPatientData = async () => {
+    const loadPatientData = async () => {
       if (!patientId) {
-        setLoading(false);
+        console.warn('PatientInfoCard: No patientId provided');
         return;
       }
 
       try {
-        setLoading(true);
-        setError(null);
+        // Intentar obtener datos del contexto primero
+        let contextData = getPatientData(patientId);
         
-        // Fetch patient data from filiacion API
-        const filiacionResponse = await fetch(`/api/filiacion/${patientId}`);
-        
-        if (!filiacionResponse.ok) {
-          throw new Error(`Error al cargar datos del paciente: ${filiacionResponse.status}`);
+        // Si no hay datos en el contexto, cargarlos
+        if (!contextData) {
+          console.log(`[PatientInfoCard] Fetching patient data for ID: ${patientId} via context`);
+          await fetchPatientData();
+          contextData = getPatientData(patientId);
         }
         
-        const responseData = await filiacionResponse.json();
-        
-        // La estructura de la respuesta tiene un objeto data que contiene los datos del paciente
-        const data = responseData.data || responseData;
-        
-        // Extraemos los campos directamente de la estructura que vemos en la consola
-        const patientDataObj: PatientData = {
-          historyNumber: data.HISTORIA || '',
-          paternalSurname: data.PATERNO?.trim() || data.APEPAT?.trim() || '',
-          maternalSurname: data.MATERNO?.trim() || data.APEMAT?.trim() || '',
-          names: data.NOMBRE?.trim() || data.NOMBRES?.trim() || '',
-          document: data.DOCUMENTO || '',
-          sex: data.SEXO === 'M' ? 'Masculino' : data.SEXO === 'F' ? 'Femenino' : data.SEXO || '',
-          birthDate: data.FECHA_NACIMIENTO || data.FECNAC || '',
-          age: data.EDAD || '',
-          insurance: data.NOMBRE_SEGURO?.trim() || data.SEGURO?.trim() || '',
-          phone: data.TELEFONO1 || '',
-          district: data.Distrito_Dir || '',
-          photo: data.STRING_FOTO || ''
-        };
-        
-        // Actualizamos el estado con los datos del paciente
-        setPatientData(patientDataObj);
-        
-        // Notificar al componente padre sobre los datos cargados
-        if (onDataLoaded) {
-          onDataLoaded(patientDataObj);
+        if (contextData) {
+          // Mapear los datos del contexto al formato que espera este componente
+          const patientDataObj: PatientData = {
+            historyNumber: contextData.historia || '',
+            paternalSurname: contextData.apellidoPaterno?.trim() || '',
+            maternalSurname: contextData.apellidoMaterno?.trim() || '',
+            names: contextData.nombre?.trim() || contextData.nombres?.trim() || '',
+            document: contextData.documento || '',
+            documentType: contextData.tipoDocumento || '',
+            sex: contextData.sexo || '',
+            birthDate: contextData.fechaNacimiento || '',
+            age: contextData.edad || '',
+            insurance: contextData.descSeguro?.trim() || contextData.seguro?.trim() || '',
+            phone: contextData.telefono1 || '',
+            phone2: contextData.telefono2 || '',
+            district: contextData.distritoDir || contextData.distrito || '',
+            locality: contextData.localidad || '',
+            localityDescription: contextData.nombreLocalidad || '',
+            address: contextData.direccion || '',
+            currentDistrict: contextData.distrito || '',
+            religion: contextData.religion || 'NO ESPECIFICA',
+            desc_religion: contextData.descreligion || 'NO ESPECIFICA',
+            maritalStatus: contextData.estadoCivil || '',
+            photo: contextData.photo || ''
+          };
+
+          // Construir el nombre completo del paciente en formato APELLIDOS NOMBRES
+          patientDataObj.fullName = [
+            patientDataObj.paternalSurname,
+            patientDataObj.maternalSurname,
+            patientDataObj.names
+          ].filter(Boolean).join(' ').toUpperCase();
+          
+          // Actualizamos el estado con los datos del paciente
+          setPatientData(patientDataObj);
+          
+          // Notificar al componente padre sobre los datos cargados
+          if (onDataLoaded) {
+            onDataLoaded(patientDataObj);
+          }
         }
       } catch (err: any) {
         console.error('Error fetching patient data:', err);
         setError(err.message || 'Error al cargar datos');
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchPatientData();
-  }, [patientId]); // Eliminamos onDataLoaded de las dependencias para evitar re-renderizados constantes
+    loadPatientData();
+  }, [patientId, fetchPatientData, getPatientData, onDataLoaded]);
+
+  // Actualizar el estado de carga cuando cambie en el contexto
+  useEffect(() => {
+    setLoading(isLoading);
+  }, [isLoading]);
+
+  // Actualizar el estado de error cuando cambie en el contexto
+  useEffect(() => {
+    setError(fetchError);
+  }, [fetchError]);
+
+  // Fetch hospitalization order data if ID is provided
+  useEffect(() => {
+    const fetchHospitalizationOrder = async () => {
+      if (!hospitalizationOrderId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/orden-hospitalizacion/${hospitalizationOrderId}`);
+        
+        if (!response.ok) {
+          console.error(`Error fetching hospitalization order: ${response.status}`);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.data) {
+          // Extract diagnosis information
+          const diagnosisCode = data.data.DIAGNOSTICO || '';
+          
+          // Set diagnosis data
+          setDiagnosisData({
+            code: diagnosisCode.trim(),
+            description: data.data.DIAGNOSTICO_DESC || 'Descripción no disponible'
+          });
+
+          console.log('Diagnosis data loaded:', diagnosisCode);
+        }
+      } catch (err) {
+        console.error('Error fetching hospitalization order:', err);
+      }
+    };
+
+    fetchHospitalizationOrder();
+  }, [hospitalizationOrderId]);
 
   if (loading) {
     return (
-      <Card className={`animate-pulse ${className}`}>
+      <Card className={className}>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <div key={index} className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-                <div className="h-6 bg-gray-200 rounded w-full"></div>
-              </div>
-            ))}
+          <div className="flex justify-center items-center py-8">
+            <Spinner size="lg" />
+            <span className="ml-3">Cargando datos del paciente...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Verificamos si hay datos del paciente (al menos un campo con valor)
-  const hasData = Object.values(patientData).some(value => value && value.trim() !== '');
-  
-  if (!hasData) {
+  if (error) {
     return (
       <Card className={className}>
         <CardContent className="pt-6">
-          <div className="text-center text-red-500">
-            No se pudo cargar la información del paciente
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
 
-  // Mostrar mensaje de error si existe
-  if (error) {
+  if (!patientData) {
     return (
-      <Card className={`bg-red-50 ${className}`}>
+      <Card className={className}>
         <CardContent className="pt-6">
-          <div className="text-red-500 font-medium">
-            Error al cargar datos del paciente: {error}
-          </div>
+          <Alert>
+            <AlertDescription>No se encontraron datos del paciente</AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
 
-  // Construir el nombre completo del paciente
-  const fullName = [
-    patientData.names,
-    patientData.paternalSurname,
-    patientData.maternalSurname
-  ].filter(Boolean).join(' ');
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No especificado';
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const month = date.toLocaleDateString('es-ES', { month: 'long' });
+      const year = date.getFullYear();
+      return `${day} de ${month} de ${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getSexoBadgeColor = (sexo: string) => {
+    switch (sexo?.toUpperCase()) {
+      case 'M':
+      case 'MASCULINO':
+        return 'bg-blue-100 text-blue-800';
+      case 'F':
+      case 'FEMENINO':
+        return 'bg-pink-100 text-pink-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-0">
-        <div className="flex flex-col items-center">
-          <div className="relative h-60 w-40 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 mb-4">
+    <Card className={`h-full flex flex-col ${className}`}>
+      <CardHeader className="pb-3">
+      </CardHeader>
+      <CardContent className="space-y-4 flex-1 overflow-y-auto">
+        {/* Foto del paciente - Centrada y más grande */}
+        <div className="flex flex-col items-center space-y-4">
+          {/* Foto del paciente */}
+          <div className="relative w-32 h-40 flex-shrink-0">
             {patientData.photo ? (
-              <ImageWithLoader 
-                src={`data:image/jpeg;base64,${patientData.photo}`}
-                alt="Foto del paciente"
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 33vw"
-                loadingClassName="opacity-0"
-                loadedClassName="opacity-100"
-                className="object-cover transition-opacity duration-200"
-              />
+              <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm">
+                <ImageWithLoader 
+                  src={patientData.photo.startsWith('data:') ? patientData.photo : `data:image/jpeg;base64,${patientData.photo}`}
+                  alt="Foto del paciente"
+                  width={128}
+                  height={160}
+                  priority
+                  sizes="128px"
+                  loadingClassName="opacity-0"
+                  loadedClassName="opacity-100"
+                  className="object-cover transition-opacity duration-300 w-full h-full"
+                  style={{ objectFit: 'cover' }}
+                  onError={(e) => {
+                    console.error('Error loading patient image:', e);
+                    // Log the image source for debugging
+                    console.error('Failed image source:', patientData.photo ? patientData.photo.substring(0, 100) + '...' : 'undefined');
+                    // Hide the image container on error
+                    const target = e.target as HTMLImageElement;
+                    const container = target.closest('.relative') as HTMLElement;
+                    if (container) {
+                      container.style.display = 'none';
+                    }
+                  }}
+                />
+              </div>
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className="w-full h-full rounded-lg bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-sm">
+                <User className="h-12 w-12 text-gray-400" />
               </div>
             )}
           </div>
-          <div className="text-center mb-2">
-            <h2 className="text-xl font-bold">{fullName || 'Paciente sin nombre'}</h2>
-            <p className="text-sm text-gray-500">HC: {patientData.historyNumber || '-'}</p>
+          
+          {/* Información básica - Centrada */}
+          <div className="text-center">
+            <h3 className="font-semibold text-lg text-gray-900">
+              {patientData.fullName || 'Paciente sin nombre'}
+            </h3>
+            <p className="text-sm text-gray-500 font-semibold">HC: {patientData.historyNumber}</p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="flex flex-col space-y-3">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Sexo</p>
-            <p className="text-lg font-semibold">{patientData.sex || '-'}</p>
+
+        {/* Diagnóstico (si está disponible) */}
+        {diagnosisData && (
+          <div className="border-t pt-3">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Diagnóstico</h4>
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-gray-400" />
+              <span className="text-sm">
+                <strong>{diagnosisData.code}:</strong> {diagnosisData.description}
+              </span>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Fecha de Nacimiento</p>
-            <p className="text-lg font-semibold">{patientData.birthDate || '-'}</p>
+        )}
+
+        {/* Información básica */}
+        <div className="grid grid-cols-1 gap-3">
+
+
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-400" />
+            <span className="text-sm">
+              <strong>Nacimiento:</strong> {formatDate(patientData.birthDate)}
+            </span>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Edad</p>
-            <p className="text-lg font-semibold">{patientData.age || '-'}</p>
+
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-gray-400" />
+            <span className="text-sm">
+              <strong>Edad:</strong> {patientData.age || 'No especificado'}
+            </span>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Seguro</p>
-            <p className="text-lg font-semibold">{patientData.insurance || '-'}</p>
+
+          <div className="flex items-center gap-2">
+            <VenusAndMars className="h-4 w-4 text-gray-400" />
+            <span className="text-sm">
+              <strong>Sexo:</strong>
+            </span>
+            <Badge className={getSexoBadgeColor(patientData.sex)}>
+              {patientData.sex === 'M' ? 'Masculino' : patientData.sex === 'F' ? 'Femenino' : patientData.sex}
+            </Badge>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Teléfono</p>
-            <p className="text-lg font-semibold">{patientData.phone || '-'}</p>
+
+          <div className="flex items-center gap-2">
+            <Heart className="h-4 w-4 text-gray-400" />
+            <span className="text-sm">
+              <strong>Estado Civil:</strong> {getCivilStatusDescription(patientData.maritalStatus)}
+            </span>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Distrito Actual</p>
-            <p className="text-lg font-semibold">{patientData.district || '-'}</p>
+        </div>
+
+        {/* Información de contacto */}
+        <div className="border-t pt-3">
+          <h4 className="font-medium text-sm text-gray-700 mb-2">Contacto</h4>
+            
+          <div className="space-y-2">
+            {patientData.address && (
+              <div className="flex items-start gap-2">
+                <Home className="h-4 w-4 text-gray-400 mt-1" />
+                <span className="text-sm">{patientData.address}</span>
+              </div>
+            )}
+
+            {patientData.district && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-gray-400" />
+                <span className="text-sm">{patientData.district}</span>
+              </div>
+            )}
+
+            {patientData.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-400" />
+                <span className="text-sm">{patientData.phone}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Información adicional */}
+        <div className="border-t pt-3">
+          <h4 className="font-medium text-sm text-gray-700 mb-2">Información Adicional</h4>
+          <div className="space-y-2">
+            <div className="text-sm">
+              <strong>Seguro:</strong> {patientData.insurance || 'No especificado'}
+            </div>
+            
+            <div className="text-sm">
+              <strong>Religión:</strong> {patientData.desc_religion || 'NO ESPECIFICA'}
+            </div>
+            
+            <div className="text-sm">
+              <strong>Localidad:</strong> {patientData.localityDescription || patientData.locality || 'No especificada'}
+            </div>
+            
+            <div className="text-sm">
+              <strong>Distrito Actual:</strong> {patientData.currentDistrict || 'No especificado'}
+            </div>
           </div>
         </div>
       </CardContent>

@@ -159,7 +159,7 @@ export async function POST(
         SET CUENTAID = (
           SELECT TOP 1 CUENTAID 
           FROM CUENTA 
-          WHERE ESTADO = '1' AND PACIENTE = ${paciente} 
+          WHERE ESTADO = '1' AND ORIGEN ='EM' AND PACIENTE = ${paciente} 
           ORDER BY FECHA_APERTURA DESC
         ), 
         USUARIO = ${usuario} 

@@ -211,17 +211,19 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
                 onChange={(value, diagnosticoData) => {
                   setFormData({
                     ...formData,
-                    diagnostico: value
+                    diagnostico: value,
+                    diagnosticoNombre: diagnosticoData?.Nombre || ''
                   });
                 }}
                 disabled={fieldsLocked}
-                origenId={procedencia} // Usar la procedencia como origenId
+                origenId={formData.hospitalizationId} // Usar el código de origen de atención específico
+                tipoOrigen={procedencia as 'CE' | 'EM' | 'RN'} // Pasar el tipo de origen por separado
                 className="w-full"
               />
             ) : (
               <Input
                 id="diagnostico"
-                value={formData.diagnostico}
+                value={formData.diagnostico && formData.diagnosticoNombre ? `${formData.diagnostico} - ${formData.diagnosticoNombre}` : formData.diagnostico || ''}
                 readOnly
                 disabled={fieldsLocked}
                 className="w-full font-medium"

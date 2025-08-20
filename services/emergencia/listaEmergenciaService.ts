@@ -136,29 +136,24 @@ const emergenciaService = {
       
       // Consulta para obtener los datos paginados
       const dataQuery = `
-        SELECT 
-          Estado,
-          Emergencia_id,
-          Fecha,
-          Hora,
-          Orden,
-          Paciente,
-          Historia,
-          Nombres,
-          Sexo,
-          Nombre_Seguro,
-          Consultorio,
-          Nombre_Consultorio,
-          Nombre_motivo,
-          Usuario,
-          TipoAtencion 
-        FROM SEEM_V_EMERGENCIA 
-        WHERE MONTH(FECHA) = '${monthFormatted}' 
-        AND YEAR(FECHA) = ${year}
-        ${searchCondition}
-        ORDER BY Emergencia_id DESC
-        OFFSET ${offset} ROWS
-        FETCH NEXT ${pageSize} ROWS ONLY
+        SELECT * FROM (
+          SELECT 
+            Emergencia_id,
+            Paciente,
+            Fecha,
+            Hora,
+            Consultorio,
+            Nombre_Consultorio,
+            Nombre_motivo,
+            Usuario,
+            TipoAtencion,
+            ROW_NUMBER() OVER (ORDER BY Emergencia_id DESC) as RowNum
+          FROM SEEM_V_EMERGENCIA 
+          WHERE MONTH(FECHA) = '${monthFormatted}' 
+          AND YEAR(FECHA) = ${year}
+          ${searchCondition}
+        ) AS NumberedResults
+        WHERE RowNum > ${offset} AND RowNum <= ${offset + pageSize}
       `;
       
       // Ejecutar la consulta de datos

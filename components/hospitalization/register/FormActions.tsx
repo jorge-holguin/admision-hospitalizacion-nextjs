@@ -112,17 +112,6 @@ export function FormActions({
           <X className="mr-2 h-4 w-4" />
           Cancelar
         </Button>
-        
-        <Button
-          variant="outline"
-          onClick={handleNavigateToEmergencia}
-          disabled={submitting || isConfirming || !patientId}
-          className="bg-[#ff9800] hover:bg-[#f57c00] text-white hover:text-white"
-        >
-          <Ambulance className="mr-2 h-4 w-4" />
-          EMERGENCIA
-        </Button>
-
         <Button 
           onClick={handleSaveClick}
           disabled={submitting || isConfirming || !isEditable}

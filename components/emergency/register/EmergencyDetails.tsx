@@ -2,25 +2,56 @@ import React, { useEffect, useState } from 'react';
 
 interface EmergencyDetailsProps {
   emergencyId?: string | null;
+  emergencyData?: any;
   onDataLoaded: (data: any) => void;
   onStatusChange: (isEditable: boolean, isLocked: boolean) => void;
 }
 
 export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
   emergencyId,
+  emergencyData,
   onDataLoaded,
   onStatusChange
 }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadEmergencyData = async () => {
-      if (!emergencyId) {
-        // Si no hay emergencyId, es modo creación
-        onStatusChange(true, false);
-        return;
-      }
+    // Si no hay emergencyId, es modo creación
+    if (!emergencyId) {
+      onStatusChange(true, false);
+      return;
+    }
 
+    // Si tenemos los datos de emergencia pasados como prop, usarlos directamente
+    if (emergencyData) {
+      // Formatear los datos para el formulario solo una vez
+      const formattedData = {
+        fecha: emergencyData.FECHA ? new Date(emergencyData.FECHA).toISOString().split('T')[0] : '',
+        hora: emergencyData.HORA || '',
+        consultorio: emergencyData.CONSULTORIO || '',
+        medico: emergencyData.MEDICO || '',
+        motivoEmergencia: emergencyData.MOTIVO_EMERGENCIA || '',
+        seguro: emergencyData.SEGURO || '',
+        diagnostico: emergencyData.CIEX1 || '',
+        observacion1: emergencyData.OBSERVACION1 || '',
+        observacion2: emergencyData.OBSERVACION2 || '',
+        estado: emergencyData.ESTADO || '1'
+      };
+
+      // Determinar si es editable basado en el estado
+      const isEditable = emergencyData.ESTADO === '1' || emergencyData.ESTADO === '2'; // REGISTRADO o ACTIVO
+      const isLocked = emergencyData.ESTADO === '0' || emergencyData.ESTADO === '3'; // ANULADO o COMPLETADO
+
+      // Usar setTimeout para romper el ciclo de renderizado
+      setTimeout(() => {
+        onDataLoaded(formattedData);
+        onStatusChange(isEditable, isLocked);
+      }, 0);
+      return;
+    }
+
+    // Solo hacer la llamada a la API si no tenemos los datos pasados como prop
+    const loadEmergencyData = async () => {
       try {
         setLoading(true);
         
@@ -52,8 +83,11 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
           const isEditable = emergencyData.ESTADO === '1' || emergencyData.ESTADO === '2'; // REGISTRADO o ACTIVO
           const isLocked = emergencyData.ESTADO === '0' || emergencyData.ESTADO === '3'; // ANULADO o COMPLETADO
 
-          onDataLoaded(formattedData);
-          onStatusChange(isEditable, isLocked);
+          // Usar setTimeout para romper el ciclo de renderizado
+          setTimeout(() => {
+            onDataLoaded(formattedData);
+            onStatusChange(isEditable, isLocked);
+          }, 0);
         } else {
           throw new Error(data.error || 'No se encontraron datos de la emergencia');
         }
@@ -66,7 +100,7 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
     };
 
     loadEmergencyData();
-  }, [emergencyId, onDataLoaded, onStatusChange]);
+  }, [emergencyId, emergencyData]);
 
   // Este componente no renderiza nada visible, solo maneja la lógica de carga
   return null;

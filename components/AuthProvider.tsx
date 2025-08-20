@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuthToken, refreshToken, setAuthToken, removeAuthToken, getCurrentUser, UserInfo } from '@/lib/auth';
+import { PatientDataProvider } from '@/contexts/PatientDataContext';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -72,9 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const authContextValue = { isAuthenticated, login, logout, refreshUserToken, loading, user };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, refreshUserToken, loading, user }}>
-      {children}
+    <AuthContext.Provider value={authContextValue}>
+      <PatientDataProvider>
+        {children}
+      </PatientDataProvider>
     </AuthContext.Provider>
   );
 }

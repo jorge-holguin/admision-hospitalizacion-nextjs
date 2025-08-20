@@ -57,6 +57,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
     seguro: '',
     seguroName: '',
     diagnostico: '',
+    diagnosticoNombre: '',
     attentionOrigin: ''
   });
   
@@ -125,6 +126,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
         seguro: data.SEGURO || '',
         seguroName: data.SEGURONOMBRE || '',
         diagnostico: data.DIAGNOSTICO || '',
+        diagnosticoNombre: data.DIAGNOSTICONOMBRE || '',
         attentionOrigin: data.ATENCION || ''
       });
       
@@ -314,12 +316,14 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
           <Card className="h-full flex-1">
             <CardContent className="pt-6 h-full flex flex-col">
               <h3 className="text-lg font-semibold mb-4">Datos del Paciente</h3>
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col">
                 <PatientInfoCard
                   patientId={patientId}
+                  hospitalizationOrderId={orderId || undefined}
                   onDataLoaded={(data) => {
                     // Opcional: manejar datos cargados si es necesario
                   }}
+                  className="flex-1"
                 />
               </div>
             </CardContent>
@@ -327,9 +331,9 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
         </div>
         
         {/* Main content */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardContent className="pt-6">
+        <div className="lg:col-span-2 flex flex-col">
+          <Card className="h-full flex-1">
+            <CardContent className="pt-6 h-full flex flex-col">
               {/* Form Header - Historia, fecha y hora */}
               <ViewHeader 
                 hospitalizationId={formData.hospitalizationId}

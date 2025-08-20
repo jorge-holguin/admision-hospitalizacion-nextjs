@@ -80,7 +80,7 @@ export function useFiliacion() {
         }
       }
 
-      const response = await fetch(`/api/filiacion?${params.toString()}`)
+      const response = await fetch(`/api/filiacion2?${params.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
@@ -145,7 +145,7 @@ export function useFiliacion() {
       }
 
       console.log('Fetching count with params:', params.toString())
-      const response = await fetch(`/api/filiacion/count?${params.toString()}`)
+      const response = await fetch(`/api/filiacion2/count?${params.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))

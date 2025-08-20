@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthProvider'
 import { LoadingProvider } from '@/components/LoadingProvider'
+import { HideDebugger } from '@/components/HideDebugger'
 
 export const metadata: Metadata = {
   title: 'Sistema de Admisión',
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <LoadingProvider>
+            <HideDebugger />
             {children}
           </LoadingProvider>
         </AuthProvider>

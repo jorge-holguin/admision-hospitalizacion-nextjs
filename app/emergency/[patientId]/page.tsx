@@ -17,7 +17,7 @@ export default function EmergencyPage() {
   // Utilizar el hook useParams para obtener el patientId
   const params = useParams();
   const patientId = params.patientId as string;
-  
+
   return <EmergencyList patientId={patientId} />;
 }
 
@@ -32,6 +32,7 @@ interface EmergencyData {
   MOTIVO_DESCRIPCION?: string;
   CIEX1?: string;
   DIAGNOSTICO_DESCRIPCION?: string;
+  CONSULTORIO_DESCRIPCION?: string;
   ESTADO: string;
   RowNum?: string;
 }
@@ -43,11 +44,31 @@ interface PaginationData {
   totalPages: number;
 }
 
+// ===== Mapeo de estados → etiqueta + color (tal como lo pediste) =====
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+  '0': { label: 'ANULADO',     className: 'bg-gray-200 text-gray-800' },
+  '2': { label: 'REGISTRADO',  className: 'bg-blue-200 text-blue-800' },
+  '3': { label: 'EN ATENCIÓN', className: 'bg-yellow-200 text-yellow-800' },
+  '4': { label: 'ATENDIDO',    className: 'bg-green-200 text-green-800' },
+  '5': { label: 'CERRADO',     className: 'bg-purple-200 text-purple-800' },
+  '6': { label: 'INGRESO',     className: 'bg-indigo-200 text-indigo-800' },
+};
+
+const getStatusDisplay = (estado: string) => {
+  const s = STATUS_MAP[estado];
+  if (!s) return <span className="px-2 py-1 rounded-md text-xs font-medium">{estado}</span>;
+  return (
+    <span className={`px-2 py-1 rounded-md text-xs font-medium ${s.className}`}>
+      {s.label}
+    </span>
+  );
+};
+
 // El componente principal que muestra la lista de emergencias
 function EmergencyList({ patientId }: { patientId: string }) {
   const { toast } = useToast();
   const router = useRouter();
-  
+
   // Estado para almacenar los datos
   const [emergencies, setEmergencies] = useState<EmergencyData[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
@@ -59,7 +80,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [patientInfo, setPatientInfo] = useState<string>('');
-  
+
   // Estado para el diálogo de confirmación de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [deleteItemId, setDeleteItemId] = useState<string>('');
@@ -71,23 +92,26 @@ function EmergencyList({ patientId }: { patientId: string }) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/emergencia/patient/${patientId}?page=${page}&pageSize=${pageSize}`);
-      
+
       if (!response.ok) {
         throw new Error(`Error al obtener datos de emergencia: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setEmergencies(data.data);
         setPagination(data.pagination);
-        
+
         // Extraer información del paciente del primer registro si está disponible
         if (data.data && data.data.length > 0) {
           const firstRecord = data.data[0];
-          setPatientInfo(`${firstRecord.PACIENTE || patientId}`);
+          // Formato: NOMBRES - HC: HISTORIA
+          setPatientInfo(`${firstRecord.NOMBRES || firstRecord.PACIENTE || 'PACIENTE'}`);
+        } else {
+          setPatientInfo('PACIENTE');
         }
       } else {
         throw new Error(data.error || 'Error desconocido al cargar datos');
@@ -104,67 +128,76 @@ function EmergencyList({ patientId }: { patientId: string }) {
       setLoading(false);
     }
   };
-  
+
   // Cargar datos cuando cambia el patientId o la página
   useEffect(() => {
     if (patientId) {
       loadEmergencyData(pagination.page, pagination.pageSize);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId, pagination.page, pagination.pageSize]);
-  
+
   // Función para cambiar de página
   const setPage = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
   };
-  
+
   // Función para refrescar los datos
   const refresh = () => {
     loadEmergencyData(pagination.page, pagination.pageSize);
   };
-  
+
   // Función para crear una nueva emergencia
   const handleNewEmergency = () => {
-    router.push(`/hospitalization/emergency/register/${patientId}`);
+    router.push(`/emergency/register/${patientId}`);
   };
-  
-  // Función para ver/editar una emergencia
+
+  // Función para ver una emergencia
   const handleViewEmergency = (emergenciaId: string) => {
-    router.push(`/hospitalization/emergency/edit/${emergenciaId}`);
+    router.push(`/emergency/view/${emergenciaId}`);
   };
-  
+
+  // Función para editar una emergencia
+  const handleEditEmergency = (emergenciaId: string) => {
+    router.push(`/emergency/view/${emergenciaId}`);
+  };
+
   // Función para preparar la eliminación de una emergencia
   const handleDeleteEmergency = (emergenciaId: string, patientName: string) => {
     setDeleteItemId(emergenciaId);
     setDeleteItemName(`Emergencia ${emergenciaId} - Paciente: ${patientName}`);
     setDeleteDialogOpen(true);
   };
-  
+
   // Función para confirmar la eliminación de una emergencia
   const confirmDeleteEmergency = async () => {
     if (!deleteItemId) return;
-    
+
     try {
       setIsDeleting(true);
-      
+
+      // Usar el endpoint de borrado lógico con la estructura correcta
       const response = await fetch(`/api/emergencia/${deleteItemId}`, {
-        method: 'DELETE',
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ESTADO: "0" }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error al eliminar emergencia: ${response.status}`);
       }
-      
+
       const data = await response.json();
+
+      toast({
+        title: 'Éxito',
+        description: 'Emergencia eliminada correctamente',
+      });
       
-      if (data.success) {
-        toast({
-          title: 'Éxito',
-          description: 'Emergencia eliminada correctamente',
-        });
-        refresh();
-      } else {
-        throw new Error(data.error || 'Error desconocido al eliminar emergencia');
-      }
+      // Refrescar la lista para mostrar el registro como eliminado
+      refresh();
     } catch (error: any) {
       console.error('Error al eliminar emergencia:', error);
       toast({
@@ -177,28 +210,17 @@ function EmergencyList({ patientId }: { patientId: string }) {
       setDeleteDialogOpen(false);
     }
   };
-  
-  // Función para obtener el estado formateado
-  const getStatusDisplay = (estado: string) => {
-    switch (estado) {
-      case '0':
-        return <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-200 text-gray-800">ANULADO</span>;
-      case '1':
-        return <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-200 text-blue-800">REGISTRADO</span>;
-      case '2':
-        return <span className="px-2 py-1 rounded-md text-xs font-medium bg-yellow-200 text-yellow-800">ACTIVO</span>;
-      case '3':
-        return <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-200 text-green-800">COMPLETADO</span>;
-      default:
-        return <span className="px-2 py-1 rounded-md text-xs font-medium">{estado}</span>;
-    }
-  };
-  
-  // Función para verificar si una emergencia es editable según su estado
+
+  // ===== Reglas de edición: permite editar REGISTRADO (2) =====
   const isEmergencyEditable = (estado?: string): boolean => {
-    return estado === '1' || estado === '2';
+    return estado === '2'; // Solo permite editar emergencias en estado REGISTRADO (2)
   };
-  
+
+  // ===== Reglas de eliminación: permite eliminar REGISTRADO (2) =====
+  const isEmergencyDeletable = (estado?: string): boolean => {
+    return estado === '2'; // Solo permite eliminar emergencias en estado REGISTRADO (2)
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Diálogo de confirmación de eliminación */}
@@ -207,17 +229,17 @@ function EmergencyList({ patientId }: { patientId: string }) {
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={confirmDeleteEmergency}
         title="Confirmar eliminación"
-        description="Esta acción eliminará permanentemente el registro de emergencia. ¿Está seguro de continuar?"
+        description="Esta acción marcará el registro como eliminado. No se eliminará permanentemente, pero aparecerá como inactivo en el sistema."
         itemName={deleteItemName}
         isLoading={isDeleting}
       />
-      
+
       {/* Header */}
-      <Navbar 
-        title="SIGSALUD" 
-        subtitle="EMERGENCIAS" 
-        showBackButton={true} 
-        backUrl="/hospitalization" 
+      <Navbar
+        title="SIGSALUD"
+        subtitle="EMERGENCIAS"
+        showBackButton={true}
+        backUrl="/hospitalization"
       />
 
       {/* Main Content */}
@@ -229,7 +251,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
                 <div>
                   <div>Emergencias</div>
                   <div className="text-sm font-normal mt-1">
-                    Paciente: {patientInfo} - ID: <strong>{patientId}</strong>
+                    Paciente: {patientInfo} - HC: <strong>{patientId}</strong>
                   </div>
                 </div>
               </CardTitle>
@@ -240,6 +262,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
             </div>
           </CardHeader>
           <CardContent className="p-6">
+
             {/* Loading state */}
             {loading && (
               <div className="flex justify-center items-center py-12">
@@ -279,7 +302,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
                     {emergencies.map((emergency, index) => {
                       // Verificar si la emergencia está eliminada lógicamente (ESTADO='0')
                       const isDeleted = emergency.ESTADO === '0';
-                      
+
                       return (
                         <TableRow
                           key={emergency.EMERGENCIA_ID ? emergency.EMERGENCIA_ID : `emergency-${index}`}
@@ -301,47 +324,76 @@ function EmergencyList({ patientId }: { patientId: string }) {
                             {emergency.HORA}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {emergency.CONSULTORIO}
+                            {emergency.CONSULTORIO && emergency.CONSULTORIO_DESCRIPCION
+                              ? `(${emergency.CONSULTORIO}) - ${emergency.CONSULTORIO_DESCRIPCION}`
+                              : emergency.CONSULTORIO}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {emergency.MOTIVO_DESCRIPCION || emergency.MOTIVO_EMERGENCIA}
+                            {emergency.MOTIVO_EMERGENCIA && emergency.MOTIVO_DESCRIPCION
+                              ? `(${emergency.MOTIVO_EMERGENCIA}) - ${emergency.MOTIVO_DESCRIPCION}`
+                              : emergency.MOTIVO_EMERGENCIA}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {emergency.DIAGNOSTICO_DESCRIPCION || emergency.CIEX1 || 'No especificado'}
+                            {emergency.CIEX1 && emergency.DIAGNOSTICO_DESCRIPCION
+                              ? `(${emergency.CIEX1}) - ${emergency.DIAGNOSTICO_DESCRIPCION}`
+                              : emergency.CIEX1 || 'No especificado'}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              {/* View button */}
+                              {/* View button - always available */}
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="bg-white hover:bg-blue-50 border-blue-200"
                                 onClick={() => emergency.EMERGENCIA_ID ? handleViewEmergency(emergency.EMERGENCIA_ID) : null}
+                                title="Ver emergencia"
                               >
                                 <Eye className="w-4 h-4 text-blue-600" />
                               </Button>
-                              
-                              {/* Edit button - disabled when not editable or deleted */}
+
+                              {/* Edit button - only enabled for editable records */}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => emergency.EMERGENCIA_ID ? handleViewEmergency(emergency.EMERGENCIA_ID) : null}
+                                className={isEmergencyEditable(emergency.ESTADO) && !isDeleted 
+                                  ? "bg-white hover:bg-green-50 border-green-200" 
+                                  : "bg-gray-50 border-gray-200 cursor-not-allowed"}
+                                onClick={() => {
+                                  if (emergency.EMERGENCIA_ID && isEmergencyEditable(emergency.ESTADO) && !isDeleted) {
+                                    handleEditEmergency(emergency.EMERGENCIA_ID);
+                                  }
+                                }}
                                 disabled={isDeleted || !isEmergencyEditable(emergency.ESTADO)}
+                                title={isEmergencyEditable(emergency.ESTADO) && !isDeleted ? "Editar emergencia" : "No se puede editar debido al estado"}
                               >
-                                <Edit className="w-4 h-4" />
+                                <Edit className={`w-4 h-4 ${
+                                  isEmergencyEditable(emergency.ESTADO) && !isDeleted 
+                                    ? "text-green-600" 
+                                    : "text-gray-400"
+                                }`} />
                               </Button>
-                              
-                              {/* Delete button - only show for editable records */}
-                              {isEmergencyEditable(emergency.ESTADO) && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white hover:bg-red-50 border-red-200"
-                                  onClick={() => emergency.EMERGENCIA_ID ? handleDeleteEmergency(emergency.EMERGENCIA_ID, `Emergencia #${emergency.EMERGENCIA_ID}`) : null}
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </Button>
-                              )}
+
+                              {/* Delete button - always show but disabled based on state */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={isEmergencyDeletable(emergency.ESTADO) && !isDeleted
+                                  ? "bg-white hover:bg-red-50 border-red-200"
+                                  : "bg-gray-50 border-gray-200 cursor-not-allowed"}
+                                onClick={() => {
+                                  if (emergency.EMERGENCIA_ID && isEmergencyDeletable(emergency.ESTADO) && !isDeleted) {
+                                    handleDeleteEmergency(emergency.EMERGENCIA_ID, `Emergencia #${emergency.EMERGENCIA_ID}`);
+                                  }
+                                }}
+                                disabled={isDeleted || !isEmergencyDeletable(emergency.ESTADO)}
+                                title={isEmergencyDeletable(emergency.ESTADO) && !isDeleted ? "Eliminar emergencia" : "No se puede eliminar debido al estado"}
+                              >
+                                <Trash2 className={`w-4 h-4 ${
+                                  isEmergencyDeletable(emergency.ESTADO) && !isDeleted 
+                                    ? "text-red-600" 
+                                    : "text-gray-400"
+                                }`} />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

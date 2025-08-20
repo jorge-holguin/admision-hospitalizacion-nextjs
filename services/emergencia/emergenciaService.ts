@@ -179,20 +179,60 @@ class EmergenciaService {
    */
   async getEmergenciaById(emergenciaId: string) {
     try {
-      const emergencia = await prisma.eMERGENCIA.findUnique({
-        where: {
-          EMERGENCIA_ID: emergenciaId,
-        },
-      });
+      // Validar que el ID sea válido antes de hacer la consulta
+      if (!emergenciaId || typeof emergenciaId !== 'string' || emergenciaId.trim() === '') {
+        console.error('ID de emergencia inválido:', emergenciaId);
+        throw new Error('ID de emergencia inválido o no proporcionado');
+      }
+
+      console.log(`Buscando emergencia con ID: ${emergenciaId}`);
+      
+      // Usar consulta SQL nativa en lugar de Prisma ORM para evitar problemas con OFFSET
+      const result = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM EMERGENCIA 
+        WHERE EMERGENCIA_ID = ${emergenciaId}
+      `;
+      
+      // Convertir el resultado a un objeto normal
+      const emergencia = Array.isArray(result) && result.length > 0 ? result[0] : null;
       
       if (!emergencia) {
+        console.log(`No se encontró emergencia con ID: ${emergenciaId}`);
         return null;
       }
       
+      console.log(`Emergencia encontrada con ID: ${emergenciaId}`);
       return emergencia;
-    } catch (error) {
-      console.error(`Error al obtener emergencia con ID ${emergenciaId}:`, error);
-      throw new Error(`Error al obtener emergencia con ID ${emergenciaId}`);
+    } catch (error: any) {
+      const errorMessage = `Error al obtener emergencia con ID ${emergenciaId}: ${error.message || 'Error desconocido'}`;
+      console.error(errorMessage, error);
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Obtiene el número de cuenta activa del paciente
+   */
+  async getCuentaActivaByPacienteId(pacienteId: string): Promise<string | null> {
+    try {
+      // Obtener la cuenta activa más reciente del paciente
+      const cuenta = await prisma.$queryRaw`
+        SELECT TOP 1 CUENTAID 
+        FROM CUENTA 
+        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' 
+        ORDER BY CUENTAID DESC
+      `;
+      
+      // Verificar si se encontró una cuenta
+      if (Array.isArray(cuenta) && cuenta.length > 0) {
+        return cuenta[0].CUENTAID;
+      }
+      
+      return null;
+    } catch (error: any) {
+      const errorMessage = `Error al obtener cuenta del paciente ${pacienteId}: ${error.message || 'Error desconocido'}`;
+      console.error(errorMessage, error);
+      return null;
     }
   }
 
@@ -275,17 +315,19 @@ class EmergenciaService {
       const today = new Date();
       const dateStr = format(today, 'yyyyMMdd');
       
-      // Buscar el último ID de emergencia del día para incrementarlo
-      const lastEmergencia = await prisma.eMERGENCIA.findFirst({
-        where: {
-          EMERGENCIA_ID: {
-            startsWith: `E${dateStr}`,
-          },
-        },
-        orderBy: {
-          EMERGENCIA_ID: 'desc',
-        },
-      });
+      // Buscar el último ID de emergencia del día para incrementarlo usando SQL nativo
+      // en lugar de Prisma ORM para evitar el uso de OFFSET que no es compatible con SQL Server 2008 R2
+      const lastEmergenciaResult = await prisma.$queryRaw`
+        SELECT TOP 1 EMERGENCIA_ID 
+        FROM EMERGENCIA 
+        WHERE EMERGENCIA_ID LIKE 'E${dateStr}%' 
+        ORDER BY EMERGENCIA_ID DESC
+      `;
+      
+      // Convertir el resultado a un formato similar al que devolvería Prisma
+      const lastEmergencia = Array.isArray(lastEmergenciaResult) && lastEmergenciaResult.length > 0 
+        ? lastEmergenciaResult[0] 
+        : null;
       
       let newId: string;
       
@@ -340,12 +382,69 @@ class EmergenciaService {
         TIPO_CIEX1: data.TIPO_CIEX1 || '0',
       };
       
-      // Crear la emergencia
-      const emergencia = await prisma.eMERGENCIA.create({
-        data: emergenciaData,
-      });
+      // Crear la emergencia usando SQL nativo en lugar de Prisma ORM
+      // Preparar los valores para el INSERT
       
-      return emergencia;
+      // Construir la consulta SQL directamente para cada campo
+      // Esto es menos elegante pero evita problemas con la sintaxis de SQL Server
+      await prisma.$executeRaw`
+        INSERT INTO EMERGENCIA (
+          EMERGENCIA_ID, FECHA, HORA, ORDEN, PATERNO, MATERNO, NOMBRE, NOMBRES,
+          PACIENTE, FECHA_NACIMIENTO, EDAD, SEXO, ESTADO_CIVIL, DIRECCION, DISTRITO,
+          TELEFONO1, TELEFONO2, TIPO_DOCUMENTO, DOCUMENTO, ACOMPANANTE, TIPO_DOCUMENTOA,
+          DOCUMENTOA, CONSULTORIO, MOTIVO_EMERGENCIA, SEGURO, OBSERVACION1, OBSERVACION2,
+          ESTADO, CUENTAID, USUARIO, PRE_AFILIACION, LOCALIDAD, TIPOATENCION, RELIGION,
+          SEGUROLIQ, FORMA_INGRESO, HISTORIA, CIEX1, TIPO_CIEX1
+        ) VALUES (
+          ${emergenciaData.EMERGENCIA_ID},
+          ${emergenciaData.FECHA},
+          ${emergenciaData.HORA},
+          ${emergenciaData.ORDEN},
+          ${emergenciaData.PATERNO},
+          ${emergenciaData.MATERNO},
+          ${emergenciaData.NOMBRE},
+          ${emergenciaData.NOMBRES},
+          ${emergenciaData.PACIENTE},
+          ${emergenciaData.FECHA_NACIMIENTO},
+          ${emergenciaData.EDAD},
+          ${emergenciaData.SEXO},
+          ${emergenciaData.ESTADO_CIVIL},
+          ${emergenciaData.DIRECCION},
+          ${emergenciaData.DISTRITO},
+          ${emergenciaData.TELEFONO1},
+          ${emergenciaData.TELEFONO2},
+          ${emergenciaData.TIPO_DOCUMENTO},
+          ${emergenciaData.DOCUMENTO},
+          ${emergenciaData.ACOMPANANTE},
+          ${emergenciaData.TIPO_DOCUMENTOA},
+          ${emergenciaData.DOCUMENTOA},
+          ${emergenciaData.CONSULTORIO},
+          ${emergenciaData.MOTIVO_EMERGENCIA},
+          ${emergenciaData.SEGURO},
+          ${emergenciaData.OBSERVACION1},
+          ${emergenciaData.OBSERVACION2},
+          ${emergenciaData.ESTADO},
+          ${emergenciaData.CUENTAID},
+          ${emergenciaData.USUARIO},
+          ${emergenciaData.PRE_AFILIACION},
+          ${emergenciaData.LOCALIDAD},
+          ${emergenciaData.TIPOATENCION},
+          ${emergenciaData.RELIGION},
+          ${emergenciaData.SEGUROLIQ},
+          ${emergenciaData.FORMA_INGRESO},
+          ${emergenciaData.HISTORIA},
+          ${emergenciaData.CIEX1},
+          ${emergenciaData.TIPO_CIEX1}
+        )
+      `;
+      
+      // Obtener la emergencia recién creada
+      const emergencia = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM EMERGENCIA 
+        WHERE EMERGENCIA_ID = ${newId}
+      `;
+      
+      return Array.isArray(emergencia) && emergencia.length > 0 ? emergencia[0] : null;
     } catch (error) {
       console.error('Error al crear emergencia:', error);
       throw new Error('Error al crear emergencia');
@@ -431,26 +530,37 @@ class EmergenciaService {
    */
   async deleteEmergencia(emergenciaId: string) {
     try {
-      // Verificar si la emergencia existe
-      const existingEmergencia = await prisma.eMERGENCIA.findUnique({
-        where: {
-          EMERGENCIA_ID: emergenciaId,
-        },
-      });
+      // Verificar si la emergencia existe usando SQL nativo
+      const existingResult = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM EMERGENCIA 
+        WHERE EMERGENCIA_ID = ${emergenciaId}
+      `;
+      
+      // Convertir el resultado a un objeto normal
+      const existingEmergencia = Array.isArray(existingResult) && existingResult.length > 0 ? existingResult[0] : null;
       
       if (!existingEmergencia) {
         throw new Error(`Emergencia con ID ${emergenciaId} no encontrada`);
       }
       
-      // Eliminar lógicamente la emergencia (cambiar estado a '0')
-      const deletedEmergencia = await prisma.eMERGENCIA.update({
-        where: {
-          EMERGENCIA_ID: emergenciaId,
-        },
-        data: {
-          ESTADO: '0', // 0 = Eliminado/Anulado
-        },
-      });
+      // Eliminar lógicamente la emergencia (cambiar estado a '0') usando SQL nativo
+      const updateResult = await prisma.$executeRaw`
+        UPDATE EMERGENCIA 
+        SET ESTADO = '0' 
+        WHERE EMERGENCIA_ID = ${emergenciaId}
+      `;
+      
+      if (updateResult !== 1) {
+        throw new Error(`No se pudo actualizar la emergencia con ID ${emergenciaId}`);
+      }
+      
+      // Obtener la emergencia actualizada
+      const updatedResult = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM EMERGENCIA 
+        WHERE EMERGENCIA_ID = ${emergenciaId}
+      `;
+      
+      const deletedEmergencia = Array.isArray(updatedResult) && updatedResult.length > 0 ? updatedResult[0] : null;
       
       return deletedEmergencia;
     } catch (error) {

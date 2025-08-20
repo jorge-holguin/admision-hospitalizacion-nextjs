@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import emergenciaService from '@/services/emergencia/listaEmergenciaService';
+import { nextIdService } from '@/services/emergencia/nextIdService';
 
 /**
  * GET /api/emergencia
@@ -15,6 +16,29 @@ import emergenciaService from '@/services/emergencia/listaEmergenciaService';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    
+    // Verificar si se está solicitando el siguiente ID de emergencia
+    const nextId = searchParams.get('next-id');
+    if (nextId === 'true') {
+      try {
+        const nextIds = await nextIdService.getNextIds();
+        return NextResponse.json({
+          success: true,
+          data: nextIds
+        });
+      } catch (error: any) {
+        console.error('Error al obtener el siguiente ID de emergencia:', error);
+        return NextResponse.json(
+          { 
+            success: false,
+            error: error.message || 'Error al obtener el siguiente ID de emergencia' 
+          },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Continuar con la lógica original para listar emergencias
     const month = searchParams.get('month');
     const year = searchParams.get('year');
     const search = searchParams.get('search');

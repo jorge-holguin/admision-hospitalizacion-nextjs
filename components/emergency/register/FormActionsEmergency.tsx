@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, X } from 'lucide-react';
+import { Loader2, Save, X, AlertCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +19,8 @@ interface FormActionsEmergencyProps {
   isEditable: boolean;
   patientId: string;
   onBeforeSave?: () => Promise<boolean>;
+  isUpdate?: boolean;
+  formData?: any; // Datos del formulario para generar SQL
 }
 
 export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
@@ -27,25 +29,35 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
   submitting,
   isEditable,
   patientId,
-  onBeforeSave
+  onBeforeSave,
+  isUpdate = false,
+  formData
 }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const handleSaveClick = async () => {
+    console.log('handleSaveClick ejecutado');
+    
     // Ejecutar validaciones previas si existen
     if (onBeforeSave) {
+      console.log('Ejecutando validaciones previas');
       const canProceed = await onBeforeSave();
+      console.log('Resultado de validaciones:', canProceed);
       if (!canProceed) {
+        console.log('No se puede proceder, validaciones fallidas');
         return;
       }
     }
     
     // Mostrar diálogo de confirmación
+    console.log('Mostrando diálogo de confirmación');
     setShowConfirmDialog(true);
   };
 
   const handleConfirmSave = async () => {
+    console.log('handleConfirmSave ejecutado');
     setShowConfirmDialog(false);
+    
     await onSave();
   };
 
@@ -57,48 +69,49 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
           variant="outline"
           onClick={onCancel}
           disabled={submitting}
-          className="bg-[#e91e63] hover:bg-[#d81b60] text-white hover:text-white"
         >
-          <X className="h-4 w-4" />
-          Cancelar
+          <X className="mr-2 h-4 w-4" /> Cancelar
         </Button>
-        
-        {isEditable && (
-          <Button
-            type="button"
-            onClick={handleSaveClick}
-            disabled={submitting}
-            className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Procesando...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Guardar
-              </>
-            )}
-          </Button>
-        )}
+        <Button
+          type="button"
+          onClick={() => {
+            console.log('Botón de guardar clickeado');
+            handleSaveClick();
+          }}
+          disabled={submitting || !isEditable}
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {isUpdate ? 'Actualizando...' : 'Guardando...'}
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              {isUpdate ? 'Actualizar' : 'Guardar'}
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* Diálogo de confirmación */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Registro de Emergencia</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-orange-500 mr-2" />
+              {isUpdate ? 'Actualizar registro de emergencia' : 'Crear nuevo registro de emergencia'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Está seguro de que desea registrar esta emergencia para el paciente {patientId}?
-              Esta acción creará un nuevo registro en el sistema.
+              ¿Está seguro que desea {isUpdate ? 'actualizar' : 'crear'} este
+              registro de emergencia? Se generará una consulta SQL para insertar los datos en la base de datos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmSave}>
-              Confirmar Registro
+            <AlertDialogAction asChild>
+              <Button onClick={handleConfirmSave} variant="default">
+                {isUpdate ? 'Actualizar' : 'Crear'}
+              </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

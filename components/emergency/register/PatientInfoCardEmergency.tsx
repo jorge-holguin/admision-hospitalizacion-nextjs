@@ -1,12 +1,14 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
-import { User, Calendar, Phone, MapPin, CreditCard, Heart } from 'lucide-react';
+import { User, Calendar, Phone, MapPin, CreditCard, Heart, VenusAndMars, House } from 'lucide-react';
+import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
 
 interface PatientInfoCardEmergencyProps {
   patientId: string;
@@ -48,120 +50,54 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
   onDataLoaded,
   className = ""
 }) => {
+  // Use the patient data context
+  const { getPatientData } = usePatientData();
+  const { fetchPatientData, isLoading, error } = useFetchPatientData(patientId);
   const [patientData, setPatientData] = useState<PatientData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
+  // Use a ref to track if we've already loaded data for this patient ID
+  const hasLoadedRef = useRef<{[key: string]: boolean}>({});
+  
   useEffect(() => {
-    const fetchPatientData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Intentar obtener datos del paciente desde la API de filiación
-        const response = await fetch(`/api/filiacion/${patientId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Error al obtener datos del paciente: ${response.status}`);
+    const loadPatientData = async () => {
+      // Skip if we've already loaded this patient's data in this component instance
+      if (patientId && hasLoadedRef.current[patientId]) {
+        return;
+      }
+      
+      // Check if we already have the data in context
+      const existingData = getPatientData(patientId);
+      
+      if (existingData) {
+        setPatientData(existingData);
+        if (onDataLoaded) {
+          onDataLoaded(existingData);
         }
-
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          const patientInfo: PatientData = {
-            paciente: data.data.PACIENTE || patientId,
-            nombres: data.data.NOMBRES || '',
-            nombre: data.data.NOMBRE || '',
-            historia: data.data.HISTORIA || '',
-            apellidoPaterno: data.data.PATERNO || '',
-            apellidoMaterno: data.data.MATERNO || '',
-            documento: data.data.DOCUMENTO || '',
-            tipoDocumento: data.data.TIPO_DOCUMENTO || '',
-            fechaNacimiento: data.data.FECHA_NACIMIENTO || '',
-            edad: data.data.EDAD || '',
-            sexo: data.data.SEXO || '',
-            estadoCivil: data.data.ESTADO_CIVIL || '',
-            direccion: data.data.DIRECCION || '',
-            distrito: data.data.DISTRITO || '',
-            distritoDir: data.data.Distrito_Dir || '',
-            telefono1: data.data.TELEFONO1 || '',
-            telefono2: data.data.TELEFONO2 || '',
-            seguro: data.data.SEGURO || '',
-            descSeguro: data.data.NOMBRE_SEGURO || '',
-            religion: data.data.RELIGION || '',
-            descreligion: data.data.DESRELIGION || '',
-            localidad: data.data.LOCALIDAD || '',
-            nombreLocalidad: data.data.Nombre_Localidad || '',
-            nombreOcupacion: data.data.NOMBRE_OCUPACION || '',
-            photo: data.data.STRING_PHOTO || data.data.STRING_FOTO || '' // Support both field names
-          };
-          
-          // Clean and validate the photo data
-          if (patientInfo.photo) {
-            try {
-              // Remove any whitespace, newlines or other non-base64 characters
-              patientInfo.photo = patientInfo.photo.trim();
-              
-              // If it's already a data URL, keep it as is
-              if (!patientInfo.photo.startsWith('data:')) {
-                // Check if it's a valid base64 string by attempting to decode a small part
-                try {
-                  // Try to decode the first few characters to validate it's base64
-                  const testSample = patientInfo.photo.substring(0, 10);
-                  atob(testSample);
-                  
-                  // If we got here, it's likely valid base64, so add the proper prefix
-                  patientInfo.photo = `data:image/jpeg;base64,${patientInfo.photo}`;
-                } catch (e) {
-                  console.error('Invalid base64 data received:', e);
-                  // If it's not valid base64, set to empty to show the default icon
-                  patientInfo.photo = '';
-                }
-              } else {
-                // Validate the data URL format
-                if (!patientInfo.photo.match(/^data:(image\/(jpeg|png|gif|webp|svg\+xml));base64,/)) {
-                  console.warn('Unusual data URL format:', patientInfo.photo.substring(0, 30));
-                  // Try to fix common issues with data URLs
-                  if (patientInfo.photo.includes('base64,')) {
-                    // Extract just the base64 part and reconstruct
-                    const base64Part = patientInfo.photo.split('base64,')[1];
-                    if (base64Part) {
-                      patientInfo.photo = `data:image/jpeg;base64,${base64Part}`;
-                    }
-                  }
-                }
-              }
-              
-              console.log('Processed photo URL:', patientInfo.photo.substring(0, 50) + '...');
-            } catch (error) {
-              console.error('Error processing photo data:', error);
-              patientInfo.photo = ''; // Reset to empty on error
-            }
-          }
-          
-          setPatientData(patientInfo);
-          
-          // Notificar al componente padre con los datos cargados
-          if (onDataLoaded) {
-            onDataLoaded(patientInfo);
-          }
-        } else {
-          throw new Error(data.error || 'No se encontraron datos del paciente');
+        // Mark as loaded
+        if (patientId) {
+          hasLoadedRef.current[patientId] = true;
         }
-      } catch (err: any) {
-        console.error('Error al cargar datos del paciente:', err);
-        setError(err.message || 'Error al cargar datos del paciente');
-      } finally {
-        setLoading(false);
+        return;
+      }
+      
+      // If not, fetch it
+      const data = await fetchPatientData();
+      if (data && onDataLoaded) {
+        setPatientData(data);
+        onDataLoaded(data);
+        // Mark as loaded
+        if (patientId) {
+          hasLoadedRef.current[patientId] = true;
+        }
       }
     };
 
     if (patientId) {
-      fetchPatientData();
+      loadPatientData();
     }
-  }, [patientId, onDataLoaded]);
+  }, [patientId]);  // Only depend on patientId changing
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className={className}>
         <CardContent className="pt-6">
@@ -300,18 +236,20 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           </div>
 
           <div className="flex items-center gap-2">
+          <VenusAndMars className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
             </span>
             <Badge className={getSexoBadgeColor(patientData.sexo)}>
               {patientData.sexo === 'M' ? 'Masculino' : patientData.sexo === 'F' ? 'Femenino' : patientData.sexo}
             </Badge>
+
           </div>
 
           <div className="flex items-center gap-2">
             <Heart className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Estado Civil:</strong> {patientData.estadoCivil || 'No especificado'}
+              <strong>Estado Civil:</strong> {getCivilStatusDescription(patientData.estadoCivil)}
             </span>
           </div>
         </div>
@@ -321,7 +259,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           <h4 className="font-medium text-sm text-gray-700 mb-2">Contacto</h4>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gray-400" />
+              <House className="h-4 w-4 text-gray-400" />
               <span className="text-sm">
                 {patientData.direccion || 'Dirección no especificada'}
               </span>

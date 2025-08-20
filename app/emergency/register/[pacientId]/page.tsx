@@ -18,7 +18,7 @@ export default function EmergencyRegisterPage() {
   
   // Función para volver a la página de emergencias
   const handleGoBack = () => {
-    router.push(`/hospitalization/emergency/${patientId}`);
+    router.push(`/emergency/${patientId}`);
   }
   
   return (

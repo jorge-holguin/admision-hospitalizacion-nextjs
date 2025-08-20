@@ -17,13 +17,13 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
   disabled
 }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6">
 
       {/* Cuarta fila - Datos del Acompañante */}
-        <h3 className="text-md font-medium mb-4">Datos del Acompañante</h3>
+        <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="acompanante">Nombre del Acompañante</Label>
+            <Label htmlFor="acompanante">Nombre del Acompañante <span className="text-red-500">*</span></Label>
             <Input
               id="acompanante"
               value={formData.acompanante || ''}
@@ -34,7 +34,7 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tipoDocumentoA">Tipo Documento Acompañante</Label>
+            <Label htmlFor="tipoDocumentoA">Tipo Documento Acompañante <span className="text-red-500">*</span></Label>
             <Select
               value={formData.tipoDocumentoA || ''}
               onValueChange={(value) => onFormChange('tipoDocumentoA', value)}
@@ -53,7 +53,7 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="documentoA">Documento Acompañante</Label>
+            <Label htmlFor="documentoA">Documento Acompañante <span className="text-red-500">*</span></Label>
             <Input
               id="documentoA"
               value={formData.documentoA || ''}

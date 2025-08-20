@@ -21,6 +21,11 @@ export interface SISVerificationResult {
   patientId: string;
   result: string | null;
   isSuccess: boolean | null;
+  contrato?: string;
+  descEESS?: string;
+  eess?: string;
+  idPlan?: string;
+  descTipoSeguro?: string;
 }
 
 export function SISVerification({ 
@@ -38,6 +43,11 @@ export function SISVerification({
     patientId: string | null;
     result: string | null;
     isSuccess: boolean | null;
+    contrato?: string;
+    descEESS?: string;
+    eess?: string;
+    idPlan?: string;
+    descTipoSeguro?: string;
   }>({
     isLoading: false,
     patientId: null,
@@ -89,7 +99,12 @@ export function SISVerification({
         isLoading: false,
         patientId: patientId,
         result: resultado,
-        isSuccess: resultado === "DATOS EXITOSOS"
+        isSuccess: resultado === "DATOS EXITOSOS",
+        contrato: data.contrato,
+        descEESS: data.descEESS,
+        eess: data.eess,
+        idPlan: data.idPlan,
+        descTipoSeguro: data.descTipoSeguro
       };
       
       setVerificationState(newState);
@@ -99,7 +114,12 @@ export function SISVerification({
         onVerificationComplete({
           patientId: patientId,
           result: resultado,
-          isSuccess: resultado === "DATOS EXITOSOS"
+          isSuccess: resultado === "DATOS EXITOSOS",
+          contrato: data.contrato,
+          descEESS: data.descEESS,
+          eess: data.eess,
+          idPlan: data.idPlan,
+          descTipoSeguro: data.descTipoSeguro
         });
       }
 
@@ -107,7 +127,16 @@ export function SISVerification({
       if (resultado === "DATOS EXITOSOS") {
         toast({
           title: "SIS Activo",
-          description: "El paciente cuenta con SIS activo",
+          description: (
+            <div className="space-y-1">
+              {data.contrato && (
+                <p className="text-xs"><span className="font-medium">Contrato:</span> {data.contrato}</p>
+              )}
+              {data.descTipoSeguro && (
+                <p className="text-xs"><span className="font-medium">Tipo:</span> {data.descTipoSeguro}</p>
+              )}
+            </div>
+          ),
           variant: "default",
           className: "bg-green-50 border-green-200 text-green-800"
         });
@@ -191,9 +220,28 @@ export function SISVerification({
           <CheckCircle className={`h-4 w-4 ${verificationState.isSuccess ? "text-green-600" : "text-red-600"}`} />
           <AlertTitle>{verificationState.isSuccess ? "SIS Activo" : "SIS No Activo"}</AlertTitle>
           <AlertDescription>
-            {verificationState.isSuccess ? 
-              "El paciente cuenta con SIS activo" : 
-              "No se encontró afiliación SIS para el DNI consultado"}
+            {verificationState.isSuccess ? (
+              <div className="space-y-1">
+                {verificationState.contrato && (
+                  <p className="text-xs"><span className="font-medium">Contrato:</span> {verificationState.contrato}</p>
+                )}
+                {verificationState.descEESS && verificationState.eess && (
+                  <p className="text-xs"><span className="font-medium">Centro de Salud:</span> {verificationState.eess} - {verificationState.descEESS}</p>
+                )}
+                {verificationState.descTipoSeguro && (
+                  <p className="text-xs"><span className="font-medium">Tipo de Seguro:</span> {verificationState.descTipoSeguro}</p>
+                )}
+                {verificationState.idPlan && (
+                  <p className="text-xs"><span className="font-medium">Plan:</span> {
+                    verificationState.idPlan === "1" ? "PEAS" :
+                    verificationState.idPlan === "3" ? "PEAS + PLANES COMPLEMENTARIOS" :
+                    verificationState.idPlan
+                  }</p>
+                )}
+              </div>
+            ) : (
+              "No se encontró afiliación SIS para el DNI consultado"
+            )}
           </AlertDescription>
         </Alert>
       )}

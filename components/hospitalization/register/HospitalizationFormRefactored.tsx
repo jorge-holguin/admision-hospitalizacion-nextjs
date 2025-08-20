@@ -620,6 +620,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
             <CardContent className="pt-6">
               <PatientSection
                 patientId={patientId}
+                hospitalizationOrderId={orderId || undefined}
                 onPatientDataLoaded={handlePatientDataLoaded}
               />
             </CardContent>

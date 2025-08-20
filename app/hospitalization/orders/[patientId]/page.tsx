@@ -82,7 +82,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     setPacienteId
   } = useOrdenHospitalizacion({
     initialPage: 1,
-    initialPageSize: 10
+    initialPageSize: 5 // Reducido a 5 para no sobrecargar la página
   });
 
   // Referencia para rastrear si ya se ha montado el componente
@@ -129,7 +129,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   const loadPatientData = async () => {
     try {
       setPacienteLoading(true);      
-      const response = await fetch(`/api/filiacion/${patientId}`);
+      const response = await fetch(`/api/filiacion2/${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al obtener datos del paciente: ${response.status}`);
@@ -236,7 +236,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   // Función para obtener datos del paciente para una nueva orden
   const fetchPatientData = async () => {
     try {
-      const res = await fetch(`/api/filiacion/${patientId}`);
+      const res = await fetch(`/api/filiacion2/${patientId}`);
       if (!res.ok) {
         throw new Error(`Error al obtener datos del paciente: ${res.status}`);
       }
@@ -533,23 +533,62 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                     Mostrando {ordenesHospitalizacion.length > 0 ? (pagination.page - 1) * pagination.pageSize + 1 : 0} a{" "}
                     {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} registros
                   </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={pagination.page === 1}
-                      onClick={() => setPage(pagination.page - 1)}
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={pagination.page >= pagination.totalPages}
-                      onClick={() => setPage(pagination.page + 1)}
-                    >
-                      Siguiente
-                    </Button>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-1">
+                      {/* Números de página */}
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        // Mostrar páginas alrededor de la página actual
+                        let pageToShow;
+                        if (pagination.totalPages <= 5) {
+                          // Si hay 5 o menos páginas, mostrar todas
+                          pageToShow = i + 1;
+                        } else if (pagination.page <= 3) {
+                          // Si estamos en las primeras páginas
+                          pageToShow = i + 1;
+                        } else if (pagination.page >= pagination.totalPages - 2) {
+                          // Si estamos en las últimas páginas
+                          pageToShow = pagination.totalPages - 4 + i;
+                        } else {
+                          // Estamos en el medio
+                          pageToShow = pagination.page - 2 + i;
+                        }
+                        
+                        // Solo mostrar si la página es válida
+                        if (pageToShow > 0 && pageToShow <= pagination.totalPages) {
+                          return (
+                            <Button
+                              key={pageToShow}
+                              variant={pagination.page === pageToShow ? "default" : "outline"}
+                              size="sm"
+                              className={pagination.page === pageToShow ? "bg-blue-600" : ""}
+                              onClick={() => setPage(pageToShow)}
+                            >
+                              {pageToShow}
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() => setPage(pagination.page - 1)}
+                      >
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page >= pagination.totalPages}
+                        onClick={() => setPage(pagination.page + 1)}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
