@@ -102,7 +102,7 @@ export async function POST(
         SELECT TOP 1 CUENTAID 
         FROM CUENTA 
         WHERE PACIENTE = ${paciente} 
-        AND ESTADO = '1' 
+        AND ESTADO = '1' AND ORIGEN = 'HO'
         ORDER BY FECHA_APERTURA DESC
       ` as any[];
 
@@ -159,7 +159,7 @@ export async function POST(
         SET CUENTAID = (
           SELECT TOP 1 CUENTAID 
           FROM CUENTA 
-          WHERE ESTADO = '1' AND ORIGEN ='EM' AND PACIENTE = ${paciente} 
+          WHERE ESTADO = '1' AND ORIGEN ='HO' AND PACIENTE = ${paciente} 
           ORDER BY FECHA_APERTURA DESC
         ), 
         USUARIO = ${usuario} 

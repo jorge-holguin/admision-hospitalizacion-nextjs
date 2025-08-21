@@ -130,7 +130,7 @@ export function SISVerification({
           description: (
             <div className="space-y-1">
               {data.contrato && (
-                <p className="text-xs"><span className="font-medium">Contrato:</span> {data.contrato}</p>
+                <p className="text-xs"><span className="font-medium">N° Afiliación:</span> {data.contrato}</p>
               )}
               {data.descTipoSeguro && (
                 <p className="text-xs"><span className="font-medium">Tipo:</span> {data.descTipoSeguro}</p>

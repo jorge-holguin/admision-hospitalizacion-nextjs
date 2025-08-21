@@ -86,7 +86,7 @@ export default function LoginPage() {
               <p className="text-blue-700">Hospital José Agurto Tello de Chosica</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
               <div className="text-center mb-6">
                 <h2 className="text-lg font-semibold text-gray-700">Ingreso al sistema</h2>
               </div>
@@ -105,6 +105,7 @@ export default function LoginPage() {
                       value={credentials.username}
                       onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                       className="pl-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      autoComplete="off"
                       required
                     />
                   </div>
@@ -123,6 +124,7 @@ export default function LoginPage() {
                       value={credentials.password}
                       onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                       className="pl-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      autoComplete="new-password"
                       required
                     />
                   </div>

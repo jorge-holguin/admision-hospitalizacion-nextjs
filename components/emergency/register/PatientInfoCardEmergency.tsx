@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
-import { User, Calendar, Phone, MapPin, CreditCard, Heart, VenusAndMars, House } from 'lucide-react';
+import { User, Calendar, Phone, MapPin, CreditCard, Heart, House } from 'lucide-react';
 import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
 
 interface PatientInfoCardEmergencyProps {
@@ -236,7 +236,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           </div>
 
           <div className="flex items-center gap-2">
-          <VenusAndMars className="h-4 w-4 text-gray-400" />
+          <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
             </span>

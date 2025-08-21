@@ -295,9 +295,6 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
             onValueChange={handleSearch} 
             value={searchTerm}
           />
-          <div className="px-2 py-1 text-xs text-muted-foreground">
-            Ejemplos: "Z590" (código) o "cadera" (descripción)
-          </div>
           <CommandList>
             {loading && (
               <div className="flex items-center justify-center p-4">

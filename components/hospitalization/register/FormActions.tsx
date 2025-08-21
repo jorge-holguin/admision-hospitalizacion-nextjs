@@ -167,7 +167,6 @@ export function FormActions({
                   <p className="font-semibold">No se ha encontrado un FUA activo para este paciente en las últimas 3 horas.</p>
                 </div>
                 <div className="flex items-center space-x-2">
-
                 </div>
               </div>
             )}

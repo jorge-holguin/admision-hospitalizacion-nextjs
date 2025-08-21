@@ -12,6 +12,7 @@ import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter
 import { printMultiplePdfsViaDirectApi, printMergedPDF } from '@/utils/pdfUtils'
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
 import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
+import { datetimeService } from '@/services/datetimeService'
 
 // Componentes reutilizables
 import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
@@ -97,10 +98,11 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
   const [searchMedico, setSearchMedico] = useState('');
   const [selectedMedico, setSelectedMedico] = useState<any | null>(null);
 
-  // Get current date and time
-  const now = new Date();
-  const currentDate = now.toISOString().split('T')[0]; // formato YYYY-MM-DD para input type="date"
-  const currentTime = now.toTimeString().substring(0, 5); // formato HH:MM para input type="time"
+  // Estado para fecha y hora del servidor
+  const [serverDateTime, setServerDateTime] = useState({
+    date: '',
+    time: ''
+  });
   
   // Estado para los selectores abiertos
   const { openSelects, toggleSelect, closeAllSelects } = useSelectsState();
@@ -114,9 +116,9 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
     authorizingDoctor: '',
     diagnosis: '',
     financing: '',
-    date: currentDate, // Inicializar con la fecha actual en formato YYYY-MM-DD
-    time: currentTime, // Inicializar con la hora actual en formato HH:MM
-    hospitalizationDate: currentDate, // Cambiado de Date a string para resolver errores de TypeScript
+    date: '', // Se actualizará con la fecha del servidor
+    time: '', // Se actualizará con la hora del servidor
+    hospitalizationDate: '', // Se actualizará con la fecha del servidor
     hospitalizationTime: '',
     dischargeDate: '', // Cambiado de null a string vacía para resolver errores de TypeScript
     dischargeTime: '',
@@ -435,7 +437,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
             console.log('Datos que se envían al endpoint:', {
               paciente: result.PACIENTE,
               seguro: seguroCode,
-              usuario: user?.sub || 'SISTEMA',
+              usuario: primerApellido,
               nombre: result.NOMBRES?.trim() || ''
             });
             const asegurarResponse = await fetch(`/api/hospitaliza/${result.IDHOSPITALIZACION.trim()}/asegurar-cuenta`, {
@@ -446,7 +448,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
               body: JSON.stringify({
                 paciente: result.PACIENTE,
                 seguro: seguroCode,
-                usuario: user?.sub || 'SISTEMA',
+                usuario: primerApellido,
                 nombre: result.NOMBRES?.trim() || ''
               })
             });
@@ -583,9 +585,52 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
     return true;
   };
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales y obtener fecha/hora del servidor
   useEffect(() => {
-    setLoading(false);
+    const fetchServerDateTime = async () => {
+      try {
+        // Obtener fecha y hora del servidor
+        const dateTimeData = await datetimeService.getCurrentDateTime();
+        
+        // Actualizar el estado con la fecha y hora del servidor
+        setServerDateTime({
+          date: dateTimeData.date,
+          time: dateTimeData.time
+        });
+        
+        // Actualizar el formulario con la fecha y hora del servidor
+        setFormData(prev => ({
+          ...prev,
+          date: dateTimeData.date,
+          time: dateTimeData.time,
+          hospitalizationDate: dateTimeData.date
+        }));
+        
+        console.log('Fecha y hora obtenidas del servidor:', dateTimeData);
+      } catch (error) {
+        console.error('Error al obtener fecha y hora del servidor:', error);
+        // En caso de error, usar la fecha y hora local como fallback
+        const now = new Date();
+        const localDate = now.toISOString().split('T')[0];
+        const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        setServerDateTime({
+          date: localDate,
+          time: localTime
+        });
+        
+        setFormData(prev => ({
+          ...prev,
+          date: localDate,
+          time: localTime,
+          hospitalizationDate: localDate
+        }));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchServerDateTime();
   }, []);
 
   return (

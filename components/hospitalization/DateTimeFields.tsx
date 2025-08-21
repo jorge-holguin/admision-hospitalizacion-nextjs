@@ -22,6 +22,7 @@ export const DateTimeFields: React.FC<DateTimeFieldsProps> = ({
   // Obtener la fecha actual en formato YYYY-MM-DD para el valor por defecto
   const getCurrentDate = () => {
     const today = new Date();
+    // Usar métodos locales en lugar de UTC para evitar problemas con zonas horarias
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
