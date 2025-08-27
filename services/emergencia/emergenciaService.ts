@@ -131,7 +131,7 @@ class EmergenciaService {
             me.NOMBRE as MOTIVO_DESCRIPCION,
             odd.DESCRIPCION as DIAGNOSTICO_DESCRIPCION,
             c.NOMBRE as CONSULTORIO_DESCRIPCION,
-            ROW_NUMBER() OVER (ORDER BY e.FECHA DESC) AS RowNum 
+            ROW_NUMBER() OVER (ORDER BY e.EMERGENCIA_ID DESC) AS RowNum 
           FROM EMERGENCIA e
           LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
           LEFT JOIN oeiDiagnosticoDetalle odd ON e.CIEX1 = odd.CODIGO
@@ -264,7 +264,7 @@ class EmergenciaService {
             me.NOMBRE as MOTIVO_DESCRIPCION,
             odd.DESCRIPCION as DIAGNOSTICO_DESCRIPCION,
             c.NOMBRE as CONSULTORIO_DESCRIPCION,
-            ROW_NUMBER() OVER (ORDER BY e.FECHA DESC) AS RowNum 
+            ROW_NUMBER() OVER (ORDER BY e.EMERGENCIA_ID DESC) AS RowNum 
           FROM EMERGENCIA e
           LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
           LEFT JOIN oeiDiagnosticoDetalle odd ON e.CIEX1 = odd.CODIGO
@@ -311,37 +311,43 @@ class EmergenciaService {
    */
   async createEmergencia(data: EmergenciaData) {
     try {
-      // Generar ID único para la emergencia (formato: EYYYYMMDDNNN)
-      const today = new Date();
-      const dateStr = format(today, 'yyyyMMdd');
+      // Usar el ID proporcionado en la solicitud si existe, de lo contrario generar uno nuevo
+      let emergenciaId: string;
       
-      // Buscar el último ID de emergencia del día para incrementarlo usando SQL nativo
-      // en lugar de Prisma ORM para evitar el uso de OFFSET que no es compatible con SQL Server 2008 R2
-      const lastEmergenciaResult = await prisma.$queryRaw`
-        SELECT TOP 1 EMERGENCIA_ID 
-        FROM EMERGENCIA 
-        WHERE EMERGENCIA_ID LIKE 'E${dateStr}%' 
-        ORDER BY EMERGENCIA_ID DESC
-      `;
-      
-      // Convertir el resultado a un formato similar al que devolvería Prisma
-      const lastEmergencia = Array.isArray(lastEmergenciaResult) && lastEmergenciaResult.length > 0 
-        ? lastEmergenciaResult[0] 
-        : null;
-      
-      let newId: string;
-      
-      if (lastEmergencia) {
-        const lastNumber = parseInt(lastEmergencia.EMERGENCIA_ID.substring(9), 10);
-        const newNumber = lastNumber + 1;
-        newId = `E${dateStr}${newNumber.toString().padStart(3, '0')}`;
+      if (data.EMERGENCIA_ID && data.EMERGENCIA_ID.trim() !== '') {
+        // Usar el ID proporcionado en la solicitud
+        emergenciaId = data.EMERGENCIA_ID;
+        console.log('Usando EMERGENCIA_ID proporcionado en la solicitud:', emergenciaId);
       } else {
-        newId = `E${dateStr}001`;
+        // Generar un nuevo ID si no se proporciona uno
+        console.log('No se proporcionó EMERGENCIA_ID, generando uno nuevo');
+        
+        // Obtener el último ID para incrementarlo
+        const lastEmergencia = await prisma.$queryRaw`
+          SELECT TOP 1 EMERGENCIA_ID 
+          FROM EMERGENCIA 
+          ORDER BY EMERGENCIA_ID DESC
+        ` as any[];
+        
+        if (lastEmergencia && lastEmergencia.length > 0) {
+          const lastId = lastEmergencia[0].EMERGENCIA_ID;
+          const lastNumber = parseInt(lastId, 10);
+          if (!isNaN(lastNumber)) {
+            const newNumber = lastNumber + 1;
+            emergenciaId = newNumber.toString().padStart(8, '0');
+          } else {
+            emergenciaId = '25000001';
+          }
+        } else {
+          emergenciaId = '25000001';
+        }
+        
+        console.log('Nuevo EMERGENCIA_ID generado:', emergenciaId);
       }
       
       // Preparar datos para la creación
       const emergenciaData: any = {
-        EMERGENCIA_ID: newId,
+        EMERGENCIA_ID: emergenciaId,
         FECHA: data.FECHA || format(new Date(), 'yyyyMMdd'),
         HORA: data.HORA || format(new Date(), 'HH:mm'),
         ORDEN: data.ORDEN || '',
@@ -441,7 +447,7 @@ class EmergenciaService {
       // Obtener la emergencia recién creada
       const emergencia = await prisma.$queryRaw`
         SELECT TOP 1 * FROM EMERGENCIA 
-        WHERE EMERGENCIA_ID = ${newId}
+        WHERE EMERGENCIA_ID = ${emergenciaId}
       `;
       
       return Array.isArray(emergencia) && emergencia.length > 0 ? emergencia[0] : null;
@@ -456,67 +462,140 @@ class EmergenciaService {
    */
   async updateEmergencia(emergenciaId: string, data: EmergenciaData) {
     try {
-      // Verificar si la emergencia existe
-      const existingEmergencia = await prisma.eMERGENCIA.findUnique({
-        where: {
-          EMERGENCIA_ID: emergenciaId,
-        },
-      });
+      // Verificar si la emergencia existe usando SQL nativo
+      const existingEmergencia = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM EMERGENCIA WHERE EMERGENCIA_ID = ${emergenciaId}
+      `;
       
-      if (!existingEmergencia) {
+      if (!existingEmergencia || (Array.isArray(existingEmergencia) && existingEmergencia.length === 0)) {
         throw new Error(`Emergencia con ID ${emergenciaId} no encontrada`);
       }
       
-      // Preparar datos para la actualización
-      const updateData: any = {};
+      // Actualizar solo si hay campos para actualizar
+      // Usamos un enfoque más directo con prisma.$executeRaw para cada campo
+      // para evitar problemas de conversión de tipos
       
-      // Solo actualizar los campos que vienen en data
-      if (data.FECHA) updateData.FECHA = data.FECHA;
-      if (data.HORA) updateData.HORA = data.HORA;
-      if (data.ORDEN !== undefined) updateData.ORDEN = data.ORDEN;
-      if (data.PATERNO !== undefined) updateData.PATERNO = data.PATERNO;
-      if (data.MATERNO !== undefined) updateData.MATERNO = data.MATERNO;
-      if (data.NOMBRE !== undefined) updateData.NOMBRE = data.NOMBRE;
-      if (data.NOMBRES !== undefined) updateData.NOMBRES = data.NOMBRES;
-      if (data.PACIENTE !== undefined) updateData.PACIENTE = data.PACIENTE;
-      if (data.FECHA_NACIMIENTO !== undefined) updateData.FECHA_NACIMIENTO = data.FECHA_NACIMIENTO;
-      if (data.EDAD !== undefined) updateData.EDAD = data.EDAD;
-      if (data.SEXO !== undefined) updateData.SEXO = data.SEXO;
-      if (data.ESTADO_CIVIL !== undefined) updateData.ESTADO_CIVIL = data.ESTADO_CIVIL;
-      if (data.DIRECCION !== undefined) updateData.DIRECCION = data.DIRECCION;
-      if (data.DISTRITO !== undefined) updateData.DISTRITO = data.DISTRITO;
-      if (data.TELEFONO1 !== undefined) updateData.TELEFONO1 = data.TELEFONO1;
-      if (data.TELEFONO2 !== undefined) updateData.TELEFONO2 = data.TELEFONO2;
-      if (data.TIPO_DOCUMENTO !== undefined) updateData.TIPO_DOCUMENTO = data.TIPO_DOCUMENTO;
-      if (data.DOCUMENTO !== undefined) updateData.DOCUMENTO = data.DOCUMENTO;
-      if (data.ACOMPANANTE !== undefined) updateData.ACOMPANANTE = data.ACOMPANANTE;
-      if (data.TIPO_DOCUMENTOA !== undefined) updateData.TIPO_DOCUMENTOA = data.TIPO_DOCUMENTOA;
-      if (data.DOCUMENTOA !== undefined) updateData.DOCUMENTOA = data.DOCUMENTOA;
-      if (data.CONSULTORIO !== undefined) updateData.CONSULTORIO = data.CONSULTORIO;
-      if (data.MOTIVO_EMERGENCIA !== undefined) updateData.MOTIVO_EMERGENCIA = data.MOTIVO_EMERGENCIA;
-      if (data.SEGURO !== undefined) updateData.SEGURO = data.SEGURO;
-      if (data.OBSERVACION1 !== undefined) updateData.OBSERVACION1 = data.OBSERVACION1;
-      if (data.OBSERVACION2 !== undefined) updateData.OBSERVACION2 = data.OBSERVACION2;
-      if (data.ESTADO !== undefined) updateData.ESTADO = data.ESTADO;
-      if (data.CUENTAID !== undefined) updateData.CUENTAID = data.CUENTAID;
-      if (data.USUARIO !== undefined) updateData.USUARIO = data.USUARIO;
-      if (data.PRE_AFILIACION !== undefined) updateData.PRE_AFILIACION = data.PRE_AFILIACION;
-      if (data.LOCALIDAD !== undefined) updateData.LOCALIDAD = data.LOCALIDAD;
-      if (data.TIPOATENCION !== undefined) updateData.TIPOATENCION = data.TIPOATENCION;
-      if (data.RELIGION !== undefined) updateData.RELIGION = data.RELIGION;
-      if (data.SEGUROLIQ !== undefined) updateData.SEGUROLIQ = data.SEGUROLIQ;
-      if (data.FORMA_INGRESO !== undefined) updateData.FORMA_INGRESO = data.FORMA_INGRESO;
-      if (data.HISTORIA !== undefined) updateData.HISTORIA = data.HISTORIA;
-      if (data.CIEX1 !== undefined) updateData.CIEX1 = data.CIEX1;
-      if (data.TIPO_CIEX1 !== undefined) updateData.TIPO_CIEX1 = data.TIPO_CIEX1;
+      // Actualizar cada campo individualmente para evitar problemas de conversión
+      // Solo incluir los campos que vienen en data
+      if (data.FECHA) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET FECHA = ${data.FECHA} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.HORA) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET HORA = ${data.HORA} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.ORDEN !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET ORDEN = ${data.ORDEN} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.PATERNO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET PATERNO = ${data.PATERNO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.MATERNO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET MATERNO = ${data.MATERNO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.NOMBRE !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET NOMBRE = ${data.NOMBRE} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.NOMBRES !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET NOMBRES = ${data.NOMBRES} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.PACIENTE !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET PACIENTE = ${data.PACIENTE} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.FECHA_NACIMIENTO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET FECHA_NACIMIENTO = ${data.FECHA_NACIMIENTO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.EDAD !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET EDAD = ${data.EDAD} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.SEXO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET SEXO = ${data.SEXO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.ESTADO_CIVIL !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET ESTADO_CIVIL = ${data.ESTADO_CIVIL} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.DIRECCION !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET DIRECCION = ${data.DIRECCION} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.DISTRITO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET DISTRITO = ${data.DISTRITO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.TELEFONO1 !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET TELEFONO1 = ${data.TELEFONO1} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.TELEFONO2 !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET TELEFONO2 = ${data.TELEFONO2} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.TIPO_DOCUMENTO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET TIPO_DOCUMENTO = ${data.TIPO_DOCUMENTO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.DOCUMENTO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET DOCUMENTO = ${data.DOCUMENTO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.ACOMPANANTE !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET ACOMPANANTE = ${data.ACOMPANANTE} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.TIPO_DOCUMENTOA !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET TIPO_DOCUMENTOA = ${data.TIPO_DOCUMENTOA} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.DOCUMENTOA !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET DOCUMENTOA = ${data.DOCUMENTOA} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.CONSULTORIO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET CONSULTORIO = ${data.CONSULTORIO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.MOTIVO_EMERGENCIA !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET MOTIVO_EMERGENCIA = ${data.MOTIVO_EMERGENCIA} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.SEGURO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET SEGURO = ${data.SEGURO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.OBSERVACION1 !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET OBSERVACION1 = ${data.OBSERVACION1} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.OBSERVACION2 !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET OBSERVACION2 = ${data.OBSERVACION2} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.ESTADO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET ESTADO = ${data.ESTADO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.CUENTAID !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET CUENTAID = ${data.CUENTAID} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.USUARIO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET USUARIO = ${data.USUARIO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.PRE_AFILIACION !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET PRE_AFILIACION = ${data.PRE_AFILIACION} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.LOCALIDAD !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET LOCALIDAD = ${data.LOCALIDAD} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.TIPOATENCION !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET TIPOATENCION = ${data.TIPOATENCION} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.RELIGION !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET RELIGION = ${data.RELIGION} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.SEGUROLIQ !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET SEGUROLIQ = ${data.SEGUROLIQ} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.FORMA_INGRESO !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET FORMA_INGRESO = ${data.FORMA_INGRESO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.HISTORIA !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET HISTORIA = ${data.HISTORIA} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.CIEX1 !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET CIEX1 = ${data.CIEX1} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.TIPO_CIEX1 !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET TIPO_CIEX1 = ${data.TIPO_CIEX1} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
       
-      // Actualizar la emergencia
-      const updatedEmergencia = await prisma.eMERGENCIA.update({
-        where: {
-          EMERGENCIA_ID: emergenciaId,
-        },
-        data: updateData,
-      });
+      // Obtener la emergencia actualizada
+      const updatedEmergencia = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM EMERGENCIA WHERE EMERGENCIA_ID = ${emergenciaId}
+      `;
       
       return updatedEmergencia;
     } catch (error) {

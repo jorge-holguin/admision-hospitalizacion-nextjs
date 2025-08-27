@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +64,13 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   const [loading, setLoading] = useState(isLoading);
   const [error, setError] = useState<string | null>(fetchError);
 
+  // Memoizar el callback onDataLoaded para evitar recreaciones
+  const memoizedOnDataLoaded = useCallback((data: PatientData) => {
+    if (onDataLoaded) {
+      onDataLoaded(data);
+    }
+  }, [onDataLoaded]);
+
   // Efecto para cargar los datos del paciente usando el contexto
   useEffect(() => {
     const loadPatientData = async () => {
@@ -119,10 +126,8 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
           // Actualizamos el estado con los datos del paciente
           setPatientData(patientDataObj);
           
-          // Notificar al componente padre sobre los datos cargados
-          if (onDataLoaded) {
-            onDataLoaded(patientDataObj);
-          }
+          // Notificar al componente padre sobre los datos cargados usando el callback memoizado
+          memoizedOnDataLoaded(patientDataObj);
         }
       } catch (err: any) {
         console.error('Error fetching patient data:', err);
@@ -131,7 +136,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
     };
 
     loadPatientData();
-  }, [patientId, fetchPatientData, getPatientData, onDataLoaded]);
+  }, [patientId, fetchPatientData, getPatientData, memoizedOnDataLoaded]);
 
   // Actualizar el estado de carga cuando cambie en el contexto
   useEffect(() => {
@@ -220,11 +225,15 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No especificado';
     try {
-      const date = new Date(dateString);
-      const day = date.getDate();
-      const month = date.toLocaleDateString('es-ES', { month: 'long' });
-      const year = date.getFullYear();
-      return `${day} de ${month} de ${year}`;
+      // Asegurar que la fecha se interprete correctamente sin problemas de zona horaria
+      const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+      
+      // Crear la fecha con los componentes exactos (mes es 0-indexed en JavaScript)
+      return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
     } catch {
       return dateString;
     }

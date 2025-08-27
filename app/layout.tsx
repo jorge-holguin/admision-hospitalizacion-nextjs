@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/components/AuthProvider'
 import { LoadingProvider } from '@/components/LoadingProvider'
 import { HideDebugger } from '@/components/HideDebugger'
+import { PatientProvider } from '@/contexts/PatientContext'
 
 export const metadata: Metadata = {
   title: 'Sistema de Admisión',
@@ -20,8 +21,10 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <LoadingProvider>
-            <HideDebugger />
-            {children}
+            <PatientProvider>
+              <HideDebugger />
+              {children}
+            </PatientProvider>
           </LoadingProvider>
         </AuthProvider>
       </body>

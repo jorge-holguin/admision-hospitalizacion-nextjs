@@ -24,8 +24,8 @@ export function DeleteConfirmationDialog({
   isOpen,
   onClose,
   onConfirm,
-  title = "Confirmar eliminación",
-  description = "Esta acción no se puede deshacer. ¿Está seguro de que desea eliminar este elemento?",
+  title = "Confirmar anulación",
+  description = "Esta acción no se puede deshacer. ¿Está seguro de que desea anular este elemento?",
   itemName,
   isLoading = false,
 }: DeleteConfirmationDialogProps) {

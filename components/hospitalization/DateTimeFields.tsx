@@ -62,7 +62,7 @@ export const DateTimeFields: React.FC<DateTimeFieldsProps> = ({
         <Input
           type="date"
           id="date"
-          value={dateValue || getCurrentDate()}
+          value={dateValue || (autoFill ? getCurrentDate() : '')}
           onChange={(e) => onDateChange(e.target.value)}
           className="w-full mt-2"
           disabled={disabled}
@@ -73,7 +73,7 @@ export const DateTimeFields: React.FC<DateTimeFieldsProps> = ({
         <Input
           type="time"
           id="time"
-          value={timeValue || getCurrentTime()}
+          value={timeValue || (autoFill ? getCurrentTime() : '')}
           onChange={(e) => onTimeChange(e.target.value)}
           className="w-full mt-2"
           disabled={disabled}

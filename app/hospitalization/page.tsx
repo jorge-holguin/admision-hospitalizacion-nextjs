@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Home, Loader2, Search,OctagonAlert, CheckCircle } from "lucide-react"
+import { Home, Loader2, Search,Siren, CheckCircle } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -13,9 +13,9 @@ import { DataTable } from "@/components/ui/data-table"
 import { useFiliacion } from "@/hooks/useFiliacion"
 import { useRouter } from "next/navigation"
 import { SISVerification, SISVerificationResult } from "@/components/SISVerification"
+import { usePatient } from "@/contexts/PatientContext"
 
-// API del BACKEND 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+
 
 // Debounce helper function
 function useDebounce<T>(value: T, delay: number): T {
@@ -85,13 +85,28 @@ export default function HospitalizationSearch() {
   }, [searchTerm, searchType, handleFilterChange])
 
   const router = useRouter();
+  const { setPatientData } = usePatient();
 
-  const handlePatientSelect = (patientId: string) => {
-    router.push(`/hospitalization/orders/${patientId}`);
+  const handlePatientSelect = (patient: any) => {
+    // Save patient data to context
+    setPatientData({
+      hc: patient.HISTORIA,
+      name: patient.NOMBRES,
+      documento: patient.DOCUMENTO,
+      pacienteId: patient.PACIENTE
+    });
+    router.push(`/hospitalization/orders/${patient.PACIENTE}`);
   };
 
-  const handleEmergencySelect = (pacientId: string) => {
-    router.push(`/emergency/${pacientId}`);
+  const handleEmergencySelect = (patient: any) => {
+    // Save patient data to context
+    setPatientData({
+      hc: patient.HISTORIA,
+      name: patient.NOMBRES,
+      documento: patient.DOCUMENTO,
+      pacienteId: patient.PACIENTE
+    });
+    router.push(`/emergency/${patient.PACIENTE}`);
   };
 
   // Estado para almacenar los resultados de verificación SIS por paciente
@@ -194,18 +209,18 @@ export default function HospitalizationSearch() {
               variant="default" 
               size="sm" 
               className="bg-blue-500 hover:bg-blue-600 text-white" 
-              onClick={() => handlePatientSelect(patient.PACIENTE)}
+              onClick={() => handlePatientSelect(patient)}
             >
               <Home className="mr-2 h-4 w-4" /> HOSPITALIZAR
             </Button>
-        {/*     <Button 
+            <Button 
               variant="default" 
               size="sm" 
               className="bg-red-500 hover:bg-red-600 text-white" 
-              onClick={() => handleEmergencySelect(patient.PACIENTE)}
+              onClick={() => handleEmergencySelect(patient)}
             >
-              <OctagonAlert className="mr-2 h-4 w-4" /> EMERGENCIA
-            </Button> */}
+              <Siren className="mr-2 h-4 w-4" /> EMERGENCIA
+            </Button>
             <SISVerification 
               patientId={patient.PACIENTE}
               documento={patient.DOCUMENTO}

@@ -30,6 +30,24 @@ export const validateEmergencyForm = (formData: any): ValidationResult => {
     errors.consultorio = 'El consultorio es requerido';
     console.log('Error de validación: consultorio vacío');
   }
+  
+  // Validar nombre del acompañante
+  if (!formData.acompanante || formData.acompanante.trim() === '') {
+    errors.acompanante = 'El nombre del acompañante es requerido';
+    console.log('Error de validación: nombre del acompañante vacío');
+  }
+  
+  // Validar documento del acompañante
+  if (!formData.documentoA || formData.documentoA.trim() === '') {
+    errors.documentoA = 'El documento del acompañante es requerido';
+    console.log('Error de validación: documento del acompañante vacío');
+  }
+  
+  // Validar condición del paciente (seguro)
+  if (!formData.seguro || formData.seguro.trim() === '') {
+    errors.seguro = 'La condición del paciente es requerida';
+    console.log('Error de validación: condición del paciente vacía');
+  }
 
   // Validar médico - Hacemos esta validación opcional
   // El campo médico puede estar vacío o ser null/undefined
@@ -39,12 +57,6 @@ export const validateEmergencyForm = (formData: any): ValidationResult => {
     console.log('Campo médico es null, se considera válido');
   } else if (formData.medico === '') {
     console.log('Campo médico está vacío, se considera válido');
-  }
-
-  // Validar seguro
-  if (!formData.seguro || formData.seguro.trim() === '') {
-    errors.seguro = 'El seguro es requerido';
-    console.log('Error de validación: seguro vacío');
   }
 
   // Validar que la fecha no sea futura

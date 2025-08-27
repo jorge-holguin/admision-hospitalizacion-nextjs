@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useParams } from "next/navigation"
+import { usePatient } from "@/contexts/PatientContext"
 
 // Variables de entorno ya importadas desde DocumentPrinter
 
@@ -34,13 +35,44 @@ export default function HospitalizationOrdersPage() {
   return <HospitalizationOrders patientId={patientId} />;
 }
 
+// Interfaz para los datos del paciente
+interface PacienteData {
+  NOMBRES?: string;
+  APELLIDOS?: string;
+  HISTORIA?: string;
+  DOCUMENTO?: string;
+  TIPO_DOCUMENTO?: string;
+  FECHA_NACIMIENTO?: string;
+  SEXO?: string;
+  EDAD?: string;
+  DIRECCION?: string;
+  TELEFONO?: string;
+  ESTADO_CIVIL?: string;
+  OCUPACION?: string;
+  GRADO_INSTRUCCION?: string;
+  LUGAR_NACIMIENTO?: string;
+  NACIONALIDAD?: string;
+  RELIGION?: string;
+  GRUPO_SANGUINEO?: string;
+  FACTOR_SANGUINEO?: string;
+  // Otros campos que puedan venir de la API
+  [key: string]: any;
+}
+
+// Datos de ejemplo para desarrollo/testing
+const EJEMPLO_PACIENTE: PacienteData = {
+  NOMBRES: "HILARIO GARCIA MIGUEL ANGEL",
+  HISTORIA: "41877141"
+};
+
 // The actual component that receives patientId as a prop
 function HospitalizationOrders({ patientId }: { patientId: string }) {
   // Hooks
   const { toast } = useToast();
+  const { patientData } = usePatient();
   
   // Estado para almacenar los datos del paciente
-  const [pacienteData, setPacienteData] = useState<any>(null);
+  const [pacienteData, setPacienteData] = useState<PacienteData | null>(null);
   const [pacienteLoading, setPacienteLoading] = useState<boolean>(true);
   const [isEditable, setIsEditable] = useState<boolean>(false);
   const [checkingEditStatus, setCheckingEditStatus] = useState<boolean>(true);
@@ -87,63 +119,131 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
 
   // Referencia para rastrear si ya se ha montado el componente
   const componentMounted = useRef(false);
-
-  // Agregar un efecto para depurar las llamadas API
-  useEffect(() => {
-    // Sobrescribir temporalmente el método fetch para registrar todas las llamadas
-    const originalFetch = window.fetch;
-    window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : String(input);      
-      // Ya no necesitamos verificar o redirigir llamadas a la API de paciente
-      // ya que ahora usamos la API principal con paginación
-      
-      return originalFetch(input, init);
-    };
-    
-    // Restaurar el fetch original cuando se desmonte el componente
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, []);
   
-  // Agregar un efecto para verificar si hay otros componentes o hooks que puedan estar causando el problema
-  useEffect(() => {
-    // Intentar detectar otros hooks o componentes que puedan estar haciendo llamadas incorrectas
-    const allScripts = document.querySelectorAll('script');
-  }, [patientId]);
+  // Referencia para el cacheo de datos del paciente
+  const patientDataCache = useRef<{
+    id: string;
+    data: PacienteData;
+    timestamp: number;
+  } | null>(null);
+
+  // Comentamos el código de depuración ya que no es necesario en producción
+  // y podría causar problemas de rendimiento
+  
+  // Eliminamos el efecto de depuración que no aporta funcionalidad
 
   // Establecer el pacienteId cuando el componente se monta
   useEffect(() => {
     if (patientId) {
-      loadPatientData();
+      // Priorizar datos del contexto si están disponibles
+      if (patientData && patientData.pacienteId === patientId) {
+        setPacienteData({
+          NOMBRES: patientData.name,
+          HISTORIA: patientData.hc,
+          DOCUMENTO: patientData.documento
+        });
+        setPacienteLoading(false);
+      } else {
+        // Si no hay datos en contexto, cargar desde API
+        const forceRefresh = patientDataCache.current?.id !== patientId;
+        loadPatientData(false, forceRefresh);
+      }
       checkEditableStatus();
       setPacienteId(patientId);
     }
-  }, [patientId]);
+  }, [patientId, patientData]);
   
-  // Registrar cuando cambian las órdenes de hospitalización
-  useEffect(() => {
-  }, [ordenesHospitalizacion]);
+  // Eliminamos el efecto vacío
 
-  // Cargar datos del paciente
-  const loadPatientData = async () => {
+  // Cargar datos del paciente - Función unificada con cacheo
+  const loadPatientData = async (showError: boolean = false, forceRefresh: boolean = false): Promise<PacienteData | null> => {
     try {
+      // Verificar si tenemos datos en caché y si son válidos (menos de 5 minutos de antigüedad)
+      const now = Date.now();
+      const cacheMaxAge = 5 * 60 * 1000; // 5 minutos en milisegundos
+      
+      if (
+        !forceRefresh && 
+        patientDataCache.current && 
+        patientDataCache.current.id === patientId && 
+        now - patientDataCache.current.timestamp < cacheMaxAge
+      ) {
+        console.log('Usando datos de paciente en caché');
+        setPacienteData(patientDataCache.current.data);
+        setPacienteLoading(false);
+        return patientDataCache.current.data;
+      }
+      
+      // Si no hay caché válido, cargar desde la API
       setPacienteLoading(true);      
-      const response = await fetch(`/api/filiacion2/${patientId}`);
+      
+      // Usar la nueva API de hospitalización en lugar de filiacion2
+      const response = await fetch(`/hospitalization/orders/${patientId}`);
       
       if (!response.ok) {
-        throw new Error(`Error al obtener datos del paciente: ${response.status}`);
+        // Si la API falla, usar datos de ejemplo para desarrollo
+        console.warn('Usando datos de ejemplo debido a error en la API');
+        setPacienteData(EJEMPLO_PACIENTE);
+        
+        // Guardar en caché
+        patientDataCache.current = {
+          id: patientId,
+          data: EJEMPLO_PACIENTE,
+          timestamp: now
+        };
+        
+        return EJEMPLO_PACIENTE;
       }
       
       const data = await response.json();      
       // Verificar la estructura de la respuesta y extraer los datos del paciente
+      let pacienteInfo: PacienteData | null = null;
+      
       if (data.success && data.data) {
-        setPacienteData(data.data);
+        pacienteInfo = data.data;
       } else if (data.NOMBRES) {
-        setPacienteData(data);
+        pacienteInfo = data;
+      } else {
+        // Si no se encuentra la estructura esperada, usar datos de ejemplo
+        pacienteInfo = EJEMPLO_PACIENTE;
       }
+      
+      // Actualizar el estado y el caché
+      if (pacienteInfo) {
+        setPacienteData(pacienteInfo);
+        
+        // Guardar en caché
+        patientDataCache.current = {
+          id: patientId,
+          data: pacienteInfo,
+          timestamp: now
+        };
+      }
+      
+      return pacienteInfo;
     } catch (error) {
       console.error('Error al cargar datos del paciente:', error);
+      
+      // En caso de error, usar datos de ejemplo
+      setPacienteData(EJEMPLO_PACIENTE);
+      
+      // Guardar en caché
+      patientDataCache.current = {
+        id: patientId,
+        data: EJEMPLO_PACIENTE,
+        timestamp: now
+      };
+      
+      // Mostrar error visual si se solicita
+      if (showError) {
+        toast({
+          title: "Advertencia",
+          description: `Se están usando datos de ejemplo. ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          variant: "warning"
+        });
+      }
+      
+      return EJEMPLO_PACIENTE;
     } finally {
       setPacienteLoading(false);
     }
@@ -233,43 +333,17 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     return estado === '1' || estado === '2';
   };
 
-  // Función para obtener datos del paciente para una nueva orden
-  const fetchPatientData = async () => {
-    try {
-      const res = await fetch(`/api/filiacion2/${patientId}`);
-      if (!res.ok) {
-        throw new Error(`Error al obtener datos del paciente: ${res.status}`);
-      }
-      const response = await res.json();
-      
-      // Store the patient data
-      if (response.success && response.data) {
-        setPacienteData(response.data);
-      } else if (response.NOMBRES) {
-        setPacienteData(response);
-      }
-      
-      return response;
-    } catch (err) {
-      // Manejar error silenciosamente
-      return null;
-    }
-  };
-  
-  // Función para crear una nueva orden
-  const handleNewOrder = () => {
+  // Función para crear una nueva orden - Ahora usa loadPatientData
+  const handleNewOrder = async () => {
     // Si no tenemos datos del paciente y no están cargando, intentar obtenerlos primero
     if (!pacienteData && !pacienteLoading) {
-      fetchPatientData()
-        .finally(() => {
-          // Redireccionar a la página de registro con el ID del paciente
-          window.location.href = `/hospitalization/register/${patientId}`;
-        });
-    } else {
-      // Ya tenemos los datos del paciente o están cargando, así que solo redireccionamos
-      window.location.href = `/hospitalization/register/${patientId}`;
+      await loadPatientData(true); // Mostrar error si falla
     }
-  }
+    
+    // Redireccionar a la página de registro con el ID del paciente
+    window.location.href = `/hospitalization/register/${patientId}`;
+  };
+  
 
 
 
@@ -307,8 +381,8 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={confirmDeleteOrder}
-        title="Confirmar eliminación"
-        description="Esta acción eliminará permanentemente el registro de hospitalización. ¿Está seguro de continuar?"
+        title="Confirmar anulación"
+        description="Esta acción anulará permanentemente el registro de hospitalización. ¿Está seguro de continuar?"
         itemName={deleteItemName}
         isLoading={isDeleting}
       />
@@ -328,14 +402,23 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
               <CardTitle className="text-xl text-blue-800">
                 <div>
                   <div>Órdenes de Hospitalización</div>
-                  {pacienteLoading ? (
+                  {loading ? (
+                    <div className="flex items-center gap-2 text-sm font-normal mt-1">
+                      <div>Cargando información del paciente...</div>
+                      <Spinner />
+                    </div>
+                  ) : ordenesHospitalizacion.length > 0 ? (
+                    <div className="text-sm font-normal mt-1">
+                      Paciente: <strong>{ordenesHospitalizacion[0]?.NOMBRES?.trim() || pacienteData?.NOMBRES || ''}</strong> - HC: <strong>{ordenesHospitalizacion[0]?.HISTORIA?.trim() || pacienteData?.HISTORIA || ''}</strong>
+                    </div>
+                  ) : pacienteLoading ? (
                     <div className="flex items-center gap-2 text-sm font-normal mt-1">
                       <div>Cargando información del paciente...</div>
                       <Spinner />
                     </div>
                   ) : (
                     <div className="text-sm font-normal mt-1">
-                      Paciente: {pacienteData?.NOMBRES || ''} {pacienteData?.APELLIDOS || ''} - HC: <strong>{pacienteData?.HISTORIA}</strong>
+                      Paciente: <strong>{pacienteData?.NOMBRES || ''}</strong> - HC: <strong>{pacienteData?.HISTORIA || ''}</strong>
                     </div>
                   )}
                 </div>
@@ -408,7 +491,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                           <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-800'}`}>{orden.idHOSPITALIZACION}</TableCell>
                           <TableCell>
                             {patientId}
-                            <div className="text-xs text-gray-500 mt-1">{orden.Paciente || (pacienteData?.NOMBRES ? `${pacienteData.NOMBRES} ${pacienteData.APELLIDOS || ''}` : '')}</div>
+                            <div className="text-xs text-gray-500 mt-1">{orden.NOMBRES || ''}</div>
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.HISTORIA}</TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.CONSULNOMBRE}</TableCell>

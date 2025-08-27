@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { EmergencyFormRefactored } from '@/components/emergency/register/EmergencyFormRefactored'
+import { FuaEmergencyStatusAlert } from '@/components/emergency/register/FuaEmergencyStatusAlert'
 
 export default function EmergencyRegisterPage() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function EmergencyRegisterPage() {
         <h2 className="text-lg font-medium mb-6 text-gray-600">
           {emergencyId ? 'Editar Registro de Emergencia' : 'Nuevo Registro de Emergencia'}
         </h2>
-        
+
         <EmergencyFormRefactored patientId={patientId} emergencyId={emergencyId} />
       </main>
     </div>

@@ -7,10 +7,13 @@ import { emergenciaService } from '@/services/emergencia/emergenciaService';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { pacienteId: string } }
+  { params }: { params: { patientId: string } }
 ) {
+  let pacienteId: string = '';
+  
   try {
-    const { pacienteId } = params;
+    const resolvedParams = await params;
+    pacienteId = resolvedParams.patientId;
     
     // Validar que el ID del paciente no esté vacío
     if (!pacienteId || pacienteId.trim() === '') {
@@ -28,7 +31,7 @@ export async function GET(
       hasActiveEmergencias
     });
   } catch (error: any) {
-    console.error(`Error al verificar emergencias activas del paciente ${params.pacienteId}:`, error);
+    console.error(`Error al verificar emergencias activas del paciente ${pacienteId}:`, error);
     return NextResponse.json(
       { 
         success: false,

@@ -12,6 +12,7 @@ interface FormHeaderEmergencyProps {
   validationErrors?: Record<string, string>;
   patientId?: string;
   onFormChange?: (field: string, value: string) => void;
+  insuranceCode?: string;
 }
 
 export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
@@ -22,48 +23,15 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
   disabled = false,
   validationErrors = {},
   patientId,
-  onFormChange
+  onFormChange,
+  insuranceCode
 }) => {
-  // Estado para el número de cuenta - inicializado con string vacío para evitar error de controlado/no controlado
-  const [numeroCuenta, setNumeroCuenta] = useState<string>("");
-  const [loadingCuenta, setLoadingCuenta] = useState(false);
-  
-  // Cargar el número de cuenta del paciente - usando useRef para evitar llamadas repetidas
-  const cuentaFetchedRef = React.useRef(false);
-  
-  useEffect(() => {
-    // Solo ejecutar una vez por patientId
-    if (!patientId || cuentaFetchedRef.current) return;
-    
-    const fetchNumeroCuenta = async () => {      
-      try {
-        setLoadingCuenta(true);
-        const response = await fetch(`/api/cuenta/${patientId}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data && data.data.cuentaId) {
-            setNumeroCuenta(data.data.cuentaId);
-            // También actualizar el formData si existe onFormChange
-            if (onFormChange) {
-              onFormChange("numeroCuenta", data.data.cuentaId);
-            }
-          }
-          // Marcar como ya obtenido
-          cuentaFetchedRef.current = true;
-        }
-      } catch (error) {
-        console.error("Error al cargar número de cuenta:", error);
-      } finally {
-        setLoadingCuenta(false);
-      }
-    };
-    
-    fetchNumeroCuenta();
-  }, [patientId]); // Eliminar onFormChange de las dependencias
+  // Estado para el número de cuenta - solo mostrar, no cargar automáticamente
+  const [numeroCuenta] = useState<string>("No disponible");
+  const [loadingCuenta] = useState(false);
   return (
-    <div className="mb-6 pt-6">
-      <h3 className="text-lg font-semibold mb-4">Información de la Emergencia</h3>
+      <div className="mb-6 pt-6">
+        <h3 className="text-lg font-semibold mb-4">Información de la Emergencia</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Número de Cuenta */}
         <div className="space-y-2">

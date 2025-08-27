@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { usePatientData } from "@/contexts/PatientDataContext";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Search, ChevronDown, ChevronUp, Save, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Save, Trash2, X, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FormActionsEmergency } from "../register/FormActionsEmergency";
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
@@ -51,10 +52,19 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   onSave,
 }) => {
   const router = useRouter();
+  
+  // Obtener el patientId desde los datos iniciales
+  const patientId = initialData?.PACIENTE;
+  
+  // Usar el contexto de datos del paciente
+  const { getPatientData } = usePatientData();
+  const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId);
+
   // ===== Estados locales =====
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   type FormDataType = {
     tipoAtencion: string;
     condicionPaciente: string;
@@ -98,6 +108,37 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   const [patientData, setPatientData] = useState<any>(null);
   const [fieldsLocked, setFieldsLocked] = useState(readOnly);
   const isDeleted = initialData?.ESTADO === "0";
+
+  // Actualizar fieldsLocked cuando cambie readOnly
+  useEffect(() => {
+    setFieldsLocked(readOnly);
+  }, [readOnly]);
+
+  // Cargar datos de filiación del paciente para el modo view
+  useEffect(() => {
+    const loadPatientData = async () => {
+      if (patientId) {
+        try {
+          // Primero verificar si ya tenemos los datos en el contexto
+          const existingData = getPatientData(patientId);
+          if (existingData) {
+            setPatientData(existingData);
+            return;
+          }
+
+          // Si no están en el contexto, cargar desde la API
+          const fetchedData = await fetchPatientData();
+          if (fetchedData) {
+            setPatientData(fetchedData);
+          }
+        } catch (error) {
+          console.error('Error loading patient data:', error);
+        }
+      }
+    };
+
+    loadPatientData();
+  }, [patientId, getPatientData, fetchPatientData]);
 
   // ===== Opciones locales =====
   const TIPO_ATENCION_OPTIONS = [
@@ -178,7 +219,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     try {
       setLoadingConsultorios(true);
       const res = await fetch(
-        `/api/consultorio?search=${encodeURIComponent(search)}`
+        `/api/consultorio?tipo=E&search=${encodeURIComponent(search)}`
       );
       if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
@@ -243,10 +284,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       // Función para extraer el código de un campo con formato "CODIGO  "
       const extractCode = (value: string | null | undefined): string => {
         if (value === null || value === undefined) return "";
-        // Convertir a string, eliminar espacios al inicio y final, y tomar solo la parte numérica
+        // Convertir a string y eliminar espacios al inicio y final
         const trimmed = String(value).trim();
-        // Si es "0 " o similar, devolver solo "0"
-        if (trimmed.startsWith("0") && trimmed.length <= 2) return "0";
+        // Preservar el código exactamente como viene, incluyendo ceros iniciales
         return trimmed;
       };
       
@@ -399,21 +439,62 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       }
       
       // Preparar datos para enviar
-      const updateData = {
-        TIPOATENCION: formData.tipoAtencion,
-        MOTIVO_EMERGENCIA: formData.motivoEmergencia,
-        CONSULTORIO: formData.consultorio,
-        FORMA_INGRESO: formData.formaIngreso,
-        SEGURO: formData.seguro,
-        SEGUROLIQ: formData.seguro, // Asegurar que ambos campos se actualicen
-        OBSERVACION1: formData.observacion1,
-        OBSERVACION2: formData.observacion2,
-        ACOMPANANTE: formData.acompanante,
-        TIPO_DOCUMENTOA: formData.tipoDocumentoA,
-        DOCUMENTOA: formData.documentoA,
-        FECHA: formData.fecha,
-        HORA: formData.hora,
+      
+      // Convertir la fecha a un objeto Date válido para Prisma
+      let formattedDate;
+      try {
+        if (formData.fecha) {
+          // La fecha viene en formato YYYY-MM-DD del input date
+          const dateObj = new Date(formData.fecha);
+          if (!isNaN(dateObj.getTime())) {
+            // Crear una fecha ISO válida
+            formattedDate = dateObj.toISOString();
+          } else {
+            // Si no es una fecha válida, usar la fecha original
+            formattedDate = initialData.FECHA;
+          }
+        } else {
+          // Si no hay fecha, mantener la original
+          formattedDate = initialData.FECHA;
+        }
+      } catch (error) {
+        console.error('Error al formatear la fecha:', error);
+        formattedDate = initialData.FECHA;
+      }
+      
+      console.log('Formato de fecha original:', formData.fecha);
+      console.log('Formato de fecha para Prisma:', formattedDate);
+      
+      // Función auxiliar para limitar la longitud de los campos
+      const limitLength = (value: string | null | undefined, maxLength: number): string => {
+        if (value === null || value === undefined) return '';
+        return String(value).substring(0, maxLength);
       };
+      
+      // Preparar datos con longitudes limitadas según el esquema de la base de datos
+      const updateData = {
+        TIPOATENCION: limitLength(formData.tipoAtencion, 1),          // Char(1)
+        MOTIVO_EMERGENCIA: limitLength(formData.motivoEmergencia, 2),  // Char(2)
+        CONSULTORIO: limitLength(formData.consultorio, 6),            // Char(6)
+        FORMA_INGRESO: limitLength(formData.formaIngreso, 1),         // Char(1)
+        SEGURO: limitLength(formData.seguro, 3),                      // Char(3)
+        SEGUROLIQ: limitLength(formData.seguro, 3),                   // Char(3)
+        OBSERVACION1: limitLength(formData.observacion1, 100),         // Estimado VarChar(100)
+        OBSERVACION2: limitLength(formData.observacion2, 100),         // Estimado VarChar(100)
+        ACOMPANANTE: limitLength(formData.acompanante, 100),          // VarChar(100)
+        TIPO_DOCUMENTOA: limitLength(formData.tipoDocumentoA, 2),     // Char(2)
+        DOCUMENTOA: limitLength(formData.documentoA, 15),             // Char(15)
+        FECHA: formattedDate,                                         // DateTime
+        HORA: limitLength(formData.hora, 5),                          // Char(5)
+      };
+      
+      // Log de longitudes para depuración
+      console.log('Longitudes de campos enviados:');
+      Object.entries(updateData).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          console.log(`${key}: ${value.length} caracteres - Valor: "${value}"`);
+        }
+      });
       
       console.log('Enviando datos:', updateData);
       
@@ -441,6 +522,19 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       // Notificar al componente padre
       if (onSave) {
         onSave(result.data);
+      }
+      
+      // Redirigir a la lista de emergencias del paciente
+      if (initialData && initialData.PACIENTE) {
+        console.log('Redirigiendo a la lista de emergencias del paciente:', initialData.PACIENTE);
+        router.push(`/emergency/${initialData.PACIENTE}`);
+      } else if (patientData && patientData.PACIENTE) {
+        console.log('Redirigiendo a la lista de emergencias del paciente (usando patientData):', patientData.PACIENTE);
+        router.push(`/emergency/${patientData.PACIENTE}`);
+      } else {
+        // Si no se encuentra el ID del paciente, volver a la página anterior
+        console.log('No se encontró ID del paciente, volviendo a la página anterior');
+        router.back();
       }
     } catch (error: any) {
       toast({
@@ -615,32 +709,79 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     code?: string
   ) => opts.find((o) => o.value === code)?.display || "";
 
-  // Función para encontrar el nombre de un motivo por su código
-  const findMotivoName = (code: string) => {
-    const motivo = motivos.find(m => m.MOTIVO_EMERGENCIA === code);
-    return motivo ? `(${code}) - ${motivo.NOMBRE}` : code;
-  };
+  // Función memoizada para encontrar el nombre de un motivo por su código
+  const findMotivoName = useCallback((code: string) => {
+    if (!code || !motivos.length) return code;
+    
+    // Asegurar que el código está correctamente formateado (mantener ceros iniciales)
+    const paddedCode = code?.padStart(2, '0') || '';
+    
+    // Buscar primero con el código exacto
+    let motivo = motivos.find(m => m.MOTIVO_EMERGENCIA === code);
+    
+    // Si no se encuentra, intentar con el código con padding
+    if (!motivo && paddedCode !== code) {
+      motivo = motivos.find(m => m.MOTIVO_EMERGENCIA === paddedCode);
+    }
+    
+    // Si se encontró el motivo, mostrar con formato
+    if (motivo) {
+      return `(${motivo.MOTIVO_EMERGENCIA}) - ${motivo.NOMBRE}`;
+    }
+    
+    // Si no se encuentra, devolver el código original
+    return code;
+  }, [motivos]);
 
-  // Función para encontrar el nombre de un consultorio por su código
-  const findConsultorioName = (code: string) => {
-    const consultorio = consultorios.find(c => c.CONSULTORIO === code);
-    return consultorio ? `(${code}) - ${consultorio.NOMBRE}` : code;
-  };
+  // Función memoizada para encontrar el nombre de un consultorio por su código
+  const findConsultorioName = useCallback((code: string) => {
+    if (!code || !consultorios.length) return code;
+    
+    // Buscar el consultorio por código
+    const consultorio = consultorios.find(c => c.CONSULTORIO?.trim() === code?.trim());
+    
+    // Si se encuentra, mostrar con formato (código) - nombre
+    if (consultorio) {
+      return `(${consultorio.CONSULTORIO}) - ${consultorio.NOMBRE}`;
+    }
+    
+    // Si no se encuentra, devolver el código original
+    return code;
+  }, [consultorios]);
 
-  // Función para encontrar el nombre de una forma de ingreso por su código
-  const findFormaIngresoName = (code: string) => {
-    const forma = formasIngreso.find(f => f.FORMA_INGRESO === code);
-    return forma ? `(${code}) - ${forma.NOMBRE}` : code;
-  };
+  // Función memoizada para encontrar el nombre de una forma de ingreso por su código
+  const findFormaIngresoName = useCallback((code: string) => {
+    if (!code || !formasIngreso.length) return "No especificado";
+    
+    // Buscar la forma de ingreso por código
+    const forma = formasIngreso.find(f => f.FORMA_INGRESO?.trim() === code?.trim());
+    
+    // Si se encuentra, mostrar con formato (código) - nombre
+    if (forma) {
+      return `(${forma.FORMA_INGRESO}) - ${forma.NOMBRE}`;
+    }
+    
+    // Si no se encuentra pero tenemos un código, mostrar el código
+    return `(${code}) - [Sin descripción]`;
+  }, [formasIngreso]);
 
-  // Función para encontrar el nombre de un seguro por su código
-  const findSeguroName = (code: string) => {
-    const seguro = seguros.find(s => s.Seguro === code);
-    return seguro ? `(${code}) - ${seguro.Nombre}` : code;
-  };
+  // Función memoizada para encontrar el nombre de un seguro por su código
+  const findSeguroName = useCallback((code: string) => {
+    if (!code || !seguros.length) return "No especificado";
+    
+    // Buscar el seguro por código
+    const seguro = seguros.find(s => s.Seguro?.trim() === code?.trim());
+    
+    // Si se encuentra, mostrar con formato (código) - nombre
+    if (seguro) {
+      return `(${seguro.Seguro}) - ${seguro.Nombre}`;
+    }
+    
+    // Si no se encuentra pero tenemos un código, mostrar el código
+    return `(${code}) - [Sin descripción]`;
+  }, [seguros]);
 
   // Función para manejar los datos del paciente cargados desde PatientInfoCard
-  const { getPatientData } = usePatientData();
   
   const handlePatientDataLoaded = (data: any) => {
     // Check if we already have this data in context
@@ -659,70 +800,35 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         <h3 className={`text-lg font-semibold ${isDeleted ? 'text-gray-500' : ''}`}>
           Datos de la Emergencia {isDeleted && '(Eliminado)'}
         </h3>
-        <div className="flex gap-2">
-          {!readOnly && !isDeleted && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2"
+      </div>
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro de eliminar este registro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no eliminará permanentemente el registro, pero lo marcará como eliminado y no estará disponible en las búsquedas regulares.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {isSaving ? (
+              {isDeleting ? (
                 <>
-                  <Spinner size="sm" />
-                  <span>Guardando...</span>
+                  <Spinner size="sm" className="mr-2" />
+                  <span>Eliminando...</span>
                 </>
               ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Guardar</span>
-                </>
+                "Eliminar"
               )}
-            </Button>
-          )}
-          
-          {!isDeleted && (
-            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-2 border-red-200 hover:bg-red-50"
-                  title="Eliminar emergencia"
-                >
-                  <Trash2 className="w-4 h-4 text-red-600" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Está seguro de eliminar este registro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no eliminará permanentemente el registro, pero lo marcará como eliminado y no estará disponible en las búsquedas regulares.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        <span>Eliminando...</span>
-                      </>
-                    ) : (
-                      "Eliminar"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
-      </div>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${isDeleted ? 'opacity-70' : ''}`} data-testid="emergency-section-view">
         {/* Sidebar with Patient Information */}
@@ -874,6 +980,20 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     />
                   </div>
                 </div>
+                
+                {/* Form Actions - Botones de guardar y cancelar */}
+                {!isDeleted && (
+                  <FormActionsEmergency
+                    onSave={handleSave}
+                    onCancel={() => router.back()}
+                    submitting={isSaving}
+                    isEditable={!readOnly}
+                    patientId={initialData?.PACIENTE}
+                    isUpdate={true}
+                    formData={formData}
+                    insuranceCode={formData.seguro}
+                  />
+                )}
               </div>
             </CardContent>
           </Card>

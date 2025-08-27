@@ -8,11 +8,11 @@ import { resolveStatus } from '@/utils/statusUtils';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { emergenciaId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // En Next.js 15, params debe ser awaited
-    const { emergenciaId } = await params;
+    const { id: emergenciaId } = await params;
     
     // Validar que el ID de emergencia no esté vacío
     if (!emergenciaId || emergenciaId.trim() === '') {
@@ -49,15 +49,15 @@ export async function GET(
 }
 
 /**
- * PUT /api/emergencia/[emergenciaId]
+ * PUT /api/emergencia/[id]
  * Endpoint para actualizar una emergencia específica
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { emergenciaId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { emergenciaId } = params;
+    const { id: emergenciaId } = await params;
     
     // Validar que el ID de emergencia no esté vacío
     if (!emergenciaId || emergenciaId.trim() === '') {
@@ -90,15 +90,15 @@ export async function PUT(
 }
 
 /**
- * PATCH /api/emergencia/[emergenciaId]
+ * PATCH /api/emergencia/[id]
  * Endpoint para actualizar parcialmente una emergencia con validación de estado
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { emergenciaId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { emergenciaId } = await params;
+    const { id: emergenciaId } = await params;
     
     // Validar que el ID de emergencia no esté vacío
     if (!emergenciaId || emergenciaId.trim() === '') {
@@ -168,15 +168,15 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/emergencia/[emergenciaId]
+ * DELETE /api/emergencia/[id]
  * Endpoint para eliminar lógicamente una emergencia (cambiar su estado a '0')
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { emergenciaId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { emergenciaId } = await params;
+    const { id: emergenciaId } = await params;
     
     // Validar que el ID de emergencia no esté vacío
     if (!emergenciaId || emergenciaId.trim() === '') {

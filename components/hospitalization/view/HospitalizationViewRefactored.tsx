@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { datetimeService } from '@/services/datetimeService'
@@ -12,14 +12,10 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from "@/components/ui/use-toast"
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
 import { convertDateFormat, convertTimeFormat, convertTo12HourFormat } from '@/utils/dateFormatUtils'
+import { usePatient } from '@/contexts/PatientContext'
 
 // Componentes reutilizables
 import { PatientInfoCard } from '@/components/hospitalization/PatientInfoCard'
-import { ConsultorioSelector } from '@/components/hospitalization/ConsultorioSelector'
-import { MedicoSelector } from '@/components/hospitalization/MedicoSelector'
-import { DiagnosticoSelector } from '@/components/hospitalization/DiagnosticoSelector'
-import { SeguroSelector } from '@/components/hospitalization/SeguroSelector'
-import { OrigenSelector } from '@/components/hospitalization/OrigenSelector'
 
 // Componentes específicos para la vista
 import { FormHeader } from './FormHeader'
@@ -35,6 +31,17 @@ interface HospitalizationViewProps {
 
 export function HospitalizationViewRefactored({ patientId, orderId }: HospitalizationViewProps) {
   const router = useRouter();
+  const { patientData, setPatientData } = usePatient();
+  
+  // Callback memoizado para manejar datos del paciente
+  const handlePatientDataLoaded = useCallback((data: any) => {
+    setPatientData({
+      hc: data.historyNumber,
+      name: `${data.paternalSurname} ${data.maternalSurname}, ${data.names}`,
+      documento: data.document,
+      pacienteId: patientId
+    });
+  }, [patientId, setPatientData]);
   
   // Estados para manejar datos y UI
   const [loading, setLoading] = useState(true);
@@ -206,24 +213,9 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
     
     setSubmitting(true);
     
-    // Usar los valores editados manualmente en lugar de obtenerlos del servidor
-    let serverDate = formData.date;
-    let serverTime = formData.time;
-    
-    // Si el usuario no ha editado los campos, obtener la fecha y hora actuales del servidor
-    if (!formData.dateEdited && !formData.timeEdited) {
-      try {
-        // Obtener fecha y hora del servidor
-        const dateTimeData = await datetimeService.getCurrentDateTime();
-        serverDate = dateTimeData.date;
-        serverTime = dateTimeData.time;
-        
-        console.log('Fecha y hora obtenidas del servidor para actualización:', dateTimeData);
-      } catch (error) {
-        console.error('Error al obtener fecha y hora del servidor:', error);
-        // Continuar con los valores actuales como fallback
-      }
-    }
+    // Usar siempre los valores del formulario (preservar fecha/hora original si no se editó)
+    const serverDate = formData.date;
+    const serverTime = formData.time;
     
     // Convertir la hora de formato 24h a formato 12h para guardar en la base de datos
     const time12h = convertTo12HourFormat(serverTime);
@@ -381,9 +373,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
                 <PatientInfoCard
                   patientId={patientId}
                   hospitalizationOrderId={orderId || undefined}
-                  onDataLoaded={(data) => {
-                    // Opcional: manejar datos cargados si es necesario
-                  }}
+                  onDataLoaded={handlePatientDataLoaded}
                   className="flex-1"
                 />
               </div>

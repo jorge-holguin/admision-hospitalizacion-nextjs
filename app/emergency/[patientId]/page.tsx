@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { formatDate } from '@/components/hospitalization/DateFormatter';
 import { useParams, useRouter } from "next/navigation"
+import { usePatient } from "@/contexts/PatientContext"
 
 // Crear un componente envoltorio que utiliza el hook useParams
 export default function EmergencyPage() {
@@ -68,6 +69,7 @@ const getStatusDisplay = (estado: string) => {
 function EmergencyList({ patientId }: { patientId: string }) {
   const { toast } = useToast();
   const router = useRouter();
+  const { patientData } = usePatient();
 
   // Estado para almacenar los datos
   const [emergencies, setEmergencies] = useState<EmergencyData[]>([]);
@@ -80,6 +82,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [patientInfo, setPatientInfo] = useState<string>('');
+  const [documentNumber, setDocumentNumber] = useState<string>('');
 
   // Estado para el diálogo de confirmación de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
@@ -105,13 +108,18 @@ function EmergencyList({ patientId }: { patientId: string }) {
         setEmergencies(data.data);
         setPagination(data.pagination);
 
-        // Extraer información del paciente del primer registro si está disponible
-        if (data.data && data.data.length > 0) {
+        // Priorizar datos del contexto si están disponibles
+        if (patientData && patientData.pacienteId === patientId) {
+          setPatientInfo(patientData.name);
+          setDocumentNumber(patientData.documento || '');
+        } else if (data.data && data.data.length > 0) {
+          // Usar datos de la API como fallback
           const firstRecord = data.data[0];
-          // Formato: NOMBRES - HC: HISTORIA
           setPatientInfo(`${firstRecord.NOMBRES || firstRecord.PACIENTE || 'PACIENTE'}`);
+          setDocumentNumber(firstRecord.DOCUMENTO || '');
         } else {
           setPatientInfo('PACIENTE');
+          setDocumentNumber('');
         }
       } else {
         throw new Error(data.error || 'Error desconocido al cargar datos');
@@ -137,6 +145,14 @@ function EmergencyList({ patientId }: { patientId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId, pagination.page, pagination.pageSize]);
 
+  // Actualizar información del paciente cuando cambia el contexto
+  useEffect(() => {
+    if (patientData && patientData.pacienteId === patientId) {
+      setPatientInfo(patientData.name);
+      setDocumentNumber(patientData.documento || '');
+    }
+  }, [patientData, patientId]);
+
   // Función para cambiar de página
   const setPage = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -154,12 +170,12 @@ function EmergencyList({ patientId }: { patientId: string }) {
 
   // Función para ver una emergencia
   const handleViewEmergency = (emergenciaId: string) => {
-    router.push(`/emergency/view/${emergenciaId}`);
+    router.push(`/emergency/view/${emergenciaId}?mode=view`);
   };
 
   // Función para editar una emergencia
   const handleEditEmergency = (emergenciaId: string) => {
-    router.push(`/emergency/view/${emergenciaId}`);
+    router.push(`/emergency/view/${emergenciaId}?mode=edit`);
   };
 
   // Función para preparar la eliminación de una emergencia
@@ -228,8 +244,8 @@ function EmergencyList({ patientId }: { patientId: string }) {
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={confirmDeleteEmergency}
-        title="Confirmar eliminación"
-        description="Esta acción marcará el registro como eliminado. No se eliminará permanentemente, pero aparecerá como inactivo en el sistema."
+        title="Confirmar anulación"
+        description="¿Está seguro de anular el registro de la emergencia? Esta acción no se podrá revertir."
         itemName={deleteItemName}
         isLoading={isDeleting}
       />
@@ -251,7 +267,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
                 <div>
                   <div>Emergencias</div>
                   <div className="text-sm font-normal mt-1">
-                    Paciente: {patientInfo} - HC: <strong>{patientId}</strong>
+                    Paciente: {patientInfo} - Documento: <strong>{documentNumber || patientId}</strong>
                   </div>
                 </div>
               </CardTitle>
@@ -382,11 +398,11 @@ function EmergencyList({ patientId }: { patientId: string }) {
                                   : "bg-gray-50 border-gray-200 cursor-not-allowed"}
                                 onClick={() => {
                                   if (emergency.EMERGENCIA_ID && isEmergencyDeletable(emergency.ESTADO) && !isDeleted) {
-                                    handleDeleteEmergency(emergency.EMERGENCIA_ID, `Emergencia #${emergency.EMERGENCIA_ID}`);
+                                    handleDeleteEmergency(emergency.EMERGENCIA_ID, `${emergency.PACIENTE}`);
                                   }
                                 }}
                                 disabled={isDeleted || !isEmergencyDeletable(emergency.ESTADO)}
-                                title={isEmergencyDeletable(emergency.ESTADO) && !isDeleted ? "Eliminar emergencia" : "No se puede eliminar debido al estado"}
+                                title={isEmergencyDeletable(emergency.ESTADO) && !isDeleted ? "Anular emergencia" : "No se puede anular debido al estado"}
                               >
                                 <Trash2 className={`w-4 h-4 ${
                                   isEmergencyDeletable(emergency.ESTADO) && !isDeleted 

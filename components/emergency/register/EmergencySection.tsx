@@ -1,20 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import SearchableSelect, { OptionItem } from "@/components/ui/SearchableSelect";
+import { usePatientSeguro } from "@/hooks/usePatientSeguro";
 
 
-interface OptionItem {
-  value: string;
-  display: string;
-  description?: string;
-  data: any;
-}
+// Using OptionItem from SearchableSelect component
 
 interface EmergencySectionProps {
   formData: any;
@@ -60,6 +53,8 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   loadingFormas: externalLoadingFormas,
   loadingSeguros: externalLoadingSeguros,
 }) => {
+  // Hook para obtener seguro del paciente desde filiacion2
+  const { seguroData, loading: loadingPatientSeguro } = usePatientSeguro(patientId);
   // ===== Opciones locales =====
   const TIPO_ATENCION_OPTIONS = [
     { value: "E", display: "(E) - Emergencia" },
@@ -97,28 +92,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   const [searchForma, setSearchForma] = useState("");
   const [searchSeguro, setSearchSeguro] = useState("");
 
-  // ===== Solo un dropdown abierto =====
-  const [openSelect, setOpenSelect] = useState<string | null>(null);
-  const openDropdown = (name: string) => {
-    setOpenSelect((prev) => (prev === name ? null : name));
-  };
-
-  // Cerrar al hacer click fuera o con Escape
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".searchable-select-root")) setOpenSelect(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenSelect(null);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, []);
+  // No need for dropdown management as it's handled in the SearchableSelect component
 
   // ===== Cargas remotas =====
   const loadMotivos = async (search: string = "") => {
@@ -150,7 +124,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     try {
       setInternalLoadingConsultorios(true);
       const res = await fetch(
-        `/api/consultorio?search=${encodeURIComponent(search)}`
+        `/api/consultorio?tipo=E&search=${encodeURIComponent(search)}`
       );
       if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
@@ -232,93 +206,38 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       loadSeguros();
     }
   }, [disabled]);
+  
+  // Set default value for Forma de Ingreso if not already set
+  useEffect(() => {
+    if (!formData.formaIngreso && !formData.formaIngresoDisplay && formasIngreso.length > 0) {
+      const defaultForma = formasIngreso.find(f => f.FORMA_INGRESO === '1') || formasIngreso[0];
+      if (defaultForma) {
+        console.log('Setting default forma de ingreso:', defaultForma);
+        onFormChange('formaIngreso', defaultForma.FORMA_INGRESO);
+        onFormChange('formaIngresoDisplay', `(${defaultForma.FORMA_INGRESO}) - ${defaultForma.NOMBRE}`);
+        if (onFormaIngresoChange) {
+          onFormaIngresoChange(defaultForma.FORMA_INGRESO, defaultForma);
+        }
+      }
+    }
+  }, [formasIngreso, formData.formaIngreso, formData.formaIngresoDisplay]);
 
-  // ===== SearchableSelect (fuente normal) =====
-  const SearchableSelect = ({
-    label,
-    value,
-    options,
-    loading,
-    search,
-    onSearchChange,
-    onSelect,
-    selectName,
-    required = false,
-    error = "",
-    placeholder = "Seleccionar...",
-  }: any) => (
-    <div className="space-y-2 searchable-select-root">
-      <Label>
-        {label} {required && <span className="text-red-500">*</span>}
-      </Label>
-      <div className="relative">
-        <Button
-          type="button"
-          variant="outline"
-          className={`w-full justify-between font-normal ${
-            error ? "border-red-500" : ""
-          }`}
-          onClick={() => openDropdown(selectName)}
-          disabled={disabled}
-        >
-          <span className="truncate font-normal">{value || placeholder}</span>
-          {openSelect === selectName ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
+  // Set default value for Seguro from filiacion2 if not already set
+  useEffect(() => {
+    if (seguroData && !formData.seguro && !formData.seguroDisplay) {
+      console.log('Setting default seguro from filiacion2:', seguroData);
+      onFormChange('seguro', seguroData.seguro);
+      onFormChange('seguroDisplay', seguroData.seguroDisplay);
+      if (onSeguroChange) {
+        onSeguroChange(seguroData.seguro, {
+          Seguro: seguroData.seguro,
+          Nombre: seguroData.nombreSeguro
+        });
+      }
+    }
+  }, [seguroData, formData.seguro, formData.seguroDisplay]);
 
-        {openSelect === selectName && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
-            <div className="p-2 border-b">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder={`Buscar ${label.toLowerCase()}...`}
-                  value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center p-4">
-                  <Spinner size="sm" />
-                  <span className="ml-2">Cargando...</span>
-                </div>
-              ) : options.length > 0 ? (
-                options.map((option: any, idx: number) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                    onClick={() => {
-                      onSelect(option);
-                      setOpenSelect(null); // cerrar al seleccionar
-                    }}
-                  >
-                    <div className="text-sm font-normal">{option.display}</div>
-                    {option.description && (
-                      <div className="text-xs text-gray-500 font-normal">
-                        {option.description}
-                      </div>
-                    )}
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-gray-500 text-sm font-normal">
-                  No se encontraron resultados
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
-    </div>
-  );
+  // Using the reusable SearchableSelect component
 
   // ===== Formato de opciones =====
   const formatTipoAtencion = TIPO_ATENCION_OPTIONS
@@ -397,7 +316,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         {/* Tipo de Atención (E/U) */}
         <SearchableSelect
           label="Tipo Atención"
-          value={displayFrom(TIPO_ATENCION_OPTIONS, formData.tipoAtencion)}
+          value={displayFrom(TIPO_ATENCION_OPTIONS, formData.tipoAtencion || "E")}
           options={formatTipoAtencion}
           loading={false}
           search={searchTipoAtencion}
@@ -407,6 +326,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           required
           error={validationErrors.tipoAtencion}
           placeholder="Seleccionar tipo de atención..."
+          disabled={disabled}
         />
 
         {/* Motivo de Ingreso */}
@@ -429,6 +349,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           required
           error={validationErrors.motivoEmergencia}
           placeholder="Seleccionar motivo..."
+          disabled={disabled}
         />
 
         {/* Consultorio */}
@@ -451,12 +372,13 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           required
           error={validationErrors.consultorio}
           placeholder="Seleccionar consultorio..."
+          disabled={disabled}
         />
 
         {/* Forma de Ingreso */}
         <SearchableSelect
           label="Forma de Ingreso"
-          value={formData.formaIngresoDisplay || ""}
+          value={formData.formaIngresoDisplay || "(1) - Caminando"}
           options={formatFormas}
           loading={loadingFormas}
           search={searchForma}
@@ -473,14 +395,15 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           required
           error={validationErrors.formaIngreso}
           placeholder="Seleccionar forma de ingreso..."
+          disabled={disabled}
         />
 
         {/* Seguro */}
         <SearchableSelect
-          label="Seguro"
-          value={formData.seguroDisplay || ""}
+          label="Condición del Paciente"
+          value={formData.seguroDisplay || (seguroData?.seguroDisplay) || ""}
           options={formatSeguros}
-          loading={loadingSeguros}
+          loading={loadingSeguros || loadingPatientSeguro}
           search={searchSeguro}
           onSearchChange={(v: string) => {
             setSearchSeguro(v);
@@ -494,7 +417,8 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           selectName="seguro"
           required
           error={validationErrors.seguro}
-          placeholder="Seleccionar seguro..."
+          placeholder={seguroData ? `Cargando seguro del paciente...` : "Seleccionar seguro..."}
+          disabled={disabled}
         />
       </div>
 

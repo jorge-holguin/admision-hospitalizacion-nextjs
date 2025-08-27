@@ -29,6 +29,9 @@ interface PatientData {
   localidad?: string;
   nombreOcupacion?: string;
   photo?: string;
+  // Añadir campos para el código de ubigeo y lugar de nacimiento
+  Expr2?: string;
+  LUGAR_NACIMIENTO?: string;
 }
 
 // Define the context interface
@@ -169,7 +172,10 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
             localidad: data.data.LOCALIDAD || '',
             nombreLocalidad: data.data.Nombre_Localidad || '',
             nombreOcupacion: data.data.NOMBRE_OCUPACION || '',
-            photo: processPhotoData(data.data.STRING_PHOTO || data.data.STRING_FOTO || '')
+            photo: processPhotoData(data.data.STRING_PHOTO || data.data.STRING_FOTO || ''),
+            // Añadir los campos de ubigeo y lugar de nacimiento
+            Expr2: data.data.Expr2 || '',
+            LUGAR_NACIMIENTO: data.data.LUGAR_NACIMIENTO || ''
           };
           
           setPatientData(currentPatientId, patientInfo);

@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import FuaEmergencyStatusAlert from './FuaEmergencyStatusAlert';
 
 interface FormActionsEmergencyProps {
   onSave: () => Promise<void>;
@@ -21,6 +22,7 @@ interface FormActionsEmergencyProps {
   onBeforeSave?: () => Promise<boolean>;
   isUpdate?: boolean;
   formData?: any; // Datos del formulario para generar SQL
+  insuranceCode?: string; // Código de seguro para validación FUA
 }
 
 export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
@@ -31,9 +33,15 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
   patientId,
   onBeforeSave,
   isUpdate = false,
-  formData
+  formData,
+  insuranceCode
 }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [fuaValidationPassed, setFuaValidationPassed] = useState(false);
+  
+  // Códigos de seguro SIS que requieren validación FUA
+  const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25'];
+  const requiresFuaValidation = Boolean(insuranceCode && sisInsuranceCodes.includes(insuranceCode.trim()));
 
   const handleSaveClick = async () => {
     console.log('handleSaveClick ejecutado');
@@ -69,6 +77,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
           variant="outline"
           onClick={onCancel}
           disabled={submitting}
+          className="bg-[#e91e63] hover:bg-[#d81b60] text-white hover:text-white"
         >
           <X className="mr-2 h-4 w-4" /> Cancelar
         </Button>
@@ -79,6 +88,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
             handleSaveClick();
           }}
           disabled={submitting || !isEditable}
+          className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
         >
           {submitting ? (
             <>
@@ -103,13 +113,29 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
             </AlertDialogTitle>
             <AlertDialogDescription>
               ¿Está seguro que desea {isUpdate ? 'actualizar' : 'crear'} este
-              registro de emergencia? Se generará una consulta SQL para insertar los datos en la base de datos.
+              registro de emergencia?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          {/* Validación FUA para seguros SIS */}
+          {requiresFuaValidation && (
+            <div className="px-6 pb-4">
+              <FuaEmergencyStatusAlert 
+                patientId={patientId}
+                insuranceCode={insuranceCode}
+                onValidationChange={setFuaValidationPassed}
+              />
+            </div>
+          )}
+          
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Button onClick={handleConfirmSave} variant="default">
+              <Button 
+                onClick={handleConfirmSave} 
+                variant="default"
+                disabled={requiresFuaValidation && !fuaValidationPassed}
+              >
                 {isUpdate ? 'Actualizar' : 'Crear'}
               </Button>
             </AlertDialogAction>

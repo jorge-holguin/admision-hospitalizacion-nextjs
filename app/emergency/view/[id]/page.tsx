@@ -1,10 +1,10 @@
 "use client"
 
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { useState, useEffect } from 'react'
 import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Edit } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
@@ -16,17 +16,19 @@ import { Toaster } from "@/components/ui/toaster"
 export default function EmergencyViewEditPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const emergencyId = params.id as string;
+  const urlMode = searchParams.get('mode') || 'view';
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [emergencyData, setEmergencyData] = useState<any>(null);
   const [patientId, setPatientId] = useState<string | null>(null);
-  const [mode, setMode] = useState<'edit' | 'read'>('edit');
+  const [mode, setMode] = useState<'edit' | 'read'>(urlMode === 'edit' ? 'edit' : 'read');
   const [statusInfo, setStatusInfo] = useState<{
     isReadOnly: boolean;
     statusText: string;
-  }>({ isReadOnly: false, statusText: 'Cargando...' });
+  }>({ isReadOnly: urlMode !== 'edit', statusText: 'Cargando...' });
 
   // Fetch emergency data
   useEffect(() => {
@@ -64,13 +66,26 @@ export default function EmergencyViewEditPage() {
           
           setPatientId(emergency.PACIENTE);
           
-          // Determine mode based on status
-          const status = resolveStatus(emergency.ESTADO || '0');
-          setMode(status.mode as 'edit' | 'read');
-          setStatusInfo({
-            isReadOnly: status.isReadOnly,
-            statusText: status.statusText
-          });
+          // Determinar el estado según el estado de la emergencia y el modo de la URL
+          const emergencyStatus = emergency.ESTADO;
+          const isEditable = emergencyStatus === '2'; // Solo estado REGISTRADO (2) es editable
+          
+          // Si el modo de la URL es 'edit' y el registro es editable, permitir edición
+          if (urlMode === 'edit' && isEditable) {
+            setMode('edit');
+            setStatusInfo({
+              isReadOnly: false,
+              statusText: 'Modo edición'
+            });
+          } else {
+            setMode('read');
+            setStatusInfo({
+              isReadOnly: true,
+              statusText: urlMode === 'edit' && !isEditable 
+                ? 'No editable - Estado del registro no permite modificaciones'
+                : 'Modo visualización'
+            });
+          }
         } else {
           throw new Error(data.error || 'No se encontraron datos de emergencia');
         }
@@ -98,12 +113,52 @@ export default function EmergencyViewEditPage() {
     }
   }, [emergencyId]);
 
+  // Efecto para monitorear cambios en el parámetro mode de la URL
+  useEffect(() => {
+    // Solo actualizar si ya tenemos datos cargados
+    if (emergencyData) {
+      const newMode = urlMode === 'edit' ? 'edit' : 'read';
+      const isEditable = emergencyData.ESTADO === '2';
+      
+      // Actualizar el modo y el estado de solo lectura según la URL y el estado del registro
+      if (newMode === 'edit' && isEditable) {
+        setMode('edit');
+        setStatusInfo({
+          isReadOnly: false,
+          statusText: 'Modo edición'
+        });
+      } else {
+        setMode('read');
+        setStatusInfo({
+          isReadOnly: true,
+          statusText: urlMode === 'edit' && !isEditable 
+            ? 'No editable - Estado del registro no permite modificaciones'
+            : 'Modo visualización'
+        });
+      }
+    }
+  }, [urlMode, emergencyData]);
+
   // Function to go back to the emergency list
   const handleGoBack = () => {
     if (patientId) {
       router.push(`/emergency/${patientId}`);
     } else {
       router.push('/dashboard');
+    }
+  };
+
+  // Function to toggle edit mode
+  const handleToggleEditMode = () => {
+    if (mode === 'read' && emergencyData?.ESTADO === '2') {
+      // Switch to edit mode and update state immediately
+      setMode('edit');
+      setStatusInfo({
+        isReadOnly: false,
+        statusText: 'Modo edición'
+      });
+      // Update URL without full page navigation
+      router.push(`/emergency/view/${emergencyId}?mode=edit`, { scroll: false });
     }
   };
 
@@ -131,12 +186,25 @@ export default function EmergencyViewEditPage() {
             </h2>
           </div>
           
-          <Badge 
-            variant={mode === 'edit' ? "outline" : "secondary"}
-            className="text-sm py-1 px-3"
-          >
-            {statusInfo.statusText}
-          </Badge>
+          <div className="flex items-center gap-3">
+            {mode === 'read' && emergencyData?.ESTADO === '2' && (
+              <Button
+                onClick={handleToggleEditMode}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+            )}
+            
+            <Badge 
+              variant={mode === 'edit' ? "outline" : "secondary"}
+              className="text-sm py-1 px-3"
+            >
+              {statusInfo.statusText}
+            </Badge>
+          </div>
         </div>
         
         {statusInfo.isReadOnly && (

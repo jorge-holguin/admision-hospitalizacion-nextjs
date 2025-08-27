@@ -52,50 +52,25 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
 }) => {
   // Use the patient data context
   const { getPatientData } = usePatientData();
-  const { fetchPatientData, isLoading, error } = useFetchPatientData(patientId);
   const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Use a ref to track if we've already loaded data for this patient ID
   const hasLoadedRef = useRef<{[key: string]: boolean}>({});
   
   useEffect(() => {
-    const loadPatientData = async () => {
-      // Skip if we've already loaded this patient's data in this component instance
-      if (patientId && hasLoadedRef.current[patientId]) {
-        return;
+    // Only read from context - don't make API calls
+    // The parent component (EmergencyFormRefactored) is responsible for loading data
+    const existingData = getPatientData(patientId);
+    
+    if (existingData) {
+      setPatientData(existingData);
+      if (onDataLoaded && !hasLoadedRef.current[patientId]) {
+        onDataLoaded(existingData);
+        hasLoadedRef.current[patientId] = true;
       }
-      
-      // Check if we already have the data in context
-      const existingData = getPatientData(patientId);
-      
-      if (existingData) {
-        setPatientData(existingData);
-        if (onDataLoaded) {
-          onDataLoaded(existingData);
-        }
-        // Mark as loaded
-        if (patientId) {
-          hasLoadedRef.current[patientId] = true;
-        }
-        return;
-      }
-      
-      // If not, fetch it
-      const data = await fetchPatientData();
-      if (data && onDataLoaded) {
-        setPatientData(data);
-        onDataLoaded(data);
-        // Mark as loaded
-        if (patientId) {
-          hasLoadedRef.current[patientId] = true;
-        }
-      }
-    };
-
-    if (patientId) {
-      loadPatientData();
     }
-  }, [patientId]);  // Only depend on patientId changing
+  }, [patientId, getPatientData, onDataLoaded]);  // Listen for context changes
 
   if (isLoading) {
     return (
@@ -110,17 +85,6 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
     );
   }
 
-  if (error) {
-    return (
-      <Card className={className}>
-        <CardContent className="pt-6">
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (!patientData) {
     return (
@@ -137,8 +101,11 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No especificado';
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-ES', {
+      // Asegurar que la fecha se interprete correctamente sin problemas de zona horaria
+      const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+      
+      // Crear la fecha con los componentes exactos (mes es 0-indexed en JavaScript)
+      return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -217,7 +184,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>{patientData.tipoDocumento || 'DNI'}:</strong> {patientData.documento || 'No especificado'}
+              <strong>DNI:</strong> {patientData.documento || 'No especificado'}
             </span>
           </div>
 

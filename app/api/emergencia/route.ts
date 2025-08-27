@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import emergenciaService from '@/services/emergencia/listaEmergenciaService';
+import { emergenciaService as emergenciaServiceCRUD } from '@/services/emergencia/emergenciaService';
 import { nextIdService } from '@/services/emergencia/nextIdService';
 
 /**
@@ -122,6 +123,42 @@ export async function GET(request: NextRequest) {
       { 
         success: false,
         error: error.message || 'Error al listar emergencias' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/emergencia
+ * Endpoint para crear una nueva emergencia
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Obtener los datos del cuerpo de la solicitud
+    const data = await request.json();
+    
+    // Validar datos mínimos requeridos
+    if (!data.PACIENTE) {
+      return NextResponse.json(
+        { success: false, error: 'El ID del paciente es obligatorio' },
+        { status: 400 }
+      );
+    }
+    
+    // Crear la emergencia
+    const emergencia = await emergenciaServiceCRUD.createEmergencia(data);
+    
+    return NextResponse.json({
+      success: true,
+      data: emergencia
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error al crear emergencia:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: error.message || 'Error al crear emergencia' 
       },
       { status: 500 }
     );

@@ -1,39 +1,135 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect, OptionItem } from '@/components/ui/SearchableSelect';
 
 interface AdditionalViewFieldsSectionProps {
   formData: any;
   onFormChange: (field: string, value: string) => void;
   validationErrors: Record<string, string>;
   disabled: boolean;
+  readOnly?: boolean;
 }
 
 export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionProps> = ({
   formData,
   onFormChange,
   validationErrors,
-  disabled
+  disabled,
+  readOnly = false
 }) => {
-  // Mapeo de códigos de tipo de documento a valores del select
-  useEffect(() => {
-    // Si tenemos un tipo de documento del API, mapearlo al formato del select
-    if (formData.tipoDocumentoA) {
-      const tipoDoc = formData.tipoDocumentoA.trim();
-      let mappedValue = tipoDoc;
+  // Tipo para los documentos de la API
+  interface TipoDocumento {
+    TIPO_DOCUMENTO: string;
+    NOMBRE: string;
+    ACTIVO: number;
+  }
+
+  // Estados para el SearchableSelect de tipo de documento
+  const [searchTipoDocumento, setSearchTipoDocumento] = useState<string>('');
+  const [loadingTiposDocumento, setLoadingTiposDocumento] = useState<boolean>(false);
+  const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
+
+  // Cargar tipos de documento desde la API
+  const loadTiposDocumento = async (search: string = '') => {
+    try {
+      setLoadingTiposDocumento(true);
+      const response = await fetch(`/api/tipo-documento${search ? `?search=${encodeURIComponent(search)}` : ''}`);
       
-      // Mapear códigos según la documentación
-      if (tipoDoc === 'D') mappedValue = 'DNI';
-      else if (tipoDoc === 'CE') mappedValue = 'CE';
-      else if (tipoDoc === 'PP') mappedValue = 'PAS';
-      
-      // Solo actualizar si es diferente para evitar bucles
-      if (mappedValue !== formData.tipoDocumentoA) {
-        onFormChange('tipoDocumentoA', mappedValue);
+      if (!response.ok) {
+        throw new Error('Error al obtener tipos de documento');
       }
+      
+      const data = await response.json();
+      
+      // La API devuelve directamente el array de tipos de documento
+      if (Array.isArray(data)) {
+        setTiposDocumento(data);
+      } else {
+        // Fallback para datos de prueba si la API devuelve un formato inesperado
+        setTiposDocumento([
+          { TIPO_DOCUMENTO: 'D', NOMBRE: 'DNI', ACTIVO: 1 },
+          { TIPO_DOCUMENTO: 'CE', NOMBRE: 'Carnet de Extranjería', ACTIVO: 1 },
+          { TIPO_DOCUMENTO: 'PP', NOMBRE: 'Pasaporte', ACTIVO: 1 },
+          { TIPO_DOCUMENTO: '0', NOMBRE: 'Ninguno', ACTIVO: 1 }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error al cargar tipos de documento:', error);
+      // Datos de respaldo en caso de error
+      setTiposDocumento([
+        { TIPO_DOCUMENTO: 'D', NOMBRE: 'DNI', ACTIVO: 1 },
+        { TIPO_DOCUMENTO: 'CE', NOMBRE: 'Carnet de Extranjería', ACTIVO: 1 },
+        { TIPO_DOCUMENTO: 'PP', NOMBRE: 'Pasaporte', ACTIVO: 1 },
+        { TIPO_DOCUMENTO: '0', NOMBRE: 'Ninguno', ACTIVO: 1 }
+      ]);
+    } finally {
+      setLoadingTiposDocumento(false);
     }
-  }, [formData.tipoDocumentoA]);
+  };
+  
+  // Cargar datos iniciales
+  useEffect(() => {
+    loadTiposDocumento();
+  }, []);
+
+  // Formato para el SearchableSelect
+  const formatTiposDocumento = useMemo(() => {
+    console.log('DEBUG - tiposDocumento:', tiposDocumento);
+    console.log('DEBUG - searchTipoDocumento:', searchTipoDocumento);
+    
+    const formatted = tiposDocumento
+      .filter(t => !searchTipoDocumento || 
+        t.NOMBRE?.toLowerCase().includes(searchTipoDocumento.toLowerCase()) ||
+        t.TIPO_DOCUMENTO?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
+      .map(t => ({
+        value: t.TIPO_DOCUMENTO,
+        display: `(${t.TIPO_DOCUMENTO}) - ${t.NOMBRE}`,
+        description: '',
+        data: t
+      }));
+    
+    console.log('DEBUG - formatted options:', formatted);
+    return formatted;
+  }, [tiposDocumento, searchTipoDocumento]);
+  
+  // Manejar cambio de tipo de documento
+  const onTipoDocumentoChange = (value: string, data: any) => {
+    // Lógica adicional si es necesaria
+  };
+
+  // Inicializar el valor de display para el tipo de documento usando datos de la API
+  const [initialized, setInitialized] = useState(false);
+  
+  useEffect(() => {
+    // Solo ejecutar si no se ha inicializado o si cambia el tipo de documento
+    if ((!initialized || !formData.tipoDocumentoADisplay) && formData.tipoDocumentoA && tiposDocumento.length > 0) {
+      const tipoDoc = formData.tipoDocumentoA.trim();
+      
+      // Buscar el tipo de documento en los datos cargados desde la API
+      const tipoDocEncontrado = tiposDocumento.find(t => t.TIPO_DOCUMENTO === tipoDoc);
+      
+      if (tipoDocEncontrado) {
+        // Si se encuentra en la API, usar el nombre de la API
+        const displayValue = `(${tipoDocEncontrado.TIPO_DOCUMENTO}) - ${tipoDocEncontrado.NOMBRE}`;
+        onFormChange('tipoDocumentoADisplay', displayValue);
+      } else {
+        // Fallback para códigos que no están en la API
+        let displayValue = '';
+        
+        // Mapear códigos comunes a valores de display
+        if (tipoDoc === 'D') displayValue = '(D) - DNI';
+        else if (tipoDoc === 'CE') displayValue = '(CE) - Carnet de Extranjería';
+        else if (tipoDoc === 'PAS') displayValue = '(PAS) - Pasaporte';
+        else if (tipoDoc === 'OTROS') displayValue = '(OTROS) - Otros documentos';
+        else displayValue = `(${tipoDoc}) - ${tipoDoc}`;
+        
+        onFormChange('tipoDocumentoADisplay', displayValue);
+      }
+      
+      setInitialized(true);
+    }
+  }, [formData.tipoDocumentoA, tiposDocumento, initialized, formData.tipoDocumentoADisplay]);
   
   return (
     <div className="space-y-6 mt-6" data-testid="additional-view-fields-section">
@@ -53,22 +149,27 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tipoDocumentoA">Tipo Documento Acompañante <span className="text-red-500">*</span></Label>
-          <Select
-            value={formData.tipoDocumentoA || ''}
-            onValueChange={(value) => onFormChange('tipoDocumentoA', value)}
-            disabled={disabled}
-          >
-            <SelectTrigger className="md:text-sm">
-              <SelectValue placeholder="Seleccionar tipo..." />
-            </SelectTrigger>
-            <SelectContent className="md:text-sm">
-              <SelectItem value="DNI">DNI</SelectItem>
-              <SelectItem value="CE">Carnet de Extranjería</SelectItem>
-              <SelectItem value="PAS">Pasaporte</SelectItem>
-              <SelectItem value="OTROS">Otros</SelectItem>
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            label="Tipo Documento Acompañante"
+            value={formData.tipoDocumentoA === 'D' ? formData.tipoDocumentoADisplay : (formData.tipoDocumentoADisplay || '(D) - DNI')}
+            options={formatTiposDocumento}
+            loading={loadingTiposDocumento}
+            search={searchTipoDocumento}
+            onSearchChange={(v: string) => {
+              setSearchTipoDocumento(v);
+              loadTiposDocumento(v);
+            }}
+            onSelect={(opt: OptionItem) => {
+              onFormChange("tipoDocumentoA", opt.value);
+              onFormChange("tipoDocumentoADisplay", opt.display);
+              onTipoDocumentoChange(opt.value, opt.data);
+            }}
+            selectName="tipoDocumentoAcompanante"
+            required
+            error={validationErrors?.tipoDocumentoA || ''}
+            placeholder="Seleccionar tipo de documento..."
+            disabled={disabled || readOnly}
+          />
         </div>
 
         <div className="space-y-2">

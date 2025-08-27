@@ -13,6 +13,7 @@ import { printMultiplePdfsViaDirectApi, printMergedPDF } from '@/utils/pdfUtils'
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
 import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
 import { datetimeService } from '@/services/datetimeService'
+import { usePatient } from '@/contexts/PatientContext'
 
 // Componentes reutilizables
 import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
@@ -21,7 +22,6 @@ import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/component
 import { PatientSection } from './PatientSection'
 import { CompanionSection } from './CompanionSection'
 import { HospitalizationSection } from './HospitalizationSection'
-import { CompanionForm } from './CompanionForm'
 import { FormActions } from './FormActions'
 import { FormHeader } from './FormHeader'
 import { HospitalizationDetails } from './HospitalizationDetails'
@@ -46,6 +46,7 @@ const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 export function HospitalizationFormRefactored({ patientId, orderId }: HospitalizationFormProps) {
   const router = useRouter();
   const { user } = useAuth(); // Moved inside the component
+  const { patientData, setPatientData } = usePatient();
   const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null) as React.RefObject<VerificacionDiagnosticoRef>;
   
   // Estado para loading y error handling
@@ -145,6 +146,14 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
 
   // Función para manejar los datos del paciente cargados desde PatientInfoCard
   const handlePatientDataLoaded = useCallback((data: any) => {
+    // Guardar datos del paciente en el contexto global
+    setPatientData({
+      hc: data.historyNumber,
+      name: `${data.paternalSurname} ${data.maternalSurname}, ${data.names}`,
+      documento: data.document,
+      pacienteId: patientId
+    });
+
     // Actualizar formData con los datos del paciente
     setFormData(prev => ({
       ...prev,
@@ -158,7 +167,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
       age: data.age,
       insurance: data.insurance
     }));
-  }, []);
+  }, [patientId, setPatientData]);
 
   // Manejar cambios en el formulario
   const handleFormChange = (field: string, value: string) => {

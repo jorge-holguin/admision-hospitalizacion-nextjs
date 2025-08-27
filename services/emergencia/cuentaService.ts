@@ -14,7 +14,7 @@ class CuentaService {
       const cuenta = await prisma.$queryRaw`
         SELECT TOP 1 CUENTAID 
         FROM CUENTA 
-        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' 
+        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' AND ORIGEN = 'EM'
         ORDER BY CUENTAID DESC
       ` as any[];
       

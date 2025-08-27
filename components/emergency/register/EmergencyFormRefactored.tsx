@@ -19,34 +19,61 @@ import { FormHeaderEmergency } from './FormHeaderEmergency'
 import { EmergencyDetails } from './EmergencyDetails'
 import { validateEmergencyForm } from './FormValidatorEmergency'
 import { useSelectsState } from './FormUtilsEmergency'
+import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
 
-// Tipos para emergencia (simplified for now)
+import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
+import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext'
+
+// Extender la interfaz de datos del paciente para incluir los campos adicionales
+interface PatientDataExtended {
+  estadoCivil?: string;
+  direccion?: string;
+  distrito?: string;
+  telefono1?: string;
+  telefono2?: string;
+  tipoDocumento?: string;
+  documento?: string;
+  localidad?: string;
+  seguro?: string;
+  descSeguro?: string;
+  religion?: string;
+  nombre?: string;
+  nombres?: string;
+  apellidoPaterno?: string;
+  apellidoMaterno?: string;
+  Expr2?: string;
+  LUGAR_NACIMIENTO?: string;
+  [key: string]: any; // Para permitir acceso a propiedades adicionales
+}
+
+import { useAuth } from '@/components/AuthProvider';
+
+// Tipos para los datos de emergencia
 interface MotivoEmergencia {
-  MOTIVO_EMERGENCIA: string;
+  CODIGO: string;
   NOMBRE: string;
 }
 
 interface Consultorio {
-  CONSULTORIO: string;
+  CODIGO: string;
   NOMBRE: string;
 }
 
 interface Medico {
-  MEDICO: string;
-  NOMBRE: string;
+  CODIGO: string;
+  NOMBRES: string;
+  APELLIDOS: string;
 }
 
 interface Seguro {
-  SEGURO: string;
+  CODIGO: string;
   NOMBRE: string;
 }
 
 interface Diagnostico {
   CODIGO: string;
-  DESCRIPCION: string;
+  NOMBRE: string;
 }
-
-import { useAuth } from '@/components/AuthProvider';
 
 interface EmergencyFormProps {
   patientId: string;
@@ -63,11 +90,33 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [patientData, setPatientData] = useState<any>(null);
+  const [patientData, setPatientData] = useState<PatientDataExtended | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isEditable, setIsEditable] = useState(true);
   const [fieldsLocked, setFieldsLocked] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
+  
+  // Variables para FuaEmergencyStatusAlert
+  const [insuranceCode, setInsuranceCode] = useState<string>('');
+  const [numeroCuenta, setNumeroCuenta] = useState<string>('');
+  const [loadingCuenta, setLoadingCuenta] = useState<boolean>(false);
+
+  // Memoized callback for FUA validation
+  const handleFuaValidationChange = useCallback((isValid: boolean) => {
+    console.log('Estado de validación FUA en formulario principal:', isValid);
+    setMainFormFuaValidationPassed(isValid);
+  }, []);
+  const [mainFormFuaValidationPassed, setMainFormFuaValidationPassed] = useState<boolean>(false);
+  
+  // Códigos de seguro SIS que requieren validación FUA
+  const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25'];
+  const requiresFuaValidation = Boolean(insuranceCode && sisInsuranceCodes.includes(insuranceCode.trim()));
+  
+  // Monitorear cambios en el código de seguro
+  useEffect(() => {
+    console.log('Código de seguro actualizado:', insuranceCode);
+    console.log('Requiere validación FUA:', requiresFuaValidation);
+  }, [insuranceCode, requiresFuaValidation]);
   
   // Estado para motivos de emergencia
   const [motivos, setMotivos] = useState<MotivoEmergencia[]>([]);
@@ -99,6 +148,12 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [selectedSeguro, setSelectedSeguro] = useState<Seguro | null>(null);
   const [searchSeguro, setSearchSeguro] = useState('');
   
+  // Estado para tipos de documento
+  const [tiposDocumento, setTiposDocumento] = useState<any[]>([]);
+  const [loadingTiposDocumento, setLoadingTiposDocumento] = useState(false);
+  const [selectedTipoDocumento, setSelectedTipoDocumento] = useState<any | null>(null);
+  const [searchTipoDocumento, setSearchTipoDocumento] = useState('');
+  
   // Estado para diagnósticos
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
   const [loadingDiagnosticos, setLoadingDiagnosticos] = useState(false);
@@ -112,7 +167,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   
   // Estado para los selectores abiertos
   const { openSelects, toggleSelect, closeAllSelects } = useSelectsState();
-  
+  const primerApellido = typeof window !== 'undefined' ? extractUserSurnameFromToken() : 'SUPERVISOR';
+
   // Initialize form data with empty values
   const [formData, setFormData] = useState({
     patientId: patientId,
@@ -126,9 +182,10 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     diagnostico: '',
     observacion1: '',
     observacion2: '',
-    estado: '1', // 1 = REGISTRADO
+    estado: '2', // 2 = REGISTRADO
     // Campos del paciente
     paciente: patientId,
+    nombre: '', // Añadir campo nombre
     nombres: '',
     apellidoPaterno: '',
     apellidoMaterno: '',
@@ -154,24 +211,159 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     seguroLiq: '',
     formaIngreso: '',
     cuentaId: '',
-    usuario: user?.sub || 'SISTEMA'
+    usuario: primerApellido || 'SISTEMA',
+    // Campos adicionales para distrito y lugar de nacimiento
+    Expr2: '',
+    LUGAR_NACIMIENTO: ''
   });
 
-  // Función para manejar los datos del paciente cargados desde PatientInfoCard
-  const handlePatientDataLoaded = useCallback((data: any) => {
+  // Obtener funciones del contexto de datos del paciente
+  const { getPatientData } = usePatientData();
+  const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId);
+
+  // Función para asegurar que los datos del paciente estén disponibles (orquestador único)
+  const ensurePatientData = useCallback(async (patientId: string): Promise<PatientDataExtended | null> => {
+    // Primero verificar si ya tenemos los datos en el contexto
+    const existingData = getPatientData(patientId);
+    if (existingData) {
+      console.log('Datos del paciente ya disponibles en contexto');
+      return existingData as PatientDataExtended;
+    }
+
+    // Si no hay datos, usar fetchPatientData que ya tiene deduplicación
+    console.log('Cargando datos del paciente desde API...');
+    const fetchedData = await fetchPatientData();
+    return fetchedData as PatientDataExtended | null;
+  }, [getPatientData, fetchPatientData]);
+
+  // Cargar tipos de documento
+  useEffect(() => {
+    const fetchTiposDocumento = async () => {
+      try {
+        setLoadingTiposDocumento(true);
+        const response = await fetch('/api/tipo-documento');
+        if (!response.ok) {
+          throw new Error('Error al obtener tipos de documento');
+        }
+        const data = await response.json();
+        console.log('Tipos de documento cargados:', data);
+        setTiposDocumento(data);
+      } catch (error) {
+        console.error('Error al cargar tipos de documento:', error);
+      } finally {
+        setLoadingTiposDocumento(false);
+      }
+    };
+
+    fetchTiposDocumento();
+  }, []);
+
+  // Función para obtener los datos de filiación del paciente desde el contexto
+  const getPatientFiliation = useCallback((patientId: string): PatientDataExtended | null => {
+    // Obtener datos del paciente del contexto
+    const patientDataFromContext = getPatientData(patientId) as PatientDataExtended;
+    
+    if (!patientDataFromContext) {
+      return null;
+    }
+    
+    // Mapear los campos del contexto a los campos que necesitamos
+    return {
+      estadoCivil: patientDataFromContext.estadoCivil ? patientDataFromContext.estadoCivil.trim() : '',
+      direccion: patientDataFromContext.direccion ? patientDataFromContext.direccion.trim() : '',
+      // Usar el distrito del contexto
+      distrito: patientDataFromContext.distrito ? patientDataFromContext.distrito.trim() : '',
+      telefono1: patientDataFromContext.telefono1 ? patientDataFromContext.telefono1.trim() : '',
+      telefono2: patientDataFromContext.telefono2 ? patientDataFromContext.telefono2.trim() : '',
+      tipoDocumento: patientDataFromContext.tipoDocumento ? patientDataFromContext.tipoDocumento.trim() : '',
+      documento: patientDataFromContext.documento ? patientDataFromContext.documento.trim() : '',
+      // Asegurarse de eliminar espacios en blanco adicionales
+      localidad: patientDataFromContext.localidad ? patientDataFromContext.localidad.trim() : '',
+      seguro: patientDataFromContext.seguro ? patientDataFromContext.seguro.trim() : '',
+      descSeguro: patientDataFromContext.descSeguro ? patientDataFromContext.descSeguro.trim() : '',
+      religion: patientDataFromContext.religion ? patientDataFromContext.religion.trim() : '',
+      // Añadir el campo nombre que faltaba - usar el campo nombre del contexto, no nombres
+      nombre: patientDataFromContext.nombre ? patientDataFromContext.nombre.trim() : '',
+      nombres: patientDataFromContext.nombres ? patientDataFromContext.nombres.trim() : '',
+      apellidoPaterno: patientDataFromContext.apellidoPaterno ? patientDataFromContext.apellidoPaterno.trim() : '',
+      apellidoMaterno: patientDataFromContext.apellidoMaterno ? patientDataFromContext.apellidoMaterno.trim() : '',
+      // Incluir campos sexo y edad
+      sexo: patientDataFromContext.sexo ? patientDataFromContext.sexo.trim() : '',
+      edad: patientDataFromContext.edad ? patientDataFromContext.edad.trim() : '',
+      // Añadir campos adicionales para distrito y lugar de nacimiento
+      Expr2: patientDataFromContext.Expr2 ? patientDataFromContext.Expr2.trim() : '',
+      LUGAR_NACIMIENTO: patientDataFromContext.LUGAR_NACIMIENTO ? patientDataFromContext.LUGAR_NACIMIENTO.trim() : ''
+    };
+  }, [getPatientData]);
+
+  // Función para manejar los datos del paciente cargados (ahora solo actualiza el formulario)
+  const handlePatientDataLoaded = useCallback((data: PatientDataExtended) => {
     setPatientData(data);
+    
     // Actualizar formData con los datos del paciente
     setFormData(prev => ({
       ...prev,
+      nombre: data.nombre || '',
       nombres: data.nombres || '',
       apellidoPaterno: data.apellidoPaterno || '',
       apellidoMaterno: data.apellidoMaterno || '',
       documento: data.documento || '',
-      fechaNacimiento: data.fechaNacimiento || '',
+      tipoDocumento: data.tipoDocumento || '',
+      estadoCivil: data.estadoCivil || '',
+      direccion: data.direccion || '',
+      distrito: data.distrito || '',
+      telefono1: data.telefono1 || '',
+      telefono2: data.telefono2 || '',
+      localidad: data.localidad || '',
+      seguro: data.seguro || '',
+      religion: data.religion || '',
+      // Incluir campos sexo y edad
+      sexo: data.sexo || '',
       edad: data.edad || '',
-      sexo: data.sexo || ''
+      // Campos adicionales
+      Expr2: data.Expr2 || '',
+      LUGAR_NACIMIENTO: data.LUGAR_NACIMIENTO || ''
     }));
-  }, []);
+    
+    // Actualizar el código de seguro para FuaEmergencyStatusAlert
+    if (data.seguro) {
+      const seguroCode = data.seguro.trim();
+      setInsuranceCode(seguroCode);
+      console.log('Código de seguro actualizado:', seguroCode);
+    }
+    
+    // Si no hay emergencyId (modo creación), actualizar el seguro desde los datos del paciente
+    if (!emergencyId && data.seguro) {
+      setFormData(prev => ({
+        ...prev,
+        seguro: data.seguro || ''
+      }));
+      
+      // Buscar datos del seguro seleccionado
+      const seguroEncontrado = seguros.find(s => s.CODIGO === data.seguro);
+      if (seguroEncontrado) {
+        setSelectedSeguro(seguroEncontrado);
+      }
+    }
+  }, [emergencyId, seguros]);
+
+  // Efecto para cargar datos del paciente al montar el componente usando el orquestador único
+  useEffect(() => {
+    const loadInitialPatientData = async () => {
+      if (!patientId) return;
+      
+      try {
+        const data = await ensurePatientData(patientId);
+        if (data) {
+          handlePatientDataLoaded(data);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos iniciales del paciente:', error);
+      }
+    };
+
+    loadInitialPatientData();
+  }, [patientId, ensurePatientData, handlePatientDataLoaded]);
 
   // Manejar cambios en el formulario
   const handleFormChange = (field: string, value: string) => {
@@ -204,10 +396,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       fecha: data.fecha,
       hora: data.hora,
       consultorio: data.consultorio,
-      medico: data.medico,
       motivoEmergencia: data.motivoEmergencia,
       seguro: data.seguro,
-      diagnostico: data.diagnostico,
       observacion1: data.observacion1,
       observacion2: data.observacion2,
       estado: data.estado
@@ -229,6 +419,28 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     setIsEditable(readOnly ? false : isEditable);
     setFieldsLocked(readOnly ? true : isLocked);
     setLoading(false);
+  };
+
+
+  // Función para obtener la cuenta activa del paciente
+  const fetchPatientAccount = async (patientId: string) => {
+    try {
+      console.log(`Obteniendo cuenta activa para paciente: ${patientId}`);
+      const response = await fetch(`/api/cuenta/${patientId}`);
+      if (!response.ok) throw new Error('Error al obtener cuenta');
+      const data = await response.json();
+      
+      if (data?.success && data?.data?.cuentaId) {
+        console.log(`Cuenta encontrada: ${data.data.cuentaId}`);
+        return data.data.cuentaId;
+      } else {
+        console.log(`No se encontró cuenta activa para paciente ${patientId}`);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error al obtener cuenta del paciente:', error);
+      return null;
+    }
   };
 
   // Función para obtener el siguiente ID de emergencia y orden
@@ -255,64 +467,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     }
   };
 
-  // Función para obtener la cuenta activa del paciente
-  const fetchPatientAccount = async (patientId: string) => {
-    try {
-      const response = await fetch(`/api/cuenta/${patientId}`);
-      if (!response.ok) {
-        console.error('Error al obtener la cuenta del paciente:', response.statusText);
-        return null;
-      }
-      const result = await response.json();
-      console.log('Datos de cuenta obtenidos:', result);
-      
-      if (!result.success || !result.data) {
-        console.error('Formato de respuesta inválido para cuenta');
-        return null;
-      }
-      
-      return result.data.cuentaId;
-    } catch (error) {
-      console.error('Error al obtener la cuenta del paciente:', error);
-      return null;
-    }
-  };
 
-  // Función para obtener los datos de filiación del paciente
-  const fetchPatientFiliation = async (patientId: string) => {
-    try {
-      // Usar la API existente con el parámetro id
-      const response = await fetch(`/api/filiacion2/${patientId}`);
-      if (!response.ok) {
-        console.error('Error al obtener datos de filiación:', response.statusText);
-        return null;
-      }
-      const result = await response.json();
-      console.log('Datos de filiación obtenidos:', result);
-      
-      if (!result.success || !result.data) {
-        console.error('Formato de respuesta inválido para filiación');
-        return null;
-      }
-      
-      // Mapear los campos de la API de filiación a los campos que necesitamos
-      return {
-        estadoCivil: result.data.ESTADO_CIVIL || '',
-        direccion: result.data.DIRECCION || '',
-        // Usar Expr2 para el distrito si está disponible, de lo contrario usar DISTRITO
-        distrito: result.data.Expr2 ? result.data.Expr2.trim() : (result.data.DISTRITO || ''),
-        telefono1: result.data.TELEFONO1 || '',
-        telefono2: result.data.TELEFONO2 || '',
-        tipoDocumento: result.data.NOMBRE_DOCUMENTO === 'DNI' ? 'D' : result.data.NOMBRE_DOCUMENTO || '',
-        documento: result.data.DOCUMENTO || '',
-        // Asegurarse de eliminar espacios en blanco adicionales
-        localidad: result.data.LOCALIDAD ? result.data.LOCALIDAD.trim() : ''
-      };
-    } catch (error) {
-      console.error('Error al obtener datos de filiación:', error);
-      return null;
-    }
-  };
 
   // Función para procesar el formulario (solo se ejecuta después de la confirmación)
   const processForm = async () => {
@@ -339,36 +494,46 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         console.log('IDs obtenidos para usar en el formulario:', nextIds);
         emergencyIdToUse = nextIds.emergenciaId;
         ordenToUse = nextIds.orden;
+      }
+
+      // Obtener la cuenta activa del paciente si no la tenemos
+      if (!cuentaIdToUse) {
+        cuentaIdToUse = await fetchPatientAccount(patientId);
+        console.log('Cuenta obtenida para el paciente:', cuentaIdToUse);
         
-        // Obtener la cuenta activa del paciente
-        const cuentaId = await fetchPatientAccount(patientId);
-        if (cuentaId) {
-          console.log('Cuenta activa del paciente obtenida:', cuentaId);
-          cuentaIdToUse = cuentaId;
-        } else {
-          console.log('No se encontró cuenta activa para el paciente');
-        }
+        // Asegurar que los datos del paciente estén disponibles usando el orquestador único
+        await ensurePatientData(patientId);
+        const filiacionData = getPatientFiliation(patientId);
         
-        // Obtener los datos de filiación del paciente
-        const filiacionData = await fetchPatientFiliation(patientId);
         if (filiacionData) {
-          console.log('Datos de filiación obtenidos:', filiacionData);
+          console.log('Datos de filiación obtenidos del contexto:', filiacionData);
           
           // Actualizar el formulario con los datos de filiación
-          setFormData(prev => ({
-            ...prev,
-            emergenciaId: emergencyIdToUse,
-            orden: ordenToUse,
-            cuentaId: cuentaIdToUse,
-            estadoCivil: filiacionData.estadoCivil || prev.estadoCivil || '',
-            direccion: filiacionData.direccion || prev.direccion || '',
-            distrito: filiacionData.distrito || prev.distrito || '',
-            telefono1: filiacionData.telefono1 || prev.telefono1 || '',
-            telefono2: filiacionData.telefono2 || prev.telefono2 || '',
-            tipoDocumento: filiacionData.tipoDocumento || prev.tipoDocumento || '',
-            documento: filiacionData.documento || prev.documento || '',
-            localidad: filiacionData.localidad || prev.localidad || ''
-          }));
+          setFormData(prev => {
+            console.log('Actualizando formulario con datos de filiación:', filiacionData);
+            return {
+              ...prev,
+              emergenciaId: emergencyIdToUse,
+              orden: ordenToUse,
+              cuentaId: cuentaIdToUse,
+              estadoCivil: filiacionData.estadoCivil || prev.estadoCivil || '',
+              direccion: filiacionData.direccion || prev.direccion || '',
+              distrito: filiacionData.distrito || prev.distrito || '',
+              telefono1: filiacionData.telefono1 || prev.telefono1 || '',
+              telefono2: filiacionData.telefono2 || prev.telefono2 || '',
+              nombre: filiacionData.nombre || prev.nombre || '',
+              nombres: filiacionData.nombres || prev.nombres || '',
+              apellidoPaterno: filiacionData.apellidoPaterno || prev.apellidoPaterno || '',
+              apellidoMaterno: filiacionData.apellidoMaterno || prev.apellidoMaterno || '',
+              tipoDocumento: filiacionData.tipoDocumento || prev.tipoDocumento || '',
+              documento: filiacionData.documento || prev.documento || '',
+              localidad: filiacionData.localidad || prev.localidad || '',
+              seguro: filiacionData.seguro ? `${filiacionData.seguro} - ${filiacionData.descSeguro || ''}` : prev.seguro || '',
+              religion: filiacionData.religion || prev.religion || '',
+              Expr2: filiacionData.Expr2 || prev.Expr2 || '',
+              LUGAR_NACIMIENTO: filiacionData.LUGAR_NACIMIENTO || prev.LUGAR_NACIMIENTO || ''
+            };
+          });
         } else {
           console.log('No se encontraron datos de filiación para el paciente');
           
@@ -397,10 +562,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       
       // Extraer códigos de los valores seleccionados
       const consultorioCode = formData.consultorio.split(' - ')[0] || '';
-      const medicoCode = formData.medico.split(' - ')[0] || '';
       const motivoCode = formData.motivoEmergencia.split(' - ')[0] || '';
       const seguroCode = formData.seguro.split(' - ')[0] || '';
-      const diagnosticoCode = formData.diagnostico.split(' - ')[0] || '';
       
       // Usar el mismo valor de seguro para seguroLiq
       const seguroLiqValue = seguroCode;
@@ -408,53 +571,68 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       // Formatear fecha como YYYYMMDD
       const fechaFormateada = formData.fecha.replace(/-/g, '');
       
-      // Preparar datos para enviar al servidor
+      // Obtener los datos de filiación del paciente justo antes de enviar la solicitud
+      const filiacionData = getPatientFiliation(patientId);
+      
+      // Verificar que tenemos los datos necesarios
+      console.log('Datos de filiación para envío a API:', filiacionData);
+      console.log('Cuenta ID que se usará en el envío:', cuentaIdToUse);
+      
+      // Preparar datos para enviar al servidor con límites de longitud adecuados
       const emergencyData = {
         EMERGENCIA_ID: emergencyIdToUse,
         PACIENTE: patientId,
         FECHA: fechaFormateada,
         HORA: formData.hora,
-        CONSULTORIO: consultorioCode,
-        MEDICO: medicoCode.padEnd(4, ' ').substring(0, 4),
+        CONSULTORIO: consultorioCode.padEnd(6, ' ').substring(0, 6),
         MOTIVO_EMERGENCIA: motivoCode.padEnd(2, ' ').substring(0, 2),
-        SEGURO: seguroCode.padEnd(3, ' ').substring(0, 3),
-        CIEX1: diagnosticoCode,
-        OBSERVACION1: formData.observacion1 || '',
-        OBSERVACION2: formData.observacion2 || '',
-        ESTADO: formData.estado,
-        USUARIO: user?.sub || 'SISTEMA',
+        SEGURO: filiacionData?.seguro || seguroLiqValue || formData.seguroLiq || seguroCode || '',
+        OBSERVACION1: (formData.observacion1 || '').substring(0, 100), // Limitar a 100 caracteres
+        OBSERVACION2: (formData.observacion2 || '').substring(0, 100), // Limitar a 100 caracteres
+        ESTADO: formData.estado.substring(0, 1), // Limitar a 1 caracter
+        USUARIO: (primerApellido || 'SISTEMA').substring(0, 10), // Limitar a 10 caracteres
         // Campos adicionales
-        ORDEN: ordenToUse, // Usar el valor obtenido de la API
-        PATERNO: formData.apellidoPaterno || '',
-        MATERNO: formData.apellidoMaterno || '',
-        NOMBRE: formData.nombres || '',
-        NOMBRES: `${formData.apellidoPaterno} ${formData.apellidoMaterno} ${formData.nombres}`.trim(),
-        TIPO_DOCUMENTO: formData.tipoDocumento || '',
-        DOCUMENTO: formData.documento || '',
-        FECHA_NACIMIENTO: formData.fechaNacimiento ? formData.fechaNacimiento.replace(/-/g, '') : '',
-        EDAD: formData.edad || '',
-        SEXO: formData.sexo || '',
-        ESTADO_CIVIL: formData.estadoCivil || '',
-        DIRECCION: formData.direccion || '',
-        // Usar el valor de distrito que ahora contiene Expr2 (150701)
-        DISTRITO: formData.distrito || '',
-        TELEFONO1: formData.telefono1 || '',
-        TELEFONO2: formData.telefono2 || '',
-        ACOMPANANTE: formData.acompanante || '',
-        TIPO_DOCUMENTOA: formData.tipoDocumentoA || '',
-        DOCUMENTOA: formData.documentoA || '',
-        PRE_AFILIACION: formData.preAfiliacion || '',
-        LOCALIDAD: formData.localidad || '',
-        TIPOATENCION: formData.tipoAtencion || 'E',
-        RELIGION: formData.religion || '0',
-        SEGUROLIQ: seguroLiqValue || formData.seguroLiq || seguroCode || '',
-        FORMA_INGRESO: formData.formaIngreso || '3',
-        CUENTAID: formData.cuentaId || ''
+        ORDEN: (ordenToUse || '1').padStart(3, '0').substring(0, 3), // Formatear como '001' en lugar de '1'
+        // Usar datos de filiación para los campos de nombre y apellidos
+        PATERNO: (filiacionData && typeof filiacionData === 'object' && 'apellidoPaterno' in filiacionData ? String(filiacionData.apellidoPaterno) : formData.apellidoPaterno || '').substring(0, 30), // Limitar a 30 caracteres
+        MATERNO: (filiacionData && typeof filiacionData === 'object' && 'apellidoMaterno' in filiacionData ? String(filiacionData.apellidoMaterno) : formData.apellidoMaterno || '').substring(0, 30), // Limitar a 30 caracteres
+        NOMBRE: (filiacionData && typeof filiacionData === 'object' && 'nombre' in filiacionData ? String(filiacionData.nombre) : formData.nombres || '').substring(0, 30), // Limitar a 30 caracteres
+        NOMBRES: (filiacionData && typeof filiacionData === 'object' && 'nombres' in filiacionData ? String(filiacionData.nombres) : `${formData.nombres || ''} ${formData.apellidoMaterno || ''} ${formData.apellidoPaterno || ''}`).trim().substring(0, 100),
+        TIPO_DOCUMENTO: (filiacionData?.tipoDocumento || formData.tipoDocumento || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
+        DOCUMENTO: (formData.documento || '').substring(0, 15), // Limitar a 15 caracteres
+        FECHA_NACIMIENTO: formData.fechaNacimiento ? formData.fechaNacimiento.replace(/-/g, '').substring(0, 8) : '', // Limitar a 8 caracteres
+        EDAD: (filiacionData?.edad || formData.edad || '').substring(0, 10), // Limitar a 10 caracteres
+        SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1), // Limitar a 1 caracter
+        ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
+        DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100), // Limitar a 100 caracteres
+        // Usar el valor de ubigeo (Expr2) para el distrito
+        DISTRITO: (filiacionData?.Expr2 || '').trim().substring(0, 7), // Limitar a 7 caracteres
+        TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20), // Limitar a 20 caracteres
+        TELEFONO2: (filiacionData?.telefono2 || formData.telefono2 || '').substring(0, 20), // Limitar a 20 caracteres
+        ACOMPANANTE: (formData.acompanante || '').substring(0, 100), // Limitar a 100 caracteres
+        TIPO_DOCUMENTOA: (formData.tipoDocumentoA === 'D' ? 'D' : (formData.tipoDocumentoA || 'D')).substring(0, 2), // Asegurar que sea D por defecto
+        DOCUMENTOA: (formData.documentoA || '').substring(0, 15), // Limitar a 15 caracteres
+        PRE_AFILIACION: (formData.preAfiliacion || '').padEnd(1, ' ').substring(0, 1), // Limitar a 1 caracter
+        LOCALIDAD: (filiacionData?.localidad || formData.localidad || '').padEnd(12, ' ').substring(0, 12), // Limitar a 12 caracteres
+        TIPOATENCION: (formData.tipoAtencion || 'E').padEnd(1, ' ').substring(0, 1), // Limitar a 1 caracter
+        RELIGION: (filiacionData?.religion || formData.religion || '0').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
+        SEGUROLIQ: (seguroCode || seguroLiqValue || formData.seguroLiq ).padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
+        FORMA_INGRESO: (formData.formaIngreso === '1' ? '1' : (formData.formaIngreso || '1')).padEnd(1, ' ').substring(0, 1), // Asegurar que sea 1 (Caminando) por defecto
+        CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7) // Ajustar a Char(7) exactamente
       };
+      
+      // Log de los datos de filiación que se están usando
+      console.log('Datos de filiación aplicados al envío:', filiacionData);
+      
+      // Imprimir longitudes de cada campo para depuración
+      console.log('Longitudes de campos enviados a la API:');
+      Object.entries(emergencyData).forEach(([key, value]) => {
+        console.log(`${key}: ${value ? value.length : 0} caracteres - Valor: "${value}"`); 
+      });
       
       // Determinar si es creación o actualización
       const method = emergencyId ? 'PATCH' : 'POST';
-      const url = emergencyId ? `/api/emergencia/${emergencyId}` : '/api/emergencia/create';
+      const url = emergencyId ? `/api/emergencia/${emergencyId}` : '/api/emergencia';
       
       console.log('Enviando datos a la API:', { url, method, emergencyData });
       console.log('Valores finales para la emergencia:', { 
@@ -464,88 +642,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         hora: formData.hora 
       });
       
-      // Generar estructura SQL INSERT
-      // Usar los valores del formulario para fecha y hora
-      const formattedDate = formData.fecha ? formData.fecha.replace(/-/g, '') : fechaFormateada;
-      const formattedTime = formData.hora || '';
-      
-      const sqlInsert = `INSERT INTO Emergencia (
-    EMERGENCIA_ID,
-    FECHA,
-    HORA,
-    ORDEN,
-    PATERNO,
-    MATERNO,
-    NOMBRE,
-    NOMBRES,
-    PACIENTE,
-    FECHA_NACIMIENTO,
-    EDAD,
-    SEXO,
-    ESTADO_CIVIL,
-    DIRECCION,
-    DISTRITO,
-    TELEFONO1,
-    TELEFONO2,
-    TIPO_DOCUMENTO,
-    DOCUMENTO,
-    ACOMPANANTE,
-    TIPO_DOCUMENTOA,
-    DOCUMENTOA,
-    CONSULTORIO,
-    MOTIVO_EMERGENCIA,
-    SEGURO,
-    OBSERVACION1,
-    OBSERVACION2,
-    ESTADO,
-    CUENTAID,
-    USUARIO,
-    PRE_AFILIACION,
-    LOCALIDAD,
-    TIPOATENCION,
-    RELIGION,
-    SEGUROLIQ,
-    FORMA_INGRESO
-) VALUES (
-    '${emergencyIdToUse}',           -- EMERGENCIA_ID
-    '${formattedDate}',           -- FECHA
-    '${formattedTime}',              -- HORA
-    '${ordenToUse}',                -- ORDEN
-    '${emergencyData.PATERNO || ''}',            -- PATERNO
-    '${emergencyData.MATERNO || ''}',             -- MATERNO
-    '${emergencyData.NOMBRE || ''}',       -- NOMBRE
-    '${emergencyData.NOMBRES || ''}', -- NOMBRES
-    '${patientId || ''}',         -- PACIENTE
-    '${emergencyData.FECHA_NACIMIENTO ? emergencyData.FECHA_NACIMIENTO.replace(/-/g, '') : ''}',           -- FECHA_NACIMIENTO
-    '${emergencyData.EDAD || ''}',         -- EDAD
-    '${emergencyData.SEXO || ''}',                  -- SEXO
-    '${(formData.estadoCivil || emergencyData.ESTADO_CIVIL || '').padEnd(2, ' ').substring(0, 2)}',                 -- ESTADO_CIVIL
-    '${formData.direccion || emergencyData.DIRECCION || ''}', -- DIRECCION
-    '${(formData.distrito || '150701').padEnd(7, ' ').substring(0, 7)}',            -- DISTRITO (usando Expr2)
-    '${formData.telefono1 || emergencyData.TELEFONO1 || ''}',            -- TELEFONO1
-    '${formData.telefono2 || emergencyData.TELEFONO2 || ''}',          -- TELEFONO2
-    '${(formData.tipoDocumento || emergencyData.TIPO_DOCUMENTO || '').padEnd(2, ' ').substring(0, 2)}',                 -- TIPO_DOCUMENTO
-    '${formData.documento || emergencyData.DOCUMENTO || ''}',           -- DOCUMENTO
-    '${emergencyData.ACOMPANANTE || ''}',               -- ACOMPANANTE
-    '${(emergencyData.TIPO_DOCUMENTOA || '').padEnd(2, ' ').substring(0, 2)}',                 -- TIPO_DOCUMENTOA
-    '${emergencyData.DOCUMENTOA || ''}',           -- DOCUMENTOA
-    '${(emergencyData.CONSULTORIO || '').padEnd(6, ' ').substring(0, 6)}',             -- CONSULTORIO
-    '${(emergencyData.MOTIVO_EMERGENCIA || '').padEnd(2, ' ').substring(0, 2)}',                  -- MOTIVO_EMERGENCIA
-    '${(emergencyData.SEGURO || '').padEnd(3, ' ').substring(0, 3)}',                -- SEGURO
-    '${emergencyData.OBSERVACION1 || ''}',                  -- OBSERVACION1
-    '${emergencyData.OBSERVACION2 || ''}',                  -- OBSERVACION2
-    '${emergencyData.ESTADO || '2'}',                  -- ESTADO
-    '${cuentaIdToUse}',                  -- CUENTAID
-    '${emergencyData.USUARIO || 'SUPERVISOR'}',         -- USUARIO
-    '${(emergencyData.PRE_AFILIACION || '').padEnd(1, ' ').substring(0, 1)}',                  -- PRE_AFILIACION
-    '${(formData.localidad || emergencyData.LOCALIDAD || '').padEnd(12, ' ').substring(0, 12)}',       -- LOCALIDAD
-    '${(emergencyData.TIPOATENCION || 'E').padEnd(1, ' ').substring(0, 1)}',                  -- TIPOATENCION
-    '${(emergencyData.RELIGION || '0').padEnd(2, ' ').substring(0, 2)}',                  -- RELIGION
-    '${(seguroLiqValue || emergencyData.SEGUROLIQ || emergencyData.SEGURO || '').padEnd(2, ' ').substring(0, 2)}',                -- SEGUROLIQ
-    '${(emergencyData.FORMA_INGRESO || '1').padEnd(1, ' ').substring(0, 1)}'                   -- FORMA_INGRESO
-);`;
-      
-      console.log('SQL INSERT Statement:', sqlInsert);
+      // Agregar un log detallado de los datos que se envían
+      console.log('Datos completos enviados a la API:', JSON.stringify(emergencyData, null, 2));
       
       const response = await fetch(url, {
         method,
@@ -554,6 +652,12 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         },
         body: JSON.stringify(emergencyData),
       });
+      
+      // Log de la respuesta
+      console.log('Respuesta de la API - Status:', response.status);
+      if (!response.ok) {
+        console.log('Error en la respuesta de la API');
+      }
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -568,6 +672,85 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       
       const result = await response.json();
       console.log('Emergencia procesada exitosamente:', result);
+      
+      // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
+      // Extraer el código de seguro del resultado o de los datos del formulario
+      const seguroCodeForAccount = result.data?.SEGUROLIQ?.trim() || 
+                                   result.SEGUROLIQ?.trim() || 
+                                   emergencyData?.SEGUROLIQ?.trim() ||
+                                   formData.seguroLiq?.split(' - ')[0]?.trim();
+      
+      console.log('Código de seguro extraído para asegurar cuenta:', seguroCodeForAccount);
+      
+      if (seguroCodeForAccount && ["0", "02", "17"].includes(seguroCodeForAccount)) {
+        try {
+          console.log(`Asegurando cuenta para emergencia ${emergencyIdToUse} con seguro ${seguroCodeForAccount}...`);
+          const pacienteData = result.data?.PACIENTE || result.PACIENTE || patientId;
+          const nombreData = result.data?.NOMBRES?.trim() || 
+                           result.NOMBRES?.trim() || 
+                           formData.nombres || 
+                           formData.nombre || '';
+          
+          console.log('Datos que se envían al endpoint:', {
+            paciente: pacienteData,
+            seguro: seguroCodeForAccount,
+            usuario: primerApellido,
+            nombre: nombreData
+          });
+          
+          const asegurarResponse = await fetch(`/api/emergencia/${emergencyIdToUse}/asegurar-cuenta`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              paciente: pacienteData,
+              seguro: seguroCodeForAccount,
+              usuario: primerApellido,
+              nombre: nombreData
+            })
+          });
+
+          const asegurarResult = await asegurarResponse.json();
+          console.log('Resultado de asegurar cuenta:', asegurarResult);
+          
+          if (asegurarResult.ok) {
+            console.log(`Cuenta asegurada correctamente: ${asegurarResult.cuentaId || 'ID no disponible'}`);
+            
+            // Actualizar el registro de emergencia con el cuentaId si está disponible
+            if (asegurarResult.cuentaId) {
+              try {
+                const updateResponse = await fetch(`/api/emergencia/${emergencyIdToUse}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    CUENTAID: asegurarResult.cuentaId
+                  })
+                });
+                
+                const updateResult = await updateResponse.json();
+                if (updateResult.success) {
+                  console.log(`Emergencia actualizada con CUENTAID: ${asegurarResult.cuentaId}`);
+                } else {
+                  console.error('Error al actualizar la emergencia con el CUENTAID:', updateResult.message);
+                }
+              } catch (updateError) {
+                console.error('Error al actualizar la emergencia con el CUENTAID:', updateError);
+              }
+            } else {
+              console.log('Cuenta asegurada pero no se retornó CUENTAID para actualizar');
+            }
+          } else {
+            console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
+          }
+        } catch (error) {
+          console.error('Error al asegurar la cuenta:', error);
+        }
+      } else {
+        console.log(`No se requiere asegurar cuenta para seguro: ${seguroCodeForAccount}`);
+      }
       
       // Mostrar mensaje de éxito
       toast({
@@ -636,11 +819,11 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         const fieldMap: Record<string, string> = {
           'motivoEmergencia': 'Motivo de emergencia',
           'consultorio': 'Consultorio',
-          'medico': 'Médico',
-          'seguro': 'Seguro',
-          'diagnostico': 'Diagnóstico',
+          'seguro': 'Condición del Paciente',
           'fecha': 'Fecha',
-          'hora': 'Hora'
+          'hora': 'Hora',
+          'acompanante': 'Nombre del Acompañante',
+          'documentoA': 'Documento Acompañante'
         };
         return fieldMap[field] || field;
       }).join(', ');
@@ -686,13 +869,24 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
       <Toaster />
+      
+      {/* Mostrar validación FUA solo para seguros SIS (20-25) */}
+      {patientId && requiresFuaValidation && (
+        <div className="mb-6">
+          <FuaEmergencyStatusAlert 
+            patientId={patientId}
+            insuranceCode={insuranceCode}
+            onValidationChange={handleFuaValidationChange}
+          />
+        </div>
+      )}
+      
       {showErrorAlert && error && (
         <Alert variant="destructive" className="mb-6">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sidebar with Patient Information */}
         <div className="lg:col-span-1">
@@ -770,6 +964,13 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
                     seguro: value
                   }));
                   setSelectedSeguro(seguroData || null);
+                  
+                  // Actualizar código de seguro para validación FUA
+                  if (value) {
+                    const seguroCode = value.split(' - ')[0].trim();
+                    setInsuranceCode(seguroCode);
+                    console.log('Código de seguro actualizado desde selector:', seguroCode);
+                  }
                 }}
                 onDiagnosticoChange={(value: string, diagnosticoData: any) => {
                   setFormData(prev => ({
@@ -803,6 +1004,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         patientId={patientId}
         isUpdate={!!emergencyId}
         formData={formData}
+        insuranceCode={insuranceCode}
         onBeforeSave={async () => {
           console.log('Datos del formulario a validar:', formData);
           const validation = validateEmergencyForm(formData);
@@ -819,9 +1021,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
               const fieldMap: Record<string, string> = {
                 'motivoEmergencia': 'Motivo de emergencia',
                 'consultorio': 'Consultorio',
-                'medico': 'Médico',
                 'seguro': 'Seguro',
-                'diagnostico': 'Diagnóstico',
                 'fecha': 'Fecha',
                 'hora': 'Hora'
               };

@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Home, LogOut, Loader2, AlertTriangle } from "lucide-react"
+import { Home, LogOut, Loader2, Table } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -56,8 +56,8 @@ export default function Dashboard() {
     router.push("/hospitalization")
   }
 
-  const handleEmergenciaClick = () => {
-    router.push("/emergencia")
+  const handleTablasMaestrasClick = () => {
+    router.push("/master-tables")
   }
 
   return (
@@ -83,22 +83,22 @@ export default function Dashboard() {
                 <Home className="w-10 h-10 text-blue-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">HOSPITALIZACIÓN</h3>
-              <p className="text-gray-600 text-sm">Gestión de pacientes hospitalizados</p>
+              <p className="text-gray-600 text-sm">Creación de Medicos</p>
             </CardContent>
           </Card>
 
-    {/*       <Card
+    {       <Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-green-200"
-            onClick={handleEmergenciaClick}
+            onClick={handleTablasMaestrasClick}
           >
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-10 h-10 text-green-600" />
+                <Table className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">EMERGENCIA</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Tablas Maestras</h3>
               <p className="text-gray-600 text-sm">Gestión de pacientes en emergencia</p>
             </CardContent>
-          </Card> */}
+          </Card> }
         </div>
 
         {/* Quick Stats */}
