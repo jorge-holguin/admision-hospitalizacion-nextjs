@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { usePatientAccount } from "@/contexts/PatientAccountContext"
 
 interface AccountEmergencyStatusAlertProps {
   patientId: string
@@ -11,9 +12,7 @@ interface AccountEmergencyStatusAlertProps {
   onValidationChange?: (isValid: boolean) => void
 }
 
-// Cache global para evitar múltiples llamadas a la API de cuenta
-const accountCache = new Map<string, { cuentaId: string | null; timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+// Ya no necesitamos el cache local porque usamos el contexto
 
 export default function FuaEmergencyStatusAlert({
   patientId,
@@ -27,39 +26,8 @@ export default function FuaEmergencyStatusAlert({
 
   const requiredSisInsuranceCodes = ["20", "21", "22", "23", "24", "25"]
 
-  // Función para obtener cuenta desde cache o API
-  const getCachedAccount = async (patientId: string) => {
-    const cached = accountCache.get(patientId)
-    const now = Date.now()
-    
-    // Si hay cache válido, usarlo
-    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-      console.log(`Usando cuenta desde cache para paciente: ${patientId}`)
-      return cached.cuentaId
-    }
-    
-    // Si no hay cache o expiró, hacer llamada a API
-    console.log(`Buscando cuenta activa para paciente: ${patientId}`)
-    try {
-      const response = await fetch(`/api/cuenta/${patientId}`)
-      if (!response.ok) throw new Error("No se pudo obtener la cuenta")
-      const data = await response.json()
-      
-      const cuentaId = data?.success && data?.data?.cuentaId ? data.data.cuentaId : null
-      
-      // Guardar en cache
-      accountCache.set(patientId, { cuentaId, timestamp: now })
-      
-      if (!cuentaId) {
-        console.log(`No se encontró cuenta activa para paciente ${patientId}`)
-      }
-      
-      return cuentaId
-    } catch (error) {
-      console.error("Error al obtener cuenta:", error)
-      return null
-    }
-  }
+  // Usar el contexto de cuentas de pacientes
+  const { fetchPatientAccount, isLoading: isLoadingAccountState, errors } = usePatientAccount()
 
   useEffect(() => {
     // Evitar ejecuciones múltiples
@@ -79,16 +47,17 @@ export default function FuaEmergencyStatusAlert({
 
     const checkAccount = async () => {
       try {
-        // Verificar cuenta usando cache
-        const cuentaId = await getCachedAccount(patientId)
+        setLoading(true)
+        // Verificar cuenta usando el contexto
+        const accountData = await fetchPatientAccount(patientId)
         
-        if (!cuentaId) {
+        if (!accountData?.cuentaId) {
           setError("No se encontró una cuenta activa para este paciente.")
           onValidationChange?.(false)
           return
         }
         
-        setAccountId(cuentaId)
+        setAccountId(accountData.cuentaId)
         onValidationChange?.(true)
       } catch (error) {
         console.error("Error en validación de cuenta:", error)
@@ -100,14 +69,17 @@ export default function FuaEmergencyStatusAlert({
     }
 
     checkAccount()
-  }, [patientId, insuranceCode]) // Removed onValidationChange to prevent unnecessary re-runs
+  }, [patientId, insuranceCode, fetchPatientAccount]) // Agregado fetchPatientAccount a las dependencias
 
   // Si no aplica validación, no renderizar nada
   if (!requiredSisInsuranceCodes.includes(insuranceCode?.trim() || "")) {
     return null
   }
 
-  if (loading) {
+  // Usar el estado de carga del contexto o el estado local
+  const isLoading = loading || (patientId ? isLoadingAccountState[patientId] || false : false)
+  
+  if (isLoading) {
     return (
       <div className="w-full p-4 space-y-2">
         <Skeleton className="h-6 w-32" />

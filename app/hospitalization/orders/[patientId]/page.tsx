@@ -343,12 +343,6 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     // Redireccionar a la página de registro con el ID del paciente
     window.location.href = `/hospitalization/register/${patientId}`;
   };
-  
-
-
-
-
-
 
   const handlePrintOrder = (orderId?: string, documentType?: 'filiacion' | 'orden-consentimiento' | 'consentimiento-docencia' | 'fua') => {
     if (!orderId || orderId.trim() === '') {

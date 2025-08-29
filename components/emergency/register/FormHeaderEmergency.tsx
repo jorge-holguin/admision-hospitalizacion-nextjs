@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from "@/components/ui/spinner";
+import { usePatientAccount } from '@/contexts/PatientAccountContext';
 
 interface FormHeaderEmergencyProps {
   fecha: string;
@@ -13,6 +14,12 @@ interface FormHeaderEmergencyProps {
   patientId?: string;
   onFormChange?: (field: string, value: string) => void;
   insuranceCode?: string;
+  cuentaId?: string;
+  loadingCuenta?: boolean;
+  // Nuevo prop para recibir el ID de cuenta desde los datos de emergencia
+  emergencyCuentaId?: string;
+  // Prop para indicar si estamos en modo vista
+  isViewMode?: boolean;
 }
 
 export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
@@ -24,11 +31,25 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
   validationErrors = {},
   patientId,
   onFormChange,
-  insuranceCode
+  insuranceCode,
+  cuentaId,
+  loadingCuenta = false,
+  emergencyCuentaId,
+  isViewMode = false
 }) => {
-  // Estado para el número de cuenta - solo mostrar, no cargar automáticamente
-  const [numeroCuenta] = useState<string>("No disponible");
-  const [loadingCuenta] = useState(false);
+  // Usar el contexto para obtener datos de la cuenta del paciente
+  const { getAccountData, isLoading } = usePatientAccount();
+  
+  // Determinar qué ID de cuenta mostrar con el siguiente orden de prioridad:
+  // 1. cuentaId proporcionado directamente por props (mayor prioridad)
+  // 2. emergencyCuentaId si estamos en modo vista
+  // 3. accountData.cuentaId del contexto
+  // 4. "No disponible" si ninguno está disponible
+  const accountDataFromContext = patientId ? getAccountData(patientId) : null;
+  const displayCuentaId = cuentaId || (isViewMode && emergencyCuentaId) || (accountDataFromContext?.cuentaId) || "No disponible";
+  
+  // Determinar si estamos cargando la cuenta
+  const isLoadingCuentaId = loadingCuenta || (!cuentaId && !emergencyCuentaId && patientId && isLoading[patientId]);
   return (
       <div className="mb-6 pt-6">
         <h3 className="text-lg font-semibold mb-4">Información de la Emergencia</h3>
@@ -38,12 +59,12 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
           <Label>Nro de cuenta</Label>
           <div className="relative">
             <Input
-              value={numeroCuenta}
+              value={displayCuentaId}
               disabled={true}
-              placeholder={loadingCuenta ? "Cargando..." : "No disponible"}
+              placeholder={isLoadingCuentaId ? "Cargando..." : "No disponible"}
               className="bg-gray-50"
             />
-            {loadingCuenta && (
+            {isLoadingCuentaId && (
               <div className="absolute right-2 top-2">
                 <Spinner size="sm" />
               </div>

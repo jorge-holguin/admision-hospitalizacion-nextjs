@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { format } from 'date-fns';
+import { cuentaService } from './cuentaService';
 
 const prisma = new PrismaClient();
 
@@ -631,6 +632,44 @@ class EmergenciaService {
       
       if (updateResult !== 1) {
         throw new Error(`No se pudo actualizar la emergencia con ID ${emergenciaId}`);
+      }
+      
+      // Actualizar cuenta según el tipo de seguro liquidador
+      if (existingEmergencia.CUENTAID) {
+        const seguroLiq = existingEmergencia.SEGUROLIQ?.trim();
+        console.log(`SEGUROLIQ de la emergencia: '${seguroLiq}'`);
+        
+        // Seguros que requieren solo cierre de cuenta (sin FUA): 0, 02, 17
+        const segurosSimples = ["0", "02", "17"];
+        
+        if (segurosSimples.includes(seguroLiq)) {
+          console.log(`Cerrando cuenta simple para seguro ${seguroLiq}, cuenta: ${existingEmergencia.CUENTAID}`);
+          try {
+            const cuentaResult = await cuentaService.updateCUENTA(existingEmergencia.CUENTAID);
+            if (!cuentaResult) {
+              console.warn(`Advertencia: No se pudo cerrar la cuenta ${existingEmergencia.CUENTAID}`);
+            } else {
+              console.log(`Cuenta ${existingEmergencia.CUENTAID} cerrada correctamente`);
+            }
+          } catch (cuentaError: any) {
+            console.warn(`Advertencia: Error al cerrar cuenta: ${cuentaError.message}`);
+          }
+        } else {
+          // Para otros seguros (SIS: 20,21,22,23,24,25) usar el método con FUA
+          console.log(`Actualizando cuenta y FUA para seguro SIS ${seguroLiq}, cuenta: ${existingEmergencia.CUENTAID}`);
+          try {
+            const cuentaResult = await cuentaService.updateCuentaAndFUA(existingEmergencia.CUENTAID);
+            if (!cuentaResult.success) {
+              console.warn(`Advertencia: No se pudo actualizar cuenta y FUA: ${cuentaResult.message}`);
+            } else {
+              console.log(`Cuenta y FUA actualizadas correctamente: ${cuentaResult.message}`);
+            }
+          } catch (cuentaError: any) {
+            console.warn(`Advertencia: Error al actualizar cuenta y FUA: ${cuentaError.message}`);
+          }
+        }
+      } else {
+        console.log(`No se encontró CUENTAID para la emergencia ${emergenciaId}, omitiendo actualización de cuenta`);
       }
       
       // Obtener la emergencia actualizada

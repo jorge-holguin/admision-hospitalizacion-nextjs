@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useContext, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Eye, Trash2 } from "lucide-react"
+import { Plus, Edit, Eye, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { useToast } from '@/components/ui/use-toast';
 import { Spinner } from '@/components/ui/spinner';
@@ -12,6 +12,8 @@ import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-di
 import { formatDate } from '@/components/hospitalization/DateFormatter';
 import { useParams, useRouter } from "next/navigation"
 import { usePatient } from "@/contexts/PatientContext"
+import { SegurosProvider } from "@/contexts/SegurosContext"
+import SeguroDisplay from "@/components/ui/SeguroDisplay"
 
 // Crear un componente envoltorio que utiliza el hook useParams
 export default function EmergencyPage() {
@@ -19,7 +21,11 @@ export default function EmergencyPage() {
   const params = useParams();
   const patientId = params.patientId as string;
 
-  return <EmergencyList patientId={patientId} />;
+  return (
+    <SegurosProvider>
+      <EmergencyList patientId={patientId} />
+    </SegurosProvider>
+  );
 }
 
 // Definir interfaces para los datos de emergencia
@@ -32,6 +38,8 @@ interface EmergencyData {
   MOTIVO_EMERGENCIA: string;
   MOTIVO_DESCRIPCION?: string;
   CIEX1?: string;
+  MEDICO?: string;
+  RELATO?: string;
   DIAGNOSTICO_DESCRIPCION?: string;
   CONSULTORIO_DESCRIPCION?: string;
   ESTADO: string;
@@ -65,30 +73,113 @@ const getStatusDisplay = (estado: string) => {
   );
 };
 
+// Componente para mostrar médico con código y nombre
+function MedicoDisplay({ codigoMedico, medicosData, isLoading }: { codigoMedico?: string, medicosData: any[], isLoading: boolean }) {
+  if (!codigoMedico) return <span>-</span>;
+  if (isLoading) return <span>Cargando...</span>;
+  
+  const codigoLimpio = codigoMedico.trim();
+  const medico = medicosData.find(m => m.MEDICO && m.MEDICO.trim() === codigoLimpio);
+  
+  if (medico) {
+    return <span>({codigoLimpio}) - {medico.NOMBRE}</span>;
+  }
+  
+  return <span>{codigoLimpio}</span>;
+}
+
+// Componente para mostrar relato con funcionalidad de leer más/menos
+function RelatoDisplay({ relato }: { relato?: string }) {
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const maxLength = 100; // Caracteres máximos antes de mostrar "Leer más"
+
+  if (!relato) return <span>-</span>;
+  
+  if (relato.length <= maxLength) {
+    return <span>{relato}</span>;
+  }
+
+  return (
+    <div className="max-w-xs">
+      <span>
+        {expanded ? relato : `${relato.substring(0, maxLength)}...`}
+      </span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="ml-2 p-0 h-auto text-blue-600 hover:text-blue-800"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? (
+          <>
+            <ChevronUp className="w-3 h-3 mr-1" />
+            Leer menos
+          </>
+        ) : (
+          <>
+            <ChevronDown className="w-3 h-3 mr-1" />
+            Leer más
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
+
 // El componente principal que muestra la lista de emergencias
 function EmergencyList({ patientId }: { patientId: string }) {
-  const { toast } = useToast();
   const router = useRouter();
-  const { patientData } = usePatient();
+  const { toast } = useToast();
+  const patientContext = usePatient();
 
-  // Estado para almacenar los datos
-  const [emergencies, setEmergencies] = useState<EmergencyData[]>([]);
-  const [pagination, setPagination] = useState<PaginationData>({
-    page: 1,
-    pageSize: 10,
-    total: 0,
-    totalPages: 0
-  });
+  // Estados para la lista de emergencias
+  const [emergencies, setEmergencies] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [patientInfo, setPatientInfo] = useState<string>('');
-  const [documentNumber, setDocumentNumber] = useState<string>('');
+  const [patientInfo, setPatientInfo] = useState<string>("");
+  const [documentNumber, setDocumentNumber] = useState<string>("");
 
-  // Estado para el diálogo de confirmación de eliminación
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [total, setTotal] = useState<number>(0);
+  const pageSize = 5;
+
+  // Estados para el diálogo de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [deleteItemId, setDeleteItemId] = useState<string>('');
-  const [deleteItemName, setDeleteItemName] = useState<string>('');
+  const [deleteEmergencyId, setDeleteEmergencyId] = useState<string>("");
+  const [deleteItemName, setDeleteItemName] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  
+  // Estado para almacenar los datos de médicos
+  const [medicosData, setMedicosData] = useState<any[]>([]);
+  const [loadingMedicos, setLoadingMedicos] = useState<boolean>(false);
+
+  // Cargar datos de médicos
+  const loadMedicosData = async () => {
+    try {
+      setLoadingMedicos(true);
+      const response = await fetch('/api/medicos');
+      
+      if (!response.ok) {
+        throw new Error(`Error al obtener datos de médicos: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Médicos cargados:', data.length);
+      setMedicosData(data);
+    } catch (error: any) {
+      console.error('Error al cargar datos de médicos:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los datos de médicos',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingMedicos(false);
+    }
+  };
 
   // Cargar datos de emergencias
   const loadEmergencyData = async (page: number = 1, pageSize: number = 10) => {
@@ -106,9 +197,12 @@ function EmergencyList({ patientId }: { patientId: string }) {
 
       if (data.success) {
         setEmergencies(data.data);
-        setPagination(data.pagination);
+        setCurrentPage(page);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotal(data.pagination?.total || 0);
 
         // Priorizar datos del contexto si están disponibles
+        const patientData = patientContext?.patientData;
         if (patientData && patientData.pacienteId === patientId) {
           setPatientInfo(patientData.name);
           setDocumentNumber(patientData.documento || '');
@@ -140,27 +234,34 @@ function EmergencyList({ patientId }: { patientId: string }) {
   // Cargar datos cuando cambia el patientId o la página
   useEffect(() => {
     if (patientId) {
-      loadEmergencyData(pagination.page, pagination.pageSize);
+      loadEmergencyData(currentPage, pageSize);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patientId, pagination.page, pagination.pageSize]);
+  }, [patientId, currentPage]);
+
+  // Cargar datos de médicos al iniciar el componente
+  useEffect(() => {
+    loadMedicosData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Actualizar información del paciente cuando cambia el contexto
   useEffect(() => {
+    const patientData = patientContext?.patientData;
     if (patientData && patientData.pacienteId === patientId) {
       setPatientInfo(patientData.name);
       setDocumentNumber(patientData.documento || '');
     }
-  }, [patientData, patientId]);
+  }, [patientContext, patientId]);
 
   // Función para cambiar de página
   const setPage = (page: number) => {
-    setPagination(prev => ({ ...prev, page }));
+    setCurrentPage(page);
   };
 
   // Función para refrescar los datos
   const refresh = () => {
-    loadEmergencyData(pagination.page, pagination.pageSize);
+    loadEmergencyData(currentPage, pageSize);
   };
 
   // Función para crear una nueva emergencia
@@ -180,20 +281,20 @@ function EmergencyList({ patientId }: { patientId: string }) {
 
   // Función para preparar la eliminación de una emergencia
   const handleDeleteEmergency = (emergenciaId: string, patientName: string) => {
-    setDeleteItemId(emergenciaId);
+    setDeleteEmergencyId(emergenciaId);
     setDeleteItemName(`Emergencia ${emergenciaId} - Paciente: ${patientName}`);
     setDeleteDialogOpen(true);
   };
 
   // Función para confirmar la eliminación de una emergencia
   const confirmDeleteEmergency = async () => {
-    if (!deleteItemId) return;
+    if (!deleteEmergencyId) return;
 
     try {
       setIsDeleting(true);
 
       // Usar el endpoint de borrado lógico con la estructura correcta
-      const response = await fetch(`/api/emergencia/${deleteItemId}`, {
+      const response = await fetch(`/api/emergencia/${deleteEmergencyId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -239,45 +340,45 @@ function EmergencyList({ patientId }: { patientId: string }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Diálogo de confirmación de eliminación */}
-      <DeleteConfirmationDialog
-        isOpen={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        onConfirm={confirmDeleteEmergency}
-        title="Confirmar anulación"
-        description="¿Está seguro de anular el registro de la emergencia? Esta acción no se podrá revertir."
-        itemName={deleteItemName}
-        isLoading={isDeleting}
-      />
+        {/* Diálogo de confirmación de eliminación */}
+        <DeleteConfirmationDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={confirmDeleteEmergency}
+          title="Confirmar anulación"
+          description="¿Está seguro de anular el registro de la emergencia? Esta acción no se podrá revertir."
+          itemName={deleteItemName}
+          isLoading={isDeleting}
+        />
 
-      {/* Header */}
-      <Navbar
-        title="SIGSALUD"
-        subtitle="EMERGENCIAS"
-        showBackButton={true}
-        backUrl="/hospitalization"
-      />
+        {/* Header */}
+        <Navbar
+          title="SIGSALUD"
+          subtitle="EMERGENCIAS"
+          showBackButton={true}
+          backUrl="/hospitalization"
+        />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
-        <Card className="shadow-lg">
-          <CardHeader className="bg-blue-50 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl text-blue-800">
-                <div>
-                  <div>Emergencias</div>
-                  <div className="text-sm font-normal mt-1">
-                    Paciente: {patientInfo} - Documento: <strong>{documentNumber || patientId}</strong>
+        {/* Main Content */}
+        <main className="container mx-auto px-6 py-8">
+          <Card className="shadow-lg">
+            <CardHeader className="bg-blue-50 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl text-blue-800">
+                  <div>
+                    <div>Emergencias</div>
+                    <div className="text-sm font-normal mt-1">
+                      Paciente: {patientInfo} - Documento: <strong>{documentNumber || patientId}</strong>
+                    </div>
                   </div>
-                </div>
-              </CardTitle>
-              <Button onClick={handleNewEmergency} className="bg-green-600 hover:bg-green-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nueva Emergencia
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
+                </CardTitle>
+                <Button onClick={handleNewEmergency} className="bg-green-600 hover:bg-green-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Emergencia
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
 
             {/* Loading state */}
             {loading && (
@@ -310,7 +411,10 @@ function EmergencyList({ patientId }: { patientId: string }) {
                       <TableHead className="font-semibold">Hora</TableHead>
                       <TableHead className="font-semibold">Consultorio</TableHead>
                       <TableHead className="font-semibold">Motivo</TableHead>
+                      <TableHead className="font-semibold">Seguro Liquidador</TableHead>
                       <TableHead className="font-semibold">Diagnóstico</TableHead>
+                      <TableHead className="font-semibold">Medico</TableHead>
+                      <TableHead className="font-semibold">Relato</TableHead>
                       <TableHead className="font-semibold">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -350,9 +454,22 @@ function EmergencyList({ patientId }: { patientId: string }) {
                               : emergency.MOTIVO_EMERGENCIA}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                            <SeguroDisplay seguroId={emergency.SEGUROLIQ} />
+                          </TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
                             {emergency.CIEX1 && emergency.DIAGNOSTICO_DESCRIPCION
                               ? `(${emergency.CIEX1}) - ${emergency.DIAGNOSTICO_DESCRIPCION}`
                               : emergency.CIEX1 || 'No especificado'}
+                          </TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                            <MedicoDisplay 
+                              codigoMedico={emergency.MEDICO} 
+                              medicosData={medicosData} 
+                              isLoading={loadingMedicos} 
+                            />
+                          </TableCell>
+                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                            <RelatoDisplay relato={emergency.RELATO} />
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
@@ -421,23 +538,23 @@ function EmergencyList({ patientId }: { patientId: string }) {
                 {/* Pagination */}
                 <div className="flex justify-between items-center mt-4">
                   <div className="text-sm text-gray-500">
-                    Mostrando {emergencies.length > 0 ? (pagination.page - 1) * pagination.pageSize + 1 : 0} a{" "}
-                    {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} registros
+                    Mostrando {emergencies.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} a{" "}
+                    {Math.min(currentPage * pageSize, total)} de {total} registros
                   </div>
                   <div className="flex space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={pagination.page === 1}
-                      onClick={() => setPage(pagination.page - 1)}
+                      disabled={currentPage === 1}
+                      onClick={() => setPage(currentPage - 1)}
                     >
                       Anterior
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={pagination.page >= pagination.totalPages}
-                      onClick={() => setPage(pagination.page + 1)}
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage(currentPage + 1)}
                     >
                       Siguiente
                     </Button>

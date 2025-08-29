@@ -4,6 +4,8 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { LoadingProvider } from '@/components/LoadingProvider'
 import { HideDebugger } from '@/components/HideDebugger'
 import { PatientProvider } from '@/contexts/PatientContext'
+import { PatientAccountProvider } from '@/contexts/PatientAccountContext'
+import { PatientDataProvider } from '@/contexts/PatientDataContext'
 
 export const metadata: Metadata = {
   title: 'Sistema de Admisión',
@@ -21,10 +23,14 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <LoadingProvider>
-            <PatientProvider>
-              <HideDebugger />
-              {children}
-            </PatientProvider>
+            <PatientDataProvider>
+              <PatientAccountProvider>
+                <PatientProvider>
+                  <HideDebugger />
+                  {children}
+                </PatientProvider>
+              </PatientAccountProvider>
+            </PatientDataProvider>
           </LoadingProvider>
         </AuthProvider>
       </body>

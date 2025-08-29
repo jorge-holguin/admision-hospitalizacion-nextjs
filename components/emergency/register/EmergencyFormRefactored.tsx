@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Save } from "lucide-react"
+import { usePatientAccount } from '@/contexts/PatientAccountContext'
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
@@ -100,6 +101,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [insuranceCode, setInsuranceCode] = useState<string>('');
   const [numeroCuenta, setNumeroCuenta] = useState<string>('');
   const [loadingCuenta, setLoadingCuenta] = useState<boolean>(false);
+  const [cuentaId, setCuentaId] = useState<string | null>(null);
 
   // Memoized callback for FUA validation
   const handleFuaValidationChange = useCallback((isValid: boolean) => {
@@ -422,26 +424,10 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   };
 
 
-  // Función para obtener la cuenta activa del paciente
-  const fetchPatientAccount = async (patientId: string) => {
-    try {
-      console.log(`Obteniendo cuenta activa para paciente: ${patientId}`);
-      const response = await fetch(`/api/cuenta/${patientId}`);
-      if (!response.ok) throw new Error('Error al obtener cuenta');
-      const data = await response.json();
-      
-      if (data?.success && data?.data?.cuentaId) {
-        console.log(`Cuenta encontrada: ${data.data.cuentaId}`);
-        return data.data.cuentaId;
-      } else {
-        console.log(`No se encontró cuenta activa para paciente ${patientId}`);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error al obtener cuenta del paciente:', error);
-      return null;
-    }
-  };
+  // Usar el contexto de cuentas de pacientes
+  const { fetchPatientAccount, isLoading: isLoadingAccountState } = usePatientAccount();
+  // Convertir el estado de carga de objeto a booleano
+  const isLoadingAccount = patientId ? isLoadingAccountState[patientId] || false : false;
 
   // Función para obtener el siguiente ID de emergencia y orden
   const fetchNextEmergencyIds = async () => {
@@ -498,53 +484,53 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
 
       // Obtener la cuenta activa del paciente si no la tenemos
       if (!cuentaIdToUse) {
-        cuentaIdToUse = await fetchPatientAccount(patientId);
+        const accountData = await fetchPatientAccount(patientId);
+        cuentaIdToUse = accountData?.cuentaId || '';
         console.log('Cuenta obtenida para el paciente:', cuentaIdToUse);
+      }
+      
+      // Obtener datos de filiación del contexto (ya cargados previamente)
+      const filiacionData = getPatientFiliation(patientId);
+      
+      if (filiacionData) {
+        console.log('Datos de filiación obtenidos del contexto:', filiacionData);
         
-        // Asegurar que los datos del paciente estén disponibles usando el orquestador único
-        await ensurePatientData(patientId);
-        const filiacionData = getPatientFiliation(patientId);
-        
-        if (filiacionData) {
-          console.log('Datos de filiación obtenidos del contexto:', filiacionData);
-          
-          // Actualizar el formulario con los datos de filiación
-          setFormData(prev => {
-            console.log('Actualizando formulario con datos de filiación:', filiacionData);
-            return {
-              ...prev,
-              emergenciaId: emergencyIdToUse,
-              orden: ordenToUse,
-              cuentaId: cuentaIdToUse,
-              estadoCivil: filiacionData.estadoCivil || prev.estadoCivil || '',
-              direccion: filiacionData.direccion || prev.direccion || '',
-              distrito: filiacionData.distrito || prev.distrito || '',
-              telefono1: filiacionData.telefono1 || prev.telefono1 || '',
-              telefono2: filiacionData.telefono2 || prev.telefono2 || '',
-              nombre: filiacionData.nombre || prev.nombre || '',
-              nombres: filiacionData.nombres || prev.nombres || '',
-              apellidoPaterno: filiacionData.apellidoPaterno || prev.apellidoPaterno || '',
-              apellidoMaterno: filiacionData.apellidoMaterno || prev.apellidoMaterno || '',
-              tipoDocumento: filiacionData.tipoDocumento || prev.tipoDocumento || '',
-              documento: filiacionData.documento || prev.documento || '',
-              localidad: filiacionData.localidad || prev.localidad || '',
-              seguro: filiacionData.seguro ? `${filiacionData.seguro} - ${filiacionData.descSeguro || ''}` : prev.seguro || '',
-              religion: filiacionData.religion || prev.religion || '',
-              Expr2: filiacionData.Expr2 || prev.Expr2 || '',
-              LUGAR_NACIMIENTO: filiacionData.LUGAR_NACIMIENTO || prev.LUGAR_NACIMIENTO || ''
-            };
-          });
-        } else {
-          console.log('No se encontraron datos de filiación para el paciente');
-          
-          // Actualizar el formulario solo con los IDs
-          setFormData(prev => ({
+        // Actualizar el formulario con los datos de filiación
+        setFormData(prev => {
+          console.log('Actualizando formulario con datos de filiación:', filiacionData);
+          return {
             ...prev,
             emergenciaId: emergencyIdToUse,
             orden: ordenToUse,
-            cuentaId: cuentaIdToUse
-          }));
-        }
+            cuentaId: cuentaIdToUse,
+            estadoCivil: filiacionData.estadoCivil || prev.estadoCivil || '',
+            direccion: filiacionData.direccion || prev.direccion || '',
+            distrito: filiacionData.distrito || prev.distrito || '',
+            telefono1: filiacionData.telefono1 || prev.telefono1 || '',
+            telefono2: filiacionData.telefono2 || prev.telefono2 || '',
+            nombre: filiacionData.nombre || prev.nombre || '',
+            nombres: filiacionData.nombres || prev.nombres || '',
+            apellidoPaterno: filiacionData.apellidoPaterno || prev.apellidoPaterno || '',
+            apellidoMaterno: filiacionData.apellidoMaterno || prev.apellidoMaterno || '',
+            tipoDocumento: filiacionData.tipoDocumento || prev.tipoDocumento || '',
+            documento: filiacionData.documento || prev.documento || '',
+            localidad: filiacionData.localidad || prev.localidad || '',
+            seguro: filiacionData.seguro ? `${filiacionData.seguro} - ${filiacionData.descSeguro || ''}` : prev.seguro || '',
+            religion: filiacionData.religion || prev.religion || '',
+            Expr2: filiacionData.Expr2 || prev.Expr2 || '',
+            LUGAR_NACIMIENTO: filiacionData.LUGAR_NACIMIENTO || prev.LUGAR_NACIMIENTO || ''
+          };
+        });
+      } else {
+        console.log('No se encontraron datos de filiación para el paciente');
+        
+        // Actualizar el formulario solo con los IDs
+        setFormData(prev => ({
+          ...prev,
+          emergenciaId: emergencyIdToUse,
+          orden: ordenToUse,
+          cuentaId: cuentaIdToUse
+        }));
       }
       
       // Validar el formulario
@@ -571,8 +557,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       // Formatear fecha como YYYYMMDD
       const fechaFormateada = formData.fecha.replace(/-/g, '');
       
-      // Obtener los datos de filiación del paciente justo antes de enviar la solicitud
-      const filiacionData = getPatientFiliation(patientId);
+      // Los datos de filiación ya están disponibles desde arriba
       
       // Verificar que tenemos los datos necesarios
       console.log('Datos de filiación para envío a API:', filiacionData);
@@ -862,9 +847,29 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         observacion2: emergencyData.OBSERVACION2 || '',
         estado: emergencyData.ESTADO || ''
       });
+      
+      // Si hay CUENTAID en los datos de emergencia, actualizarlo
+      if (emergencyData.CUENTAID) {
+        setCuentaId(emergencyData.CUENTAID);
+      }
     }
     setLoading(false);
   }, [emergencyData]);
+  
+  // Cargar cuenta del paciente al iniciar
+  useEffect(() => {
+    if (patientId && !cuentaId) {
+      const loadAccount = async () => {
+        const accountData = await fetchPatientAccount(patientId);
+        if (accountData?.cuentaId) {
+          setCuentaId(accountData.cuentaId);
+        } else {
+          setCuentaId(null);
+        }
+      };
+      loadAccount();
+    }
+  }, [patientId, fetchPatientAccount, cuentaId]);
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
@@ -914,6 +919,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
                 validationErrors={validationErrors}
                 patientId={patientId}
                 onFormChange={handleFormChange}
+                cuentaId={cuentaId || formData.cuentaId}
+                loadingCuenta={isLoadingAccount}
               />
               {/* Campos Adicionales */}
               <AdditionalFieldsSection

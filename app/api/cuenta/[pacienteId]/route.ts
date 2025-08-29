@@ -18,10 +18,11 @@ export async function GET(
 
     // Obtener el número de cuenta activa del paciente
     const cuentaId = await cuentaService.getCuentaActivaByPacienteId(pacienteId);
-
+    const FUAId = await cuentaService.getFUAActivaByCuentaId(cuentaId);
+    
     return Response.json({
       success: true,
-      data: { cuentaId }
+      data: { cuentaId, FUAId }
     });
   } catch (error) {
     console.error('Error al obtener número de cuenta:', error);

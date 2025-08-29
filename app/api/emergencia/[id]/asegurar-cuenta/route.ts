@@ -95,19 +95,20 @@ export async function POST(
         );
       }
 
-      // 3. Buscar si el paciente ya tiene una cuenta activa mediante consulta directa a SQL
-      // Para emergencias usamos ORIGEN = 'EM'
+      // 3. Buscar si el paciente ya tiene una cuenta activa del mismo tipo de seguro
+      // Para emergencias usamos ORIGEN = 'EM' y verificamos que el SEGURO coincida
+      const seguroParaBuscar = seguro || "02";
       const cuentaExistente = await tx.$queryRaw`
         SELECT TOP 1 CUENTAID 
         FROM CUENTA 
         WHERE PACIENTE = ${paciente} 
-        AND ESTADO = '1' AND ORIGEN = 'EM'
+        AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = ${seguroParaBuscar}
         ORDER BY FECHA_APERTURA DESC
       ` as any[];
 
       let cuentaId;
 
-      // 4. Si no existe una cuenta activa, llamar al procedimiento almacenado
+      // 4. Si no existe una cuenta activa del mismo tipo de seguro, llamar al procedimiento almacenado
       if (!cuentaExistente || cuentaExistente.length === 0) {
         // Preparar los parámetros para el SP
         const estado = "1"; // Estado activo
@@ -134,12 +135,29 @@ export async function POST(
         ` as any[];
 
         // Verificar el resultado del SP
-        if (!resultado || resultado.length === 0 || resultado[0].ESTADO !== 1) {
+        console.log('Resultado completo del SP:', JSON.stringify(resultado, null, 2));
+        
+        if (!resultado || resultado.length === 0) {
           return NextResponse.json(
             { 
               ok: false, 
               mensaje: "Error al ejecutar el procedimiento almacenado", 
-              error: resultado ? resultado[0]?.MENSAJE : "No se recibió respuesta del SP" 
+              error: "No se recibió respuesta del SP" 
+            },
+            { status: 500 }
+          );
+        }
+
+        // Verificar si el SP devolvió un error - comparar como string también
+        const estadoSP = resultado[0].ESTADO;
+        console.log(`Estado del SP: ${estadoSP}, tipo: ${typeof estadoSP}`);
+        
+        if (estadoSP !== 1 && estadoSP !== "1") {
+          return NextResponse.json(
+            { 
+              ok: false, 
+              mensaje: "Error al ejecutar el procedimiento almacenado", 
+              error: resultado[0]?.MENSAJE || "Error desconocido del SP" 
             },
             { status: 500 }
           );
@@ -147,23 +165,37 @@ export async function POST(
 
         // Capturar el CUENTAID retornado por el SP
         cuentaId = resultado[0].CUENTAID;
+        console.log(`Nueva cuenta creada con ID: ${cuentaId}, tipo: ${typeof cuentaId}`);
+        
+        // Verificar si el CUENTAID es válido
+        if (!cuentaId || cuentaId === null || cuentaId === undefined) {
+          console.error('ERROR: El SP no devolvió un CUENTAID válido');
+          return NextResponse.json(
+            { 
+              ok: false, 
+              mensaje: "Error: El procedimiento almacenado no devolvió un CUENTAID válido", 
+              error: `CUENTAID recibido: ${cuentaId}` 
+            },
+            { status: 500 }
+          );
+        }
       } else {
-        // Usar la cuenta existente
+        // Usar la cuenta existente del mismo tipo de seguro
         cuentaId = cuentaExistente[0].CUENTAID;
+        console.log(`Reutilizando cuenta existente del mismo tipo de seguro: ${cuentaId}`);
       }
 
-      // 5. Actualizar la emergencia con el CUENTAID más reciente del paciente usando SQL directo con subconsulta
-      await tx.$executeRaw`
+      // 5. Actualizar la emergencia con el CUENTAID específico creado o encontrado
+      console.log(`Actualizando emergencia ${idEmergencia} con CUENTAID: ${cuentaId}`);
+      
+      const updateResult = await tx.$executeRaw`
         UPDATE EMERGENCIA 
-        SET CUENTAID = (
-          SELECT TOP 1 CUENTAID 
-          FROM CUENTA 
-          WHERE ESTADO = '1' AND ORIGEN ='EM' AND PACIENTE = ${paciente} 
-          ORDER BY FECHA_APERTURA DESC
-        ), 
+        SET CUENTAID = ${cuentaId}, 
         USUARIO = ${usuario} 
         WHERE EMERGENCIA_ID = ${idEmergencia}
       `;
+      
+      console.log(`Filas afectadas en la actualización: ${updateResult}`);
 
       // 6. Devolver respuesta exitosa
       return NextResponse.json(

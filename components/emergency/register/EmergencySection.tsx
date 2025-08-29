@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect, { OptionItem } from "@/components/ui/SearchableSelect";
-import { usePatientSeguro } from "@/hooks/usePatientSeguro";
+import { usePatientData } from "@/contexts/PatientDataContext";
 
 
 // Using OptionItem from SearchableSelect component
@@ -53,8 +53,10 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   loadingFormas: externalLoadingFormas,
   loadingSeguros: externalLoadingSeguros,
 }) => {
-  // Hook para obtener seguro del paciente desde filiacion2
-  const { seguroData, loading: loadingPatientSeguro } = usePatientSeguro(patientId);
+  // Usar el contexto para obtener datos del paciente
+  const { getPatientData } = usePatientData();
+  
+  // Hook removido para evitar llamadas duplicadas a la API - los datos de seguro ahora vienen del contexto
   // ===== Opciones locales =====
   const TIPO_ATENCION_OPTIONS = [
     { value: "E", display: "(E) - Emergencia" },
@@ -222,20 +224,57 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     }
   }, [formasIngreso, formData.formaIngreso, formData.formaIngresoDisplay]);
 
-  // Set default value for Seguro from filiacion2 if not already set
+  // Set default value for Seguro from patient context data
   useEffect(() => {
-    if (seguroData && !formData.seguro && !formData.seguroDisplay) {
-      console.log('Setting default seguro from filiacion2:', seguroData);
-      onFormChange('seguro', seguroData.seguro);
-      onFormChange('seguroDisplay', seguroData.seguroDisplay);
+    // Solo ejecutar cuando tengamos patientId y seguros cargados
+    if (!patientId || seguros.length === 0) return;
+    
+    // Obtener datos del paciente
+    const patientData = getPatientData(patientId);
+    if (!patientData || !patientData.seguro) return;
+    
+    // Si ya hay un seguro seleccionado, no hacer nada
+    if (formData.seguro && formData.seguroDisplay) return;
+    
+    // Limpiar el código de seguro (remover espacios)
+    const seguroCode = patientData.seguro.trim();
+    console.log('Estableciendo seguro inicial del paciente:', seguroCode);
+    console.log('Descripción del seguro:', patientData.descSeguro);
+    
+    // Buscar el seguro en la lista de seguros disponibles
+    const matchingSeguro = seguros.find(s => 
+      (s.Seguro && s.Seguro.trim() === seguroCode) || 
+      (s.SEGURO && s.SEGURO.trim() === seguroCode)
+    );
+    
+    if (matchingSeguro) {
+      const seguroDisplay = `(${matchingSeguro.Seguro || matchingSeguro.SEGURO}) - ${matchingSeguro.Nombre || matchingSeguro.NOMBRE}`;
+      console.log('Estableciendo seguro por defecto desde catálogo:', seguroDisplay);
+      
+      onFormChange('seguro', seguroCode);
+      onFormChange('seguroDisplay', seguroDisplay);
+      
       if (onSeguroChange) {
-        onSeguroChange(seguroData.seguro, {
-          Seguro: seguroData.seguro,
-          Nombre: seguroData.nombreSeguro
+        onSeguroChange(seguroCode, matchingSeguro);
+      }
+    } else {
+      // Si no se encuentra en la lista, usar los datos del paciente directamente
+      const seguroDisplay = `(${seguroCode}) - ${patientData.descSeguro || 'Sin descripción'}`;
+      console.log('Estableciendo seguro por defecto desde datos del paciente:', seguroDisplay);
+      
+      onFormChange('seguro', seguroCode);
+      onFormChange('seguroDisplay', seguroDisplay);
+      
+      if (onSeguroChange) {
+        onSeguroChange(seguroCode, { 
+          Seguro: seguroCode, 
+          Nombre: patientData.descSeguro || 'Sin descripción' 
         });
       }
     }
-  }, [seguroData, formData.seguro, formData.seguroDisplay]);
+  }, [seguros, patientId, getPatientData, onFormChange, onSeguroChange, formData.seguro, formData.seguroDisplay]);
+
+  // Seguro default value now comes from patient context data instead of separate API call
 
   // Using the reusable SearchableSelect component
 
@@ -401,9 +440,9 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         {/* Seguro */}
         <SearchableSelect
           label="Condición del Paciente"
-          value={formData.seguroDisplay || (seguroData?.seguroDisplay) || ""}
+          value={formData.seguroDisplay || ""}
           options={formatSeguros}
-          loading={loadingSeguros || loadingPatientSeguro}
+          loading={loadingSeguros}
           search={searchSeguro}
           onSearchChange={(v: string) => {
             setSearchSeguro(v);
@@ -417,7 +456,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           selectName="seguro"
           required
           error={validationErrors.seguro}
-          placeholder={seguroData ? `Cargando seguro del paciente...` : "Seleccionar seguro..."}
+          placeholder="Seleccionar seguro..."
           disabled={disabled}
         />
       </div>

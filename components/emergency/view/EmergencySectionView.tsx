@@ -72,6 +72,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     consultorio: string;
     formaIngreso: string;
     seguro: string;
+    seguroLiq: string;
     observacion1: string;
     observacion2: string;
     // Datos del acompañante
@@ -92,6 +93,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     consultorio: "",
     formaIngreso: "",
     seguro: "",
+    seguroLiq: "",
     observacion1: "",
     observacion2: "",
     // Datos del acompañante
@@ -301,7 +303,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         motivoEmergencia: extractCode(initialData.MOTIVO_EMERGENCIA),
         consultorio: extractCode(initialData.CONSULTORIO),
         formaIngreso: extractCode(initialData.FORMA_INGRESO),
-        seguro: extractCode(initialData.SEGURO) || extractCode(initialData.SEGUROLIQ),
+        seguro: extractCode(initialData.SEGURO),
+        seguroLiq: extractCode(initialData.SEGUROLIQ),
         observacion1: cleanApiString(initialData.OBSERVACION1),
         observacion2: cleanApiString(initialData.OBSERVACION2),
         // Datos del acompañante
@@ -335,6 +338,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     if (!data.consultorio) errors.consultorio = "El consultorio es requerido";
     if (!data.formaIngreso) errors.formaIngreso = "La forma de ingreso es requerida";
     if (!data.seguro) errors.seguro = "El seguro es requerido";
+    if (!data.seguroLiq) errors.seguroLiq = "El seguro liquidador es requerido";
     
     return errors;
   };
@@ -394,6 +398,27 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       }
       
       const result = await response.json();
+      
+      // Si tenemos un ID de cuenta, también actualizamos la cuenta y el FUA asociado
+      if (formData.numeroCuenta) {
+        try {
+          const cuentaResponse = await fetch(`/api/cuenta/update-with-fua/${formData.numeroCuenta}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (!cuentaResponse.ok) {
+            console.error('Error al actualizar cuenta y FUA:', await cuentaResponse.text());
+          } else {
+            console.log('Cuenta y FUA actualizados correctamente');
+          }
+        } catch (cuentaError) {
+          console.error('Error al actualizar cuenta y FUA:', cuentaError);
+          // No lanzamos el error para no interrumpir el flujo principal
+        }
+      }
       
       toast({
         title: "Registro eliminado",
@@ -478,7 +503,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         CONSULTORIO: limitLength(formData.consultorio, 6),            // Char(6)
         FORMA_INGRESO: limitLength(formData.formaIngreso, 1),         // Char(1)
         SEGURO: limitLength(formData.seguro, 3),                      // Char(3)
-        SEGUROLIQ: limitLength(formData.seguro, 3),                   // Char(3)
+        SEGUROLIQ: limitLength(formData.seguroLiq, 3),                // Char(3)
         OBSERVACION1: limitLength(formData.observacion1, 100),         // Estimado VarChar(100)
         OBSERVACION2: limitLength(formData.observacion2, 100),         // Estimado VarChar(100)
         ACOMPANANTE: limitLength(formData.acompanante, 100),          // VarChar(100)
@@ -857,6 +882,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 validationErrors={validationErrors}
                 patientId={initialData?.PACIENTE}
                 onFormChange={handleFormChange}
+                emergencyCuentaId={initialData?.CUENTAID}
+                isViewMode={true}
               />
               
               {/* Campos Adicionales */}
@@ -923,7 +950,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.consultorio}
                     placeholder="Seleccionar consultorio..."
-                    disabled={fieldsLocked || readOnly}
+                    disabled={true}
                   />
 
                   {/* Forma de Ingreso */}
@@ -947,8 +974,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
                   {/* Seguro */}
                   <SearchableSelect
-                    label="Seguro"
-                    value={findSeguroName(formData.seguro)}
+                    label="Condición del Paciente"
+                    value={findSeguroName(formData.seguroLiq)}
                     options={formatSeguros}
                     loading={loadingSeguros}
                     search={searchSeguro}
@@ -956,12 +983,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                       setSearchSeguro(v);
                       loadSeguros(v);
                     }}
-                    onSelect={(value: string, data: any) => handleFormChange("seguro", value)}
-                    selectName="seguro"
+                    onSelect={(value: string, data: any) => handleFormChange("seguroLiq", value)}
+                    selectName="seguroLiq"
                     required
-                    error={validationErrors.seguro}
+                    error={validationErrors.seguroLiq}
                     placeholder="Seleccionar seguro..."
-                    disabled={fieldsLocked || readOnly}
+                    disabled={true}
                   />
                 </div>
 
