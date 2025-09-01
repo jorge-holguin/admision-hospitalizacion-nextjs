@@ -40,13 +40,34 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
   // Usar el contexto para obtener datos de la cuenta del paciente
   const { getAccountData, isLoading } = usePatientAccount();
   
-  // Determinar qué ID de cuenta mostrar con el siguiente orden de prioridad:
-  // 1. cuentaId proporcionado directamente por props (mayor prioridad)
-  // 2. emergencyCuentaId si estamos en modo vista
-  // 3. accountData.cuentaId del contexto
-  // 4. "No disponible" si ninguno está disponible
-  const accountDataFromContext = patientId ? getAccountData(patientId) : null;
-  const displayCuentaId = cuentaId || (isViewMode && emergencyCuentaId) || (accountDataFromContext?.cuentaId) || "No disponible";
+  // Estado local para el ID de cuenta a mostrar
+  const [displayCuentaId, setDisplayCuentaId] = useState<string>("No disponible");
+  
+  // Actualizar displayCuentaId cuando cambian las props o el contexto
+  useEffect(() => {
+    // Determinar qué ID de cuenta mostrar con el siguiente orden de prioridad:
+    // 1. cuentaId proporcionado directamente por props (mayor prioridad)
+    // 2. emergencyCuentaId si estamos en modo vista y no hay cuentaId
+    // 3. accountData.cuentaId del contexto
+    // 4. "No disponible" si ninguno está disponible
+    const accountDataFromContext = patientId ? getAccountData(patientId) : null;
+    
+    let newDisplayCuentaId = "No disponible";
+    
+    if (cuentaId) {
+      // Si hay cuentaId, usarlo (puede ser un número o "No disponible")
+      newDisplayCuentaId = cuentaId;
+    } else if (isViewMode && emergencyCuentaId) {
+      // Si estamos en modo vista y hay emergencyCuentaId, usarlo
+      newDisplayCuentaId = emergencyCuentaId;
+    } else if (accountDataFromContext?.cuentaId) {
+      // Si hay datos del contexto, usarlos
+      newDisplayCuentaId = accountDataFromContext.cuentaId;
+    }
+    
+    console.log(`FormHeaderEmergency: Actualizando displayCuentaId a ${newDisplayCuentaId} (cuentaId: ${cuentaId}, emergencyCuentaId: ${emergencyCuentaId})`); 
+    setDisplayCuentaId(newDisplayCuentaId);
+  }, [cuentaId, emergencyCuentaId, isViewMode, patientId, getAccountData]);
   
   // Determinar si estamos cargando la cuenta
   const isLoadingCuentaId = loadingCuenta || (!cuentaId && !emergencyCuentaId && patientId && isLoading[patientId]);

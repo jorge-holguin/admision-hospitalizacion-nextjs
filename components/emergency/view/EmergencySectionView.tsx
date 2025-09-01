@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
+import { usePatientAccount } from "@/contexts/PatientAccountContext";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +60,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   // Usar el contexto de datos del paciente
   const { getPatientData } = usePatientData();
   const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId);
+  
+  // Usar el contexto de cuenta del paciente
+  const { fetchPatientAccountBySeguro } = usePatientAccount();
 
   // ===== Estados locales =====
   const [isSaving, setIsSaving] = useState(false);
@@ -362,7 +366,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   };
 
   // Manejar cambios en el formulario
-  const handleFormChange = (field: string, value: string) => {
+  const handleFormChange = async (field: string, value: string) => {
+    console.log(`handleFormChange llamado - Campo: ${field}, Valor: ${value}`);
+    
     setFormData((prev: FormDataType) => ({
       ...prev,
       [field]: value,
@@ -375,6 +381,52 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         delete newErrors[field];
         return newErrors;
       });
+    }
+
+    // Si se cambió el tipo de seguro, buscar cuenta correspondiente usando el contexto
+    if (field === 'seguroLiq' && value && initialData?.PACIENTE) {
+      console.log(`=== CAMBIO DE SEGURO DETECTADO ===`);
+      console.log(`Campo: ${field}, Valor: ${value}, Paciente: ${initialData.PACIENTE}`);
+      
+      try {
+        // Usar el contexto para buscar la cuenta por tipo de seguro
+        const accountData = await fetchPatientAccountBySeguro(initialData.PACIENTE, value);
+        
+        if (accountData && accountData.cuentaId) {
+          console.log(`Cuenta encontrada: ${accountData.cuentaId}`);
+          // Actualizar tanto numeroCuenta como cuentaId en el formulario
+          setFormData((prev: FormDataType) => ({
+            ...prev,
+            numeroCuenta: accountData.cuentaId,
+            cuentaId: accountData.cuentaId,
+          }));
+          
+          toast({
+            title: 'Cuenta actualizada',
+            description: `Se encontró y asignó la cuenta ${accountData.cuentaId} para el tipo de seguro seleccionado`,
+          });
+        } else {
+          console.log(`No se encontró cuenta para el seguro ${value}`);
+          // Establecer numeroCuenta como 'No disponible' si no se encuentra cuenta
+          setFormData((prev: FormDataType) => ({
+            ...prev,
+            numeroCuenta: 'No disponible',
+          }));
+          
+          toast({
+            title: 'Cuenta no encontrada',
+            description: `No se encontró una cuenta activa para el tipo de seguro seleccionado. Será necesario crear una nueva cuenta.`,
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        console.error('Error al buscar cuenta por seguro:', error);
+        toast({
+          title: 'Error',
+          description: 'Error al buscar cuenta por tipo de seguro',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -496,6 +548,16 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         return String(value).substring(0, maxLength);
       };
       
+      // Validar que haya una cuenta válida antes de actualizar
+      if (!formData.numeroCuenta || formData.numeroCuenta === 'No disponible') {
+        toast({
+          title: "Error de validación",
+          description: "No se puede actualizar el registro sin una cuenta válida. Por favor, verifique que el tipo de seguro tenga una cuenta asociada.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Preparar datos con longitudes limitadas según el esquema de la base de datos
       const updateData = {
         TIPOATENCION: limitLength(formData.tipoAtencion, 1),          // Char(1)
@@ -504,6 +566,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         FORMA_INGRESO: limitLength(formData.formaIngreso, 1),         // Char(1)
         SEGURO: limitLength(formData.seguro, 3),                      // Char(3)
         SEGUROLIQ: limitLength(formData.seguroLiq, 3),                // Char(3)
+        CUENTAID: limitLength(formData.numeroCuenta, 10),             // Agregar campo cuenta
         OBSERVACION1: limitLength(formData.observacion1, 100),         // Estimado VarChar(100)
         OBSERVACION2: limitLength(formData.observacion2, 100),         // Estimado VarChar(100)
         ACOMPANANTE: limitLength(formData.acompanante, 100),          // VarChar(100)
@@ -882,6 +945,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 validationErrors={validationErrors}
                 patientId={initialData?.PACIENTE}
                 onFormChange={handleFormChange}
+                cuentaId={formData.numeroCuenta}
                 emergencyCuentaId={initialData?.CUENTAID}
                 isViewMode={true}
               />
@@ -988,7 +1052,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.seguroLiq}
                     placeholder="Seleccionar seguro..."
-                    disabled={true}
+                    disabled={fieldsLocked || readOnly}
                   />
                 </div>
 
@@ -1018,7 +1082,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     patientId={initialData?.PACIENTE}
                     isUpdate={true}
                     formData={formData}
-                    insuranceCode={formData.seguro}
+                    insuranceCode={formData.seguroLiq}
                   />
                 )}
               </div>

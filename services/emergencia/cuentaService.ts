@@ -14,7 +14,7 @@ class CuentaService {
       const cuenta = await prisma.$queryRaw`
         SELECT TOP 1 CUENTAID 
         FROM CUENTA 
-        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO IN ('20', '21', '22', '23','24','25')
+        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = '01'
         ORDER BY CUENTAID DESC
       ` as any[];
       
@@ -28,6 +28,52 @@ class CuentaService {
       return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener cuenta del paciente ${pacienteId}: ${error.message || 'Error desconocido'}`;
+      console.error(errorMessage, error);
+      return null;
+    }
+  }
+
+  /**
+   * Obtiene el número de cuenta activa del paciente por tipo de seguro
+   */
+  async getCuentaActivaByPacienteIdAndSeguro(pacienteId: string, tipoSeguro: string): Promise<string | null> {
+    try {
+      console.log(`Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro}`);
+      
+      // Mapear el tipo de seguro al código correcto
+      let codigoSeguro: string;
+      const seguroTrimmed = tipoSeguro.trim();
+      
+      if (seguroTrimmed === '0' || seguroTrimmed === '00') {
+        codigoSeguro = '00'; // Pagante - asegurarse de usar '00' para consistencia
+      } else if (seguroTrimmed === '02') {
+        codigoSeguro = '02'; // SOAT
+      } else if (['20', '21', '22', '23', '24', '25'].includes(seguroTrimmed)) {
+        codigoSeguro = '01'; // SIS - todos los tipos de SIS usan código 01 para buscar cuenta
+      } else {
+        codigoSeguro = '01'; // Default SIS
+      }
+      
+      console.log(`Seguro recibido: '${tipoSeguro}' -> Código para búsqueda: '${codigoSeguro}'`);
+      
+      // Obtener la cuenta activa más reciente del paciente con el tipo de seguro específico
+      const cuenta = await prisma.$queryRaw`
+        SELECT TOP 1 CUENTAID 
+        FROM CUENTA 
+        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = ${codigoSeguro}
+        ORDER BY CUENTAID DESC
+      ` as any[];
+      
+      // Verificar si se encontró una cuenta
+      if (Array.isArray(cuenta) && cuenta.length > 0) {
+        console.log(`Cuenta encontrada para paciente ${pacienteId} con seguro ${codigoSeguro}:`, cuenta[0].CUENTAID);
+        return cuenta[0].CUENTAID;
+      }
+      
+      console.log(`No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);
+      return null;
+    } catch (error: any) {
+      const errorMessage = `Error al obtener cuenta del paciente ${pacienteId} con seguro ${tipoSeguro}: ${error.message || 'Error desconocido'}`;
       console.error(errorMessage, error);
       return null;
     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, X, AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2, Save, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,9 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [fuaValidationPassed, setFuaValidationPassed] = useState(false);
   
+  // Verificar si hay una cuenta válida
+  const hasValidAccount = formData?.numeroCuenta && formData.numeroCuenta !== 'No disponible';
+  
   // Códigos de seguro SIS que requieren validación FUA
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25'];
   const requiresFuaValidation = Boolean(insuranceCode && sisInsuranceCodes.includes(insuranceCode.trim()));
@@ -71,6 +74,19 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
 
   return (
     <>
+      {/* Mensaje de advertencia cuando no hay cuenta válida */}
+      {isUpdate && !hasValidAccount && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
+            <p className="text-amber-700 font-medium">No hay cuenta válida</p>
+          </div>
+          <p className="text-amber-600 text-sm mt-1">
+            No se puede actualizar el registro sin una cuenta válida. Por favor, verifique que el tipo de seguro tenga una cuenta asociada.
+          </p>
+        </div>
+      )}
+      
       <div className="flex justify-end space-x-4 pt-6 border-t">
         <Button
           type="button"
@@ -87,7 +103,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
             console.log('Botón de guardar clickeado');
             handleSaveClick();
           }}
-          disabled={submitting || !isEditable}
+          disabled={submitting || !isEditable || (isUpdate && !hasValidAccount)}
           className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
         >
           {submitting ? (

@@ -17,6 +17,7 @@ interface PatientAccountContextType {
   errors: Record<string, string | null>;
   setError: (patientId: string, error: string | null) => void;
   fetchPatientAccount: (patientId: string) => Promise<PatientAccountData | null>;
+  fetchPatientAccountBySeguro: (patientId: string, tipoSeguro: string) => Promise<PatientAccountData | null>;
 }
 
 // Crear el contexto
@@ -118,6 +119,68 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
     return fetchPromise;
   }, []);
 
+  // Función para obtener la cuenta del paciente por tipo de seguro específico
+  const fetchPatientAccountBySeguro = useCallback(async (patientId: string, tipoSeguro: string): Promise<PatientAccountData | null> => {
+    if (!patientId || !tipoSeguro) return null;
+    
+    const cacheKey = `${patientId}_${tipoSeguro}`;
+    
+    // Verificar si ya hay una solicitud en vuelo para esta combinación
+    if (cacheKey in inFlightRequests) {
+      console.log(`Reutilizando solicitud en vuelo para cuenta de paciente: ${patientId} con seguro: ${tipoSeguro}`);
+      return inFlightRequests[cacheKey];
+    }
+
+    // Crear una nueva solicitud y almacenarla
+    const fetchPromise = (async () => {
+      try {
+        setLoading(patientId, true);
+        setError(patientId, null);
+
+        console.log(`Obteniendo cuenta activa para paciente: ${patientId} con seguro: ${tipoSeguro}`);
+        const response = await fetch(`/api/cuenta/buscar-por-seguro/${patientId}?seguro=${tipoSeguro}`);
+        
+        if (!response.ok) {
+          // Si es un 404, no es un error crítico, simplemente no hay cuenta para ese seguro
+          if (response.status === 404) {
+            console.log(`No se encontró cuenta para el paciente ${patientId} con seguro ${tipoSeguro} (404)`);
+            return null;
+          }
+          // Para otros errores, lanzar excepción
+          throw new Error(`Error al obtener cuenta por seguro: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data?.success && data?.cuentaId) {
+          console.log(`Cuenta encontrada para seguro ${tipoSeguro}: ${data.cuentaId}`);
+          const accountInfo: PatientAccountData = {
+            cuentaId: data.cuentaId
+          };
+          
+          // Actualizar los datos de cuenta en el contexto
+          setAccountData(patientId, accountInfo);
+          return accountInfo;
+        } else {
+          console.log(`No se encontró cuenta activa para paciente ${patientId} con seguro ${tipoSeguro}`);
+          return null;
+        }
+      } catch (err: any) {
+        console.error('Error al obtener cuenta del paciente por seguro:', err);
+        setError(patientId, err.message || 'Error al obtener cuenta del paciente por seguro');
+        return null;
+      } finally {
+        setLoading(patientId, false);
+        // Eliminar la solicitud en vuelo cuando termine
+        delete inFlightRequests[cacheKey];
+      }
+    })();
+    
+    // Almacenar la promesa
+    inFlightRequests[cacheKey] = fetchPromise;
+    return fetchPromise;
+  }, []);
+
   return (
     <PatientAccountContext.Provider value={{
       accountData,
@@ -127,7 +190,8 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
       setLoading,
       errors,
       setError,
-      fetchPatientAccount
+      fetchPatientAccount,
+      fetchPatientAccountBySeguro
     }}>
       {children}
     </PatientAccountContext.Provider>

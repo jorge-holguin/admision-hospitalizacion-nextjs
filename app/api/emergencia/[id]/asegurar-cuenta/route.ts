@@ -163,18 +163,22 @@ export async function POST(
           );
         }
 
-        // Capturar el CUENTAID retornado por el SP
-        cuentaId = resultado[0].CUENTAID;
+        // Capturar el CUENTAID retornado por el SP - el SP devuelve CUENTA, no CUENTAID
+        cuentaId = resultado[0].CUENTA || resultado[0].CUENTAID;
         console.log(`Nueva cuenta creada con ID: ${cuentaId}, tipo: ${typeof cuentaId}`);
+        console.log('Resultado completo del primer elemento:', JSON.stringify(resultado[0], null, 2));
         
         // Verificar si el CUENTAID es válido
-        if (!cuentaId || cuentaId === null || cuentaId === undefined) {
+        if (!cuentaId || cuentaId === null || cuentaId === undefined || cuentaId === 0) {
           console.error('ERROR: El SP no devolvió un CUENTAID válido');
+          console.error('Todas las propiedades del resultado[0]:', Object.keys(resultado[0]));
+          console.error('Valores de todas las propiedades:', Object.values(resultado[0]));
           return NextResponse.json(
             { 
               ok: false, 
               mensaje: "Error: El procedimiento almacenado no devolvió un CUENTAID válido", 
-              error: `CUENTAID recibido: ${cuentaId}` 
+              error: `CUENTAID recibido: ${cuentaId}`,
+              resultadoCompleto: resultado[0]
             },
             { status: 500 }
           );
@@ -186,7 +190,20 @@ export async function POST(
       }
 
       // 5. Actualizar la emergencia con el CUENTAID específico creado o encontrado
-      console.log(`Actualizando emergencia ${idEmergencia} con CUENTAID: ${cuentaId}`);
+      console.log(`Actualizando emergencia ${idEmergencia} con CUENTAID: ${cuentaId}, tipo: ${typeof cuentaId}`);
+      
+      // Verificar nuevamente el valor antes de la actualización
+      if (!cuentaId || cuentaId === null || cuentaId === undefined || cuentaId === 0) {
+        console.error('ERROR CRÍTICO: cuentaId es inválido justo antes de la actualización');
+        return NextResponse.json(
+          { 
+            ok: false, 
+            mensaje: "Error crítico: cuentaId inválido antes de actualización", 
+            error: `cuentaId: ${cuentaId}, tipo: ${typeof cuentaId}` 
+          },
+          { status: 500 }
+        );
+      }
       
       const updateResult = await tx.$executeRaw`
         UPDATE EMERGENCIA 
@@ -196,6 +213,13 @@ export async function POST(
       `;
       
       console.log(`Filas afectadas en la actualización: ${updateResult}`);
+      
+      // Verificar que la actualización se realizó correctamente
+      const verificacion = await tx.$queryRaw`
+        SELECT CUENTAID FROM EMERGENCIA WHERE EMERGENCIA_ID = ${idEmergencia}
+      ` as any[];
+      
+      console.log(`Verificación post-actualización - CUENTAID en BD: ${verificacion[0]?.CUENTAID}`);
 
       // 6. Devolver respuesta exitosa
       return NextResponse.json(

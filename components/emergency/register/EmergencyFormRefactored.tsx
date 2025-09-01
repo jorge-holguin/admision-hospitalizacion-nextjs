@@ -425,7 +425,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
 
 
   // Usar el contexto de cuentas de pacientes
-  const { fetchPatientAccount, isLoading: isLoadingAccountState } = usePatientAccount();
+  const { fetchPatientAccount, fetchPatientAccountBySeguro, isLoading: isLoadingAccountState } = usePatientAccount();
   // Convertir el estado de carga de objeto a booleano
   const isLoadingAccount = patientId ? isLoadingAccountState[patientId] || false : false;
 
@@ -965,7 +965,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
                   }));
                   setSelectedMedico(medicoData || null);
                 }}
-                onSeguroChange={(value: string, seguroData: any) => {
+                onSeguroChange={async (value: string, seguroData: any) => {
                   setFormData(prev => ({
                     ...prev,
                     seguro: value
@@ -977,6 +977,52 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
                     const seguroCode = value.split(' - ')[0].trim();
                     setInsuranceCode(seguroCode);
                     console.log('Código de seguro actualizado desde selector:', seguroCode);
+                    
+                    // Buscar cuenta por tipo de seguro si tenemos un paciente
+                    if (patientId) {
+                      try {
+                        console.log(`=== CAMBIO DE SEGURO DETECTADO EN REGISTRO ===`);
+                        console.log(`Seguro: ${seguroCode}, Paciente: ${patientId}`);
+                        
+                        const accountData = await fetchPatientAccountBySeguro(patientId, seguroCode);
+                        
+                        if (accountData && accountData.cuentaId) {
+                          console.log(`Cuenta encontrada: ${accountData.cuentaId}`);
+                          // Actualizar tanto cuentaId como numeroCuenta en el formulario
+                          setFormData(prev => ({
+                            ...prev,
+                            cuentaId: accountData.cuentaId,
+                            numeroCuenta: accountData.cuentaId,
+                          }));
+                          
+                          toast({
+                            title: 'Cuenta actualizada',
+                            description: `Se encontró y asignó la cuenta ${accountData.cuentaId} para el tipo de seguro seleccionado`,
+                          });
+                        } else {
+                          console.log(`No se encontró cuenta para el seguro ${seguroCode}`);
+                          // Limpiar tanto cuentaId como numeroCuenta si no se encuentra cuenta
+                          setFormData(prev => ({
+                            ...prev,
+                            cuentaId: '',
+                            numeroCuenta: '',
+                          }));
+                          
+                          toast({
+                            title: 'Cuenta no encontrada',
+                            description: `No se encontró una cuenta activa para el tipo de seguro seleccionado. Se creará una nueva cuenta al guardar.`,
+                            variant: 'destructive',
+                          });
+                        }
+                      } catch (error) {
+                        console.error('Error al buscar cuenta por seguro:', error);
+                        toast({
+                          title: 'Error',
+                          description: 'Error al buscar cuenta por tipo de seguro',
+                          variant: 'destructive',
+                        });
+                      }
+                    }
                   }
                 }}
                 onDiagnosticoChange={(value: string, diagnosticoData: any) => {
