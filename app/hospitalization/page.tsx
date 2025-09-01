@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { DataTable } from "@/components/ui/data-table"
 import { useFiliacion } from "@/hooks/useFiliacion"
 import { useRouter } from "next/navigation"
-import { SISVerification, SISVerificationResult } from "@/components/SISVerification"
+import { SISVerification, SISVerificationResult } from "@/components/dashboard/SISVerification"
 import { usePatient } from "@/contexts/PatientContext"
 
 
