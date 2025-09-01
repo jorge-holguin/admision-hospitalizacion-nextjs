@@ -62,7 +62,7 @@ export function FormActions({
     if (requiresFuaValidation && patientId) {
       setCheckingFua(true)
       try {
-        const response = await fetch(`/api/cuenta/${patientId}`);
+        const response = await fetch(`/api/fua/check?patientId=${patientId}`)
         const data = await response.json()
         
         setHasFua(data.hasFua)

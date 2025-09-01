@@ -126,7 +126,7 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
                     seguroName: parts.length > 1 ? parts[1] : ''
                   });
                 }}
-                disabled={fieldsLocked}
+                disabled={true}
                 className="w-full"
               />
             ) : (

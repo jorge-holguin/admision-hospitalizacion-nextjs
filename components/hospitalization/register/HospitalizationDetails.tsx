@@ -27,7 +27,7 @@ export function HospitalizationDetails({
   const fetchHospitalizationDetails = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/orden-hospitalizacion/${id}`);
+      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${id}`);
       if (!response.ok) {
         throw new Error(`Error al cargar detalles de hospitalización: ${response.statusText}`);
       }

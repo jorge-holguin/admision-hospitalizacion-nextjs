@@ -61,11 +61,11 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         queryParams.append('origen', origenFilter);
       }
       
-      let url = '/api/origen-hospitalizacion';
+      let url = '/api/hospitaliza/origen-hospitalizacion';
       
       // Si hay un ID de paciente, usar el endpoint específico para pacientes
       if (patientId) {
-        url = `/api/origen-hospitalizacion/paciente/${patientId}`;
+        url = `/api/hospitaliza/origen-hospitalizacion/paciente/${patientId}`;
       }
       
       const response = await fetch(`${url}?${queryParams.toString()}`);

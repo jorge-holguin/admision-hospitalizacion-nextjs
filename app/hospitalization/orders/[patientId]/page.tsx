@@ -253,7 +253,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
   const checkEditableStatus = async () => {
     try {
       setCheckingEditStatus(true);      
-      const response = await fetch(`/api/orden-hospitalizacion/editable?pacienteId=${patientId}`);
+      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/editable?pacienteId=${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al verificar estado editable: ${response.status}`);
@@ -300,7 +300,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
             } 
             // Solo hacer la llamada API si idHOSPITALIZACION existe y no tenemos el ESTADO
             else if (orden.idHOSPITALIZACION && orden.idHOSPITALIZACION.trim() !== '') {
-              const response = await fetch(`/api/orden-hospitalizacion/${orden.idHOSPITALIZACION}`);
+              const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${orden.idHOSPITALIZACION}`);
               
               if (response.ok) {
                 const data = await response.json();

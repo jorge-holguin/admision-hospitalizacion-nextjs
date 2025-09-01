@@ -50,7 +50,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       message: `Se encontraron ${origenes.length} orígenes de hospitalización`
     })
   } catch (error) {
-    console.error(`API Error en GET /api/origen-hospitalizacion/paciente/${params.id}:`, error)
+    console.error(`API Error en GET /api/hospitaliza/origen-hospitalizacion/paciente/${params.id}:`, error)
     return NextResponse.json(
       { error: 'Error al obtener los orígenes de hospitalización del paciente' },
       { status: 500 }

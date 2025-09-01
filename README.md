@@ -7,185 +7,163 @@
 
 ## Descripción General
 
-Este sistema de gestión hospitalaria es una aplicación web completa diseñada para administrar los procesos de admisión, emergencia y hospitalización en centros médicos. La plataforma permite gestionar pacientes, consultorios, médicos, cuentas de seguro y registros médicos en un entorno integrado y seguro.
+Sistema integral de gestión hospitalaria desarrollado con Next.js, diseñado para administrar los procesos de emergencia y hospitalización en centros médicos. La plataforma ofrece una solución modular y escalable para la gestión de pacientes, personal médico y recursos hospitalarios.
 
 ## Características Principales
 
-- **Gestión de Emergencias**: Registro, seguimiento y actualización de casos de emergencia.
-- **Gestión de Hospitalización**: Administración de ingresos, estancias y altas hospitalarias.
-- **Gestión de Pacientes**: Registro completo de información de pacientes y sus historias clínicas.
-- **Validación de Seguros**: Integración con sistemas de seguros (SIS y otros) para validación de cobertura.
-- **Tablas Maestras**: Administración de catálogos de médicos, consultorios, localidades y otros datos de referencia.
-- **Autenticación y Seguridad**: Sistema de login y control de acceso basado en roles.
+- **Módulo de Emergencias**: Registro y seguimiento de atenciones de emergencia
+- **Módulo de Hospitalización**: Gestión completa de ingresos y altas hospitalarias
+- **Pacientes**: Registro centralizado de historias clínicas
+- **Tablas Maestras**: Administración de recursos médicos y referenciales
+- **Autenticación**: Control de acceso basado en roles
+- **API RESTful**: Arquitectura modular con endpoints bien definidos
 
 ## Estructura del Proyecto
 
+### API (app/api/)
+
 ```
-├── app/                        # Aplicación principal de Next.js
-│   ├── api/                    # Endpoints de la API REST
-│   │   ├── auth/               # Endpoints de autenticación
-│   │   ├── consultorio/        # Endpoints de consultorios
-│   │   ├── cuenta/             # Endpoints de cuentas
-│   │   ├── dashboard/          # Endpoints del dashboard
-│   │   ├── emergencia/         # Endpoints de emergencias
-│   │   └── hospitalizacion/    # Endpoints de hospitalización
-│   │
-│   ├── change-password/        # Página de cambio de contraseña
-│   ├── dashboard/              # Panel principal
-│   ├── emergency/              # Módulo de emergencias
-│   │   ├── [patientId]/        # Vista detallada de emergencia
-│   │   ├── edit/               # Edición de emergencia
-│   │   └── register/           # Registro de emergencia
-│   ├── hospitalization/        # Módulo de hospitalización
-│   └── ...                     # Otras rutas y páginas
-│
-├── components/                 # Componentes React reutilizables
-│   ├── emergency/              # Componentes de emergencias
-│   │   ├── register/           # Componentes de registro
-│   │   └── view/               # Componentes de visualización
-│   │
-│   ├── hospitalization/        # Componentes de hospitalización
-│   │   ├── register/           # Componentes de registro
-│   │   └── view/               # Componentes de visualización
-│   │
-│   ├── master-tables/          # Componentes para tablas maestras
-│   │   ├── modals/             # Modales para CRUD
-│   │   └── tables/             # Tablas de datos
-│   │
-│   └── ui/                     # Componentes de interfaz de usuario
-│       ├── alert/              # Alertas y notificaciones
-│       ├── button/             # Botones personalizados
-│       ├── card/               # Tarjetas de contenido
-│       ├── dialog/             # Diálogos modales
-│       ├── form/               # Componentes de formulario
-│       └── ...                 # Otros componentes UI
-│
-├── constants/                  # Constantes y configuraciones
-│   └── index.ts                # Exportaciones de constantes
-│
-├── contexts/                   # Contextos de React
-│   ├── MedicosContext.tsx      # Contexto de médicos
-│   ├── PatientAccountContext.tsx # Contexto de cuenta de paciente
-│   ├── PatientContext.tsx      # Contexto de paciente
-│   └── PatientDataContext.tsx  # Contexto de datos de paciente
-│
-├── docs/                       # Documentación del proyecto
-│   └── document-types-integration.md
-│
-├── hooks/                      # Hooks personalizados
-│   ├── master-tables/          # Hooks para tablas maestras
-│   │   ├── useConsultorios.ts
-│   │   ├── useLocalidades.ts
-│   │   └── useMedicos.ts
-│   ├── use-mobile.tsx          # Detección de dispositivos móviles
-│   ├── use-toast.ts            # Notificaciones toast
-│   └── ...                     # Otros hooks personalizados
-│
-├── lib/                        # Utilidades y configuraciones
-│   ├── prisma/                 # Cliente de Prisma
-│   │   └── client.ts           # Instancia del cliente Prisma
-│   ├── auth.ts                 # Configuración de autenticación
-│   ├── env.ts                  # Validación de variables de entorno
-│   └── prisma.ts               # Exportación del cliente Prisma
-│
-├── prisma/                     # Configuración de Prisma
-│   └── schema.prisma           # Esquema de la base de datos
-│
-├── public/                     # Archivos estáticos
-│   ├── login-bg.png            # Imagen de fondo de login
-│   ├── placeholder-logo.png    # Logo predeterminado
-│   ├── placeholder-logo.svg    # Logo SVG predeterminado
-│   └── placeholder-user.jpg    # Avatar de usuario predeterminado
-│
-├── services/                   # Lógica de negocio
-│   ├── emergencia/             # Servicios de emergencia
-│   │   ├── consultorioService.ts
-│   │   ├── cuentaService.ts
-│   │   └── emergenciaService.ts
-│   │
-│   ├── hospitalizacion/        # Servicios de hospitalización
-│   │   ├── consultorioService.ts
-│   │   ├── dashboardService.ts
-│   │   ├── diagnosticoService.ts
-│   │   └── ...
-│   │
-│   └── master-tables/          # Servicios de tablas maestras
-│       ├── consultorioService.ts
-│       ├── localidadService.ts
-│       └── medicoService.ts
-│
-├── styles/                     # Estilos globales
-│   └── globals.css             # Estilos CSS globales
-│
-├── utils/                      # Funciones utilitarias
-│   ├── civilStatusUtils.ts     # Utilidades de estado civil
-│   ├── dateFormatUtils.ts      # Formateo de fechas
-│   ├── debuggerUtils.ts        # Utilidades de depuración
-│   ├── jwtUtils.ts             # Manejo de JWT
-│   ├── pdfUtils.ts             # Generación de PDFs
-│   └── statusUtils.ts          # Utilidades de estado
-│
-├── .env                        # Variables de entorno
-├── .gitignore                  # Archivos ignorados por Git
-├── components.json             # Configuración de componentes UI
-├── docker-compose.yml          # Configuración de Docker Compose
-├── dockerfile                  # Configuración de Docker
-├── next.config.mjs             # Configuración de Next.js
-├── package.json                # Dependencias del proyecto
-├── package-lock.json           # Versiones exactas de dependencias
-├── postcss.config.mjs          # Configuración de PostCSS
-├── tailwind.config.ts          # Configuración de Tailwind CSS
-└── tsconfig.json               # Configuración de TypeScript
+api/
+├── consultorio/               # Endpoints de consultorios
+├── cuenta/                    # Gestión de cuentas de pacientes
+│   ├── buscar-por-seguro/     # Búsqueda por tipo de seguro
+│   └── update/                # Actualización de cuentas
+├── dashboard/                 # Datos para el dashboard
+│   └── kpis/                  # Métricas principales
+├── emergencia/                # Módulo de emergencias
+│   ├── active/                # Emergencias activas
+│   ├── patient/               # Emergencias por paciente
+│   └── [id]/                  # Operaciones por ID de emergencia
+├── hospitaliza/               # Módulo de hospitalización
+│   ├── orden-hospitalizacion/ # Gestión de órdenes
+│   └── origen-hospitalizacion/ # Orígenes de hospitalización
+└── master-tables/             # Tablas de referencia
+    ├── consultorios/          # Gestión de consultorios
+    ├── localidades/           # Gestión de localidades
+    └── medicos/              # Gestión de médicos
+```
+
+### Frontend (app/)
+
+```
+app/
+├── change-password/          # Cambio de contraseña
+├── dashboard/                # Panel principal
+├── emergency/                # Módulo de emergencias
+│   ├── [patientId]/          # Detalle de emergencia
+│   ├── edit/                 # Edición de emergencia
+│   └── register/             # Registro de emergencia
+└── hospitalization/          # Módulo de hospitalización
+    ├── orders/              # Órdenes de hospitalización
+    ├── register/            # Registro de hospitalización
+    └── view/                # Visualización de hospitalización
+```
+
+### Estructura de Código
+
+```
+components/                   # Componentes reutilizables
+├── dashboard/                # Componentes del dashboard
+├── emergency/                # Componentes de emergencias
+├── hospitalization/          # Componentes de hospitalización
+├── master-tables/            # Componentes para tablas maestras
+└── ui/                       # Componentes de interfaz base
+
+contexts/                     # Contextos de React
+├── MedicosContext.tsx        # Gestión de médicos
+├── PatientAccountContext.tsx # Cuentas de pacientes
+├── PatientContext.tsx        # Datos de pacientes
+└── PatientDataContext.tsx    # Datos clínicos
+
+hooks/                        # Hooks personalizados
+├── master-tables/            # Hooks para tablas maestras
+├── use-mobile.tsx            # Detección móvil
+└── use-toast.ts              # Notificaciones
+
+services/                     # Lógica de negocio
+├── emergencia/               # Servicios de emergencia
+├── hospitalizacion/          # Servicios de hospitalización
+└── master-tables/            # Servicios de tablas maestras
+
+utils/                        # Utilidades
+├── civilStatusUtils.ts       # Estados civiles
+├── dateFormatUtils.ts        # Formato de fechas
+├── debuggerUtils.ts          # Herramientas de depuración
+└── jwtUtils.ts               # Manejo de JWT
+```
+
+## Base de Datos
+
+El sistema utiliza Prisma como ORM con un esquema relacional que incluye:
+
+- **Pacientes**: Información personal y clínica
+- **Emergencias**: Registros de atención de emergencia
+- **Hospitalizaciones**: Ingresos y estancias hospitalarias
+- **Médicos**: Personal médico
+- **Consultorios**: Áreas de atención
+- **Localidades**: Ubicaciones geográficas
+
+## Configuración
+
+1. Crear archivo `.env` en la raíz:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/hospital_db"
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+2. Instalar dependencias:
+```bash
+npm install
+```
+
+3. Ejecutar migraciones:
+```bash
+npx prisma migrate dev
+```
+
+4. Iniciar servidor de desarrollo:
+```bash
+npm run dev
 ```
 
 ## Módulos Principales
 
-### Módulo de Emergencias
+### Emergencias
+- Registro de pacientes en emergencia
+- Asignación de consultorios
+- Validación de seguros
+- Generación de FUA
 
-Permite el registro y seguimiento de pacientes que ingresan por emergencia:
+### Hospitalización
+- Órdenes de hospitalización
+- Gestión de camas
+- Control de altas
+- Seguimiento clínico
 
-- Registro de datos del paciente
-- Asignación de consultorio y médico
-- Validación de seguro y cuenta
-- Seguimiento del estado del paciente
-- Generación de reportes
+### Tablas Maestras
+- Gestión de recursos médicos
+- Catálogos del sistema
+- Datos de referencia
 
-### Módulo de Hospitalización
+## Tecnologías
 
-Gestiona el proceso completo de hospitalización de pacientes:
-
-- Admisión de pacientes
-- Asignación de camas y habitaciones
-- Seguimiento de tratamientos
-- Registro de evolución médica
-- Proceso de alta
-
-### Sistema de Cuentas y Seguros
-
-Administra la información financiera y de seguros:
-
-- Validación de cobertura de seguros
-- Gestión de cuentas de pacientes
-- Integración con sistema SIS
-- Validación de FUA para seguros específicos
-
-## Tecnologías Utilizadas
-
-- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Shadcn UI
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Base de Datos**: Compatible con PostgreSQL, MySQL, SQL Server
+- **Frontend**: Next.js 13+, React 18+, TypeScript
+- **Estilos**: Tailwind CSS, Shadcn UI
+- **Backend**: Next.js API Routes
+- **Base de Datos**: PostgreSQL con Prisma ORM
 - **Autenticación**: NextAuth.js
 - **Validación**: Zod
 - **Iconos**: Lucide React
 
-## Contextos React
+## Licencia
 
-El sistema utiliza varios contextos para compartir estado entre componentes:
+Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-- **PatientContext**: Información del paciente actual
-- **PatientAccountContext**: Datos de cuenta y seguro del paciente
-- **PatientDataContext**: Datos clínicos del paciente
-- **MedicosContext**: Información de médicos disponibles
+---
+
+Desarrollado por [Tu Organización] - 2025
 
 ## Servicios
 
@@ -203,13 +181,13 @@ La lógica de negocio está organizada en servicios modulares:
 
 - Node.js 16.x o superior
 - NPM o Yarn
-- Base de datos (PostgreSQL, MySQL o SQL Server)
+- PostgreSQL 13+ (recomendado) o compatible con Prisma
 
 ### Pasos de Instalación
 
 1. Clonar el repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/hospital-management-system.git
+   git clone https://github.com/tu-organizacion/hospital-management-system.git
    cd hospital-management-system
    ```
 
@@ -221,33 +199,127 @@ La lógica de negocio está organizada en servicios modulares:
    ```
 
 3. Configurar variables de entorno:
-   - Copiar `.env.example` a `.env`
-   - Configurar las variables de conexión a la base de datos y otras configuraciones
-
-4. Ejecutar migraciones de base de datos:
    ```bash
-   npx prisma migrate dev
+   cp .env.example .env
+   # Editar el archivo .env con tus credenciales
    ```
 
-5. Iniciar el servidor de desarrollo:
+4. Ejecutar migraciones iniciales:
    ```bash
-   npm run dev
-   # o
-   yarn dev
+   npx prisma migrate dev --name init
    ```
 
-6. Acceder a la aplicación en `http://localhost:3000`
+5. Poblar datos iniciales (opcional):
+   ```bash
+   npx prisma db seed
+   ```
 
-## Despliegue con Docker
+## Desarrollo
 
-El proyecto incluye configuración para Docker:
+### Scripts Disponibles
+
+- `dev`: Inicia el servidor de desarrollo
+  ```bash
+  npm run dev
+  ```
+
+- `build`: Compila la aplicación para producción
+  ```bash
+  npm run build
+  ```
+
+- `start`: Inicia la aplicación en producción
+  ```bash
+  npm start
+  ```
+
+- `lint`: Ejecuta el linter
+  ```bash
+  npm run lint
+  ```
+
+- `prisma:studio`: Abre el cliente visual de Prisma
+  ```bash
+  npx prisma studio
+  ```
+
+### Convenciones de Código
+
+- **Componentes**: Usar PascalCase (ej. `PatientForm.tsx`)
+- **Hooks**: Prefijo `use` (ej. `usePatientData.ts`)
+- **Servicios**: Sufijo `Service` (ej. `emergenciaService.ts`)
+- **Utilidades**: Sufijo `Utils` (ej. `dateFormatUtils.ts`)
+
+## Contribución
+
+1. Haz un fork del repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/amazing-feature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some amazing feature'`)
+4. Haz push a la rama (`git push origin feature/amazing-feature`)
+5. Abre un Pull Request
+
+### Guía de Estilo
+
+- Sigue el [Código de Conducta](CODE_OF_CONDUCT.md)
+- Asegúrate de que los tests pasen
+- Actualiza la documentación según sea necesario
+- Mantén los commits atómicos y con mensajes descriptivos
+
+## Despliegue
+
+### Producción
+
+1. Configurar variables de entorno de producción
+2. Construir la aplicación:
+   ```bash
+   npm run build
+   ```
+3. Iniciar la aplicación:
+   ```bash
+   npm start
+   ```
+
+### Docker
 
 ```bash
-# Construir la imagen
-docker-compose build
-
-# Iniciar los contenedores
 docker-compose up -d
+```
+
+## Soporte
+
+Para reportar problemas o solicitar características, por favor abre un [issue](https://github.com/tu-organizacion/hospital-management-system/issues).
+
+## Licencia
+
+Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
+
+---
+
+Desarrollado por Jorge Holguin - 2025
+## Docker
+
+El proyecto incluye configuración para Docker Compose. Para iniciar la aplicación con Docker:
+
+1. Crear un archivo `.env` basado en `.env.example`
+2. Ejecutar:
+   ```bash
+   docker-compose up -d
+   ```
+
+La aplicación estará disponible en `http://localhost:3000`
+
+## Pruebas
+
+Para ejecutar las pruebas unitarias:
+
+```bash
+npm test
+```
+
+Para ejecutar pruebas de extremo a extremo:
+
+```bash
+npm run test:e2e
 ```
 
 ## Contribución

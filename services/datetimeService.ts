@@ -9,7 +9,7 @@ export const datetimeService = {
    */
   async getCurrentDateTime() {
     try {
-      const response = await fetch('/api/datetime', {
+      const response = await fetch('/api/utils/datetime', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

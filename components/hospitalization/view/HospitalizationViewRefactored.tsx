@@ -3,12 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
-import { datetimeService } from '@/services/datetimeService'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Spinner } from "@/components/ui/spinner"
-import { Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from "@/components/ui/use-toast"
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
 import { convertDateFormat, convertTimeFormat, convertTo12HourFormat } from '@/utils/dateFormatUtils'
@@ -79,7 +75,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
   const fetchHospitalizationDetails = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/orden-hospitalizacion/${id}`);
+      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${id}`);
       
       if (!response.ok) {
         console.error(`Error en respuesta API: ${response.status} ${response.statusText}`);
@@ -288,7 +284,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
       };
       
       // Enviar datos a la API
-      const response = await fetch(`/api/orden-hospitalizacion/${orderId}`, {
+      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${orderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

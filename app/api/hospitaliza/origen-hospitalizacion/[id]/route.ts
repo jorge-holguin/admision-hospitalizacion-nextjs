@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(origen)
   } catch (error) {
-    console.error(`API Error en GET /api/origen-hospitalizacion/${params.id}:`, error)
+    console.error(`API Error en GET /api/hospitaliza/origen-hospitalizacion/${params.id}:`, error)
     return NextResponse.json(
       { error: 'Error al obtener el origen de hospitalización' },
       { status: 500 }

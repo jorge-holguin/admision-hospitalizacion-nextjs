@@ -56,7 +56,7 @@ export function useOrdenHospitalizacion({
 
     try {
       // Usar la API principal con paginación en lugar de la API específica de paciente
-      const apiUrl = `/api/orden-hospitalizacion?page=${pagination.page}&pageSize=${pagination.pageSize}&pacienteId=${debouncedPacienteId}`;
+      const apiUrl = `/api/hospitaliza/orden-hospitalizacion?page=${pagination.page}&pageSize=${pagination.pageSize}&pacienteId=${debouncedPacienteId}`;
 
       const response = await fetch(apiUrl);
 
@@ -105,11 +105,11 @@ export function useOrdenHospitalizacion({
 
       // Intentar detectar si el error es por llamar a la URL incorrecta
       if (err instanceof Error && err.message.includes('404')) {
-        console.error('⚠️ [useOrdenHospitalizacion] Posible error de URL incorrecta. Verificar que se está usando /api/orden-hospitalizacion/paciente/${id} y no /api/orden-hospitalizacion/${id}');
+        console.error('⚠️ [useOrdenHospitalizacion] Posible error de URL incorrecta. Verificar que se está usando /api/hospitaliza/orden-hospitalizacion/paciente/${id} y no /api/hospitaliza/orden-hospitalizacion/${id}');
 
         // Intentar recuperarse usando la URL correcta
         try {
-          const correctUrl = `/api/orden-hospitalizacion/paciente/${debouncedPacienteId}`;
+          const correctUrl = `/api/hospitaliza/orden-hospitalizacion/paciente/${debouncedPacienteId}`;
           const recoveryResponse = await fetch(correctUrl);
 
           if (recoveryResponse.ok) {

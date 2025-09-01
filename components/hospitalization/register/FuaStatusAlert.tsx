@@ -37,7 +37,7 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     const checkFuaStatus = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/cuenta/${patientId}`);
+        const response = await fetch(`/api/fua/check?patientId=${patientId}`)
         
         if (!response.ok) {
           throw new Error('Error al verificar el estado del FUA')

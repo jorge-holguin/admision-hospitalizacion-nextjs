@@ -156,7 +156,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
       }
 
       try {
-        const response = await fetch(`/api/orden-hospitalizacion/${hospitalizationOrderId}`);
+        const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${hospitalizationOrderId}`);
         
         if (!response.ok) {
           console.error(`Error fetching hospitalization order: ${response.status}`);
