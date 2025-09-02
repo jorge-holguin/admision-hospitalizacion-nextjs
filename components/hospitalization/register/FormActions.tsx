@@ -38,9 +38,11 @@ export function FormActions({
 
   // List of SIS insurance codes that require FUA validation
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25']
+  const paganteSoatCodes = ['0', '00', '02']
   
-  // Check if the current insurance code requires FUA validation
+  // Check if the current insurance code requires FUA validation (only SIS)
   const requiresFuaValidation = sisInsuranceCodes.includes(insuranceCode?.split(' ')[0] || '')
+  const isPaganteSoat = paganteSoatCodes.includes(insuranceCode?.split(' ')[0] || '')
 
   const handleSaveClick = async () => {
     // Validar el formulario antes de continuar si existe la función onBeforeSave
@@ -58,19 +60,27 @@ export function FormActions({
     setFuaId(null)
     setShowFuaWarning(false)
     
-    // If this insurance type requires FUA validation, check for active FUA
+    // For PAGANTE/SOAT, skip validation since accounts will be created automatically
+    if (isPaganteSoat) {
+      setHasFua(true) // Set as valid to allow saving
+      setShowConfirmDialog(true)
+      return
+    }
+    
+    // If this insurance type requires validation (SIS only), check cuenta and FUA
     if (requiresFuaValidation && patientId) {
       setCheckingFua(true)
       try {
-        const response = await fetch(`/api/fua/check?patientId=${patientId}`)
+        const trimmedCode = insuranceCode?.split(' ')[0] || ''
+        const response = await fetch(`/api/cuenta/validate?patientId=${patientId}&tipoSeguro=${trimmedCode}`)
         const data = await response.json()
         
-        setHasFua(data.hasFua)
+        setHasFua(data.isValid)
         setFuaId(data.fuaId)
-        setShowFuaWarning(!data.hasFua) // Show warning only if no FUA found
+        setShowFuaWarning(!data.isValid) // Show warning only if validation failed
       } catch (error) {
-        console.error('Error checking FUA status:', error)
-        // If there's an error checking FUA, we'll show the warning
+        console.error('Error validating cuenta and FUA:', error)
+        // If there's an error checking, we'll show the warning
         setShowFuaWarning(true)
       } finally {
         setCheckingFua(false)
@@ -151,22 +161,20 @@ export function FormActions({
               </div>
             )}
             
-            {/* Mensaje de FUA encontrado */}
+            {/* Mensaje de cuenta y FUA válidos */}
             {requiresFuaValidation && hasFua && fuaId && (
               <div className="flex items-center space-x-2 mt-4 p-2 bg-green-50 text-green-800 rounded">
                 <CheckCircle2 className="h-4 w-4" />
-                <p>FUA activo encontrado: <strong>{fuaId}</strong></p>
+                <p>Cuenta SIS válida con FUA activo: <strong>{fuaId}</strong></p>
               </div>
             )}
             
-            {/* Mensaje de advertencia si no hay FUA activo */}
+            {/* Mensaje de advertencia si la validación SIS falla */}
             {requiresFuaValidation && !hasFua && showFuaWarning && (
               <div className="space-y-4 mt-4">
                 <div className="flex items-center space-x-2 p-2 bg-red-50 text-red-800 rounded">
                   <AlertCircle className="h-4 w-4" />
-                  <p className="font-semibold">No se ha encontrado un FUA activo para este paciente en las últimas 3 horas.</p>
-                </div>
-                <div className="flex items-center space-x-2">
+                  <p className="font-semibold">No se encontró cuenta SIS válida o FUA activo para este paciente.</p>
                 </div>
               </div>
             )}

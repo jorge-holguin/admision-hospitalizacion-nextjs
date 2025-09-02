@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { cuentaValidationService } from './cuentaValidationService';
 
 const prisma = new PrismaClient();
 
@@ -325,30 +326,47 @@ class HospitalizaService {
         WHERE IDHOSPITALIZACION = ${id}
       `;
       
-      let deletedCuentas = 0;
+      let cuentaResult = { success: false, message: '' };
       
-      // 3. Si el seguro es de tipo ["0", "02", "17"], eliminar cuentas huérfanas
-      const segurosParaLimpiarCuentas = ["0", "02", "17"]; // Pagante, SOAT, Otros Programas
+      // 3. Obtener la cuenta activa del paciente para aplicar borrado lógico
+      const cuenta = await cuentaValidationService.getCuentaActivaByPacienteIdAndSeguro(
+        hospitalizacion.PACIENTE, 
+        hospitalizacion.SEGURO
+      );
       
-      if (segurosParaLimpiarCuentas.includes(hospitalizacion.SEGURO)) {
-        console.log(`Seguro ${hospitalizacion.SEGURO} requiere limpieza de cuentas huérfanas`);
+      if (cuenta) {
+        // Determinar el tipo de seguro y aplicar el borrado lógico correspondiente
+        const seguroTrimmed = hospitalizacion.SEGURO.trim();
+        const esSIS = ['20', '21', '22', '23', '24', '25'].includes(seguroTrimmed);
+        const esPaganteSoatOtros = ['0', '00', '02', '17'].includes(seguroTrimmed);
         
-        // Eliminar cuentas huérfanas con ESTADO='0' para este paciente
-        const deleteResult = await prisma.$executeRaw`
-          DELETE FROM CUENTA 
-          WHERE PACIENTE = ${hospitalizacion.PACIENTE}
-          AND ESTADO = '0'
-        `;
+        if (esSIS) {
+          // Para SIS: actualizar tanto cuenta como FUA a estado inactivo
+          console.log(`Seguro SIS (${seguroTrimmed}) - Aplicando borrado lógico de cuenta y FUA`);
+          cuentaResult = await cuentaValidationService.updateCuentaAndFUA(cuenta.CUENTAID);
+        } else if (esPaganteSoatOtros) {
+          // Para PAGANTE/SOAT/Otros: solo actualizar cuenta a estado inactivo
+          console.log(`Seguro PAGANTE/SOAT/Otros (${seguroTrimmed}) - Aplicando borrado lógico solo de cuenta`);
+          const success = await cuentaValidationService.updateCUENTA(cuenta.CUENTAID);
+          cuentaResult = {
+            success,
+            message: success 
+              ? `Cuenta ${cuenta.CUENTAID} actualizada a estado inactivo`
+              : `Error al actualizar cuenta ${cuenta.CUENTAID}`
+          };
+        }
         
-        deletedCuentas = Number(deleteResult) || 0;
-        console.log(`Se eliminaron ${deletedCuentas} cuentas huérfanas`);
+        console.log(`Resultado del borrado lógico de cuenta: ${cuentaResult.message}`);
+      } else {
+        console.log(`No se encontró cuenta activa para el paciente ${hospitalizacion.PACIENTE} con seguro ${hospitalizacion.SEGURO}`);
+        cuentaResult = { success: true, message: 'No se encontró cuenta activa para actualizar' };
       }
       
       const result = { 
         success: true, 
-        message: `Hospitalización ${id} marcada como eliminada correctamente`, 
+        message: `Hospitalización ${id} marcada como eliminada correctamente. ${cuentaResult.message}`, 
         deletedHospitalizacion: Number(updateResult) || 0,
-        deletedCuentas
+        cuentaUpdateResult: cuentaResult
       };
       
       return result;

@@ -172,7 +172,14 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     // Actualizar el seguro seleccionado si existe en el origen
     if (onSeguroChange && origen.SEGURO) {
       try {
-        const seguroCode = origen.SEGURO.trim();
+        let seguroCode = origen.SEGURO.trim();
+        
+        // CASO ESPECIAL: Si el origen es EM (Emergencia) y el seguro es 06 (ESSALUD),
+        // redirigir automáticamente a 0 (PAGANTE)
+        if (origen.ORIGEN === 'EM' && seguroCode === '06') {
+          console.log('Origen EM detectado con seguro 06 (ESSALUD), redirigiendo a 0 (PAGANTE)');
+          seguroCode = '0';
+        }
         
         if (seguroCode) {
           // Buscar el nombre del seguro en la API

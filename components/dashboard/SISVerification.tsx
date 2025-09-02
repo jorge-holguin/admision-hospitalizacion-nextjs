@@ -74,7 +74,7 @@ export function SISVerification({
     });
 
     try {
-      const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
+      const response = await fetch(`${API_BACKEND_URL}/sisr`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

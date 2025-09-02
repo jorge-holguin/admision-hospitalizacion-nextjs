@@ -57,7 +57,6 @@ export async function POST(
     // Iniciar una transacción para garantizar consistencia
     return await prisma.$transaction(async (tx) => {
       // 1. Consultar la hospitalización para obtener el valor de SEGURO usando consulta SQL directa
-      // para evitar problemas con OFFSET en Prisma
       const hospitalizacionResult = await tx.$queryRaw`
         SELECT TOP 1 SEGURO, PACIENTE, CUENTAID 
         FROM HOSPITALIZA 
@@ -77,14 +76,11 @@ export async function POST(
       }
 
       // 2. Verificar si el SEGURO está en los valores permitidos
-      const segurosPermitidos = ["0", "02", "17"];
-      // Depurar el valor de SEGURO para entender por qué no coincide
-      console.log(`Valor de SEGURO en la base de datos: '${hospitalizacion.SEGURO}', tipo: ${typeof hospitalizacion.SEGURO}, longitud: ${hospitalizacion.SEGURO?.length}`);
-      console.log(`Valores permitidos: ${JSON.stringify(segurosPermitidos)}`);
-      
-      // Intentar hacer trim() para eliminar espacios
+      const segurosPermitidos = ["0", "00", "02", "17"];
       const seguroTrimmed = hospitalizacion.SEGURO?.trim();
-      console.log(`Valor de SEGURO después de trim(): '${seguroTrimmed}', longitud: ${seguroTrimmed?.length}`);
+      
+      console.log(`Valor de SEGURO en hospitalización: '${seguroTrimmed}', tipo: ${typeof seguroTrimmed}`);
+      console.log(`Valores permitidos: ${JSON.stringify(segurosPermitidos)}`);
       
       if (!segurosPermitidos.includes(seguroTrimmed)) {
         return NextResponse.json(
@@ -96,13 +92,13 @@ export async function POST(
         );
       }
 
-      // 3. Buscar si el paciente ya tiene una cuenta activa mediante consulta directa a SQL
-      // Ya que no tenemos acceso al modelo CUENTA en el esquema Prisma
+      // 3. Buscar si el paciente ya tiene una cuenta activa del mismo tipo de seguro
+      // Para hospitalizaciones usamos ORIGEN = 'HO' y verificamos que el SEGURO coincida
       const cuentaExistente = await tx.$queryRaw`
         SELECT TOP 1 CUENTAID 
         FROM CUENTA 
         WHERE PACIENTE = ${paciente} 
-        AND ESTADO = '1' AND ORIGEN = 'HO'
+        AND ESTADO = '1' AND ORIGEN = 'HO' AND SEGURO = ${seguroTrimmed}
         ORDER BY FECHA_APERTURA DESC
       ` as any[];
 
@@ -120,7 +116,7 @@ export async function POST(
         const resultado = await tx.$queryRaw`
           EXEC SP_LIQUIDA_NUEVA_CUENTA 
             @paciente = ${paciente},
-            @seguro = ${seguro || "02"},
+            @seguro = ${seguroTrimmed},
             @empresa = ${empresa || "0"},
             @consultorio = ${consultorio || "2090"},
             @observa = ${observa || "."},
@@ -135,36 +131,91 @@ export async function POST(
         ` as any[];
 
         // Verificar el resultado del SP
-        if (!resultado || resultado.length === 0 || resultado[0].ESTADO !== 1) {
+        console.log('Resultado completo del SP:', JSON.stringify(resultado, null, 2));
+        
+        if (!resultado || resultado.length === 0) {
           return NextResponse.json(
             { 
               ok: false, 
               mensaje: "Error al ejecutar el procedimiento almacenado", 
-              error: resultado ? resultado[0]?.MENSAJE : "No se recibió respuesta del SP" 
+              error: "No se recibió respuesta del SP" 
             },
             { status: 500 }
           );
         }
 
-        // Capturar el CUENTAID retornado por el SP
-        cuentaId = resultado[0].CUENTAID;
+        // Verificar si el SP devolvió un error - comparar como string también
+        const estadoSP = resultado[0].ESTADO;
+        console.log(`Estado del SP: ${estadoSP}, tipo: ${typeof estadoSP}`);
+        
+        if (estadoSP !== 1 && estadoSP !== "1") {
+          return NextResponse.json(
+            { 
+              ok: false, 
+              mensaje: "Error al ejecutar el procedimiento almacenado", 
+              error: resultado[0]?.MENSAJE || "Error desconocido del SP" 
+            },
+            { status: 500 }
+          );
+        }
+
+        // Capturar el CUENTAID retornado por el SP - el SP puede devolver CUENTA o CUENTAID
+        cuentaId = resultado[0].CUENTA || resultado[0].CUENTAID;
+        console.log(`Nueva cuenta creada con ID: ${cuentaId}, tipo: ${typeof cuentaId}`);
+        console.log('Resultado completo del primer elemento:', JSON.stringify(resultado[0], null, 2));
+        
+        // Verificar si el CUENTAID es válido
+        if (!cuentaId || cuentaId === null || cuentaId === undefined || cuentaId === 0) {
+          console.error('ERROR: El SP no devolvió un CUENTAID válido');
+          console.error('Todas las propiedades del resultado[0]:', Object.keys(resultado[0]));
+          console.error('Valores de todas las propiedades:', Object.values(resultado[0]));
+          return NextResponse.json(
+            { 
+              ok: false, 
+              mensaje: "Error: El procedimiento almacenado no devolvió un CUENTAID válido", 
+              error: `CUENTAID recibido: ${cuentaId}`,
+              resultadoCompleto: resultado[0]
+            },
+            { status: 500 }
+          );
+        }
       } else {
-        // Usar la cuenta existente
+        // Usar la cuenta existente del mismo tipo de seguro
         cuentaId = cuentaExistente[0].CUENTAID;
+        console.log(`Reutilizando cuenta existente del mismo tipo de seguro: ${cuentaId}`);
       }
 
-      // 5. Actualizar la hospitalización con el CUENTAID más reciente del paciente usando SQL directo con subconsulta
-      await tx.$executeRaw`
+      // 5. Actualizar la hospitalización con el CUENTAID específico creado o encontrado
+      console.log(`Actualizando hospitalización ${idHospitalizacion} con CUENTAID: ${cuentaId}, tipo: ${typeof cuentaId}`);
+      
+      // Verificar nuevamente el valor antes de la actualización
+      if (!cuentaId || cuentaId === null || cuentaId === undefined || cuentaId === 0) {
+        console.error('ERROR CRÍTICO: cuentaId es inválido justo antes de la actualización');
+        return NextResponse.json(
+          { 
+            ok: false, 
+            mensaje: "Error crítico: cuentaId inválido antes de actualización", 
+            error: `cuentaId: ${cuentaId}, tipo: ${typeof cuentaId}` 
+          },
+          { status: 500 }
+        );
+      }
+      
+      const updateResult = await tx.$executeRaw`
         UPDATE HOSPITALIZA 
-        SET CUENTAID = (
-          SELECT TOP 1 CUENTAID 
-          FROM CUENTA 
-          WHERE ESTADO = '1' AND ORIGEN ='HO' AND PACIENTE = ${paciente} 
-          ORDER BY FECHA_APERTURA DESC
-        ), 
+        SET CUENTAID = ${cuentaId}, 
         USUARIO = ${usuario} 
         WHERE IDHOSPITALIZACION = ${idHospitalizacion}
       `;
+      
+      console.log(`Filas afectadas en la actualización: ${updateResult}`);
+      
+      // Verificar que la actualización se realizó correctamente
+      const verificacion = await tx.$queryRaw`
+        SELECT CUENTAID FROM HOSPITALIZA WHERE IDHOSPITALIZACION = ${idHospitalizacion}
+      ` as any[];
+      
+      console.log(`Verificación post-actualización - CUENTAID en BD: ${verificacion[0]?.CUENTAID}`);
 
       // 6. Devolver respuesta exitosa
       return NextResponse.json(

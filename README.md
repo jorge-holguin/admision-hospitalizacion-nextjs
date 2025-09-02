@@ -175,6 +175,93 @@ La lógica de negocio está organizada en servicios modulares:
 - **consultorioService**: Administración de consultorios
 - **medicoService**: Gestión de médicos y especialidades
 
+# Servicio de Validación de Cuentas y FUAs
+
+## Descripción General
+El servicio `CuentaValidationService` proporciona funcionalidades para validar cuentas activas y FUAs (Formatos Únicos de Atención) según el tipo de seguro del paciente. Implementa reglas específicas para cada tipo de seguro y maneja la lógica de validación temporal para los FUAs.
+
+## Tipos de Seguro Soportados
+
+- **SIS** (códigos: 20, 21, 22, 23, 24, 25)
+  - Requiere cuenta activa (ESTADO='1', ORIGEN='HO')
+  - Requiere FUA activo (ESTADO='2')
+  - El FUA debe ser reciente (último día)
+  - El FUA debe tener menos de 8 horas de antigüedad
+
+- **PAGANTE** (códigos: 0, 00)
+  - Solo requiere cuenta activa (ESTADO='1', ORIGEN='HO')
+  - No requiere validación de FUA
+
+- **SOAT** (código: 02)
+  - Solo requiere cuenta activa (ESTADO='1', ORIGEN='HO')
+  - No requiere validación de FUA
+
+## Métodos Principales
+
+### `validateCuentaAndFua(pacienteId: string, tipoSeguro: string)`
+Método principal que determina el tipo de seguro y aplica la validación correspondiente.
+
+### `validateSISAccount(pacienteId: string, tipoSeguro: string)`
+Valida cuentas SIS verificando:
+1. Existencia de cuenta activa
+2. Existencia de número de FUA asociado
+3. Validez del FUA según reglas temporales
+
+### `validatePaganteSoatAccount(pacienteId: string, tipoSeguro: string)`
+Valida cuentas PAGANTE/SOAT verificando solo la existencia de una cuenta activa.
+
+### `validateFuaActivo(fuaNumber: string)`
+Valida si un FUA está activo según las reglas temporales:
+1. Verifica que el FUA exista y tenga ESTADO='2'
+2. Verifica que la fecha sea reciente (último día)
+3. Calcula el tiempo transcurrido desde la creación del FUA
+4. Valida que el tiempo transcurrido sea menor a 8 horas
+
+## Manejo de Formatos de Hora
+El método `validateFuaActivo` implementa un manejo robusto de diferentes formatos de hora:
+
+- Utiliza `TRY_CAST` para evitar errores de conversión
+- Maneja múltiples formatos de hora:
+  - HH:MM (ej. "8:30", "08:30")
+  - HHMM sin separador (ej. "830", "0830")
+  - Solo hora (ej. "8", "08")
+  - Vacío o nulo
+  - Con segundos (ej. "8:30:00")
+  - Con punto como separador (ej. "8.30")
+
+## Estrategias de Fallback
+Si la conversión de fecha/hora falla, el servicio implementa estrategias alternativas:
+
+1. **Cálculo alternativo**: Usa solo la fecha sin la hora
+2. **Enfoque de último recurso**: Verifica solo la existencia del FUA activo reciente
+
+## Métodos de Actualización (Borrado Lógico)
+
+### `updateFUA(nroFua: string)`
+Actualiza el estado de un FUA a inactivo (ESTADO='0').
+
+### `updateCUENTA(cuentaId: string)`
+Actualiza el estado de una cuenta a inactiva (ESTADO='0').
+
+### `updateCuentaAndFUA(cuentaId: string)`
+Actualiza tanto la cuenta como su FUA asociado a estado inactivo.
+
+## Endpoints API
+
+### `/api/cuenta/validate`
+Valida cuentas y FUAs según el tipo de seguro.
+- **GET**: Acepta parámetros `patientId`, `tipoSeguro` y `debug`
+- **POST**: Acepta body con `patientId` y `tipoSeguro`
+
+### `/api/cuenta/deactivate`
+Desactiva cuentas y FUAs (borrado lógico).
+- **POST/PATCH**: Acepta body con `cuentaId` y `deactivateFua` (opcional)
+
+### `/api/cuenta/test-fua-validation`
+Endpoint de prueba para validar FUAs con diferentes formatos de hora.
+- **GET**: Acepta parámetro `fuaNumber`
+
+
 ## Instalación y Configuración
 
 ### Requisitos Previos
