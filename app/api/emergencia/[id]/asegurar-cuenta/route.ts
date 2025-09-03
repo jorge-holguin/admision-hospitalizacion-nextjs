@@ -14,6 +14,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Registrar tiempo de inicio para medir duración de la transacción
+    const startTime = Date.now();
     // Obtener el ID de emergencia de los parámetros de ruta
     const idEmergencia = params.id;
     console.log(`ID de emergencia recibido: ${idEmergencia}`);
@@ -54,7 +56,8 @@ export async function POST(
       );
     }
 
-    // Iniciar una transacción para garantizar consistencia
+    console.log(`[${new Date().toISOString()}] Iniciando transacción con timeout extendido a 15 segundos...`);
+    // Iniciar una transacción para garantizar consistencia con timeout extendido a 15 segundos
     return await prisma.$transaction(async (tx) => {
       // 1. Consultar la emergencia para obtener el valor de SEGUROLIQ usando consulta SQL directa
       const emergenciaResult = await tx.$queryRaw`
@@ -221,15 +224,24 @@ export async function POST(
       
       console.log(`Verificación post-actualización - CUENTAID en BD: ${verificacion[0]?.CUENTAID}`);
 
+      // Calcular duración de la transacción
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`[${new Date().toISOString()}] Transacción completada en ${duration}ms (timeout configurado: 15000ms)`);
+      
       // 6. Devolver respuesta exitosa
       return NextResponse.json(
         { 
           ok: true, 
           mensaje: "Cuenta asegurada correctamente", 
-          cuentaId: cuentaId 
+          cuentaId: cuentaId,
+          duracionTransaccion: duration
         },
         { status: 200 }
       );
+    }, {
+      timeout: 15000 // Extender el timeout a 15 segundos (15000ms)
     });
   } catch (error) {
     console.error("Error al asegurar cuenta:", error);

@@ -82,8 +82,8 @@ export default function Dashboard() {
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Home className="w-10 h-10 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">HOSPITALIZACIÓN</h3>
-              <p className="text-gray-600 text-sm">Creación de Medicos</p>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">HOSPITALIZACION/EMERGENCIA</h3>
+              <p className="text-gray-600 text-sm"> Generación de órdenes de Hospitalización y Emergencia</p>
             </CardContent>
           </Card>
 
