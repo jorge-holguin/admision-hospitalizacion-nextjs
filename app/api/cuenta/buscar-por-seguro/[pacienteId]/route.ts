@@ -6,10 +6,10 @@ import { cuentaService } from '@/services/emergencia/cuentaService';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { pacienteId: string } }
+  { params }: { params: Promise<{ pacienteId: string }> }
 ) {
   try {
-    const { pacienteId } = params;
+    const { pacienteId } = await params;
     const { searchParams } = new URL(request.url);
     const tipoSeguro = searchParams.get('seguro');
 

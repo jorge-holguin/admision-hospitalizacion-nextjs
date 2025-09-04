@@ -60,7 +60,7 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   '3': { label: 'EN ATENCIÓN', className: 'bg-yellow-200 text-yellow-800' },
   '4': { label: 'ATENDIDO',    className: 'bg-green-200 text-green-800' },
   '5': { label: 'CERRADO',     className: 'bg-purple-200 text-purple-800' },
-  '6': { label: 'INGRESO',     className: 'bg-indigo-200 text-indigo-800' },
+  '6': { label: 'AUSENCIA',     className: 'bg-indigo-200 text-indigo-800' },
 };
 
 const getStatusDisplay = (estado: string) => {
@@ -328,9 +328,36 @@ function EmergencyList({ patientId }: { patientId: string }) {
     }
   };
 
-  // ===== Reglas de edición: permite editar REGISTRADO (2) =====
-  const isEmergencyEditable = (estado?: string): boolean => {
-    return estado === '2'; // Solo permite editar emergencias en estado REGISTRADO (2)
+  // ===== Reglas de edición: permite editar REGISTRADO (2) o cualquier estado si es PAGANTE/SOAT =====
+  const isEmergencyEditable = (estado?: string, seguroLiq?: string): boolean => {
+    // Siempre permitir edición para estado REGISTRADO (2)
+    if (estado === '2') return true;
+    
+    // Para PAGANTE (0, 00) o SOAT (02), permitir edición incluso en estados 3 o 4
+    if (seguroLiq && (estado === '3' || estado === '4')) {
+      // Extraer el código del seguro del formato "(código) - descripción"
+      const seguroCode = seguroLiq.trim();
+      
+      // Verificar si es PAGANTE o SOAT
+      const isPagante = seguroCode === '0' || seguroCode === '00' || 
+                       seguroCode.startsWith('(0)') || seguroCode.startsWith('(00)') ||
+                       seguroCode.includes('PAGANTE');
+      const isSoat = seguroCode === '02' || seguroCode.startsWith('(02)') || 
+                    seguroCode.includes('SOAT');
+      
+      console.log('Verificando permisos de edición:', {
+        estado,
+        seguroLiq,
+        seguroCode,
+        isPagante,
+        isSoat,
+        canEdit: isPagante || isSoat
+      });
+      
+      return isPagante || isSoat;
+    }
+    
+    return false;
   };
 
   // ===== Reglas de eliminación: permite eliminar REGISTRADO (2) =====
@@ -488,19 +515,23 @@ function EmergencyList({ patientId }: { patientId: string }) {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className={isEmergencyEditable(emergency.ESTADO) && !isDeleted 
+                                className={isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ) && !isDeleted 
                                   ? "bg-white hover:bg-green-50 border-green-200" 
                                   : "bg-gray-50 border-gray-200 cursor-not-allowed"}
                                 onClick={() => {
-                                  if (emergency.EMERGENCIA_ID && isEmergencyEditable(emergency.ESTADO) && !isDeleted) {
+                                  if (emergency.EMERGENCIA_ID && isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ) && !isDeleted) {
                                     handleEditEmergency(emergency.EMERGENCIA_ID);
                                   }
                                 }}
-                                disabled={isDeleted || !isEmergencyEditable(emergency.ESTADO)}
-                                title={isEmergencyEditable(emergency.ESTADO) && !isDeleted ? "Editar emergencia" : "No se puede editar debido al estado"}
+                                disabled={isDeleted || !isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ)}
+                                title={isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ) && !isDeleted 
+                                  ? (emergency.SEGUROLIQ === '0' || emergency.SEGUROLIQ === '00' || emergency.SEGUROLIQ === '02') && (emergency.ESTADO === '3' || emergency.ESTADO === '4')
+                                    ? "Editar emergencia - Permitido para PAGANTE/SOAT en cualquier estado"
+                                    : "Editar emergencia"
+                                  : "No se puede editar debido al estado"}
                               >
                                 <Edit className={`w-4 h-4 ${
-                                  isEmergencyEditable(emergency.ESTADO) && !isDeleted 
+                                  isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ) && !isDeleted 
                                     ? "text-green-600" 
                                     : "text-gray-400"
                                 }`} />

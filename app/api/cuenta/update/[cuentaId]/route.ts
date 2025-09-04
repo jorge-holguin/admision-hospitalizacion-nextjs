@@ -15,6 +15,30 @@ export async function PUT(
       );
     }
 
+    const body = await request.json();
+    const { seguro } = body;
+
+    // Si se proporciona un nuevo seguro, actualizar el campo SEGURO
+    if (seguro !== undefined) {
+      console.log(`Actualizando cuenta ${cuentaId} con nuevo seguro: ${seguro}`);
+      
+      const result = await cuentaService.updateCuentaSeguro(cuentaId, seguro);
+      
+      if (result) {
+        return NextResponse.json({
+          success: true,
+          message: `Cuenta ${cuentaId} actualizada correctamente con seguro ${seguro}`,
+          data: result
+        });
+      } else {
+        return NextResponse.json(
+          { success: false, error: `Error al actualizar el seguro de la cuenta ${cuentaId}` },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Lógica original para actualizar estado a inactivo
     const result = await cuentaService.updateCUENTA(cuentaId);
     
     if (result) {

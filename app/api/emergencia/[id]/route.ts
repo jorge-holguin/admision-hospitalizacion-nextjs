@@ -133,9 +133,23 @@ export async function PATCH(
         data: deletedEmergencia
       });
     } else {
+      // Verificar si es PAGANTE o SOAT para bypass de validación de estado
+      const paganteOrSoatInsuranceCodes = ['0', '00', '02'];
+      const seguroLiq = data.SEGUROLIQ?.trim() || currentEmergencia.SEGUROLIQ?.trim();
+      const isPayingOrSoat = Boolean(seguroLiq && paganteOrSoatInsuranceCodes.includes(seguroLiq));
+      
+      console.log('API - Validación de estado para emergencia:', {
+        emergenciaId,
+        estado: currentEmergencia.ESTADO,
+        seguroLiq,
+        isPayingOrSoat
+      });
+      
       // Para actualizaciones normales, verificar si la emergencia está en un estado que permite edición
+      // O si es PAGANTE/SOAT, permitir la edición sin importar el estado
       const statusInfo = resolveStatus(currentEmergencia.ESTADO || '0');
-      if (statusInfo.isReadOnly) {
+      
+      if (statusInfo.isReadOnly && !isPayingOrSoat) {
         return NextResponse.json(
           { 
             success: false, 

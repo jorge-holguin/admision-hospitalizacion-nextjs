@@ -610,12 +610,21 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       const motivoCode = formData.motivoEmergencia.split(' - ')[0] || '';
       const seguroCode = formData.seguro.split(' - ')[0] || '';
       
-      // APLICAR CONVERSIÓN ESSALUD A PAGANTE SOLO PARA SEGUROLIQ
+      // APLICAR CONVERSIÓN PARA SEGUROLIQ
       let seguroLiqValue = seguroCode;
-      if (seguroCode === '06') {
+      
+      // Si el seguro mostrado en el formulario es PAGANTE, usar código 0 para SEGUROLIQ
+      if (formData.seguro.includes('PAGANTE') || seguroCode === '0') {
+        console.log('Estableciendo SEGUROLIQ como PAGANTE (0)');
+        seguroLiqValue = '0';
+      } else if (seguroCode === '06') {
         console.log('Convirtiendo SEGUROLIQ de ESSALUD (06) a PAGANTE (0) en datos de API');
         seguroLiqValue = '0';
       }
+      
+      console.log('Seguro seleccionado en formulario:', formData.seguro);
+      console.log('Código de seguro extraído:', seguroCode);
+      console.log('Valor SEGUROLIQ final:', seguroLiqValue);
       
       // Formatear fecha como YYYYMMDD
       const fechaFormateada = formData.fecha.replace(/-/g, '');
@@ -634,7 +643,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         HORA: formData.hora,
         CONSULTORIO: consultorioCode.padEnd(6, ' ').substring(0, 6),
         MOTIVO_EMERGENCIA: motivoCode.padEnd(2, ' ').substring(0, 2),
-        SEGURO: filiacionData?.seguro || seguroCode || '',
+        SEGURO: seguroLiqValue.padEnd(2, ' ').substring(0, 2), // Usar el mismo valor que SEGUROLIQ
         OBSERVACION1: (formData.observacion1 || '').substring(0, 100), // Limitar a 100 caracteres
         OBSERVACION2: (formData.observacion2 || '').substring(0, 100), // Limitar a 100 caracteres
         ESTADO: formData.estado.substring(0, 1), // Limitar a 1 caracter
@@ -677,6 +686,14 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       Object.entries(emergencyData).forEach(([key, value]) => {
         console.log(`${key}: ${value ? value.length : 0} caracteres - Valor: "${value}"`); 
       });
+      
+      // Logging específico para SEGURO y SEGUROLIQ
+      console.log('VALORES FINALES DE SEGURO:');
+      console.log(`SEGURO original del paciente: ${filiacionData?.seguro || 'No disponible'}`);
+      console.log(`SEGURO seleccionado en formulario (código): ${seguroCode}`);
+      console.log(`SEGURO enviado a API: ${emergencyData.SEGURO}`);
+      console.log(`SEGUROLIQ enviado a API: ${emergencyData.SEGUROLIQ}`);
+      console.log(`¿SEGURO y SEGUROLIQ son iguales?: ${emergencyData.SEGURO === emergencyData.SEGUROLIQ ? 'SÍ' : 'NO'}`);
       
       // Determinar si es creación o actualización
       const method = emergencyId ? 'PATCH' : 'POST';

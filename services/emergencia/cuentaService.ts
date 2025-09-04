@@ -45,7 +45,7 @@ class CuentaService {
       const seguroTrimmed = tipoSeguro.trim();
       
       if (seguroTrimmed === '0' || seguroTrimmed === '00') {
-        codigoSeguro = '00'; // Pagante - asegurarse de usar '00' para consistencia
+        codigoSeguro = '0'; // Pagante - usar '0' como está en la base de datos
       } else if (seguroTrimmed === '02') {
         codigoSeguro = '02'; // SOAT
       } else if (['20', '21', '22', '23', '24', '25'].includes(seguroTrimmed)) {
@@ -205,6 +205,58 @@ class CuentaService {
       };
     } catch (error: any) {
       const errorMessage = `Error al actualizar cuenta y FUA: ${error.message || 'Error desconocido'}`;
+      console.error(errorMessage, error);
+      return { success: false, message: errorMessage };
+    }
+  }
+
+  /**
+   * Actualiza el campo SEGURO de una cuenta específica
+   */
+  async updateCuentaSeguro(cuentaId: string, nuevoSeguro: string): Promise<any> {
+    try {
+      console.log(`Actualizando cuenta ${cuentaId} con nuevo seguro: ${nuevoSeguro}`);
+      
+      // Normalizar el código de seguro
+      let seguroNormalizado = nuevoSeguro.trim();
+      if (seguroNormalizado === '0') {
+        seguroNormalizado = '0'; // PAGANTE
+      } else if (seguroNormalizado === '02') {
+        seguroNormalizado = '02'; // SOAT
+      }
+      
+      // Actualizar el campo SEGURO en la tabla CUENTA
+      const result = await prisma.$executeRaw`
+        UPDATE CUENTA 
+        SET SEGURO = ${seguroNormalizado}
+        WHERE CUENTAID = ${cuentaId}
+      `;
+      
+      console.log(`Cuenta ${cuentaId} actualizada. Filas afectadas: ${result}`);
+      
+      if (result > 0) {
+        // Verificar la actualización
+        const cuentaActualizada = await prisma.$queryRaw`
+          SELECT CUENTAID, PACIENTE, SEGURO, EMPRESASEGURO 
+          FROM CUENTA 
+          WHERE CUENTAID = ${cuentaId}
+        ` as any[];
+        
+        console.log('Cuenta después de la actualización:', cuentaActualizada[0]);
+        
+        return {
+          success: true,
+          message: `Cuenta ${cuentaId} actualizada correctamente con seguro ${seguroNormalizado}`,
+          data: cuentaActualizada[0]
+        };
+      } else {
+        return {
+          success: false,
+          message: `No se pudo actualizar la cuenta ${cuentaId}. Cuenta no encontrada.`
+        };
+      }
+    } catch (error: any) {
+      const errorMessage = `Error al actualizar seguro de cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
       console.error(errorMessage, error);
       return { success: false, message: errorMessage };
     }

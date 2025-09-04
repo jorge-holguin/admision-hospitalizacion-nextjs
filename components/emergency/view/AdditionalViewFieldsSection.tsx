@@ -75,8 +75,6 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
 
   // Formato para el SearchableSelect
   const formatTiposDocumento = useMemo(() => {
-    console.log('DEBUG - tiposDocumento:', tiposDocumento);
-    console.log('DEBUG - searchTipoDocumento:', searchTipoDocumento);
     
     const formatted = tiposDocumento
       .filter(t => !searchTipoDocumento || 
@@ -89,7 +87,6 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
         data: t
       }));
     
-    console.log('DEBUG - formatted options:', formatted);
     return formatted;
   }, [tiposDocumento, searchTipoDocumento]);
   

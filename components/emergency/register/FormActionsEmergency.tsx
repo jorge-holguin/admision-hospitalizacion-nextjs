@@ -39,12 +39,20 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [fuaValidationPassed, setFuaValidationPassed] = useState(false);
   
-  // Verificar si hay una cuenta válida
-  const hasValidAccount = formData?.numeroCuenta && formData.numeroCuenta !== 'No disponible';
+  // Verificar si hay una cuenta válida o si es un tipo de seguro que no requiere validación
+  const paganteOrSoatInsuranceCodes = ['0', '00', '02'];
+  const isPayingOrSoat = Boolean(insuranceCode && paganteOrSoatInsuranceCodes.includes(insuranceCode.trim()));
+  
+  // Bypass account validation for PAGANTE (0) and SOAT (02)
+  const hasValidAccount = isPayingOrSoat || (formData?.numeroCuenta && formData.numeroCuenta !== 'No disponible');
   
   // Códigos de seguro SIS que requieren validación FUA
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25'];
   const requiresFuaValidation = Boolean(insuranceCode && sisInsuranceCodes.includes(insuranceCode.trim()));
+  
+  console.log('FormActionsEmergency - insuranceCode:', insuranceCode);
+  console.log('FormActionsEmergency - isPayingOrSoat:', isPayingOrSoat);
+  console.log('FormActionsEmergency - hasValidAccount:', hasValidAccount);
 
   const handleSaveClick = async () => {
     console.log('handleSaveClick ejecutado');
@@ -74,8 +82,8 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
 
   return (
     <>
-      {/* Mensaje de advertencia cuando no hay cuenta válida */}
-      {isUpdate && !hasValidAccount && (
+      {/* Mensaje de advertencia cuando no hay cuenta válida (excepto para PAGANTE y SOAT) */}
+      {isUpdate && !hasValidAccount && !isPayingOrSoat && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />

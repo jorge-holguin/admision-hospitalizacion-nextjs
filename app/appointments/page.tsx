@@ -1,287 +1,270 @@
-"use client"
+  "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { AppointmentCalendar } from "@/components/dates/AppointmentCalendar"
-import { TimeSlotSelector } from "@/components/dates/TimeSlotSelector"
-import { Separator } from "@/components/ui/separator"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, User, Unlock, CalendarClock, UserPlus, Eye, Search, Filter, Clock, Check, ChevronsUpDown, X } from "lucide-react"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
+  import { useState } from "react"
+  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+  import { Button } from "@/components/ui/button"
+  import { Input } from "@/components/ui/input"
+  import { Label } from "@/components/ui/label"
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+  import { Badge } from "@/components/ui/badge"
+  import { AppointmentCalendar } from "@/components/appointments/AppointmentCalendar"
+  import { TimeSlotSelector } from "@/components/appointments/TimeSlotSelector"
+  import { ShiftFilter } from "@/components/appointments/ShiftFilter"
+  import { Separator } from "@/components/ui/separator"
+  import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+  import { ArrowLeft, User, Unlock, CalendarClock, UserPlus, Eye, Search, Filter, Clock, Check, ChevronsUpDown, X } from "lucide-react"
+  import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+  import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+  import { format } from "date-fns"
+  import { Navbar } from "@/components/Navbar"
 
-// Mock data for appointments
-const mockAppointments = [
-  {
-    id: "C001",
-    estado: 1,
-    fecha: "2025-01-15",
-    hora: "08:00",
-    turno: "MAÑANA",
-    consultorio: "MEDICINA",
-    medico: "PINTADO CABALLERO JOSÉ BELÉN",
-    seguro: "SIS",
-    paciente: "GARCIA LOPEZ MARIA",
-    fechaProgramada: "2025-01-10",
-    fechaPago: null,
-  },
-  {
-    id: "C002",
-    estado: 3,
-    fecha: "2025-01-15",
-    hora: "09:00",
-    turno: "MAÑANA",
-    consultorio: "CARDIOLOGIA 1",
-    medico: "ALZAMORA ONETO JUAN CARLOS MARIANO",
-    seguro: "ESSALUD",
-    paciente: "RODRIGUEZ PEREZ CARLOS",
-    fechaProgramada: "2025-01-12",
-    fechaPago: "2025-01-14",
-  },
-  {
-    id: "C003",
-    estado: 4,
-    fecha: "2025-01-15",
-    hora: "10:30",
-    turno: "MAÑANA",
-    consultorio: "PEDIATRIA",
-    medico: "ARROYO BASTO CARLOS ALEJANDRO",
-    seguro: "SIS",
-    paciente: "MARTINEZ SILVA ANA",
-    fechaProgramada: "2025-01-08",
-    fechaPago: "2025-01-13",
-  },
-  {
-    id: "C004",
-    estado: 2,
-    fecha: "2025-01-16",
-    hora: "14:00",
-    turno: "TARDE",
-    consultorio: "CIRUGIA",
-    medico: "ABAD BARREDO PEDRO MANUEL",
-    seguro: "PARTICULAR",
-    paciente: "LOPEZ TORRES JUAN",
-    fechaProgramada: "2025-01-11",
-    fechaPago: null,
-  },
-  {
-    id: "C005",
-    estado: 5,
-    fecha: "2025-01-16",
-    hora: "15:30",
-    turno: "TARDE",
-    consultorio: "NEUROLOGIA 1",
-    medico: "AQUINO CUEVA FRANCISCO JAVIER",
-    seguro: "SIS",
-    paciente: "FERNANDEZ RUIZ LUIS",
-    fechaProgramada: "2025-01-09",
-    fechaPago: "2025-01-15",
-  },
-]
+  import { es } from "date-fns/locale"
 
-const estadoOptions = [
-  { value: "1", label: "Cita no otorgada", color: "bg-gray-500" },
-  { value: "2", label: "Sin Pago o sin FUA", color: "bg-yellow-500" },
-  { value: "3", label: "Pagado o con FUA", color: "bg-blue-500" },
-  { value: "4", label: "Atendido", color: "bg-green-500" },
-  { value: "5", label: "Sin atención", color: "bg-red-500" },
-]
+  // Mock data for appointments
+  const mockAppointments = [
+    {
+      id: "C001",
+      estado: 1,
+      fecha: "2025-01-15",
+      hora: "08:00",
+      turno: "MAÑANA",
+      consultorio: "MEDICINA",
+      medico: "PINTADO CABALLERO JOSÉ BELÉN",
+      seguro: "SIS",
+      paciente: "GARCIA LOPEZ MARIA",
+      fechaProgramada: "2025-01-10",
+      fechaPago: null,
+    },
+    {
+      id: "C002",
+      estado: 3,
+      fecha: "2025-01-15",
+      hora: "09:00",
+      turno: "MAÑANA",
+      consultorio: "CARDIOLOGIA 1",
+      medico: "ALZAMORA ONETO JUAN CARLOS MARIANO",
+      seguro: "ESSALUD",
+      paciente: "RODRIGUEZ PEREZ CARLOS",
+      fechaProgramada: "2025-01-12",
+      fechaPago: "2025-01-14",
+    },
+    {
+      id: "C003",
+      estado: 4,
+      fecha: "2025-01-15",
+      hora: "10:30",
+      turno: "MAÑANA",
+      consultorio: "PEDIATRIA",
+      medico: "ARROYO BASTO CARLOS ALEJANDRO",
+      seguro: "SIS",
+      paciente: "MARTINEZ SILVA ANA",
+      fechaProgramada: "2025-01-08",
+      fechaPago: "2025-01-13",
+    },
+    {
+      id: "C004",
+      estado: 2,
+      fecha: "2025-01-16",
+      hora: "14:00",
+      turno: "TARDE",
+      consultorio: "CIRUGIA",
+      medico: "ABAD BARREDO PEDRO MANUEL",
+      seguro: "PARTICULAR",
+      paciente: "LOPEZ TORRES JUAN",
+      fechaProgramada: "2025-01-11",
+      fechaPago: null,
+    },
+    {
+      id: "C005",
+      estado: 5,
+      fecha: "2025-01-16",
+      hora: "15:30",
+      turno: "TARDE",
+      consultorio: "NEUROLOGIA 1",
+      medico: "AQUINO CUEVA FRANCISCO JAVIER",
+      seguro: "SIS",
+      paciente: "FERNANDEZ RUIZ LUIS",
+      fechaProgramada: "2025-01-09",
+      fechaPago: "2025-01-15",
+    },
+  ]
 
-const consultorioOptions = [
-  "MEDICINA",
-  "MEDICINA INTERNA 1",
-  "MEDICINA INTERNA 2",
-  "CIRUGIA",
-  "CIRUGIA PEDIATRICA",
-  "NEUMOLOGIA 1",
-  "CARDIOLOGIA 1",
-  "NEUROLOGIA 1",
-  "GASTROENTEROLOGIA 1",
-  "DERMATOLOGIA 1",
-  "EPIDEMIOLOGIA",
-  "PEDIATRIA",
-]
+  const estadoOptions = [
+    { value: "1", label: "NO OTORGADA", color: "bg-gray-500" },
+    { value: "2", label: "SIN PAGO O FUA", color: "bg-yellow-500" },
+    { value: "3", label: "PAGADO O FUA", color: "bg-blue-500" },
+    { value: "4", label: "ATENDIDO", color: "bg-green-500" },
+    { value: "5", label: "DESERCION", color: "bg-red-500" },
+  ]
 
-const medicoOptions = [
-  "PINTADO CABALLERO JOSÉ BELÉN",
-  "PARDAVE VIZURRAGA ANTONIO ELEODORO",
-  "NINGUNO",
-  "ARROYO BASTO CARLOS ALEJANDRO",
-  "ABAD BARREDO PEDRO MANUEL",
-  "AQUINO CUEVA FRANCISCO JAVIER",
-  "ALZAMORA ONETO JUAN CARLOS MARIANO",
-  "ASMAT RAMIREZ VICTOR ARTURO",
-  "AMADO TINEO JOSÉ PERCY",
-  "ARNAEZ VARGAS LUCIO ANTONIO",
-  "ALVAREZ VALENZUELA RICARDO NICANOR",
-]
+  const consultorioOptions = [
+    "MEDICINA",
+    "MEDICINA INTERNA 1",
+    "MEDICINA INTERNA 2",
+    "CIRUGIA",
+    "CIRUGIA PEDIATRICA",
+    "NEUMOLOGIA 1",
+    "CARDIOLOGIA 1",
+    "NEUROLOGIA 1",
+    "GASTROENTEROLOGIA 1",
+    "DERMATOLOGIA 1",
+    "EPIDEMIOLOGIA",
+    "PEDIATRIA",
+  ]
 
-const timeSlots = [
-  "08:00",
-  "08:30",
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-]
+  const medicoOptions = [
+    "PINTADO CABALLERO JOSÉ BELÉN",
+    "PARDAVE VIZURRAGA ANTONIO ELEODORO",
+    "NINGUNO",
+    "ARROYO BASTO CARLOS ALEJANDRO",
+    "ABAD BARREDO PEDRO MANUEL",
+    "AQUINO CUEVA FRANCISCO JAVIER",
+    "ALZAMORA ONETO JUAN CARLOS MARIANO",
+    "ASMAT RAMIREZ VICTOR ARTURO",
+    "AMADO TINEO JOSÉ PERCY",
+    "ARNAEZ VARGAS LUCIO ANTONIO",
+    "ALVAREZ VALENZUELA RICARDO NICANOR",
+  ]
 
-export default function AppointmentsPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [selectedTime, setSelectedTime] = useState<string>("")
-  const [filteredAppointments, setFilteredAppointments] = useState(mockAppointments)
-  const [filters, setFilters] = useState({
-    estado: "all",
-    consultorio: "all",
-    medico: "all",
-  })
-  const [searchEstados, setSearchEstados] = useState("")
-  const [searchConsultorios, setSearchConsultorios] = useState("")
-  const [searchMedicos, setSearchMedicos] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [openMedico, setOpenMedico] = useState(false)
-  const [openConsultorio, setOpenConsultorio] = useState(false)
-  const [openEstado, setOpenEstado] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
-  const [showAssignModal, setShowAssignModal] = useState(false)
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false)
-  const [showReleaseModal, setShowReleaseModal] = useState(false)
-  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const timeSlots = [
+    "08:00",
+    "08:30",
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "12:00",
+    "12:30",
+    "13:00",
+    "13:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
+    "18:00",
+  ]
 
-  const getEstadoBadge = (estado: number) => {
-    const estadoInfo = estadoOptions.find((e) => e.value === estado.toString())
-    return <Badge className={`${estadoInfo?.color} text-white font-medium`}>{estadoInfo?.label}</Badge>
-  }
+  export default function AppointmentsPage() {
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+    const [selectedTime, setSelectedTime] = useState<string>("")
+    const [filteredAppointments, setFilteredAppointments] = useState(mockAppointments)
+    const [filters, setFilters] = useState({
+      estado: "all",
+      consultorio: "all",
+      medico: "all",
+      turno: "ALL",
+    })
+    const [searchEstados, setSearchEstados] = useState("")
+    const [searchConsultorios, setSearchConsultorios] = useState("")
+    const [searchMedicos, setSearchMedicos] = useState("")
+    const [searchQuery, setSearchQuery] = useState("")
+    const [openMedico, setOpenMedico] = useState(false)
+    const [openConsultorio, setOpenConsultorio] = useState(false)
+    const [openEstado, setOpenEstado] = useState(false)
+    const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
+    const [showAssignModal, setShowAssignModal] = useState(false)
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false)
+    const [showReleaseModal, setShowReleaseModal] = useState(false)
+    const [showDetailsModal, setShowDetailsModal] = useState(false)
 
-  const getAppointmentsForDate = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd")
-    return mockAppointments.filter((apt) => apt.fecha === dateStr)
-  }
-
-  const getAppointmentCountForDate = (date: Date) => {
-    return getAppointmentsForDate(date).length
-  }
-
-  const getAppointmentsForTime = (time: string) => {
-    const dateStr = format(selectedDate, "yyyy-MM-dd")
-    return mockAppointments.filter((apt) => apt.fecha === dateStr && apt.hora === time)
-  }
-
-  const applyFilters = () => {
-    let filtered = mockAppointments
-
-    if (filters.estado !== "all") {
-      filtered = filtered.filter((apt) => apt.estado.toString() === filters.estado)
-    }
-    if (filters.consultorio !== "all") {
-      filtered = filtered.filter((apt) => apt.consultorio === filters.consultorio)
-    }
-    if (filters.medico !== "all") {
-      filtered = filtered.filter((apt) => apt.medico === filters.medico)
-    }
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (apt) =>
-          apt.medico.toLowerCase().includes(query) ||
-          apt.paciente.toLowerCase().includes(query) ||
-          apt.consultorio.toLowerCase().includes(query) ||
-          apt.id.toLowerCase().includes(query)
-      )
+    const getEstadoBadge = (estado: number) => {
+      const estadoInfo = estadoOptions.find((e) => e.value === estado.toString())
+      return <Badge className={`${estadoInfo?.color} text-white font-medium`}>{estadoInfo?.label}</Badge>
     }
 
-    setFilteredAppointments(filtered)
-  }
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date)
-      const dayAppointments = getAppointmentsForDate(date)
-      setFilteredAppointments(dayAppointments)
-      setSelectedTime("") // Reset selected time when date changes
+    const getAppointmentsForDate = (date: Date) => {
+      const dateStr = format(date, "yyyy-MM-dd")
+      return mockAppointments.filter((apt) => apt.fecha === dateStr)
     }
-  }
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time)
-    const timeAppointments = getAppointmentsForTime(time)
-    setFilteredAppointments(timeAppointments)
-  }
-
-  const handleAction = (action: string, appointment: any) => {
-    setSelectedAppointment(appointment)
-    switch (action) {
-      case "assign":
-        setShowAssignModal(true)
-        break
-      case "reschedule":
-        setShowRescheduleModal(true)
-        break
-      case "release":
-        setShowReleaseModal(true)
-        break
-      case "details":
-        setShowDetailsModal(true)
-        break
+    const getAppointmentCountForDate = (date: Date) => {
+      return getAppointmentsForDate(date).length
     }
-  }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-blue-600 text-white shadow-lg">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-blue-700 font-medium"
-              onClick={() => (window.location.href = "/dashboard")}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
-            </Button>
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">SIGSALUD</h1>
-              <p className="text-sm opacity-90 font-medium">GESTIÓN DE CITAS</p>
-            </div>
-          </div>
+    const getAppointmentsForTime = (time: string) => {
+      const dateStr = format(selectedDate, "yyyy-MM-dd")
+      return mockAppointments.filter((apt) => apt.fecha === dateStr && apt.hora === time)
+    }
 
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm font-semibold">ESTRADA CARDENAS DENISSE FIORELLA</p>
-              <p className="text-xs opacity-90 font-medium">ANALISTA</p>
-            </div>
-            <User className="w-8 h-8 bg-blue-500 rounded-full p-1" />
-          </div>
-        </div>
-      </header>
+    const applyFilters = () => {
+      let filtered = mockAppointments
 
+      if (filters.estado !== "all") {
+        filtered = filtered.filter((apt) => apt.estado.toString() === filters.estado)
+      }
+      if (filters.consultorio !== "all") {
+        filtered = filtered.filter((apt) => apt.consultorio === filters.consultorio)
+      }
+      if (filters.medico !== "all") {
+        filtered = filtered.filter((apt) => apt.medico === filters.medico)
+      }
+      if (filters.turno !== "ALL") {
+        filtered = filtered.filter((apt) => apt.turno === filters.turno)
+      }
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        filtered = filtered.filter(
+          (apt) =>
+            apt.medico.toLowerCase().includes(query) ||
+            apt.paciente.toLowerCase().includes(query) ||
+            apt.consultorio.toLowerCase().includes(query) ||
+            apt.id.toLowerCase().includes(query)
+        )
+      }
+
+      setFilteredAppointments(filtered)
+    }
+
+    const handleDateSelect = (date: Date | undefined) => {
+      if (date) {
+        setSelectedDate(date)
+        const dayAppointments = getAppointmentsForDate(date)
+        setFilteredAppointments(dayAppointments)
+        setSelectedTime("") // Reset selected time when date changes
+      }
+    }
+
+    const handleTimeSelect = (time: string) => {
+      setSelectedTime(time)
+      const timeAppointments = getAppointmentsForTime(time)
+      setFilteredAppointments(timeAppointments)
+    }
+
+    const handleAction = (action: string, appointment: any) => {
+      setSelectedAppointment(appointment)
+      switch (action) {
+        case "assign":
+          setShowAssignModal(true)
+          break
+        case "reschedule":
+          setShowRescheduleModal(true)
+          break
+        case "release":
+          setShowReleaseModal(true)
+          break
+        case "details":
+          setShowDetailsModal(true)
+          break
+      }
+    }
+    
+    const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
+      setFilters({ ...filters, turno: shift })
+      setTimeout(applyFilters, 100)
+    }
+
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Navbar fijo arriba */}
+      <Navbar />
+      
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -344,6 +327,21 @@ export default function AppointmentsPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <ShiftFilter onShiftChange={handleShiftChange} className="" />
+                  <div className="flex items-center">
+                    <Search className="h-4 w-4 mr-2 text-gray-500" />
+                    <Input
+                      placeholder="Buscar cita..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                        setTimeout(applyFilters, 300)
+                      }}
+                      className="w-[200px]"
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   {/* Estado Filter */}
                   <div className="space-y-2">

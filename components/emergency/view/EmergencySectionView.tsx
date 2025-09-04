@@ -115,6 +115,49 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   const [fieldsLocked, setFieldsLocked] = useState(readOnly);
   const isDeleted = initialData?.ESTADO === "0";
 
+  // Función para verificar si es PAGANTE o SOAT
+  const isPaganteOrSoat = useCallback((seguroLiq?: string): boolean => {
+    if (!seguroLiq) return false;
+    const seguroCode = seguroLiq.trim();
+    
+    const isPagante = seguroCode === '0' || seguroCode === '00' || 
+                     seguroCode.startsWith('(0)') || seguroCode.startsWith('(00)') ||
+                     seguroCode.includes('PAGANTE');
+    const isSoat = seguroCode === '02' || seguroCode.startsWith('(02)') || 
+                  seguroCode.includes('SOAT');
+    
+    return isPagante || isSoat;
+  }, []);
+
+  // Función para verificar si permite edición especial (solo condición del paciente)
+  const allowsSpecialEdit = useCallback((): boolean => {
+    const estado = initialData?.ESTADO;
+    const seguroLiq = initialData?.SEGUROLIQ;
+    
+    // Permitir edición especial para PAGANTE/SOAT en cualquier estado
+    const isPagOrSoat = isPaganteOrSoat(seguroLiq)
+    
+    // Para PAGANTE/SOAT, permitir edición especial sin importar el estado
+    return isPagOrSoat;
+  }, [initialData?.ESTADO, initialData?.SEGUROLIQ, isPaganteOrSoat]);
+
+  // Función para verificar si un campo específico debe estar habilitado
+  const isFieldEnabled = useCallback((fieldName: string): boolean => {
+    // Si está eliminado, no permitir edición
+    if (isDeleted) return false;
+    
+    // Si permite edición especial (PAGANTE/SOAT en estados 3-4)
+    if (allowsSpecialEdit()) {
+      return fieldName === 'seguroLiq';
+    }
+    
+    // Si está en modo readOnly completo, no permitir edición
+    if (readOnly) return false;
+    
+    // Para otros casos, usar la lógica normal de fieldsLocked
+    return !fieldsLocked;
+  }, [readOnly, isDeleted, allowsSpecialEdit, fieldsLocked]);
+
   // Actualizar fieldsLocked cuando cambie readOnly
   useEffect(() => {
     setFieldsLocked(readOnly);
@@ -279,7 +322,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   // Cargar datos iniciales
   useEffect(() => {
     if (initialData) {
-      console.log('Cargando datos iniciales:', initialData);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cargando datos iniciales:', initialData);
+      }
       
       // Función para limpiar strings de la API
       const cleanApiString = (value: string | null | undefined): string => {
@@ -296,10 +341,14 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         return trimmed;
       };
       
-      console.log('MOTIVO_EMERGENCIA original:', initialData.MOTIVO_EMERGENCIA);
-      console.log('CONSULTORIO original:', initialData.CONSULTORIO);
-      console.log('FORMA_INGRESO original:', initialData.FORMA_INGRESO);
-      console.log('SEGURO original:', initialData.SEGURO);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Datos originales:', {
+          MOTIVO_EMERGENCIA: initialData.MOTIVO_EMERGENCIA,
+          CONSULTORIO: initialData.CONSULTORIO,
+          FORMA_INGRESO: initialData.FORMA_INGRESO,
+          SEGURO: initialData.SEGURO
+        });
+      }
       
       setFormData({
         tipoAtencion: cleanApiString(initialData.TIPOATENCION),
@@ -367,7 +416,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
   // Manejar cambios en el formulario
   const handleFormChange = async (field: string, value: string) => {
-    console.log(`handleFormChange llamado - Campo: ${field}, Valor: ${value}`);
+    if (process.env.NODE_ENV === 'development' && field === 'seguroLiq') {
+      console.log(`handleFormChange - Campo: ${field}, Valor: ${value}`);
+    }
     
     setFormData((prev: FormDataType) => ({
       ...prev,
@@ -385,15 +436,18 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
     // Si se cambió el tipo de seguro, buscar cuenta correspondiente usando el contexto
     if (field === 'seguroLiq' && value && initialData?.PACIENTE) {
-      console.log(`=== CAMBIO DE SEGURO DETECTADO ===`);
-      console.log(`Campo: ${field}, Valor: ${value}, Paciente: ${initialData.PACIENTE}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Cambio de seguro detectado - Paciente: ${initialData.PACIENTE}, Nuevo valor: ${value}`);
+      }
       
       try {
         // Usar el contexto para buscar la cuenta por tipo de seguro
         const accountData = await fetchPatientAccountBySeguro(initialData.PACIENTE, value);
         
         if (accountData && accountData.cuentaId) {
-          console.log(`Cuenta encontrada: ${accountData.cuentaId}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Cuenta encontrada: ${accountData.cuentaId}`);
+          }
           // Actualizar tanto numeroCuenta como cuentaId en el formulario
           setFormData((prev: FormDataType) => ({
             ...prev,
@@ -406,7 +460,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
             description: `Se encontró y asignó la cuenta ${accountData.cuentaId} para el tipo de seguro seleccionado`,
           });
         } else {
-          console.log(`No se encontró cuenta para el seguro ${value}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`No se encontró cuenta para el seguro ${value}`);
+          }
           // Establecer numeroCuenta como 'No disponible' si no se encuentra cuenta
           setFormData((prev: FormDataType) => ({
             ...prev,
@@ -430,73 +486,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     }
   };
 
-  // Manejar eliminación lógica
-  const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      
-      // Llamar a la API para actualizar el estado a 0 (eliminado lógicamente)
-      const response = await fetch(`/api/emergencia/${emergencyId}/delete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ESTADO: "0" }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al eliminar el registro');
-      }
-      
-      const result = await response.json();
-      
-      // Si tenemos un ID de cuenta, también actualizamos la cuenta y el FUA asociado
-      if (formData.numeroCuenta) {
-        try {
-          const cuentaResponse = await fetch(`/api/cuenta/update-with-fua/${formData.numeroCuenta}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          });
-          
-          if (!cuentaResponse.ok) {
-            console.error('Error al actualizar cuenta y FUA:', await cuentaResponse.text());
-          } else {
-            console.log('Cuenta y FUA actualizados correctamente');
-          }
-        } catch (cuentaError) {
-          console.error('Error al actualizar cuenta y FUA:', cuentaError);
-          // No lanzamos el error para no interrumpir el flujo principal
-        }
-      }
-      
-      toast({
-        title: "Registro eliminado",
-        description: "El registro ha sido eliminado correctamente",
-      });
-      
-      // Redirigir al usuario a la lista de emergencias o al dashboard
-      setTimeout(() => {
-        if (initialData?.PACIENTE) {
-          router.push(`/emergency/${initialData.PACIENTE}`);
-        } else {
-          router.push('/dashboard');
-        }
-      }, 1500);
-      
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Error al eliminar el registro",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
+
 
   // Manejar guardado de cambios
   const handleSave = async () => {
@@ -539,8 +529,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         formattedDate = initialData.FECHA;
       }
       
-      console.log('Formato de fecha original:', formData.fecha);
-      console.log('Formato de fecha para Prisma:', formattedDate);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Formato de fecha:', {
+          original: formData.fecha,
+          paraPrisma: formattedDate
+        });
+      }
       
       // Función auxiliar para limitar la longitud de los campos
       const limitLength = (value: string | null | undefined, maxLength: number): string => {
@@ -548,8 +542,20 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         return String(value).substring(0, maxLength);
       };
       
-      // Validar que haya una cuenta válida antes de actualizar
-      if (!formData.numeroCuenta || formData.numeroCuenta === 'No disponible') {
+      // Verificar si es PAGANTE o SOAT para bypass de validación de cuenta
+      const paganteOrSoatInsuranceCodes = ['0', '00', '02'];
+      const isPayingOrSoat = Boolean(formData.seguroLiq && paganteOrSoatInsuranceCodes.includes(formData.seguroLiq.trim()));
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Validación de cuenta:', {
+          seguroLiq: formData.seguroLiq,
+          isPayingOrSoat,
+          numeroCuenta: formData.numeroCuenta
+        });
+      }
+      
+      // Validar que haya una cuenta válida antes de actualizar (excepto para PAGANTE y SOAT)
+      if (!isPayingOrSoat && (!formData.numeroCuenta || formData.numeroCuenta === 'No disponible')) {
         toast({
           title: "Error de validación",
           description: "No se puede actualizar el registro sin una cuenta válida. Por favor, verifique que el tipo de seguro tenga una cuenta asociada.",
@@ -559,14 +565,74 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       }
 
       // Preparar datos con longitudes limitadas según el esquema de la base de datos
+      // IMPORTANTE: SEGURO debe ser igual a SEGUROLIQ
+      const seguroLiqValue = limitLength(formData.seguroLiq, 3);
+      
+      // Verificar si el seguro ha cambiado para actualizar la cuenta
+      const seguroOriginal = initialData?.SEGUROLIQ?.trim();
+      const seguroNuevo = seguroLiqValue.trim();
+      const seguroHaCambiado = seguroOriginal !== seguroNuevo;
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Verificación de cambio de seguro:', {
+          original: seguroOriginal,
+          nuevo: seguroNuevo,
+          haCambiado: seguroHaCambiado
+        });
+      }
+      
+      // Si el seguro ha cambiado y tenemos una cuenta válida, actualizar la tabla CUENTA
+      // Para PAGANTE/SOAT, usar la cuenta original del registro si existe
+      const cuentaParaActualizar = formData.numeroCuenta && formData.numeroCuenta !== 'No disponible' 
+        ? formData.numeroCuenta 
+        : initialData?.CUENTAID;
+        
+      if (seguroHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Actualizando cuenta ${cuentaParaActualizar} con nuevo seguro: ${seguroNuevo}`);
+        }
+        
+        try {
+          const cuentaResponse = await fetch(`/api/cuenta/update/${cuentaParaActualizar}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ seguro: seguroNuevo }),
+          });
+          
+          if (!cuentaResponse.ok) {
+            const errorData = await cuentaResponse.json();
+            throw new Error(errorData.error || 'Error al actualizar la cuenta');
+          }
+          
+          const cuentaResult = await cuentaResponse.json();
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Cuenta actualizada exitosamente');
+          }
+          
+          toast({
+            title: 'Cuenta actualizada',
+            description: `La cuenta se actualizó correctamente al nuevo tipo de seguro`,
+          });
+        } catch (cuentaError: any) {
+          console.error('Error al actualizar cuenta:', cuentaError);
+          toast({
+            title: 'Advertencia',
+            description: `Error al actualizar la cuenta: ${cuentaError.message}`,
+            variant: 'destructive',
+          });
+          // Continuar con la actualización de la emergencia aunque falle la cuenta
+        }
+      }
+      
       const updateData = {
         TIPOATENCION: limitLength(formData.tipoAtencion, 1),          // Char(1)
         MOTIVO_EMERGENCIA: limitLength(formData.motivoEmergencia, 2),  // Char(2)
         CONSULTORIO: limitLength(formData.consultorio, 6),            // Char(6)
         FORMA_INGRESO: limitLength(formData.formaIngreso, 1),         // Char(1)
-        SEGURO: limitLength(formData.seguro, 3),                      // Char(3)
-        SEGUROLIQ: limitLength(formData.seguroLiq, 3),                // Char(3)
-        CUENTAID: limitLength(formData.numeroCuenta, 10),             // Agregar campo cuenta
+        SEGURO: seguroLiqValue,                                       // Char(3) - Igual a SEGUROLIQ
+        SEGUROLIQ: seguroLiqValue,                                    // Char(3)
         OBSERVACION1: limitLength(formData.observacion1, 100),         // Estimado VarChar(100)
         OBSERVACION2: limitLength(formData.observacion2, 100),         // Estimado VarChar(100)
         ACOMPANANTE: limitLength(formData.acompanante, 100),          // VarChar(100)
@@ -576,15 +642,19 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         HORA: limitLength(formData.hora, 5),                          // Char(5)
       };
       
-      // Log de longitudes para depuración
-      console.log('Longitudes de campos enviados:');
-      Object.entries(updateData).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          console.log(`${key}: ${value.length} caracteres - Valor: "${value}"`);
-        }
-      });
-      
-      console.log('Enviando datos:', updateData);
+      // Log para verificar que SEGURO = SEGUROLIQ
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Datos de actualización:', {
+          SEGURO: updateData.SEGURO,
+          SEGUROLIQ: updateData.SEGUROLIQ,
+          sonIguales: updateData.SEGURO === updateData.SEGUROLIQ,
+          longitudes: Object.fromEntries(
+            Object.entries(updateData)
+              .filter(([_, v]) => typeof v === 'string')
+              .map(([k, v]) => [k, `${(v as string).length} caracteres`])
+          )
+        });
+      }
       
       // Llamar a la API para actualizar
       const response = await fetch(`/api/emergencia/${emergencyId}`, {
@@ -614,14 +684,20 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       
       // Redirigir a la lista de emergencias del paciente
       if (initialData && initialData.PACIENTE) {
-        console.log('Redirigiendo a la lista de emergencias del paciente:', initialData.PACIENTE);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Redirigiendo a lista de emergencias del paciente:', initialData.PACIENTE);
+        }
         router.push(`/emergency/${initialData.PACIENTE}`);
       } else if (patientData && patientData.PACIENTE) {
-        console.log('Redirigiendo a la lista de emergencias del paciente (usando patientData):', patientData.PACIENTE);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Redirigiendo a lista de emergencias (usando patientData):', patientData.PACIENTE);
+        }
         router.push(`/emergency/${patientData.PACIENTE}`);
       } else {
         // Si no se encuentra el ID del paciente, volver a la página anterior
-        console.log('No se encontró ID del paciente, volviendo a la página anterior');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('No se encontró ID del paciente, volviendo atrás');
+        }
         router.back();
       }
     } catch (error: any) {
@@ -921,35 +997,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
           Datos de la Emergencia {isDeleted && '(Eliminado)'}
         </h3>
       </div>
-      
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Está seguro de eliminar este registro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no eliminará permanentemente el registro, pero lo marcará como eliminado y no estará disponible en las búsquedas regulares.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isDeleting ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  <span>Eliminando...</span>
-                </>
-              ) : (
-                "Eliminar"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${isDeleted ? 'opacity-70' : ''}`} data-testid="emergency-section-view">
         {/* Sidebar with Patient Information */}
         <div className="lg:col-span-1">
@@ -973,7 +1020,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 hora={formData.hora}
                 onFechaChange={(value) => handleFormChange('fecha', value)}
                 onHoraChange={(value) => handleFormChange('hora', value)}
-                disabled={fieldsLocked || readOnly}
+                disabled={!isFieldEnabled('fecha')}
                 validationErrors={validationErrors}
                 patientId={initialData?.PACIENTE}
                 onFormChange={handleFormChange}
@@ -987,7 +1034,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 formData={formData}
                 onFormChange={handleFormChange}
                 validationErrors={validationErrors}
-                disabled={fieldsLocked || readOnly}
+                disabled={!isFieldEnabled('patientSection')}
               />
               
               {/* Datos de la Emergencia - Custom dropdowns for view mode */}
@@ -1008,7 +1055,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.tipoAtencion}
                     placeholder="Seleccionar tipo de atención..."
-                    disabled={fieldsLocked || readOnly}
+                    disabled={!isFieldEnabled('tipoAtencion')}
                   />
 
                   {/* Motivo de Emergencia */}
@@ -1027,7 +1074,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.motivoEmergencia}
                     placeholder="Seleccionar motivo..."
-                    disabled={fieldsLocked || readOnly}
+                    disabled={!isFieldEnabled('motivoEmergencia')}
                   />
 
                   {/* Consultorio */}
@@ -1065,7 +1112,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.formaIngreso}
                     placeholder="Seleccionar forma de ingreso..."
-                    disabled={fieldsLocked || readOnly}
+                    disabled={!isFieldEnabled('formaIngreso')}
                   />
 
                   {/* Seguro */}
@@ -1084,7 +1131,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.seguroLiq}
                     placeholder="Seleccionar seguro..."
-                    disabled={fieldsLocked || readOnly}
+                    disabled={!isFieldEnabled('seguroLiq')}
                   />
                 </div>
 
@@ -1096,7 +1143,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                       id="observacion1"
                       value={formData.observacion1 || ""}
                       onChange={(e) => handleFormChange("observacion1", e.target.value)}
-                      disabled={fieldsLocked || readOnly}
+                      disabled={!isFieldEnabled('observacion1')}
                       placeholder="Observaciones adicionales..."
                       rows={3}
                       className="md:text-sm"
@@ -1110,7 +1157,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     onSave={handleSave}
                     onCancel={() => router.back()}
                     submitting={isSaving}
-                    isEditable={!readOnly}
+                    isEditable={!readOnly || allowsSpecialEdit()}
                     patientId={initialData?.PACIENTE}
                     isUpdate={true}
                     formData={formData}
