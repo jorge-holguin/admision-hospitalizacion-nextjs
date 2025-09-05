@@ -6,7 +6,8 @@ export async function PUT(
   { params }: { params: { cuentaId: string } }
 ) {
   try {
-    const cuentaId = params.cuentaId;
+    // Ensure params is awaited before accessing properties
+    const { cuentaId } = await Promise.resolve(params);
     
     if (!cuentaId) {
       return NextResponse.json(

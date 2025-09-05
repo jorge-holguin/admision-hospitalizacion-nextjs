@@ -333,8 +333,8 @@ function EmergencyList({ patientId }: { patientId: string }) {
     // Siempre permitir edición para estado REGISTRADO (2)
     if (estado === '2') return true;
     
-    // Para PAGANTE (0, 00) o SOAT (02), permitir edición incluso en estados 3 o 4
-    if (seguroLiq && (estado === '3' || estado === '4')) {
+    // Para PAGANTE (0, 00) o SOAT (02), permitir edición incluso en estados 3
+    if (seguroLiq && (estado === '3')) {
       // Extraer el código del seguro del formato "(código) - descripción"
       const seguroCode = seguroLiq.trim();
       
@@ -344,15 +344,6 @@ function EmergencyList({ patientId }: { patientId: string }) {
                        seguroCode.includes('PAGANTE');
       const isSoat = seguroCode === '02' || seguroCode.startsWith('(02)') || 
                     seguroCode.includes('SOAT');
-      
-      console.log('Verificando permisos de edición:', {
-        estado,
-        seguroLiq,
-        seguroCode,
-        isPagante,
-        isSoat,
-        canEdit: isPagante || isSoat
-      });
       
       return isPagante || isSoat;
     }
@@ -525,7 +516,7 @@ function EmergencyList({ patientId }: { patientId: string }) {
                                 }}
                                 disabled={isDeleted || !isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ)}
                                 title={isEmergencyEditable(emergency.ESTADO, emergency.SEGUROLIQ) && !isDeleted 
-                                  ? (emergency.SEGUROLIQ === '0' || emergency.SEGUROLIQ === '00' || emergency.SEGUROLIQ === '02') && (emergency.ESTADO === '3' || emergency.ESTADO === '4')
+                                  ? (emergency.SEGUROLIQ === '0' || emergency.SEGUROLIQ === '00' || emergency.SEGUROLIQ === '02') && (emergency.ESTADO === '3')
                                     ? "Editar emergencia - Permitido para PAGANTE/SOAT en cualquier estado"
                                     : "Editar emergencia"
                                   : "No se puede editar debido al estado"}

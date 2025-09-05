@@ -255,22 +255,24 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     
     if (matchingSeguro) {
       const seguroDisplay = `(${matchingSeguro.Seguro || matchingSeguro.SEGURO}) - ${matchingSeguro.Nombre || matchingSeguro.NOMBRE}`;
+      const seguroValue = `${seguroCode} - ${matchingSeguro.Nombre || matchingSeguro.NOMBRE}`;
       console.log('Estableciendo seguro por defecto desde catálogo:', seguroDisplay);
       
-      onFormChange('seguro', seguroCode);
+      onFormChange('seguro', seguroValue);
       onFormChange('seguroDisplay', seguroDisplay);
       
       if (onSeguroChange) {
-        onSeguroChange(seguroCode, matchingSeguro);
+        onSeguroChange(seguroValue, matchingSeguro);
       }
     } else {
       // Si no se encuentra en la lista, usar los datos del paciente directamente
       // Si es PAGANTE (después del cambio automático), usar un nombre predeterminado
       const seguroNombre = seguroCode === '0' ? 'PAGANTE' : (patientData.descSeguro || 'Sin descripción');
       const seguroDisplay = `(${seguroCode}) - ${seguroNombre}`;
+      const seguroValue = `${seguroCode} - ${seguroNombre}`;
       console.log('Estableciendo seguro por defecto desde datos del paciente:', seguroDisplay);
       
-      onFormChange('seguro', seguroCode);
+      onFormChange('seguro', seguroValue);
       onFormChange('seguroDisplay', seguroDisplay);
       
       if (onSeguroChange) {

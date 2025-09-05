@@ -26,7 +26,6 @@ import { FormActionsEmergency } from "../register/FormActionsEmergency";
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
-import { EmergencySection } from '../register/EmergencySection'
 import { AdditionalViewFieldsSection } from './AdditionalViewFieldsSection'
 import { FormHeaderEmergency } from '../register/FormHeaderEmergency'
 import { validateEmergencyForm } from '../register/FormValidatorEmergency'
@@ -129,13 +128,27 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     return isPagante || isSoat;
   }, []);
 
+  // Función para verificar si es SIS
+  const isSIS = useCallback((seguroLiq?: string): boolean => {
+    if (!seguroLiq) return false;
+    const seguroCode = seguroLiq.trim();
+    
+    // Códigos de seguro SIS
+    const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25', '01'];
+    
+    return sisInsuranceCodes.includes(seguroCode) || 
+           seguroCode.startsWith('(01)') || 
+           sisInsuranceCodes.some(code => seguroCode.startsWith(`(${code})`)) || 
+           seguroCode.includes('SIS');
+  }, []);
+
   // Función para verificar si permite edición especial (solo condición del paciente)
   const allowsSpecialEdit = useCallback((): boolean => {
     const estado = initialData?.ESTADO;
     const seguroLiq = initialData?.SEGUROLIQ;
     
     // Permitir edición especial para PAGANTE/SOAT en cualquier estado
-    const isPagOrSoat = isPaganteOrSoat(seguroLiq)
+    const isPagOrSoat = isPaganteOrSoat(seguroLiq);
     
     // Para PAGANTE/SOAT, permitir edición especial sin importar el estado
     return isPagOrSoat;
@@ -146,8 +159,20 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     // Si está eliminado, no permitir edición
     if (isDeleted) return false;
     
-    // Si permite edición especial (PAGANTE/SOAT en estados 3-4)
-    if (allowsSpecialEdit()) {
+    const estado = initialData?.ESTADO;
+    const seguroLiq = initialData?.SEGUROLIQ;
+    
+    // Caso especial: ESTADO='2' para SOAT o SIS - permitir editar todo excepto consultorio
+    if (estado === '2' && (isPaganteOrSoat(seguroLiq) || isSIS(seguroLiq))) {
+      // Para consultorio, siempre bloqueado
+      if (fieldName === 'consultorio') return false;
+      
+      // Para los demás campos, permitir edición
+      return true;
+    }
+    
+    // Si permite edición especial (PAGANTE/SOAT en otros estados)
+    if (allowsSpecialEdit() && estado !== '2') {
       return fieldName === 'seguroLiq';
     }
     
@@ -156,7 +181,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     
     // Para otros casos, usar la lógica normal de fieldsLocked
     return !fieldsLocked;
-  }, [readOnly, isDeleted, allowsSpecialEdit, fieldsLocked]);
+  }, [readOnly, isDeleted, allowsSpecialEdit, fieldsLocked, initialData?.ESTADO, initialData?.SEGUROLIQ, isPaganteOrSoat, isSIS]);
 
   // Actualizar fieldsLocked cuando cambie readOnly
   useEffect(() => {

@@ -49,10 +49,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
   // Códigos de seguro SIS que requieren validación FUA
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25'];
   const requiresFuaValidation = Boolean(insuranceCode && sisInsuranceCodes.includes(insuranceCode.trim()));
-  
-  console.log('FormActionsEmergency - insuranceCode:', insuranceCode);
-  console.log('FormActionsEmergency - isPayingOrSoat:', isPayingOrSoat);
-  console.log('FormActionsEmergency - hasValidAccount:', hasValidAccount);
+
 
   const handleSaveClick = async () => {
     console.log('handleSaveClick ejecutado');

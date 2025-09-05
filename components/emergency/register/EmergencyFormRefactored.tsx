@@ -388,20 +388,38 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     
     // Actualizar el código de seguro para FuaEmergencyStatusAlert
     if (data.seguro) {
-      const seguroCode = data.seguro.trim();
+      let seguroCode = data.seguro.trim();
+      // Aplicar conversión de ESSALUD (06) a PAGANTE (0)
+      if (seguroCode === '06') {
+        seguroCode = '0';
+        console.log('Código de seguro convertido de 06 a 0 (PAGANTE) para insuranceCode');
+      }
       setInsuranceCode(seguroCode);
       console.log('Código de seguro actualizado:', seguroCode);
     }
     
     // Si no hay emergencyId (modo creación), actualizar el seguro desde los datos del paciente
     if (!emergencyId && data.seguro) {
+      let seguroToUse = data.seguro;
+      let seguroEncontrado = seguros.find(s => s.CODIGO === data.seguro);
+      
+      // Si el seguro es ESSALUD (06), convertir a PAGANTE (0)
+      if (data.seguro.trim() === '06') {
+        console.log('Convirtiendo seguro de ESSALUD (06) a PAGANTE (0) en formData');
+        seguroEncontrado = seguros.find(s => s.CODIGO === '0');
+        if (seguroEncontrado) {
+          seguroToUse = `${seguroEncontrado.CODIGO} - ${seguroEncontrado.NOMBRE}`;
+        } else {
+          seguroToUse = '0 - PAGANTE';
+        }
+      }
+      
       setFormData(prev => ({
         ...prev,
-        seguro: data.seguro || ''
+        seguro: seguroToUse
       }));
       
-      // Buscar datos del seguro seleccionado
-      const seguroEncontrado = seguros.find(s => s.CODIGO === data.seguro);
+      // Establecer el seguro seleccionado
       if (seguroEncontrado) {
         setSelectedSeguro(seguroEncontrado);
       }
@@ -610,20 +628,24 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       const motivoCode = formData.motivoEmergencia.split(' - ')[0] || '';
       const seguroCode = formData.seguro.split(' - ')[0] || '';
       
-      // APLICAR CONVERSIÓN PARA SEGUROLIQ
+      // APLICAR CONVERSIÓN PARA SEGURO Y SEGUROLIQ
+      let seguroValue = seguroCode;
       let seguroLiqValue = seguroCode;
       
-      // Si el seguro mostrado en el formulario es PAGANTE, usar código 0 para SEGUROLIQ
+      // Si el seguro mostrado en el formulario es PAGANTE, usar código 0 para ambos campos
       if (formData.seguro.includes('PAGANTE') || seguroCode === '0') {
-        console.log('Estableciendo SEGUROLIQ como PAGANTE (0)');
+        console.log('Estableciendo SEGURO y SEGUROLIQ como PAGANTE (0)');
+        seguroValue = '0';
         seguroLiqValue = '0';
       } else if (seguroCode === '06') {
-        console.log('Convirtiendo SEGUROLIQ de ESSALUD (06) a PAGANTE (0) en datos de API');
+        console.log('Convirtiendo SEGURO y SEGUROLIQ de ESSALUD (06) a PAGANTE (0) en datos de API');
+        seguroValue = '0';
         seguroLiqValue = '0';
       }
       
       console.log('Seguro seleccionado en formulario:', formData.seguro);
       console.log('Código de seguro extraído:', seguroCode);
+      console.log('Valor SEGURO final:', seguroValue);
       console.log('Valor SEGUROLIQ final:', seguroLiqValue);
       
       // Formatear fecha como YYYYMMDD
@@ -643,7 +665,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         HORA: formData.hora,
         CONSULTORIO: consultorioCode.padEnd(6, ' ').substring(0, 6),
         MOTIVO_EMERGENCIA: motivoCode.padEnd(2, ' ').substring(0, 2),
-        SEGURO: seguroLiqValue.padEnd(2, ' ').substring(0, 2), // Usar el mismo valor que SEGUROLIQ
+        SEGURO: seguroValue.padEnd(2, ' ').substring(0, 2), // Usar el valor convertido para SEGURO
         OBSERVACION1: (formData.observacion1 || '').substring(0, 100), // Limitar a 100 caracteres
         OBSERVACION2: (formData.observacion2 || '').substring(0, 100), // Limitar a 100 caracteres
         ESTADO: formData.estado.substring(0, 1), // Limitar a 1 caracter
@@ -691,6 +713,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       console.log('VALORES FINALES DE SEGURO:');
       console.log(`SEGURO original del paciente: ${filiacionData?.seguro || 'No disponible'}`);
       console.log(`SEGURO seleccionado en formulario (código): ${seguroCode}`);
+      console.log(`SEGURO convertido para API: ${seguroValue}`);
+      console.log(`SEGUROLIQ convertido para API: ${seguroLiqValue}`);
       console.log(`SEGURO enviado a API: ${emergencyData.SEGURO}`);
       console.log(`SEGUROLIQ enviado a API: ${emergencyData.SEGUROLIQ}`);
       console.log(`¿SEGURO y SEGUROLIQ son iguales?: ${emergencyData.SEGURO === emergencyData.SEGUROLIQ ? 'SÍ' : 'NO'}`);
@@ -1054,7 +1078,12 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
                   
                   // Actualizar código de seguro para validación FUA
                   if (value) {
-                    const seguroCode = value.split(' - ')[0].trim();
+                    let seguroCode = value.split(' - ')[0].trim();
+                    // Aplicar conversión de ESSALUD (06) a PAGANTE (0)
+                    if (seguroCode === '06') {
+                      seguroCode = '0';
+                      console.log('Código de seguro convertido de 06 a 0 (PAGANTE) para insuranceCode desde selector');
+                    }
                     setInsuranceCode(seguroCode);
                     console.log('Código de seguro actualizado desde selector:', seguroCode);
                     
