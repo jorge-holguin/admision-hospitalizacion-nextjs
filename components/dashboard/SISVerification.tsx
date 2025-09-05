@@ -37,10 +37,10 @@ export function SISVerification({
 }: SISVerificationProps) {
   const { toast } = useToast();
   
-  // Estado para manejar la verificación SIS
+  // Estado para almacenar el resultado de la verificación
   const [verificationState, setVerificationState] = useState<{
     isLoading: boolean;
-    patientId: string | null;
+    patientId: string;
     result: string | null;
     isSuccess: boolean | null;
     contrato?: string;
@@ -48,11 +48,13 @@ export function SISVerification({
     eess?: string;
     idPlan?: string;
     descTipoSeguro?: string;
+    isServerError?: boolean; // Nuevo campo para identificar errores de servidor
   }>({
     isLoading: false,
-    patientId: null,
+    patientId: patientId,
     result: null,
-    isSuccess: null
+    isSuccess: null,
+    isServerError: false
   });
 
   // Función para verificar SIS
@@ -160,7 +162,8 @@ export function SISVerification({
         isLoading: false,
         patientId: patientId,
         result: errorMessage,
-        isSuccess: false
+        isSuccess: false,
+        isServerError: true // Marcar como error de servidor
       };
       
       setVerificationState(errorState);
@@ -213,14 +216,22 @@ export function SISVerification({
       
       {/* Mostrar resultado de verificación SIS */}
       {verificationState.result && !verificationState.isLoading && (
-        <Alert className={verificationState.isSuccess ? 
-          "bg-green-50 border-green-200 text-green-800" : 
+        <Alert className={
+          verificationState.isServerError ? "bg-orange-50 border-orange-200 text-orange-800" :
+          verificationState.isSuccess ? "bg-green-50 border-green-200 text-green-800" : 
           "bg-red-50 border-red-200 text-red-800"}
         >
-          <CheckCircle className={`h-4 w-4 ${verificationState.isSuccess ? "text-green-600" : "text-red-600"}`} />
-          <AlertTitle>{verificationState.isSuccess ? "SIS Activo" : "SIS No Activo"}</AlertTitle>
+          <CheckCircle className={`h-4 w-4 ${
+            verificationState.isServerError ? "text-orange-600" :
+            verificationState.isSuccess ? "text-green-600" : "text-red-600"}`} />
+          <AlertTitle>
+            {verificationState.isServerError ? "Error de Conexión" :
+             verificationState.isSuccess ? "SIS Activo" : "SIS No Activo"}
+          </AlertTitle>
           <AlertDescription>
-            {verificationState.isSuccess ? (
+            {verificationState.isServerError ? (
+              "No se pudo conectar con el servidor del SIS. El servicio puede estar temporalmente inactivo."
+            ) : verificationState.isSuccess ? (
               <div className="space-y-1">
                 {verificationState.contrato && (
                   <p className="text-xs"><span className="font-medium">Contrato:</span> {verificationState.contrato}</p>
