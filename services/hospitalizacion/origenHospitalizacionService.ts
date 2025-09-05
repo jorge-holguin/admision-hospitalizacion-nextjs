@@ -11,6 +11,7 @@ export interface OrigenHospitalizacion {
   NOM_MEDICO: string
   NOMBRES?: string
   DNI?: string
+  ESTADO?: string
   DX?: string
   SEGURO?: string
   // Campos adicionales para debugging
@@ -45,6 +46,11 @@ export class OrigenHospitalizacionService {
         console.log(`Filtrando por paciente ID: ${pacienteId}`)
       }
       
+      // Filtrar emergencias con ESTADO='0' (inactivas)
+      // Nota: Solo aplicamos este filtro a emergencias (EM), no a consultas (CE)
+      whereClause += ` AND NOT (ORIGEN = 'EM' AND EXISTS (SELECT 1 FROM dbo.EMERGENCIA WHERE EMERGENCIA_ID = CODIGO AND ESTADO = '0'))`
+      console.log('Filtrando emergencias inactivas (ESTADO=\'0\')')
+      
       // Añadir filtros de búsqueda si se proporciona
       if (search) {
         whereClause += ` AND (CODIGO LIKE '%${search}%' OR NOM_CONSULTORIO LIKE '%${search}%' OR NOM_MEDICO LIKE '%${search}%' OR 
@@ -67,6 +73,11 @@ export class OrigenHospitalizacionService {
             WHEN ORIGEN = 'EM' THEN (SELECT DOCUMENTO FROM dbo.EMERGENCIA WHERE EMERGENCIA_ID = CODIGO)
             ELSE NULL
           END AS DNI,
+          CASE 
+            WHEN ORIGEN = 'CE' THEN (SELECT ESTADO FROM dbo.ATENCIONC WHERE ID_CITA = CODIGO)
+            WHEN ORIGEN = 'EM' THEN (SELECT ESTADO FROM dbo.EMERGENCIA WHERE EMERGENCIA_ID = CODIGO)
+            ELSE NULL
+          END AS ESTADO,
           CASE
             WHEN ORIGEN = 'CE' THEN (SELECT TOP 1 DX FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = CODIGO AND DX LIKE '[A-Z]%' ORDER BY DX)
             WHEN ORIGEN = 'EM' THEN (SELECT TOP 1 DX FROM dbo.ATENCIOND WITH (NOLOCK) WHERE ID_CITA = CODIGO AND DX LIKE '[A-Z]%' ORDER BY DX)
@@ -157,6 +168,7 @@ export class OrigenHospitalizacionService {
             INNER JOIN dbo.MEDICO AS C WITH (NOLOCK) ON A.MEDICO = C.MEDICO
             LEFT JOIN dbo.PACIENTE AS D WITH (NOLOCK) ON A.PACIENTE = D.PACIENTE
             WHERE DATEDIFF(DAY, A.FECHA, GETDATE()) < 90
+            AND A.ESTADO <> '0' -- Filtrar emergencias inactivas
             ${params.pacienteId ? `AND A.PACIENTE = '${params.pacienteId}'` : ''}
             ${params.search ? `AND (A.EMERGENCIA_ID LIKE '%${params.search}%' OR B.NOMBRE LIKE '%${params.search}%' OR C.NOMBRE LIKE '%${params.search}%' OR D.NOMBRES LIKE '%${params.search}%' OR D.DOCUMENTO LIKE '%${params.search}%')` : ''}
           ) AS CombinedResults

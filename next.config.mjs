@@ -14,7 +14,10 @@ const nextConfig = {
 
 const originalLog = console.log;
 console.log = (...args) => {
-  const timestamp = new Date().toISOString().split("T")[1].split(".")[0]; // HH:MM:SS
+  const timestamp = new Date().toLocaleTimeString("es-PE", {
+    hour12: false,
+    timeZone: "America/Lima"
+  });
   originalLog(`[${timestamp}]`, ...args);
 };
 

@@ -24,6 +24,7 @@ import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
 
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
 import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext'
+import { datetimeService } from '@/services/datetimeService'
 
 // Extender la interfaz de datos del paciente para incluir los campos adicionales
 interface PatientDataExtended {
@@ -102,6 +103,12 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [numeroCuenta, setNumeroCuenta] = useState<string>('');
   const [loadingCuenta, setLoadingCuenta] = useState<boolean>(false);
   const [cuentaId, setCuentaId] = useState<string | null>(null);
+  
+  // Estado para fecha y hora del servidor
+  const [serverDateTime, setServerDateTime] = useState({
+    date: '',
+    time: ''
+  });
 
   // Memoized callback for FUA validation
   const handleFuaValidationChange = useCallback((isValid: boolean) => {
@@ -162,10 +169,10 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [selectedDiagnostico, setSelectedDiagnostico] = useState<Diagnostico | null>(null);
   const [searchDiagnostico, setSearchDiagnostico] = useState('');
 
-  // Get current date and time
+  // Get current date and time from server (will be updated via useEffect)
   const now = new Date();
-  const currentDate = now.toISOString().split('T')[0]; // formato YYYY-MM-DD para input type="date"
-  const currentTime = now.toTimeString().substring(0, 5); // formato HH:MM para input type="time"
+  const fallbackDate = now.toISOString().split('T')[0]; // formato YYYY-MM-DD para input type="date"
+  const fallbackTime = now.toTimeString().substring(0, 5); // formato HH:MM para input type="time"
   
   // Estado para los selectores abiertos
   const { openSelects, toggleSelect, closeAllSelects } = useSelectsState();
@@ -175,8 +182,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [formData, setFormData] = useState({
     patientId: patientId,
     emergencyId: '',
-    fecha: currentDate,
-    hora: currentTime,
+    fecha: fallbackDate,
+    hora: fallbackTime,
     consultorio: '',
     medico: '',
     motivoEmergencia: '',
@@ -238,6 +245,50 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     return fetchedData as PatientDataExtended | null;
   }, [getPatientData, fetchPatientData]);
 
+  // Cargar fecha y hora del servidor para evitar problemas de zona horaria
+  useEffect(() => {
+    const fetchServerDateTime = async () => {
+      try {
+        // Obtener fecha y hora del servidor
+        const dateTimeData = await datetimeService.getCurrentDateTime();
+        
+        // Actualizar el estado con la fecha y hora del servidor
+        setServerDateTime({
+          date: dateTimeData.date,
+          time: dateTimeData.time
+        });
+        
+        // Actualizar el formulario con la fecha y hora del servidor
+        setFormData(prev => ({
+          ...prev,
+          fecha: dateTimeData.date,
+          hora: dateTimeData.time
+        }));
+        
+        console.log('Fecha y hora obtenidas del servidor:', dateTimeData);
+      } catch (error) {
+        console.error('Error al obtener fecha y hora del servidor:', error);
+        // En caso de error, usar la fecha y hora local como fallback
+        const now = new Date();
+        const localDate = now.toISOString().split('T')[0];
+        const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        setServerDateTime({
+          date: localDate,
+          time: localTime
+        });
+        
+        setFormData(prev => ({
+          ...prev,
+          fecha: localDate,
+          hora: localTime
+        }));
+      }
+    };
+
+    fetchServerDateTime();
+  }, []);
+
   // Cargar tipos de documento
   useEffect(() => {
     const fetchTiposDocumento = async () => {
@@ -282,7 +333,15 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       // Asegurarse de eliminar espacios en blanco adicionales
       localidad: patientDataFromContext.localidad ? patientDataFromContext.localidad.trim() : '',
       seguro: patientDataFromContext.seguro ? patientDataFromContext.seguro.trim() : '',
-      descSeguro: patientDataFromContext.descSeguro ? patientDataFromContext.descSeguro.trim() : '',
+      descSeguro: (() => {
+        let seguroCode = patientDataFromContext.seguro ? patientDataFromContext.seguro.trim() : '';
+        let descSeguro = patientDataFromContext.descSeguro ? patientDataFromContext.descSeguro.trim() : '';
+        // Si el seguro es ESSALUD, cambiar también la descripción
+        if (seguroCode === '06') {
+          descSeguro = 'PAGANTE';
+        }
+        return descSeguro;
+      })(),
       religion: patientDataFromContext.religion ? patientDataFromContext.religion.trim() : '',
       // Añadir el campo nombre que faltaba - usar el campo nombre del contexto, no nombres
       nombre: patientDataFromContext.nombre ? patientDataFromContext.nombre.trim() : '',
@@ -551,8 +610,12 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       const motivoCode = formData.motivoEmergencia.split(' - ')[0] || '';
       const seguroCode = formData.seguro.split(' - ')[0] || '';
       
-      // Usar el mismo valor de seguro para seguroLiq
-      const seguroLiqValue = seguroCode;
+      // APLICAR CONVERSIÓN ESSALUD A PAGANTE SOLO PARA SEGUROLIQ
+      let seguroLiqValue = seguroCode;
+      if (seguroCode === '06') {
+        console.log('Convirtiendo SEGUROLIQ de ESSALUD (06) a PAGANTE (0) en datos de API');
+        seguroLiqValue = '0';
+      }
       
       // Formatear fecha como YYYYMMDD
       const fechaFormateada = formData.fecha.replace(/-/g, '');
@@ -571,7 +634,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         HORA: formData.hora,
         CONSULTORIO: consultorioCode.padEnd(6, ' ').substring(0, 6),
         MOTIVO_EMERGENCIA: motivoCode.padEnd(2, ' ').substring(0, 2),
-        SEGURO: filiacionData?.seguro || seguroLiqValue || formData.seguroLiq || seguroCode || '',
+        SEGURO: filiacionData?.seguro || seguroCode || '',
         OBSERVACION1: (formData.observacion1 || '').substring(0, 100), // Limitar a 100 caracteres
         OBSERVACION2: (formData.observacion2 || '').substring(0, 100), // Limitar a 100 caracteres
         ESTADO: formData.estado.substring(0, 1), // Limitar a 1 caracter
@@ -601,7 +664,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         LOCALIDAD: (filiacionData?.localidad || formData.localidad || '').padEnd(12, ' ').substring(0, 12), // Limitar a 12 caracteres
         TIPOATENCION: (formData.tipoAtencion || 'E').padEnd(1, ' ').substring(0, 1), // Limitar a 1 caracter
         RELIGION: (filiacionData?.religion || formData.religion || '0').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
-        SEGUROLIQ: (seguroCode || seguroLiqValue || formData.seguroLiq ).padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
+        SEGUROLIQ: seguroLiqValue.padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         FORMA_INGRESO: (formData.formaIngreso === '1' ? '1' : (formData.formaIngreso || '1')).padEnd(1, ' ').substring(0, 1), // Asegurar que sea 1 (Caminando) por defecto
         CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7) // Ajustar a Char(7) exactamente
       };

@@ -237,9 +237,15 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     if (formData.seguro && formData.seguroDisplay) return;
     
     // Limpiar el código de seguro (remover espacios)
-    const seguroCode = patientData.seguro.trim();
+    let seguroCode = patientData.seguro.trim();
     console.log('Estableciendo seguro inicial del paciente:', seguroCode);
     console.log('Descripción del seguro:', patientData.descSeguro);
+    
+    // CASO ESPECIAL: Si el seguro es 06 (ESSALUD), cambiarlo automáticamente a 0 (PAGANTE)
+    if (seguroCode === '06') {
+      console.log('Seguro ESSALUD (06) detectado, cambiando automáticamente a PAGANTE (0)');
+      seguroCode = '0';
+    }
     
     // Buscar el seguro en la lista de seguros disponibles
     const matchingSeguro = seguros.find(s => 
@@ -259,7 +265,9 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       }
     } else {
       // Si no se encuentra en la lista, usar los datos del paciente directamente
-      const seguroDisplay = `(${seguroCode}) - ${patientData.descSeguro || 'Sin descripción'}`;
+      // Si es PAGANTE (después del cambio automático), usar un nombre predeterminado
+      const seguroNombre = seguroCode === '0' ? 'PAGANTE' : (patientData.descSeguro || 'Sin descripción');
+      const seguroDisplay = `(${seguroCode}) - ${seguroNombre}`;
       console.log('Estableciendo seguro por defecto desde datos del paciente:', seguroDisplay);
       
       onFormChange('seguro', seguroCode);
@@ -268,7 +276,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       if (onSeguroChange) {
         onSeguroChange(seguroCode, { 
           Seguro: seguroCode, 
-          Nombre: patientData.descSeguro || 'Sin descripción' 
+          Nombre: seguroNombre
         });
       }
     }
@@ -291,7 +299,8 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     .filter(
       (m) =>
         !searchMotivo ||
-        m.NOMBRE?.toLowerCase().includes(searchMotivo.toLowerCase())
+        m.NOMBRE?.toLowerCase().includes(searchMotivo.toLowerCase()) ||
+        m.MOTIVO_EMERGENCIA?.toLowerCase().includes(searchMotivo.toLowerCase())
     )
     .map((m) => ({
       value: m.MOTIVO_EMERGENCIA,
@@ -302,9 +311,18 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
   const formatConsultorios = consultorios
     .filter(
-      (c) =>
-        !searchConsultorio ||
-        c.NOMBRE?.toLowerCase().includes(searchConsultorio.toLowerCase())
+      (c) => {
+        if (!searchConsultorio) return true;
+        
+        const searchLower = searchConsultorio.toLowerCase();
+        
+        // Search in name
+        if (c.NOMBRE?.toLowerCase().includes(searchLower)) return true;
+        
+        // Search in code - handle different formats
+        const consultorioCode = c.CONSULTORIO?.toString().trim() || '';
+        return consultorioCode.toLowerCase().includes(searchLower);
+      }
     )
     .map((c) => ({
       value: c.CONSULTORIO,
@@ -315,8 +333,18 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
   const formatFormas = formasIngreso
     .filter(
-      (f) =>
-        !searchForma || f.NOMBRE?.toLowerCase().includes(searchForma.toLowerCase())
+      (f) => {
+        if (!searchForma) return true;
+        
+        const searchLower = searchForma.toLowerCase();
+        
+        // Search in name
+        if (f.NOMBRE?.toLowerCase().includes(searchLower)) return true;
+        
+        // Search in code - handle different formats
+        const formaCode = f.FORMA_INGRESO?.toString().trim() || '';
+        return formaCode.toLowerCase().includes(searchLower);
+      }
     )
     .map((f) => ({
       value: f.FORMA_INGRESO,
@@ -329,13 +357,22 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     console.log('Datos de seguros disponibles:', seguros);
     return seguros
       .filter(
-        (s) => !searchSeguro || 
-          (s.Nombre?.toLowerCase().includes(searchSeguro.toLowerCase()) || 
-           s.NOMBRE?.toLowerCase().includes(searchSeguro.toLowerCase()))
+        (s) => {
+          if (!searchSeguro) return true;
+          
+          const searchLower = searchSeguro.toLowerCase();
+          
+          // Search in name
+          if (s.Nombre?.toLowerCase().includes(searchLower)) return true;
+          
+          // Search in code - handle different formats
+          const seguroCode = s.Seguro?.toString().trim() || '';
+          return seguroCode.toLowerCase().includes(searchLower);
+        }
       )
       .map((s) => ({
-        value: s.Seguro || s.SEGURO,
-        display: `(${s.Seguro || s.SEGURO}) - ${s.Nombre || s.NOMBRE}`,
+        value: s.Seguro,
+        display: `(${s.Seguro}) - ${s.Nombre}`,
         description: "",
         data: s,
       }));
@@ -449,9 +486,40 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             loadSeguros(v);
           }}
           onSelect={(opt: OptionItem) => {
-            onFormChange("seguro", opt.value);
-            onFormChange("seguroDisplay", opt.display);
-            onSeguroChange(opt.value, opt.data);
+            // Check if the selected insurance is ESSALUD (code 06)
+            // If so, automatically change it to PAGANTE (code 0)
+            let seguroValue = opt.value;
+            let seguroData = opt.data;
+            
+            if (seguroValue === '06') {
+              console.log('Seguro ESSALUD (06) detectado, cambiando automáticamente a PAGANTE (0)');
+              
+              // Find PAGANTE in the list of available insurance options
+              const paganteSeguro = seguros.find(s => 
+                (s.Seguro && s.Seguro.trim() === '0') || 
+                (s.SEGURO && s.SEGURO.trim() === '0')
+              );
+              
+              if (paganteSeguro) {
+                seguroValue = '0';
+                seguroData = paganteSeguro;
+                
+                // Update display value for PAGANTE
+                const paganteDisplay = `(${paganteSeguro.Seguro || paganteSeguro.SEGURO}) - ${paganteSeguro.Nombre || paganteSeguro.NOMBRE}`;
+                onFormChange("seguroDisplay", paganteDisplay);
+              } else {
+                // If PAGANTE not found in the list, use basic info
+                seguroValue = '0';
+                seguroData = { Seguro: '0', Nombre: 'PAGANTE' };
+                onFormChange("seguroDisplay", "(0) - PAGANTE");
+              }
+            } else {
+              // For other insurance types, use selected values
+              onFormChange("seguroDisplay", opt.display);
+            }
+            
+            onFormChange("seguro", seguroValue);
+            onSeguroChange(seguroValue, seguroData);
           }}
           selectName="seguro"
           required

@@ -335,7 +335,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <VenusAndMars className="h-4 w-4 text-gray-400" />
+            <Book className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
             </span>

@@ -737,6 +737,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       (o) =>
         !searchCondicion ||
         o.display.toLowerCase().includes(searchCondicion.toLowerCase())
+        
     )
     .map((o) => ({ value: o.value, display: o.display, data: o }));
 
@@ -744,7 +745,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     .filter(
       (m) =>
         !searchMotivo ||
-        m.NOMBRE?.toLowerCase().includes(searchMotivo.toLowerCase())
+        m.NOMBRE?.toLowerCase().includes(searchMotivo.toLowerCase()) ||
+        m.MOTIVO_EMERGENCIA?.toLowerCase().includes(searchMotivo.toLowerCase())
     )
     .map((m) => ({
       value: m.MOTIVO_EMERGENCIA,
@@ -755,9 +757,18 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
   const formatConsultorios = consultorios
     .filter(
-      (c) =>
-        !searchConsultorio ||
-        c.NOMBRE?.toLowerCase().includes(searchConsultorio.toLowerCase())
+      (c) => {
+        if (!searchConsultorio) return true;
+        
+        const searchLower = searchConsultorio.toLowerCase();
+        
+        // Search in name
+        if (c.NOMBRE?.toLowerCase().includes(searchLower)) return true;
+        
+        // Search in code - handle different formats
+        const consultorioCode = c.CONSULTORIO?.toString().trim() || '';
+        return consultorioCode.toLowerCase().includes(searchLower);
+      }
     )
     .map((c) => ({
       value: c.CONSULTORIO,
@@ -768,8 +779,18 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
   const formatFormas = formasIngreso
     .filter(
-      (f) =>
-        !searchForma || f.NOMBRE?.toLowerCase().includes(searchForma.toLowerCase())
+      (f) => {
+        if (!searchForma) return true;
+        
+        const searchLower = searchForma.toLowerCase();
+        
+        // Search in name
+        if (f.NOMBRE?.toLowerCase().includes(searchLower)) return true;
+        
+        // Search in code - handle different formats
+        const formaCode = f.FORMA_INGRESO?.toString().trim() || '';
+        return formaCode.toLowerCase().includes(searchLower);
+      }
     )
     .map((f) => ({
       value: f.FORMA_INGRESO,
@@ -781,7 +802,18 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   const formatSeguros = useMemo(() => {
     return seguros
       .filter(
-        (s) => !searchSeguro || s.Nombre?.toLowerCase().includes(searchSeguro.toLowerCase())
+        (s) => {
+          if (!searchSeguro) return true;
+          
+          const searchLower = searchSeguro.toLowerCase();
+          
+          // Search in name
+          if (s.Nombre?.toLowerCase().includes(searchLower)) return true;
+          
+          // Search in code - handle different formats
+          const seguroCode = s.Seguro?.toString().trim() || '';
+          return seguroCode.toLowerCase().includes(searchLower);
+        }
       )
       .map((s) => ({
         value: s.Seguro,
