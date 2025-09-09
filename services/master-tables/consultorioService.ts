@@ -3,19 +3,24 @@ import { prisma } from '@/lib/prisma';
 // Normalizador para filas de Consultorio
 function normalizeConsultorio(row: any): Consultorio {
   const rawActivo = (row?.ACTIVO ?? '').toString();
-  const activo = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
+  const ACTIVO = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
   return {
     CONSULTORIO: row.CONSULTORIO ? String(row.CONSULTORIO).trim() : row.CONSULTORIO,
     NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
     ABREVIATURA: row.ABREVIATURA?.toString?.() ?? row.ABREVIATURA,
     ESPECIALIDAD: row.ESPECIALIDAD?.toString?.() ?? row.ESPECIALIDAD,
-    HIS_NOMSERVICIO: row.HIS_NOMSERVICIO?.toString?.() ?? row.HIS_NOMSERVICIO,
-    // Campos adicionales requeridos por el frontend
-    CODIGOHIS: row.CODIGOHIS?.toString?.() ?? row.CODIGOHIS ?? row.HIS_CODSERVICIO,
     TIPO: row.TIPO?.toString?.() ?? row.TIPO,
-    NUMERO: row.NUMERO !== undefined && row.NUMERO !== null ? Number(row.NUMERO) : (row.NUMERO as any),
+    ROL: row.ROL?.toString?.() ?? row.ROL,
+    MUESTRAROL: row.MUESTRAROL?.toString?.() ?? row.MUESTRAROL,
+    ACTIVO,
+    ORDEN: row.ORDEN?.toString?.() ?? row.ORDEN,
+    NUMERO: row.NUMERO?.toString?.() ?? row.NUMERO,
+    HIS_CODSERVICIO: row.HIS_CODSERVICIO?.toString?.() ?? row.HIS_CODSERVICIO,
+    UPSTRAMA: row.CODUPSSEEM?.toString?.() ?? row.CODUPSSEEM,
+    // Legacy fields for backward compatibility
+    HIS_NOMSERVICIO: row.HIS_NOMSERVICIO?.toString?.() ?? row.HIS_NOMSERVICIO,
+    CODIGOHIS: row.CODIGOHIS?.toString?.() ?? row.CODIGOHIS ?? row.HIS_CODSERVICIO,
     NOMBRE_ESPECIALIDAD: row.NOMBRE_ESPECIALIDAD?.toString?.() ?? row.HIS_NOMSERVICIO?.toString?.() ?? row.NOMBRE_ESPECIALIDAD,
-    ACTIVO: activo,
   } as Consultorio;
 }
 
@@ -24,12 +29,18 @@ export interface Consultorio {
   NOMBRE: string;
   ABREVIATURA?: string;
   ESPECIALIDAD?: string;
+  TIPO?: string;
+  ROL?: string;
+  MUESTRAROL?: string;
+  ACTIVO: string;
+  ORDEN?: string;
+  NUMERO?: string;
+  UPSTRAMA?: string;
+  HIS_CODSERVICIO?: string;
+  // Legacy fields
   HIS_NOMSERVICIO?: string;
   CODIGOHIS?: string;
-  TIPO?: string;
-  NUMERO?: number;
   NOMBRE_ESPECIALIDAD?: string;
-  ACTIVO: string;
   [key: string]: any;
 }
 
@@ -134,9 +145,8 @@ export const consultorioServerService = {
   async getConsultorioById(id: string): Promise<Consultorio | null> {
     try {
       const consultorio = await prisma.$queryRaw`
-        SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
-               HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
-               HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD
+        SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, TIPO, ROL, MUESTRAROL, 
+               ACTIVO, ORDEN, NUMERO, HIS_CODSERVICIO, CODUPSSEEM
         FROM CONSULTORIO
         WHERE CONSULTORIO = ${id}
       `;
@@ -155,27 +165,65 @@ export const consultorioServerService = {
 
   async createConsultorio(data: Partial<Consultorio>): Promise<Consultorio> {
     try {
-      // Check if consultorio with same name already exists
-      const existing = await prisma.$queryRaw`SELECT COUNT(*) as count FROM CONSULTORIO WHERE NOMBRE = ${data.NOMBRE}`;
+      // Check if consultorio with same codigo already exists
+      const existing = await prisma.$queryRaw`SELECT COUNT(*) as count FROM CONSULTORIO WHERE CONSULTORIO = ${data.CONSULTORIO}`;
       const exists = Number((existing as any)[0].count) > 0;
 
       if (exists) {
-        throw new Error('Ya existe un consultorio con este nombre');
+        throw new Error('Ya existe un consultorio con este código');
       }
 
-      // Insert new consultorio
+      // Parse numeric values
+      const parseActivo = (v: any): number => {
+        const s = String(v ?? '').trim().toUpperCase();
+        if (s === '1' || s === 'S' || s === 'TRUE') return 1;
+        if (s === '0' || s === 'N' || s === 'FALSE') return 0;
+        return 1;
+      };
+      
+      const activoVal = parseActivo(data.ACTIVO);
+      const rolVal = data.ROL === '1' ? 1 : 0;
+      const muestraRolVal = data.MUESTRAROL === '1' ? 1 : 0;
+      const ordenVal = data.ORDEN ? parseInt(data.ORDEN) : null;
+
+      // Insert new consultorio with all fields
       await prisma.$executeRaw`
-        INSERT INTO CONSULTORIO (NOMBRE, ABREVIATURA, HIS_NOMSERVICIO, ACTIVO) 
-        VALUES (${data.NOMBRE}, ${data.ABREVIATURA || ""}, ${data.HIS_NOMSERVICIO || ""}, ${data.ACTIVO || "S"})
+        INSERT INTO Consultorio(CONSULTORIO,NOMBRE,ABREVIATURA,ESPECIALIDAD,TIPO,ROL,MUESTRAROL,ACTIVO,ORDEN,NUMERO) 
+        VALUES(${data.CONSULTORIO}, ${data.NOMBRE}, ${data.ABREVIATURA || ""}, ${data.ESPECIALIDAD || ""}, ${data.TIPO || ""}, ${rolVal}, ${muestraRolVal}, ${activoVal}, ${ordenVal}, ${data.NUMERO || ""})
+      `;
+
+      // Update additional fields if provided
+      if (data.UPSTRAMA || data.HIS_CODSERVICIO) {
+        await prisma.$executeRaw`
+          UPDATE CONSULTORIO SET 
+            upstrama = ${data.UPSTRAMA || ""}, 
+            his_codservicio = ${data.HIS_CODSERVICIO || ""} 
+          WHERE CONSULTORIO = ${data.CONSULTORIO}
+        `;
+      }
+
+      // Insert BITACORA log
+      const sqlStatement = `INSERT INTO Consultorio(CONSULTORIO,NOMBRE,ABREVIATURA,ESPECIALIDAD,TIPO,ROL,MUESTRAROL,ACTIVO,ORDEN,NUMERO) VALUES(!${data.CONSULTORIO}!,!${data.NOMBRE}!,!${data.ABREVIATURA || ""}!,!${data.ESPECIALIDAD || ""}!,!${data.TIPO || ""}!,${rolVal},${muestraRolVal},${activoVal},${ordenVal || 0},!${data.NUMERO || ""}!)`;
+      
+      await prisma.$executeRaw`
+        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
+        VALUES ('INSERT',getdate(),'SYSTEM','SYSTEM','SYSTEM','ADMISION',${sqlStatement},'Consultorio')
       `;
 
       // Return the created consultorio
       return {
-        CONSULTORIO: '', // Will be auto-generated
+        CONSULTORIO: data.CONSULTORIO!,
         NOMBRE: data.NOMBRE!,
         ABREVIATURA: data.ABREVIATURA || "",
-        HIS_NOMSERVICIO: data.HIS_NOMSERVICIO || "",
-        ACTIVO: data.ACTIVO || "S"
+        ESPECIALIDAD: data.ESPECIALIDAD || "",
+        TIPO: data.TIPO || "",
+        ROL: data.ROL || "0",
+        MUESTRAROL: data.MUESTRAROL || "0",
+        ACTIVO: data.ACTIVO || "1",
+        ORDEN: data.ORDEN || "",
+        NUMERO: data.NUMERO || "",
+        UPSTRAMA: data.UPSTRAMA || "",
+        HIS_CODSERVICIO: data.HIS_CODSERVICIO || ""
       };
     } catch (error) {
       console.error('Error in consultorioServerService.createConsultorio:', error);
@@ -191,14 +239,50 @@ export const consultorioServerService = {
         return null;
       }
 
-      // Update consultorio
+      // Parse numeric values
+      const parseActivo = (v: any): number => {
+        const s = String(v ?? '').trim().toUpperCase();
+        if (s === '1' || s === 'S' || s === 'TRUE') return 1;
+        if (s === '0' || s === 'N' || s === 'FALSE') return 0;
+        return 1;
+      };
+      
+      const activoVal = data.ACTIVO !== undefined ? parseActivo(data.ACTIVO) : parseActivo(existing.ACTIVO);
+      const rolVal = data.ROL !== undefined ? (data.ROL === '1' ? 1 : 0) : (existing.ROL === '1' ? 1 : 0);
+      const muestraRolVal = data.MUESTRAROL !== undefined ? (data.MUESTRAROL === '1' ? 1 : 0) : (existing.MUESTRAROL === '1' ? 1 : 0);
+      const ordenVal = data.ORDEN ? parseInt(data.ORDEN) : (existing.ORDEN ? parseInt(existing.ORDEN) : null);
+
+      // Update consultorio with all fields
       await prisma.$executeRaw`
         UPDATE CONSULTORIO 
         SET NOMBRE = ${data.NOMBRE || existing.NOMBRE},
             ABREVIATURA = ${data.ABREVIATURA || existing.ABREVIATURA || ""},
-            HIS_NOMSERVICIO = ${data.HIS_NOMSERVICIO || existing.HIS_NOMSERVICIO || ""},
-            ACTIVO = ${data.ACTIVO || existing.ACTIVO}
+            ESPECIALIDAD = ${data.ESPECIALIDAD || existing.ESPECIALIDAD || ""},
+            TIPO = ${data.TIPO || existing.TIPO || ""},
+            ROL = ${rolVal},
+            MUESTRAROL = ${muestraRolVal},
+            ACTIVO = ${activoVal},
+            ORDEN = ${ordenVal},
+            NUMERO = ${data.NUMERO || existing.NUMERO || ""}
         WHERE CONSULTORIO = ${id}
+      `;
+
+      // Update additional fields if provided
+      if (data.UPSTRAMA !== undefined || data.HIS_CODSERVICIO !== undefined) {
+        await prisma.$executeRaw`
+          UPDATE CONSULTORIO SET 
+            upstrama = ${data.UPSTRAMA || existing.UPSTRAMA || ""}, 
+            his_codservicio = ${data.HIS_CODSERVICIO || existing.HIS_CODSERVICIO || ""} 
+          WHERE CONSULTORIO = ${id}
+        `;
+      }
+
+      // Insert BITACORA log for update
+      const sqlStatement = `UPDATE CONSULTORIO SET NOMBRE=!${data.NOMBRE || existing.NOMBRE}!,ABREVIATURA=!${data.ABREVIATURA || existing.ABREVIATURA || ""}!,ESPECIALIDAD=!${data.ESPECIALIDAD || existing.ESPECIALIDAD || ""}!,TIPO=!${data.TIPO || existing.TIPO || ""}!,ROL=${rolVal},MUESTRAROL=${muestraRolVal},ACTIVO=${activoVal},ORDEN=${ordenVal || 0},NUMERO=!${data.NUMERO || existing.NUMERO || ""}! WHERE CONSULTORIO=!${id}!`;
+      
+      await prisma.$executeRaw`
+        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
+        VALUES ('UPDATE',getdate(),'SYSTEM','SYSTEM','SYSTEM','ADMISION',${sqlStatement},'Consultorio')
       `;
 
       // Return updated consultorio

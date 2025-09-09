@@ -10,17 +10,22 @@ function normalizeMedico(row: any): Medico {
     ID_MEDICO: typeof row.ID_MEDICO === 'bigint' ? Number(row.ID_MEDICO) : row.ID_MEDICO,
     MEDICO: row.MEDICO?.toString?.() ?? row.MEDICO,
     NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
-    NOMBRES: row.NOMBRES?.toString?.() ?? row.NOMBRES,
-    APATERNO: row.APATERNO?.toString?.() ?? row.APATERNO,
-    AMATERNO: row.AMATERNO?.toString?.() ?? row.AMATERNO,
     DNI: row.DNI?.toString?.() ?? row.DNI,
-    TIPO_DOCUMENTO: row.TIPO_DOCUMENTO?.toString?.() ?? row.TIPO_DOCUMENTO,
+    EESS: row.EESS?.toString?.() ?? row.EESS,
+    ABREVIATURA: row.ABREVIATURA?.toString?.() ?? row.ABREVIATURA,
+    COLEGIO: row.COLEGIO?.toString?.() ?? row.COLEGIO,
+    COLESP: row.COLESP?.toString?.() ?? row.COLESP,
     ESPECIALIDAD: row.ESPECIALIDAD?.toString?.() ?? row.ESPECIALIDAD,
     CONSULTORIO: row.CONSULTORIO ? String(row.CONSULTORIO).trim() : row.CONSULTORIO,
     CODHIS: row.CODHIS?.toString?.() ?? row.CODHIS,
-    EESS: row.EESS?.toString?.() ?? row.EESS,
     CONTRATO: row.CONTRATO?.toString?.() ?? row.CONTRATO,
     ACTIVO: activo,
+    IMPCITA: row.IMPCITA?.toString?.() ?? row.IMPCITA,
+    // Legacy fields for compatibility
+    NOMBRES: row.NOMBRES?.toString?.() ?? row.NOMBRES,
+    APATERNO: row.APATERNO?.toString?.() ?? row.APATERNO,
+    AMATERNO: row.AMATERNO?.toString?.() ?? row.AMATERNO,
+    TIPO_DOCUMENTO: row.TIPO_DOCUMENTO?.toString?.() ?? row.TIPO_DOCUMENTO,
   } as Medico;
 }
 
@@ -28,17 +33,22 @@ export interface Medico {
   ID_MEDICO?: number;
   MEDICO: string;
   NOMBRE: string;
-  NOMBRES?: string;
-  APATERNO?: string;
-  AMATERNO?: string;
   DNI?: string;
-  TIPO_DOCUMENTO?: string;
+  EESS?: string;
+  ABREVIATURA?: string;
+  COLEGIO?: string;
+  COLESP?: string;
   ESPECIALIDAD?: string;
   CONSULTORIO?: string;
   CODHIS?: string;
-  EESS?: string;
   CONTRATO?: string;
   ACTIVO: string;
+  IMPCITA?: string;
+  // Legacy fields for compatibility
+  NOMBRES?: string;
+  APATERNO?: string;
+  AMATERNO?: string;
+  TIPO_DOCUMENTO?: string;
   [key: string]: any;
 }
 
@@ -84,8 +94,8 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI,
-              TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, ACTIVO,
+              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
+              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
               ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
             FROM MEDICO
             WHERE NOMBRE LIKE ${`%${search}%`} 
@@ -104,8 +114,8 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI,
-              TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, ACTIVO,
+              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
+              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
               ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
             FROM MEDICO
             WHERE CONSULTORIO = ${consultorio}
@@ -122,8 +132,8 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI,
-              TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, ACTIVO,
+              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
+              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
               ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
             FROM MEDICO
             WHERE NOMBRE LIKE ${`%${nombre}%`}
@@ -140,8 +150,8 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI,
-              TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, ACTIVO,
+              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
+              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
               ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
             FROM MEDICO
             WHERE DNI LIKE ${`%${dni}%`}
@@ -156,8 +166,8 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI,
-              TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, ACTIVO,
+              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
+              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
               ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
             FROM MEDICO
           )
@@ -188,8 +198,8 @@ export const medicoServerService = {
   async getMedicoById(id: string): Promise<Medico | null> {
     try {
       const medico = await prisma.$queryRaw`
-        SELECT ID_MEDICO, MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI, 
-               TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, ACTIVO
+        SELECT ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
+               ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA
         FROM MEDICO
         WHERE MEDICO = ${id}
       `;
@@ -212,15 +222,22 @@ export const medicoServerService = {
         throw new Error('El campo MEDICO es requerido');
       }
 
-      if (data.DNI) {
-        const existing = await prisma.$queryRaw`
-          SELECT COUNT(*) as count FROM MEDICO WHERE DNI = ${data.DNI}
-        `;
-        const exists = Number((existing as any)[0].count) > 0;
+      if (!data.NOMBRE || String(data.NOMBRE).trim() === "") {
+        throw new Error('El campo NOMBRE es requerido');
+      }
 
-        if (exists) {
-          throw new Error('Ya existe un médico con este DNI');
-        }
+      if (!data.DNI || String(data.DNI).trim() === "") {
+        throw new Error('El campo DNI es requerido');
+      }
+
+      // Check if DNI already exists
+      const existing = await prisma.$queryRaw`
+        SELECT COUNT(*) as count FROM MEDICO WHERE DNI = ${data.DNI}
+      `;
+      const exists = Number((existing as any)[0].count) > 0;
+
+      if (exists) {
+        throw new Error('Ya existe un médico con este DNI');
       }
 
       // Sanitizar campos opcionales que pueden ser NUMERIC en la BD
@@ -230,6 +247,7 @@ export const medicoServerService = {
       const consultorioVal = (data.CONSULTORIO && String(data.CONSULTORIO).trim() !== "")
         ? String(data.CONSULTORIO).trim()
         : null;
+      
       // ACTIVO es numeric(5) en la BD -> mapear a 1/0
       const parseActivo = (v: any): number => {
         const s = String(v ?? '').trim().toUpperCase();
@@ -239,25 +257,89 @@ export const medicoServerService = {
       };
       const activoVal = parseActivo(data.ACTIVO);
 
+      // Validate field lengths using exact table structure
+      const medicoCode = String(data.MEDICO).trim().substring(0, 3); // MEDICO char(3)
+      const nombre = String(data.NOMBRE).substring(0, 50); // NOMBRE varchar(50)
+      const colegio = String(data.COLEGIO || "").substring(0, 10); // COLEGIO varchar(10)
+      const abreviatura = String(data.ABREVIATURA || "MED").substring(0, 3); // ABREVIATURA varchar(3)
+      const colesp = String(data.COLESP || "").substring(0, 50); // COLESP varchar(50)
+      const dni = String(data.DNI).substring(0, 8); // DNI varchar(8)
+      const codhis = String(data.CODHIS || "").substring(0, 11); // CODHIS varchar(11)
+      const eess = String(data.EESS || "00000005947").substring(0, 10); // EESS char(10)
+      const contrato = String(data.CONTRATO || "NINGUNO").substring(0, 100); // CONTRATO varchar(100)
+      const impcita = String(data.IMPCITA || "N").substring(0, 1); // IMPCITA varchar(1)
+
+      // Log field lengths to identify truncation issues
+      console.log('Field lengths:', {
+        medicoCode: medicoCode.length,
+        nombre: nombre.length,
+        colegio: colegio.length,
+        especialidadVal: especialidadVal?.length || 0,
+        abreviatura: abreviatura.length,
+        consultorioVal: consultorioVal?.length || 0,
+        colesp: colesp.length,
+        dni: dni.length,
+        codhis: codhis.length,
+        eess: eess.length,
+        contrato: contrato.length,
+        impcita: impcita.length,
+      });
+
+      // Try inserting fields one by one to identify which one causes truncation
+      try {
+        // Insert the new medico with more conservative field lengths
+        await prisma.$executeRaw`
+          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA) 
+          VALUES(
+            ${medicoCode}, 
+            ${nombre}, 
+            ${colegio}, 
+            ${especialidadVal ? String(especialidadVal).substring(0, 4) : null}, 
+            ${abreviatura}, 
+            ${consultorioVal ? String(consultorioVal).substring(0, 6) : null}, 
+            ${activoVal}, 
+            ${colesp}, 
+            ${dni}, 
+            ${codhis}, 
+            ${eess}, 
+            ${contrato}, 
+            ${impcita}
+          )
+        `;
+      } catch (error) {
+        console.error('Error with more conservative field lengths:', error);
+        throw error;
+      }
+
+      // Insert BITACORA log usando los valores ya truncados correctamente
+      const especialidadValLog = especialidadVal ? String(especialidadVal).substring(0, 4) : "";
+      const consultorioValLog = consultorioVal ? String(consultorioVal).substring(0, 6) : "";
+      
+      const sqlStatement = `INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA) VALUES(!${medicoCode}!,!${nombre}!,!${colegio}!,!${especialidadValLog}!,!${abreviatura}!,!${consultorioValLog}!,${activoVal},!${colesp}!,!${dni}!,!${codhis}!,!${eess}!,!${contrato}!,!${impcita}!)`;
+      
+      // Log para depuración
+      console.log('SQL Statement para BITACORA:', sqlStatement);
+      
       await prisma.$executeRaw`
-        INSERT INTO MEDICO (MEDICO, NOMBRE, NOMBRES, APATERNO, AMATERNO, DNI, TIPO_DOCUMENTO, ESPECIALIDAD, CONSULTORIO, CODHIS, EESS, CONTRATO, ACTIVO) 
-        VALUES (${String(data.MEDICO).trim()}, ${data.NOMBRE}, ${data.NOMBRES || ""}, ${data.APATERNO || ""}, ${data.AMATERNO || ""}, ${data.DNI || ""}, ${data.TIPO_DOCUMENTO || "D"}, ${especialidadVal}, ${consultorioVal}, ${data.CODHIS || ""}, ${data.EESS || ""}, ${data.CONTRATO || ""}, ${activoVal})
+        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
+        VALUES ('INSERT',getdate(),'SYSTEM','SYSTEM','SYSTEM','ADMISION',${sqlStatement},'Medico')
       `;
 
+      // Retornar los valores que se usaron en la inserción
       return {
-        MEDICO: String(data.MEDICO).trim(),
-        NOMBRE: data.NOMBRE!,
-        NOMBRES: data.NOMBRES || "",
-        APATERNO: data.APATERNO || "",
-        AMATERNO: data.AMATERNO || "",
-        DNI: data.DNI || "",
-        TIPO_DOCUMENTO: data.TIPO_DOCUMENTO || "D",
-        ESPECIALIDAD: (especialidadVal ?? "") as any,
-        CONSULTORIO: (consultorioVal ?? "") as any,
-        CODHIS: data.CODHIS || "",
-        EESS: data.EESS || "",
-        CONTRATO: data.CONTRATO || "",
-        ACTIVO: activoVal === 1 ? "1" : "0"
+        MEDICO: medicoCode,
+        NOMBRE: nombre,
+        DNI: dni,
+        EESS: eess,
+        ABREVIATURA: abreviatura,
+        COLEGIO: colegio,
+        COLESP: colesp,
+        ESPECIALIDAD: (especialidadVal ? String(especialidadVal).substring(0, 4) : "") as any,
+        CONSULTORIO: (consultorioVal ? String(consultorioVal).substring(0, 6) : "") as any,
+        CODHIS: codhis,
+        CONTRATO: contrato,
+        ACTIVO: activoVal === 1 ? "1" : "0",
+        IMPCITA: impcita
       };
     } catch (error) {
       console.error('Error in medicoServerService.createMedico:', error);
@@ -279,6 +361,7 @@ export const medicoServerService = {
       const consultorioVal = (data.CONSULTORIO !== undefined)
         ? (String(data.CONSULTORIO).trim() === "" ? null : String(data.CONSULTORIO).trim())
         : (existing.CONSULTORIO && String(existing.CONSULTORIO).trim() !== "" ? String(existing.CONSULTORIO).trim() : null);
+      
       const parseActivo = (v: any): number => {
         const s = String(v ?? '').trim().toUpperCase();
         if (s === '1' || s === 'S' || s === 'TRUE') return 1;
@@ -287,21 +370,61 @@ export const medicoServerService = {
       };
       const newActivoVal = data.ACTIVO !== undefined ? parseActivo(data.ACTIVO) : parseActivo(existing.ACTIVO);
 
+      // Aplicar límites exactos de la tabla MEDICO
+      const nombre = String(data.NOMBRE || existing.NOMBRE).substring(0, 50); // varchar(50)
+      const dni = String(data.DNI || existing.DNI || "").substring(0, 8); // varchar(8)
+      const eess = String(data.EESS || existing.EESS || "00000005947").substring(0, 10); // char(10)
+      const abreviatura = String(data.ABREVIATURA || existing.ABREVIATURA || "MED").substring(0, 3); // varchar(3)
+      const colegio = String(data.COLEGIO || existing.COLEGIO || "").substring(0, 10); // varchar(10)
+      const colesp = String(data.COLESP || existing.COLESP || "").substring(0, 50); // varchar(50)
+      const especialidadValTruncated = especialidadVal ? String(especialidadVal).substring(0, 4) : null; // char(4)
+      const consultorioValTruncated = consultorioVal ? String(consultorioVal).substring(0, 6) : null; // char(6)
+      const codhis = String(data.CODHIS ?? existing.CODHIS ?? "").substring(0, 11); // varchar(11)
+      const contrato = String(data.CONTRATO ?? existing.CONTRATO ?? "NINGUNO").substring(0, 100); // varchar(100)
+      const impcita = String(data.IMPCITA ?? existing.IMPCITA ?? "N").substring(0, 1); // varchar(1)
+      
+      // Log para depuración
+      console.log('Field lengths for update:', {
+        nombre: nombre.length,
+        dni: dni.length,
+        eess: eess.length,
+        abreviatura: abreviatura.length,
+        colegio: colegio.length,
+        colesp: colesp.length,
+        especialidadVal: especialidadValTruncated?.length || 0,
+        consultorioVal: consultorioValTruncated?.length || 0,
+        codhis: codhis.length,
+        contrato: contrato.length,
+        impcita: impcita.length
+      });
+      
+      // Update the medico
       await prisma.$executeRaw`
         UPDATE MEDICO 
-        SET NOMBRE = ${data.NOMBRE || existing.NOMBRE},
-            NOMBRES = ${data.NOMBRES || existing.NOMBRES || ""},
-            APATERNO = ${data.APATERNO || existing.APATERNO || ""},
-            AMATERNO = ${data.AMATERNO || existing.AMATERNO || ""},
-            DNI = ${data.DNI || existing.DNI || ""},
-            TIPO_DOCUMENTO = ${data.TIPO_DOCUMENTO || existing.TIPO_DOCUMENTO || "D"},
-            ESPECIALIDAD = ${especialidadVal},
-            CONSULTORIO = ${consultorioVal},
-            CODHIS = ${data.CODHIS ?? existing.CODHIS ?? ""},
-            EESS = ${data.EESS ?? existing.EESS ?? ""},
-            CONTRATO = ${data.CONTRATO ?? existing.CONTRATO ?? ""},
-            ACTIVO = ${newActivoVal}
+        SET NOMBRE = ${nombre},
+            DNI = ${dni},
+            EESS = ${eess},
+            ABREVIATURA = ${abreviatura},
+            COLEGIO = ${colegio},
+            COLESP = ${colesp},
+            ESPECIALIDAD = ${especialidadValTruncated},
+            CONSULTORIO = ${consultorioValTruncated},
+            CODHIS = ${codhis},
+            CONTRATO = ${contrato},
+            ACTIVO = ${newActivoVal},
+            IMPCITA = ${impcita}
         WHERE MEDICO = ${id}
+      `;
+
+      // Insert BITACORA log for update con valores truncados
+      const sqlStatement = `UPDATE MEDICO SET NOMBRE=!${nombre}!,DNI=!${dni}!,EESS=!${eess}!,ABREVIATURA=!${abreviatura}!,COLEGIO=!${colegio}!,COLESP=!${colesp}!,ESPECIALIDAD=!${especialidadValTruncated || ""}!,CONSULTORIO=!${consultorioValTruncated || ""}!,CODHIS=!${codhis}!,CONTRATO=!${contrato}!,ACTIVO=${newActivoVal},IMPCITA=!${impcita}! WHERE MEDICO=!${id}!`;
+      
+      // Log para depuración
+      console.log('SQL Statement para BITACORA update:', sqlStatement);
+      
+      await prisma.$executeRaw`
+        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
+        VALUES ('UPDATE',getdate(),'SYSTEM','SYSTEM','SYSTEM','ADMISION',${sqlStatement},'Medico')
       `;
 
       return await this.getMedicoById(id);

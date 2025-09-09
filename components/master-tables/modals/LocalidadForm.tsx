@@ -24,8 +24,11 @@ export const LocalidadForm: React.FC<LocalidadFormProps> = ({
     LOCALIDAD: "",
     NOMBRE: "",
     UBIGEO: "",
-    ACTIVO: "S",
+    ACTIVO: "1",
   });
+
+  const [codigoExists, setCodigoExists] = useState(false);
+  const [checkingCodigo, setCheckingCodigo] = useState(false);
 
   // Cargar datos si estamos editando
   useEffect(() => {
@@ -34,18 +37,57 @@ export const LocalidadForm: React.FC<LocalidadFormProps> = ({
         LOCALIDAD: localidad.LOCALIDAD || "",
         NOMBRE: localidad.NOMBRE || "",
         UBIGEO: localidad.UBIGEO || "",
-        ACTIVO: localidad.ACTIVO || "S",
+        ACTIVO: localidad.ACTIVO || "1",
       });
     }
   }, [localidad]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Solo permitir números en UBIGEO
+    if (name === 'UBIGEO' && value && !/^\d*$/.test(value)) {
+      return;
+    }
+    
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Validar código único si es el campo LOCALIDAD
+    if (name === 'LOCALIDAD' && value && !localidad) {
+      checkCodigoUnique(value);
+    }
+  };
+
+  const checkCodigoUnique = async (codigo: string) => {
+    if (!codigo) return;
+    
+    setCheckingCodigo(true);
+    try {
+      const response = await fetch(`/api/localidad/check-codigo?codigo=${codigo}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCodigoExists(data.exists);
+      }
+    } catch (error) {
+      console.error('Error checking codigo:', error);
+    } finally {
+      setCheckingCodigo(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar código único
+    if (!localidad && codigoExists) {
+      toast({
+        title: "Error",
+        description: "El código ya existe. Por favor, ingrese un código único.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -89,19 +131,30 @@ export const LocalidadForm: React.FC<LocalidadFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="LOCALIDAD">Código</Label>
-        <Input
-          id="LOCALIDAD"
-          name="LOCALIDAD"
-          value={formData.LOCALIDAD}
-          onChange={handleChange}
-          disabled={!!localidad} // Deshabilitar si estamos editando
-          required
-        />
+        <Label htmlFor="LOCALIDAD">Código *</Label>
+        <div className="relative">
+          <Input
+            id="LOCALIDAD"
+            name="LOCALIDAD"
+            value={formData.LOCALIDAD}
+            onChange={handleChange}
+            disabled={!!localidad}
+            required
+            className={codigoExists ? "border-red-500" : ""}
+          />
+          {checkingCodigo && (
+            <div className="absolute right-2 top-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          )}
+        </div>
+        {codigoExists && (
+          <p className="text-sm text-red-500">Este código ya existe</p>
+        )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="NOMBRE">Nombre</Label>
+        <Label htmlFor="NOMBRE">Nombre *</Label>
         <Input
           id="NOMBRE"
           name="NOMBRE"
@@ -116,24 +169,33 @@ export const LocalidadForm: React.FC<LocalidadFormProps> = ({
         <Input
           id="UBIGEO"
           name="UBIGEO"
+          type="text"
           value={formData.UBIGEO}
           onChange={handleChange}
-          required
+          placeholder="Solo números"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ACTIVO">Estado</Label>
-        <select
-          id="ACTIVO"
-          name="ACTIVO"
-          value={formData.ACTIVO}
-          onChange={handleChange}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="S">Activo</option>
-          <option value="N">Inactivo</option>
-        </select>
+        <Label>Estado</Label>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={formData.ACTIVO === "1" ? "default" : "outline"}
+            onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "1" }))}
+            className={`flex-1 ${formData.ACTIVO === "1" ? "bg-green-600 hover:bg-green-700" : ""}`}
+          >
+            Activo
+          </Button>
+          <Button
+            type="button"
+            variant={formData.ACTIVO === "0" ? "default" : "outline"}
+            onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "0" }))}
+            className={`flex-1 ${formData.ACTIVO === "0" ? "bg-red-600 hover:bg-red-700" : ""}`}
+          >
+            Inactivo
+          </Button>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

@@ -75,6 +75,21 @@
         qs.set('hasta', dateStr)
         if (filters.consultorio && filters.consultorio !== 'all') qs.set('consultorio', String(filters.consultorio))
         if (filters.medico && filters.medico !== 'all') qs.set('medico', String(filters.medico))
+        
+        // Agregar filtro de estado si no es "all"
+        if (filters.estado && filters.estado !== 'all') {
+          qs.set('estado', String(filters.estado))
+        }
+        
+        // Agregar filtro de turno si no es "ALL"
+        if (filters.turno && filters.turno !== 'ALL') {
+          // Mapear de 'MAÑANA'/'TARDE' a 'M'/'T' para el backend
+          const turnoBackend = filters.turno === 'MAÑANA' ? 'M' : filters.turno === 'TARDE' ? 'T' : null
+          if (turnoBackend) {
+            qs.set('turno', turnoBackend)
+          }
+        }
+        
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 

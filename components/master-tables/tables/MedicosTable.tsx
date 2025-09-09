@@ -89,8 +89,14 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
   // Definir las columnas para el DataTable (usando campos reales del API)
   const columns = [
     { key: "MEDICO", header: "Código" },
-    { key: "NOMBRE", header: "Nombre" },
+    { key: "NOMBRE", header: "Apellidos y Nombres" },
     { key: "DNI", header: "DNI" },
+    {
+      key: "ABREVIATURA",
+      header: "Tipo",
+      cell: (medico: any) => medico.ABREVIATURA || "MED",
+    },
+    { key: "COLEGIO", header: "Colegiatura" },
     {
       key: "ESPECIALIDAD",
       header: "Especialidad",
@@ -100,6 +106,11 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
       key: "CONSULTORIO",
       header: "Consultorio",
       cell: (medico: any) => (medico.CONSULTORIO ? String(medico.CONSULTORIO).trim() : ""),
+    },
+    {
+      key: "CONTRATO",
+      header: "Condición",
+      cell: (medico: any) => medico.CONTRATO || "NINGUNO",
     },
     { 
       key: "ACTIVO", 

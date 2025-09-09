@@ -2,12 +2,12 @@ import { prisma } from '@/lib/prisma';
 
 // Normalizador para filas de Localidad
 function normalizeLocalidad(row: any): Localidad {
-  const rawActivo = (row?.ACTIVO ?? '').toString();
+  const rawActivo = (row?.ACTIVO ?? row?.Activo ?? '').toString();
   const ACTIVO = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
   return {
-    LOCALIDAD: row.LOCALIDAD ? String(row.LOCALIDAD).trim() : row.LOCALIDAD,
-    NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
-    UBIGEO: row.UBIGEO?.toString?.() ?? row.UBIGEO,
+    LOCALIDAD: (row.LOCALIDAD || row.Localidad) ? String(row.LOCALIDAD || row.Localidad).trim() : (row.LOCALIDAD || row.Localidad),
+    NOMBRE: (row.NOMBRE || row.Nombre)?.toString?.() ?? (row.NOMBRE || row.Nombre),
+    UBIGEO: (row.UBIGEO || row.Ubigeo)?.toString?.() ?? ((row.UBIGEO || row.Ubigeo) || ''),
     ACTIVO,
   } as Localidad;
 }
@@ -122,25 +122,39 @@ export const localidadServerService = {
 
   async createLocalidad(data: Partial<Localidad>): Promise<Localidad> {
     try {
-      // Check if localidad with same name already exists
-      const existing = await prisma.$queryRaw`SELECT COUNT(*) as count FROM LOCALIDAD WHERE NOMBRE = ${data.NOMBRE}`;
-      const exists = Number((existing as any)[0].count) > 0;
-
-      if (exists) {
-        throw new Error('Ya existe una localidad con este nombre');
+      // Check if codigo already exists
+      const existingCodigo = await prisma.$queryRaw`
+        SELECT COUNT(*) as Cantidad 
+        FROM Localidad 
+        WHERE Localidad = ${data.LOCALIDAD}
+      ` as any[];
+      
+      if (existingCodigo[0]?.Cantidad > 0) {
+        throw new Error('Ya existe una localidad con este código');
       }
+
+      // Parse ACTIVO value
+      const activoVal = data.ACTIVO === '1' || data.ACTIVO === '0' ? parseInt(data.ACTIVO) : 1;
 
       // Insert new localidad
       await prisma.$executeRaw`
-        INSERT INTO LOCALIDAD (NOMBRE, ACTIVO) 
-        VALUES (${data.NOMBRE}, ${data.ACTIVO || "S"})
+        INSERT INTO Localidad(Localidad,Nombre,Activo) 
+        VALUES(${data.LOCALIDAD}, ${data.NOMBRE}, ${activoVal})
+      `;
+
+      // Log to BITACORA
+      const sqlStatement = `INSERT INTO Localidad(Localidad,Nombre,Activo) VALUES('${data.LOCALIDAD}','${data.NOMBRE}',${activoVal})`;
+      await prisma.$executeRaw`
+        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
+        VALUES ('INSERT',getdate(),'SUPERVISORP:ALQADUEI30148','desarrollo06','ALQADUEI30148','ADMISION',${sqlStatement},'Localidad')
       `;
 
       // Return the created localidad
       return {
-        LOCALIDAD: '', // Will be auto-generated
+        LOCALIDAD: data.LOCALIDAD!,
         NOMBRE: data.NOMBRE!,
-        ACTIVO: data.ACTIVO || "S"
+        UBIGEO: data.UBIGEO || '',
+        ACTIVO: data.ACTIVO || '1'
       };
     } catch (error) {
       console.error('Error in localidadServerService.createLocalidad:', error);
@@ -156,12 +170,24 @@ export const localidadServerService = {
         return null;
       }
 
+      // Parse ACTIVO value
+      const activoVal = data.ACTIVO === '1' || data.ACTIVO === '0' ? parseInt(data.ACTIVO) : 
+                       (existing.ACTIVO === '1' ? 1 : 0);
+
       // Update localidad
       await prisma.$executeRaw`
-        UPDATE LOCALIDAD 
-        SET NOMBRE = ${data.NOMBRE || existing.NOMBRE},
-            ACTIVO = ${data.ACTIVO || existing.ACTIVO}
-        WHERE LOCALIDAD = ${id}
+        UPDATE Localidad 
+        SET Nombre = ${data.NOMBRE || existing.NOMBRE},
+            Ubigeo = ${data.UBIGEO || existing.UBIGEO || ''},
+            Activo = ${activoVal}
+        WHERE Localidad = ${id}
+      `;
+
+      // Log to BITACORA
+      const sqlStatement = `UPDATE Localidad SET Nombre='${data.NOMBRE || existing.NOMBRE}',Ubigeo='${data.UBIGEO || existing.UBIGEO || ''}',Activo=${activoVal} WHERE Localidad='${id}'`;
+      await prisma.$executeRaw`
+        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
+        VALUES ('UPDATE',getdate(),'SUPERVISORP:ALQADUEI30148','desarrollo06','ALQADUEI30148','ADMISION',${sqlStatement},'Localidad')
       `;
 
       // Return updated localidad

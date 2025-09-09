@@ -87,12 +87,33 @@ export const ConsultoriosTable: React.FC<ConsultoriosTableProps> = ({ onEdit, on
   // Definir las columnas para el DataTable
   const columns = [
     { key: "CONSULTORIO", header: "Código" },
-    { key: "CODIGOHIS", header: "Código HIS" },
     { key: "NOMBRE", header: "Nombre" },
     { key: "ABREVIATURA", header: "Abreviatura" },
+    { key: "ESPECIALIDAD", header: "Especialidad" },
     { key: "TIPO", header: "Tipo" },
-    { key: "NUMERO", header: "Número" },
-    { key: "NOMBRE_ESPECIALIDAD", header: "Especialidad" },
+    { key: "ORDEN", header: "Orden" },
+    { 
+      key: "ROL", 
+      header: "Programa Rol",
+      cell: (consultorio: any) => (
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          consultorio.ROL === "1" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+        }`}>
+          {consultorio.ROL === "1" ? "Sí" : "No"}
+        </span>
+      )
+    },
+    { 
+      key: "MUESTRAROL", 
+      header: "Muestra Rol",
+      cell: (consultorio: any) => (
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          consultorio.MUESTRAROL === "1" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800"
+        }`}>
+          {consultorio.MUESTRAROL === "1" ? "Sí" : "No"}
+        </span>
+      )
+    },
     { 
       key: "ACTIVO", 
       header: "Estado",
