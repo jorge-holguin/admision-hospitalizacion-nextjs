@@ -1,11 +1,34 @@
 import { prisma } from '@/lib/prisma';
 
+// Normalizador para filas de Consultorio
+function normalizeConsultorio(row: any): Consultorio {
+  const rawActivo = (row?.ACTIVO ?? '').toString();
+  const activo = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
+  return {
+    CONSULTORIO: row.CONSULTORIO ? String(row.CONSULTORIO).trim() : row.CONSULTORIO,
+    NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
+    ABREVIATURA: row.ABREVIATURA?.toString?.() ?? row.ABREVIATURA,
+    ESPECIALIDAD: row.ESPECIALIDAD?.toString?.() ?? row.ESPECIALIDAD,
+    HIS_NOMSERVICIO: row.HIS_NOMSERVICIO?.toString?.() ?? row.HIS_NOMSERVICIO,
+    // Campos adicionales requeridos por el frontend
+    CODIGOHIS: row.CODIGOHIS?.toString?.() ?? row.CODIGOHIS ?? row.HIS_CODSERVICIO,
+    TIPO: row.TIPO?.toString?.() ?? row.TIPO,
+    NUMERO: row.NUMERO !== undefined && row.NUMERO !== null ? Number(row.NUMERO) : (row.NUMERO as any),
+    NOMBRE_ESPECIALIDAD: row.NOMBRE_ESPECIALIDAD?.toString?.() ?? row.HIS_NOMSERVICIO?.toString?.() ?? row.NOMBRE_ESPECIALIDAD,
+    ACTIVO: activo,
+  } as Consultorio;
+}
+
 export interface Consultorio {
   CONSULTORIO: string;
   NOMBRE: string;
   ABREVIATURA?: string;
   ESPECIALIDAD?: string;
   HIS_NOMSERVICIO?: string;
+  CODIGOHIS?: string;
+  TIPO?: string;
+  NUMERO?: number;
+  NOMBRE_ESPECIALIDAD?: string;
   ACTIVO: string;
   [key: string]: any;
 }
@@ -31,32 +54,72 @@ export const consultorioServerService = {
     filters: ConsultorioFilters = {}
   ): Promise<PaginatedResponse<Consultorio>> {
     const skip = (page - 1) * pageSize;
+    const startRow = skip + 1;
+    const endRow = page * pageSize;
     const { nombre, codigo, servicio } = filters;
 
     try {
-      let totalResult;
-      let consultorios;
+      let totalResult: any;
+      let consultorios: any;
 
-      // Build WHERE conditions
       if (nombre && !codigo && !servicio) {
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO WHERE NOMBRE LIKE ${`%${nombre}%`}`;
-        consultorios = await prisma.$queryRaw`SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO FROM CONSULTORIO WHERE NOMBRE LIKE ${`%${nombre}%`} ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        consultorios = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
+                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
+                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM CONSULTORIO
+            WHERE NOMBRE LIKE ${`%${nombre}%`}
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       } else if (!nombre && codigo && !servicio) {
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO WHERE CONSULTORIO LIKE ${`%${codigo}%`}`;
-        consultorios = await prisma.$queryRaw`SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO FROM CONSULTORIO WHERE CONSULTORIO LIKE ${`%${codigo}%`} ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        consultorios = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
+                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
+                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM CONSULTORIO
+            WHERE CONSULTORIO LIKE ${`%${codigo}%`}
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       } else if (!nombre && !codigo && servicio) {
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO WHERE HIS_NOMSERVICIO LIKE ${`%${servicio}%`}`;
-        consultorios = await prisma.$queryRaw`SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO FROM CONSULTORIO WHERE HIS_NOMSERVICIO LIKE ${`%${servicio}%`} ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        consultorios = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
+                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
+                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM CONSULTORIO
+            WHERE HIS_NOMSERVICIO LIKE ${`%${servicio}%`}
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       } else {
-        // No filters or multiple filters
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO`;
-        consultorios = await prisma.$queryRaw`SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO FROM CONSULTORIO ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        consultorios = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
+                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
+                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM CONSULTORIO
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       }
 
       const total = Number((totalResult as any)[0].total);
+      const normalized = (consultorios as any[]).map(normalizeConsultorio);
 
       return {
-        data: consultorios as Consultorio[],
+        data: normalized as Consultorio[],
         total,
         page,
         pageSize,
@@ -71,7 +134,9 @@ export const consultorioServerService = {
   async getConsultorioById(id: string): Promise<Consultorio | null> {
     try {
       const consultorio = await prisma.$queryRaw`
-        SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO
+        SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
+               HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
+               HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD
         FROM CONSULTORIO
         WHERE CONSULTORIO = ${id}
       `;
@@ -80,7 +145,8 @@ export const consultorioServerService = {
         return null;
       }
 
-      return Array.isArray(consultorio) ? consultorio[0] as Consultorio : consultorio as Consultorio;
+      const item = Array.isArray(consultorio) ? consultorio[0] : consultorio;
+      return normalizeConsultorio(item);
     } catch (error) {
       console.error(`Error in consultorioServerService.getConsultorioById(${id}):`, error);
       throw error;

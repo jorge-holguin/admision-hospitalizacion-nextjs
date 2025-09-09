@@ -35,7 +35,7 @@ export const LocalidadesTable: React.FC<LocalidadesTableProps> = ({ onEdit, onNe
 
   const handleSearch = () => {
     if (!searchTerm.trim()) {
-      handleFilterChange({});
+      // No dispare un cambio de filtros si está vacío para evitar doble carga inicial
       return;
     }
 
@@ -47,7 +47,8 @@ export const LocalidadesTable: React.FC<LocalidadesTableProps> = ({ onEdit, onNe
   };
 
   React.useEffect(() => {
-    if (debouncedSearchTerm !== undefined) {
+    // Evitar buscar automáticamente cuando el término está vacío (montaje inicial)
+    if (debouncedSearchTerm !== undefined && debouncedSearchTerm.trim() !== "") {
       handleSearch();
     }
   }, [debouncedSearchTerm, searchType]);
@@ -96,12 +97,12 @@ export const LocalidadesTable: React.FC<LocalidadesTableProps> = ({ onEdit, onNe
       cell: (localidad: any) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            localidad.ACTIVO === "S"
+            localidad.ACTIVO === "1"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {localidad.ACTIVO === "S" ? "Activo" : "Inactivo"}
+          {localidad.ACTIVO === "1" ? "Activo" : "Inactivo"}
         </span>
       )
     },

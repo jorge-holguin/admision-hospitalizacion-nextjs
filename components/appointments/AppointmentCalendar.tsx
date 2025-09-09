@@ -1,9 +1,6 @@
 "use client"
-
-import { useState } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
-import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
 interface AppointmentCalendarProps {
@@ -49,7 +46,6 @@ export function AppointmentCalendar({
             day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
             day_hidden: "invisible",
           }}
-          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
         />
       </CardContent>
     </Card>

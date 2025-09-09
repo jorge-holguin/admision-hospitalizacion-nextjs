@@ -30,6 +30,9 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     COLEGIO: "",
     ESPECIALIDAD: "",
     CONSULTORIO: "",
+    CODHIS: "",
+    EESS: "",
+    CONTRATO: "",
     ACTIVO: "S",
   });
 
@@ -46,6 +49,9 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         COLEGIO: medico.COLEGIO || "",
         ESPECIALIDAD: medico.ESPECIALIDAD || "",
         CONSULTORIO: medico.CONSULTORIO || "",
+        CODHIS: medico.CODHIS || "",
+        EESS: medico.EESS || "",
+        CONTRATO: medico.CONTRATO || "",
         ACTIVO: medico.ACTIVO || "S",
       });
     }
@@ -200,6 +206,36 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             value={formData.CONSULTORIO}
             onChange={handleChange}
             required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="CODHIS">CODHIS</Label>
+          <Input
+            id="CODHIS"
+            name="CODHIS"
+            value={formData.CODHIS}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="EESS">EESS</Label>
+          <Input
+            id="EESS"
+            name="EESS"
+            value={formData.EESS}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="CONTRATO">Contrato</Label>
+          <Input
+            id="CONTRATO"
+            name="CONTRATO"
+            value={formData.CONTRATO}
+            onChange={handleChange}
           />
         </div>
       </div>

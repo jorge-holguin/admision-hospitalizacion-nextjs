@@ -7,6 +7,39 @@ export interface Medico {
 
 export const medicoService = {
   /**
+   * Busca médicos por una lista de códigos
+   */
+  async findByCodigos(codigos: string[]): Promise<Medico[]> {
+    try {
+      if (!codigos.length) return [];
+      
+      // Construir la condición IN para la consulta SQL
+      const codigosLimpios = codigos.map(c => c.trim()).filter(Boolean);
+      
+      if (!codigosLimpios.length) return [];
+      
+      // Usar consulta SQL nativa para compatibilidad con SQL Server 2008
+      // Construir la consulta SQL directamente con los valores
+      const placeholders = codigosLimpios.map(c => `'${c}'`).join(', ');
+      
+      // Usar Prisma.sql para construir la consulta segura
+      const query = `
+        SELECT MEDICO, NOMBRE 
+        FROM MEDICO 
+        WHERE MEDICO IN (${placeholders})
+        AND ACTIVO = '1' 
+        ORDER BY NOMBRE
+      `;
+      
+      const medicos = await prisma.$queryRawUnsafe(query) as Medico[];
+      return medicos;
+    } catch (error) {
+      console.error('Error al buscar médicos por códigos:', error);
+      throw new Error('Error al buscar médicos por códigos');
+    }
+  },
+
+  /**
    * Obtiene todos los médicos activos, ordenados por nombre
    */
   async findAll(): Promise<Medico[]> {
@@ -50,17 +83,22 @@ export const medicoService = {
 
   /**
    * Busca médicos por nombre o código
+   * @param searchTerm Término de búsqueda
+   * @param limit Límite de resultados (por defecto 50)
    */
-  async search(searchTerm: string): Promise<Medico[]> {
+  async search(searchTerm: string, limit: number = 50): Promise<Medico[]> {
     try {
-      // Limitar la búsqueda a los primeros 50 resultados para mejorar el rendimiento
-      const medicos = await prisma.$queryRaw<Medico[]>`
-        SELECT TOP 50 MEDICO, NOMBRE 
+      // Usar el límite proporcionado o 50 por defecto
+      // Construir la consulta SQL directamente para evitar problemas con parámetros
+      const query = `
+        SELECT TOP ${limit} MEDICO, NOMBRE 
         FROM MEDICO 
-        WHERE (MEDICO LIKE ${`%${searchTerm}%`} OR NOMBRE LIKE ${`%${searchTerm}%`})
+        WHERE (MEDICO LIKE '%${searchTerm}%' OR NOMBRE LIKE '%${searchTerm}%')
         AND ACTIVO = '1'
         ORDER BY NOMBRE
       `;
+      
+      const medicos = await prisma.$queryRawUnsafe(query) as Medico[];
       
       return medicos;
     } catch (error) {

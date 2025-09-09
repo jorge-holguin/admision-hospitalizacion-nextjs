@@ -36,7 +36,6 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
 
   const handleSearch = () => {
     if (!searchTerm.trim()) {
-      handleFilterChange({});
       return;
     }
 
@@ -87,26 +86,33 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
     { value: "especialidad", label: "Especialidad", minLength: 3 },
   ];
 
-  // Definir las columnas para el DataTable
+  // Definir las columnas para el DataTable (usando campos reales del API)
   const columns = [
     { key: "MEDICO", header: "Código" },
     { key: "NOMBRE", header: "Nombre" },
     { key: "DNI", header: "DNI" },
-    { key: "COLEGIO", header: "Colegio" },
-    { key: "NOMBRE_ESPECIALIDAD", header: "Especialidad" },
-    { key: "NOMBRE_CONSULTORIO", header: "Consultorio" },
+    {
+      key: "ESPECIALIDAD",
+      header: "Especialidad",
+      cell: (medico: any) => medico.ESPECIALIDAD || "",
+    },
+    {
+      key: "CONSULTORIO",
+      header: "Consultorio",
+      cell: (medico: any) => (medico.CONSULTORIO ? String(medico.CONSULTORIO).trim() : ""),
+    },
     { 
       key: "ACTIVO", 
       header: "Estado",
       cell: (medico: any) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            medico.ACTIVO === "S"
+            medico.ACTIVO === "1"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {medico.ACTIVO === "S" ? "Activo" : "Inactivo"}
+          {medico.ACTIVO === "1" ? "Activo" : "Inactivo"}
         </span>
       )
     },

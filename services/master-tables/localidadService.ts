@@ -1,8 +1,21 @@
 import { prisma } from '@/lib/prisma';
 
+// Normalizador para filas de Localidad
+function normalizeLocalidad(row: any): Localidad {
+  const rawActivo = (row?.ACTIVO ?? '').toString();
+  const ACTIVO = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
+  return {
+    LOCALIDAD: row.LOCALIDAD ? String(row.LOCALIDAD).trim() : row.LOCALIDAD,
+    NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
+    UBIGEO: row.UBIGEO?.toString?.() ?? row.UBIGEO,
+    ACTIVO,
+  } as Localidad;
+}
+
 export interface Localidad {
   LOCALIDAD: string;
   NOMBRE: string;
+  UBIGEO?: string;
   ACTIVO: string;
   [key: string]: any;
 }
@@ -27,29 +40,55 @@ export const localidadServerService = {
     filters: LocalidadFilters = {}
   ): Promise<PaginatedResponse<Localidad>> {
     const skip = (page - 1) * pageSize;
+    const startRow = skip + 1;
+    const endRow = page * pageSize;
     const { nombre, codigo } = filters;
 
     try {
-      let totalResult;
-      let localidades;
+      let totalResult: any;
+      let localidades: any;
 
-      // Build WHERE conditions using raw SQL since LOCALIDAD has @@ignore directive
+      // Build WHERE conditions using ROW_NUMBER CTE (compatible con más versiones)
       if (nombre && !codigo) {
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM LOCALIDAD WHERE NOMBRE LIKE ${`%${nombre}%`}`;
-        localidades = await prisma.$queryRaw`SELECT LOCALIDAD, NOMBRE, ACTIVO FROM LOCALIDAD WHERE NOMBRE LIKE ${`%${nombre}%`} ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        localidades = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM LOCALIDAD
+            WHERE NOMBRE LIKE ${`%${nombre}%`}
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       } else if (!nombre && codigo) {
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM LOCALIDAD WHERE LOCALIDAD LIKE ${`%${codigo}%`}`;
-        localidades = await prisma.$queryRaw`SELECT LOCALIDAD, NOMBRE, ACTIVO FROM LOCALIDAD WHERE LOCALIDAD LIKE ${`%${codigo}%`} ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        localidades = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM LOCALIDAD
+            WHERE LOCALIDAD LIKE ${`%${codigo}%`}
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       } else {
         // No filters or multiple filters
         totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM LOCALIDAD`;
-        localidades = await prisma.$queryRaw`SELECT LOCALIDAD, NOMBRE, ACTIVO FROM LOCALIDAD ORDER BY NOMBRE OFFSET ${skip} ROWS FETCH NEXT ${pageSize} ROWS ONLY`;
+        localidades = await prisma.$queryRaw`
+          WITH CTE AS (
+            SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO,
+                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
+            FROM LOCALIDAD
+          )
+          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
+        `;
       }
 
       const total = Number((totalResult as any)[0].total);
+      const normalized = (localidades as any[]).map(normalizeLocalidad);
 
       return {
-        data: localidades as Localidad[],
+        data: normalized as Localidad[],
         total,
         page,
         pageSize,
@@ -64,7 +103,7 @@ export const localidadServerService = {
   async getLocalidadById(id: string): Promise<Localidad | null> {
     try {
       const localidad = await prisma.$queryRaw`
-        SELECT LOCALIDAD, NOMBRE, ACTIVO
+        SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO
         FROM LOCALIDAD
         WHERE LOCALIDAD = ${id}
       `;
@@ -73,7 +112,8 @@ export const localidadServerService = {
         return null;
       }
 
-      return Array.isArray(localidad) ? localidad[0] as Localidad : localidad as Localidad;
+      const item = Array.isArray(localidad) ? localidad[0] : localidad;
+      return normalizeLocalidad(item);
     } catch (error) {
       console.error(`Error in localidadServerService.getLocalidadById(${id}):`, error);
       throw error;

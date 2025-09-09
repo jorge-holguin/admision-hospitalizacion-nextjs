@@ -1,6 +1,6 @@
   "use client"
 
-  import { useState } from "react"
+  import { useState, useEffect } from "react"
   import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
   import { Button } from "@/components/ui/button"
   import { Input } from "@/components/ui/input"
@@ -9,6 +9,10 @@
   import { Badge } from "@/components/ui/badge"
   import { AppointmentCalendar } from "@/components/appointments/AppointmentCalendar"
   import { TimeSlotSelector } from "@/components/appointments/TimeSlotSelector"
+  import { ConsultorioCitasSelector } from "@/components/appointments/ConsultorioCitasSelector"
+  import { MedicoSelector } from "@/components/appointments/MedicoSelector"
+  import { EstadoSelector, ESTADO_OPTIONS } from "@/components/appointments/EstadoSelector"
+  import { AppointmentsTable } from "@/components/appointments/AppointmentsTable"
   import { ShiftFilter } from "@/components/appointments/ShiftFilter"
   import { Separator } from "@/components/ui/separator"
   import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -16,145 +20,21 @@
   import { ArrowLeft, User, Unlock, CalendarClock, UserPlus, Eye, Search, Filter, Clock, Check, ChevronsUpDown, X } from "lucide-react"
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
   import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-  import { format } from "date-fns"
+  // Removed date-fns format to avoid TS type import issues; using native formatting below
   import { Navbar } from "@/components/Navbar"
+  import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+  import { MedicosProvider } from "@/contexts/MedicosContext"
+  import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
+  import MedicoDisplay from "@/components/appointments/MedicoDisplay"
 
-  import { es } from "date-fns/locale"
-
-  // Mock data for appointments
-  const mockAppointments = [
-    {
-      id: "C001",
-      estado: 1,
-      fecha: "2025-01-15",
-      hora: "08:00",
-      turno: "MAÑANA",
-      consultorio: "MEDICINA",
-      medico: "PINTADO CABALLERO JOSÉ BELÉN",
-      seguro: "SIS",
-      paciente: "GARCIA LOPEZ MARIA",
-      fechaProgramada: "2025-01-10",
-      fechaPago: null,
-    },
-    {
-      id: "C002",
-      estado: 3,
-      fecha: "2025-01-15",
-      hora: "09:00",
-      turno: "MAÑANA",
-      consultorio: "CARDIOLOGIA 1",
-      medico: "ALZAMORA ONETO JUAN CARLOS MARIANO",
-      seguro: "ESSALUD",
-      paciente: "RODRIGUEZ PEREZ CARLOS",
-      fechaProgramada: "2025-01-12",
-      fechaPago: "2025-01-14",
-    },
-    {
-      id: "C003",
-      estado: 4,
-      fecha: "2025-01-15",
-      hora: "10:30",
-      turno: "MAÑANA",
-      consultorio: "PEDIATRIA",
-      medico: "ARROYO BASTO CARLOS ALEJANDRO",
-      seguro: "SIS",
-      paciente: "MARTINEZ SILVA ANA",
-      fechaProgramada: "2025-01-08",
-      fechaPago: "2025-01-13",
-    },
-    {
-      id: "C004",
-      estado: 2,
-      fecha: "2025-01-16",
-      hora: "14:00",
-      turno: "TARDE",
-      consultorio: "CIRUGIA",
-      medico: "ABAD BARREDO PEDRO MANUEL",
-      seguro: "PARTICULAR",
-      paciente: "LOPEZ TORRES JUAN",
-      fechaProgramada: "2025-01-11",
-      fechaPago: null,
-    },
-    {
-      id: "C005",
-      estado: 5,
-      fecha: "2025-01-16",
-      hora: "15:30",
-      turno: "TARDE",
-      consultorio: "NEUROLOGIA 1",
-      medico: "AQUINO CUEVA FRANCISCO JAVIER",
-      seguro: "SIS",
-      paciente: "FERNANDEZ RUIZ LUIS",
-      fechaProgramada: "2025-01-09",
-      fechaPago: "2025-01-15",
-    },
-  ]
-
-  const estadoOptions = [
-    { value: "1", label: "NO OTORGADA", color: "bg-gray-500" },
-    { value: "2", label: "SIN PAGO O FUA", color: "bg-yellow-500" },
-    { value: "3", label: "PAGADO O FUA", color: "bg-blue-500" },
-    { value: "4", label: "ATENDIDO", color: "bg-green-500" },
-    { value: "5", label: "DESERCION", color: "bg-red-500" },
-  ]
-
-  const consultorioOptions = [
-    "MEDICINA",
-    "MEDICINA INTERNA 1",
-    "MEDICINA INTERNA 2",
-    "CIRUGIA",
-    "CIRUGIA PEDIATRICA",
-    "NEUMOLOGIA 1",
-    "CARDIOLOGIA 1",
-    "NEUROLOGIA 1",
-    "GASTROENTEROLOGIA 1",
-    "DERMATOLOGIA 1",
-    "EPIDEMIOLOGIA",
-    "PEDIATRIA",
-  ]
-
-  const medicoOptions = [
-    "PINTADO CABALLERO JOSÉ BELÉN",
-    "PARDAVE VIZURRAGA ANTONIO ELEODORO",
-    "NINGUNO",
-    "ARROYO BASTO CARLOS ALEJANDRO",
-    "ABAD BARREDO PEDRO MANUEL",
-    "AQUINO CUEVA FRANCISCO JAVIER",
-    "ALZAMORA ONETO JUAN CARLOS MARIANO",
-    "ASMAT RAMIREZ VICTOR ARTURO",
-    "AMADO TINEO JOSÉ PERCY",
-    "ARNAEZ VARGAS LUCIO ANTONIO",
-    "ALVAREZ VALENZUELA RICARDO NICANOR",
-  ]
-
-  const timeSlots = [
-    "08:00",
-    "08:30",
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "12:00",
-    "12:30",
-    "13:00",
-    "13:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-    "17:00",
-    "17:30",
-    "18:00",
-  ]
+  // Lista vacía para almacenar citas
+  const emptyAppointments: any[] = []
 
   export default function AppointmentsPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
     const [selectedTime, setSelectedTime] = useState<string>("")
-    const [filteredAppointments, setFilteredAppointments] = useState(mockAppointments)
+    const [filteredAppointments, setFilteredAppointments] = useState(emptyAppointments)
+    const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [filters, setFilters] = useState({
       estado: "all",
       consultorio: "all",
@@ -174,67 +54,126 @@
     const [showReleaseModal, setShowReleaseModal] = useState(false)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
 
+    // Parámetros de paginación para búsqueda remota
+    const [pageParam, setPageParam] = useState<number>(1)
+    const [sizeParam, setSizeParam] = useState<number>(10)
+    const [totalCount, setTotalCount] = useState<number>(0)
+    const [lastRemote, setLastRemote] = useState<boolean>(false)
+
     const getEstadoBadge = (estado: number) => {
-      const estadoInfo = estadoOptions.find((e) => e.value === estado.toString())
+      const estadoInfo = ESTADO_OPTIONS.find((opt) => opt.value === estado.toString())
       return <Badge className={`${estadoInfo?.color} text-white font-medium`}>{estadoInfo?.label}</Badge>
     }
 
-    const getAppointmentsForDate = (date: Date) => {
-      const dateStr = format(date, "yyyy-MM-dd")
-      return mockAppointments.filter((apt) => apt.fecha === dateStr)
+    // Buscar citas por parámetros (usa la fecha seleccionada en el calendario como desde/hasta)
+    const searchAppointmentsByParams = async (dateOverride?: Date) => {
+      try {
+        const qs = new URLSearchParams()
+        const targetDate = dateOverride || selectedDate
+        const dateStr = targetDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        qs.set('desde', dateStr)
+        qs.set('hasta', dateStr)
+        if (filters.consultorio && filters.consultorio !== 'all') qs.set('consultorio', String(filters.consultorio))
+        if (filters.medico && filters.medico !== 'all') qs.set('medico', String(filters.medico))
+        qs.set('page', String(pageParam))
+        qs.set('size', String(sizeParam))
+
+        const url = `http://192.168.0.21:9011/api/cita/buscar?${qs.toString()}`
+        const res = await fetch(url)
+        if (!res.ok) {
+          return
+        }
+        const data = await res.json()
+        // Determinar si la respuesta es un array o tiene un campo content/items
+        const list = Array.isArray(data) ? data : 
+                     Array.isArray(data?.content) ? data.content : 
+                     Array.isArray(data?.items) ? data.items : []
+        
+        console.log('API response:', list)
+        
+        const mapped = list.map((it: any, idx: number) => ({
+          id: it.citaId || it.id || it.ID || `R${idx}`,
+          estado: Number(it.estado ?? it.ESTADO ?? 1),
+          fecha: String(it.fecha ?? it.FECHA ?? new Date().toISOString().slice(0,10)),
+          hora: String(it.hora ?? it.HORA ?? "08:00"),
+          turno: it.turnoConsulta?.trim() === "T" ? "TARDE" : it.turnoConsulta?.trim() === "M" ? "MAÑANA" : 
+                 String(it.turno ?? it.TURNO ?? "MAÑANA"),
+          turnoConsulta: String(it.turnoConsulta ?? it.TURNO_CONSULTA ?? ""),
+          consultorio: String(it.consultorio ?? it.CONSULTORIO ?? "").trim(),
+          medico: String(it.medico ?? it.MEDICO ?? "").trim(),
+          seguro: String(it.seguro ?? it.SEGURO ?? ""),
+          paciente: String(it.paciente ?? it.PACIENTE ?? "") + " " + String(it.nombre ?? it.NOMBRE ?? ""),
+          fechaProgramada: String(it.fechaProgramacion ?? it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
+          fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
+        }))
+        setFilteredAppointments(mapped)
+        const total = (typeof data?.total === 'number') ? data.total
+          : (typeof data?.totalElements === 'number') ? data.totalElements
+          : (typeof data?.totalItems === 'number') ? data.totalItems
+          : (typeof data?.totalCount === 'number') ? data.totalCount
+          : mapped.length
+        setTotalCount(total)
+        setLastRemote(true)
+      } catch (e) {
+        // noop silencioso
+      }
     }
 
-    const getAppointmentCountForDate = (date: Date) => {
-      return getAppointmentsForDate(date).length
-    }
-
-    const getAppointmentsForTime = (time: string) => {
-      const dateStr = format(selectedDate, "yyyy-MM-dd")
-      return mockAppointments.filter((apt) => apt.fecha === dateStr && apt.hora === time)
-    }
+    // Estas funciones ya no son necesarias al eliminar los datos de ejemplo
 
     const applyFilters = () => {
-      let filtered = mockAppointments
-
-      if (filters.estado !== "all") {
-        filtered = filtered.filter((apt) => apt.estado.toString() === filters.estado)
-      }
-      if (filters.consultorio !== "all") {
-        filtered = filtered.filter((apt) => apt.consultorio === filters.consultorio)
-      }
-      if (filters.medico !== "all") {
-        filtered = filtered.filter((apt) => apt.medico === filters.medico)
-      }
-      if (filters.turno !== "ALL") {
-        filtered = filtered.filter((apt) => apt.turno === filters.turno)
-      }
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        filtered = filtered.filter(
-          (apt) =>
-            apt.medico.toLowerCase().includes(query) ||
-            apt.paciente.toLowerCase().includes(query) ||
-            apt.consultorio.toLowerCase().includes(query) ||
-            apt.id.toLowerCase().includes(query)
-        )
-      }
-
-      setFilteredAppointments(filtered)
+      // Al eliminar los datos de ejemplo, esta función ahora solo debe llamar a la API
+      searchAppointmentsByParams()
     }
 
-    const handleDateSelect = (date: Date | undefined) => {
+    const searchAppointmentById = async (query: string) => {
+      const id = (query || "").trim()
+      if (!id) {
+        applyFilters()
+        return
+      }
+      try {
+        const res = await fetch(`http://192.168.0.21:9011/api/cita/${encodeURIComponent(id)}`)
+        if (!res.ok) {
+          applyFilters()
+          return
+        }
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : [data]
+        const mapped = list.map((it: any) => ({
+          id: it.id || it.ID || id,
+          estado: Number(it.estado ?? it.ESTADO ?? 1),
+          fecha: String(it.fecha ?? it.FECHA ?? new Date().toISOString().slice(0,10)),
+          hora: String(it.hora ?? it.HORA ?? "08:00"),
+          turno: String(it.turno ?? it.TURNO ?? "MAÑANA"),
+          turnoConsulta: String(it.turnoConsulta ?? it.TURNO_CONSULTA ?? ""),
+          consultorio: String(it.consultorio ?? it.CONSULTORIO ?? ""),
+          medico: String(it.medico ?? it.MEDICO ?? ""),
+          seguro: String(it.seguro ?? it.SEGURO ?? ""),
+          paciente: String(it.paciente ?? it.PACIENTE ?? ""),
+          fechaProgramada: String(it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
+          fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
+        }))
+        setFilteredAppointments(mapped)
+      } catch (e) {
+        applyFilters()
+      }
+    }
+
+    const handleDateSelect = async (date: Date | undefined) => {
       if (date) {
         setSelectedDate(date)
-        const dayAppointments = getAppointmentsForDate(date)
-        setFilteredAppointments(dayAppointments)
         setSelectedTime("") // Reset selected time when date changes
+        setPageParam(1) // Reset to first page
+        // Automatically search API when date is selected
+        await searchAppointmentsByParams(date)
       }
     }
 
     const handleTimeSelect = (time: string) => {
       setSelectedTime(time)
-      const timeAppointments = getAppointmentsForTime(time)
-      setFilteredAppointments(timeAppointments)
+      // Time filtering is now handled by frontend ShiftFilter, not by specific time slots
+      // Keep the selected time for UI purposes but don't filter the appointments
     }
 
     const handleAction = (action: string, appointment: any) => {
@@ -257,491 +196,253 @@
     
     const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
       setFilters({ ...filters, turno: shift })
-      setTimeout(applyFilters, 100)
     }
+
+    // Cargar citas del día actual al iniciar
+    useEffect(() => {
+      if (isInitialLoad) {
+        searchAppointmentsByParams()
+        setIsInitialLoad(false)
+      }
+    }, [isInitialLoad])
+    
+    // Aplicar filtros cuando cambien
+    useEffect(() => {
+      if (!isInitialLoad) {
+        applyFilters()
+      }
+    }, [filters, isInitialLoad])
 
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Navbar fijo arriba */}
-      <Navbar />
-      
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Left Column - Calendar and Time Slots */}
-          <div className="space-y-6">
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-blue-50 border-b">
-                <CardTitle className="text-lg text-blue-800 font-semibold">Calendario de Citas</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="flex h-[500px]">
-                  {/* Calendar */}
-                  <div className="flex-1">
-                    <AppointmentCalendar
-                      selectedDate={selectedDate}
-                      onDateSelect={handleDateSelect}
-                      className="h-full border-0 rounded-none"
-                    />
-                  </div>
-
-                  {/* 1px Separator */}
-                  <Separator orientation="vertical" className="h-full" />
-
-                  {/* Time Slots */}
-                  <div className="w-40">
-                    <TimeSlotSelector
-                      selectedDate={selectedDate}
-                      selectedTime={selectedTime}
-                      onTimeSelect={handleTimeSelect}
-                      appointments={mockAppointments}
-                      className="h-full border-0 rounded-none"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Navbar fijo arriba */}
+        <Navbar />
+    
+        {/* Main Content */}
+        <main className="container mx-auto px-6 py-8">
+          {/* Botón para volver al dashboard */}
+          <div className="mb-6">
+            <Button 
+              variant="destructive" 
+              size="lg"
+              className="font-bold text-lg" 
+              onClick={() => window.location.href = '/dashboard'}
+            >
+              _dashboard
+            </Button>
           </div>
-
-          {/* Right Column - Appointments Table */}
-          <div>
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-blue-50 border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-blue-800 font-semibold">
-                    Lista de Citas
-                    {selectedTime && <span className="text-sm font-normal text-gray-600 ml-2">- {selectedTime}</span>}
-                  </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFilteredAppointments(mockAppointments)
-                      setSelectedTime("")
-                    }}
-                    className="font-medium"
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Limpiar Filtros
-                  </Button>
+          <MedicosProvider>
+            <ConsultoriosProvider>
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                {/* Calendario (25%) */}
+                <div className="xl:col-span-1 space-y-6">
+                  <Card className="shadow-lg border-0">
+                    <CardHeader className="bg-blue-50 border-b">
+                      <CardTitle className="text-lg text-blue-800 font-semibold">
+                        Calendario de Citas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="flex h-[400px]">
+                        <div className="flex-1">
+                          <AppointmentCalendar
+                            selectedDate={selectedDate}
+                            onDateSelect={handleDateSelect}
+                            className="h-full border-0 rounded-none"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <ShiftFilter onShiftChange={handleShiftChange} className="" />
-                  <div className="flex items-center">
-                    <Search className="h-4 w-4 mr-2 text-gray-500" />
-                    <Input
-                      placeholder="Buscar cita..."
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value)
-                        setTimeout(applyFilters, 300)
-                      }}
-                      className="w-[200px]"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  {/* Estado Filter */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">Estado</Label>
-                    <Popover open={openEstado} onOpenChange={setOpenEstado}>
-                      <PopoverTrigger asChild>
+    
+                {/* Tabla (75%) */}
+                <div className="xl:col-span-3">
+                  <Card className="shadow-lg border-0">
+                    <CardHeader className="bg-blue-50 border-b">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg text-blue-800 font-semibold">
+                          Lista de Citas
+                          {selectedTime && (
+                            <span className="text-sm font-normal text-gray-600 ml-2">
+                              - {selectedTime}
+                            </span>
+                          )}
+                        </CardTitle>
                         <Button
                           variant="outline"
-                          role="combobox"
-                          aria-expanded={openEstado}
-                          className="w-full justify-between"
-                        >
-                          {filters.estado !== "all"
-                            ? estadoOptions.find((estado) => estado.value === filters.estado)?.label
-                            : "Seleccionar estado..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput 
-                            placeholder="Buscar estado..." 
-                            value={searchEstados}
-                            onValueChange={setSearchEstados}
-                          />
-                          <CommandList>
-                            <CommandGroup>
-                              <CommandItem
-                                value="all"
-                                onSelect={() => {
-                                  setFilters({ ...filters, estado: "all" })
-                                  setOpenEstado(false)
-                                  setTimeout(applyFilters, 100)
-                                }}
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    filters.estado === "all" ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                Todos los estados
-                              </CommandItem>
-                              {estadoOptions
-                                .filter((estado) =>
-                                  estado.label.toLowerCase().includes(searchEstados.toLowerCase())
-                                )
-                                .map((estado) => (
-                                  <CommandItem
-                                    key={estado.value}
-                                    value={estado.value}
-                                    onSelect={() => {
-                                      setFilters({ ...filters, estado: estado.value })
-                                      setOpenEstado(false)
-                                      setTimeout(applyFilters, 100)
-                                    }}
-                                  >
-                                    <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        filters.estado === estado.value ? "opacity-100" : "opacity-0"
-                                      }`}
-                                    />
-                                    <div className="flex items-center">
-                                      <div className={`w-3 h-3 rounded-full ${estado.color} mr-2`}></div>
-                                      {estado.label}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {filters.estado !== "all" && (
-                      <div className="flex items-center mt-1">
-                        <span className="text-sm text-gray-600 truncate max-w-[200px]">
-                          {estadoOptions.find(e => e.value === filters.estado)?.label}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 ml-2"
+                          size="sm"
                           onClick={() => {
-                            setFilters({ ...filters, estado: "all" })
-                            setTimeout(applyFilters, 100)
+                            setFilters({
+                              estado: "all",
+                              consultorio: "all",
+                              medico: "all",
+                              turno: "ALL",
+                            })
+                            setPageParam(1)
+                            setSelectedTime("")
+                            searchAppointmentsByParams()
                           }}
+                          className="font-medium"
                         >
-                          <X className="h-3 w-3" />
+                          <Filter className="w-4 h-4 mr-2" />
+                          Limpiar Filtros
                         </Button>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Consultorio Filter */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">Consultorio</Label>
-                    <Popover open={openConsultorio} onOpenChange={setOpenConsultorio}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openConsultorio}
-                          className="w-full justify-between"
-                        >
-                          {filters.consultorio !== "all"
-                            ? consultorioOptions.find((c) => c === filters.consultorio)
-                            : "Seleccionar consultorio..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput 
-                            placeholder="Buscar consultorio..." 
-                            value={searchConsultorios}
-                            onValueChange={setSearchConsultorios}
-                          />
-                          <CommandList>
-                            <CommandGroup>
-                              <CommandItem
-                                value="all"
-                                onSelect={() => {
-                                  setFilters({ ...filters, consultorio: "all" })
-                                  setOpenConsultorio(false)
-                                  setTimeout(applyFilters, 100)
-                                }}
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    filters.consultorio === "all" ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                Todos los consultorios
-                              </CommandItem>
-                              {consultorioOptions
-                                .filter((consultorio) =>
-                                  consultorio.toLowerCase().includes(searchConsultorios.toLowerCase())
-                                )
-                                .map((consultorio) => (
-                                  <CommandItem
-                                    key={consultorio}
-                                    value={consultorio}
-                                    onSelect={() => {
-                                      setFilters({ ...filters, consultorio })
-                                      setOpenConsultorio(false)
-                                      setTimeout(applyFilters, 100)
-                                    }}
-                                  >
-                                    <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        filters.consultorio === consultorio ? "opacity-100" : "opacity-0"
-                                      }`}
-                                    />
-                                    {consultorio}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {filters.consultorio !== "all" && (
-                      <div className="flex items-center mt-1">
-                        <span className="text-sm text-gray-600 truncate max-w-[200px]">
-                          {filters.consultorio}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 ml-2"
-                          onClick={() => {
-                            setFilters({ ...filters, consultorio: "all" })
-                            setTimeout(applyFilters, 100)
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-gray-700">Médico</Label>
-                    <Popover open={openMedico} onOpenChange={setOpenMedico}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openMedico}
-                          className="w-full justify-between mt-1"
-                        >
-                          {filters.medico === "all"
-                            ? "Todos los médicos"
-                            : medicoOptions.find((medico) => medico === filters.medico) || "Seleccionar médico"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0" align="start">
-                        <Command>
-                          <CommandInput 
-                            placeholder="Buscar médico..." 
-                            value={searchQuery}
-                            onValueChange={setSearchQuery}
-                          />
-                          <CommandList>
-                            <CommandEmpty>No se encontraron médicos</CommandEmpty>
-                            <CommandGroup>
-                              <CommandItem
-                                value="all"
-                                onSelect={() => {
-                                  setFilters({ ...filters, medico: "all" })
-                                  setOpenMedico(false)
-                                  setTimeout(applyFilters, 100)
-                                }}
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    filters.medico === "all" ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                Todos los médicos
-                              </CommandItem>
-                              {medicoOptions
-                                .filter((medico) =>
-                                  medico.toLowerCase().includes(searchQuery.toLowerCase())
-                                )
-                                .map((medico) => (
-                                  <CommandItem
-                                    key={medico}
-                                    value={medico}
-                                    onSelect={() => {
-                                      setFilters({ ...filters, medico })
-                                      setOpenMedico(false)
-                                      setTimeout(applyFilters, 100)
-                                    }}
-                                  >
-                                    <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        filters.medico === medico ? "opacity-100" : "opacity-0"
-                                      }`}
-                                    />
-                                    {medico}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {filters.medico !== "all" && (
-                      <div className="flex items-center mt-2">
-                        <span className="text-sm text-gray-600 truncate max-w-[200px]">
-                          {filters.medico}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 ml-2"
-                          onClick={() => {
-                            setFilters({ ...filters, medico: "all" })
-                            setTimeout(applyFilters, 100)
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  {/* Desktop Table */}
-                  <div className="hidden md:block">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-gray-50">
-                          <TableHead className="font-semibold">Estado</TableHead>
-                          <TableHead className="font-semibold">Hora</TableHead>
-                          <TableHead className="font-semibold">Consultorio</TableHead>
-                          <TableHead className="font-semibold">Médico</TableHead>
-                          <TableHead className="font-semibold">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredAppointments.map((appointment) => (
-                          <TableRow key={appointment.id} className="hover:bg-blue-50 transition-colors">
-                            <TableCell>{getEstadoBadge(appointment.estado)}</TableCell>
-                            <TableCell className="font-medium">{appointment.hora}</TableCell>
-                            <TableCell className="font-medium">{appointment.consultorio}</TableCell>
-                            <TableCell className="text-sm">{appointment.medico}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAction("release", appointment)}
-                                  title="Liberar"
-                                >
-                                  <Unlock className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAction("reschedule", appointment)}
-                                  title="Reprogramar"
-                                >
-                                  <CalendarClock className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAction("assign", appointment)}
-                                  title="Asignar"
-                                >
-                                  <UserPlus className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAction("details", appointment)}
-                                  title="Ver más"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="md:hidden space-y-4">
-                    {filteredAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="border border-gray-200">
-                        <CardContent className="p-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm font-semibold text-gray-600">
-                                {new Date(appointment.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {appointment.hora}
-                              </div>
-                              {getEstadoBadge(appointment.estado)}
-                            </div>
-                            <div>
-                              <div className="text-sm text-gray-600">Consultorio:</div>
-                              <div className="font-medium">{appointment.consultorio}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-gray-600">Médico:</div>
-                              <div className="font-medium text-sm">{appointment.medico}</div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAction("release", appointment)}
-                                className="text-xs"
-                              >
-                                Liberar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAction("reschedule", appointment)}
-                                className="text-xs"
-                              >
-                                Reprogramar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAction("assign", appointment)}
-                                className="text-xs"
-                              >
-                                Asignar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAction("details", appointment)}
-                                className="text-xs"
-                              >
-                                Ver más
-                              </Button>
-                            </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {/* Filtros reorganizados con flex columns responsivo */}
+                      <div className="space-y-4 mb-6">
+                        {/* Primera fila: Filtros de turno y búsqueda */}
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                          <ShiftFilter onShiftChange={handleShiftChange} className="flex-shrink-0" />
+                          {/* Buscador por ID */}
+                          <div className="flex items-center w-full sm:w-auto">
+                            <Search className="h-4 w-4 mr-2 text-gray-500" />
+                            <Input
+                              placeholder="ID de cita..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  searchAppointmentById(searchQuery)
+                                }
+                              }}
+                              className="w-full sm:w-[300px]"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                            />
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          <Button
+                            onClick={() => searchAppointmentsByParams()}
+                            className="font-medium w-full sm:w-auto"
+                          >
+                            Buscar
+                          </Button>
+                        </div>
+                      </div>
+    
+                      {/* Filtros */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <EstadoSelector
+                          label="Estado"
+                          value={filters.estado}
+                          onChange={(val: string | "all") =>
+                            setFilters({ ...filters, estado: val })
+                          }
+                          className="space-y-2"
+                          options={ESTADO_OPTIONS}
+                        />
+    
+                        <ConsultorioCitasSelector
+                          label="Consultorio"
+                          value={filters.consultorio}
+                          onChange={(val: string | "all") =>
+                            setFilters({ ...filters, consultorio: val })
+                          }
+                          className="space-y-2"
+                        />
+    
+                        <MedicoSelector
+                          label="Médico"
+                          value={filters.medico}
+                          onChange={(val: string | "all") =>
+                            setFilters({ ...filters, medico: val })
+                          }
+                          className="mt-1"
+                        />
+                      </div>
+    
+                      {/* Tabla de citas */}
+                      {(() => {
+                        const start = (pageParam - 1) * sizeParam
+                        const end = start + sizeParam
+                        const pageItems = lastRemote
+                          ? filteredAppointments
+                          : filteredAppointments.slice(start, end)
+                        return (
+                          <AppointmentsTable
+                            appointments={pageItems as any}
+                            getEstadoBadge={getEstadoBadge}
+                            onAction={handleAction}
+                          />
+                        )
+                      })()}
+    
+                      {/* Paginación */}
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="text-sm text-gray-600">
+                          Mostrando{" "}
+                          {Math.min(
+                            (pageParam - 1) * sizeParam + 1,
+                            Math.max(totalCount, 0)
+                          )}
+                          -
+                          {Math.min(pageParam * sizeParam, totalCount)} de{" "}
+                          {totalCount}
+                        </div>
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  if (pageParam <= 1) return
+                                  const newPage = Math.max(1, pageParam - 1)
+                                  setPageParam(newPage)
+                                  if (lastRemote) searchAppointmentsByParams()
+                                }}
+                                aria-disabled={pageParam <= 1}
+                              />
+                            </PaginationItem>
+                            <PaginationItem>
+                              <PaginationLink href="#" isActive>
+                                {pageParam}
+                              </PaginationLink>
+                            </PaginationItem>
+                            <PaginationItem>
+                              <PaginationNext
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  const totalPages = Math.max(
+                                    1,
+                                    Math.ceil(totalCount / sizeParam)
+                                  )
+                                  const disabled =
+                                    pageParam * sizeParam >= totalCount &&
+                                    !lastRemote
+                                  if (disabled) return
+                                  const newPage = lastRemote
+                                    ? pageParam + 1
+                                    : Math.min(totalPages, pageParam + 1)
+                                  setPageParam(newPage)
+                                  if (lastRemote) searchAppointmentsByParams()
+                                }}
+                                aria-disabled={
+                                  pageParam * sizeParam >= totalCount && !lastRemote
+                                }
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+    
+                      {filteredAppointments.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <p className="font-medium">
+                            No se encontraron citas con los filtros aplicados
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-
-                {filteredAppointments.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p className="font-medium">No se encontraron citas con los filtros aplicados</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+              </div>
+            </ConsultoriosProvider>
+          </MedicosProvider>
+        </main>
 
       {/* Modals */}
 
@@ -836,19 +537,19 @@
                 </div>
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">FECHA</Label>
-                  <p className="text-sm font-medium">{format(new Date(selectedAppointment.fecha), "dd/MM/yyyy")}</p>
+                  <p className="text-sm font-medium">{new Date(selectedAppointment.fecha).toLocaleDateString('es-ES')}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">FECHA PROGRAMADA</Label>
                   <p className="text-sm font-medium">
-                    {format(new Date(selectedAppointment.fechaProgramada), "dd/MM/yyyy")}
+                    {new Date(selectedAppointment.fechaProgramada).toLocaleDateString('es-ES')}
                   </p>
                 </div>
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">FECHA PAGO</Label>
                   <p className="text-sm font-medium">
                     {selectedAppointment.fechaPago
-                      ? format(new Date(selectedAppointment.fechaPago), "dd/MM/yyyy")
+                      ? new Date(selectedAppointment.fechaPago).toLocaleDateString('es-ES')
                       : "Sin pago"}
                   </p>
                 </div>
@@ -859,7 +560,12 @@
               </div>
               <div>
                 <Label className="text-sm font-semibold text-gray-700">MÉDICO</Label>
-                <p className="text-sm font-medium">{selectedAppointment.medico}</p>
+                <p className="text-sm font-medium">
+                  {/* Usar el contexto de médicos para mostrar el nombre completo */}
+                  <MedicosProvider>
+                    <MedicoDisplay code={selectedAppointment.medico} />
+                  </MedicosProvider>
+                </p>
               </div>
               <div>
                 <Label className="text-sm font-semibold text-gray-700">PACIENTE</Label>

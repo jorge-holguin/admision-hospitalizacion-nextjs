@@ -1083,24 +1083,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     disabled={!isFieldEnabled('tipoAtencion')}
                   />
 
-                  {/* Motivo de Emergencia */}
-                  <SearchableSelect
-                    label="Motivo de Ingreso"
-                    value={findMotivoName(formData.motivoEmergencia)}
-                    options={formatMotivos}
-                    loading={loadingMotivos}
-                    search={searchMotivo}
-                    onSearchChange={(v: string) => {
-                      setSearchMotivo(v);
-                      loadMotivos(v);
-                    }}
-                    onSelect={(value: string, data: any) => handleFormChange("motivoEmergencia", value)}
-                    selectName="motivo"
-                    required
-                    error={validationErrors.motivoEmergencia}
-                    placeholder="Seleccionar motivo..."
-                    disabled={!isFieldEnabled('motivoEmergencia')}
-                  />
 
                   {/* Consultorio */}
                   <SearchableSelect
@@ -1159,6 +1141,26 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     disabled={!isFieldEnabled('seguroLiq')}
                   />
                 </div>
+
+                 {/* Motivo de Emergencia */}
+                 <SearchableSelect
+                    label="Motivo de Ingreso"
+                    value={findMotivoName(formData.motivoEmergencia)}
+                    options={formatMotivos}
+                    loading={loadingMotivos}
+                    search={searchMotivo}
+                    onSearchChange={(v: string) => {
+                      setSearchMotivo(v);
+                      loadMotivos(v);
+                    }}
+                    onSelect={(value: string, data: any) => handleFormChange("motivoEmergencia", value)}
+                    selectName="motivo"
+                    required
+                    error={validationErrors.motivoEmergencia}
+                    placeholder="Seleccionar motivo..."
+                    disabled={!isFieldEnabled('motivoEmergencia')}
+                  />
+
 
                 {/* Observaciones */}
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4">

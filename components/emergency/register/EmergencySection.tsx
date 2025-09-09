@@ -209,20 +209,8 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     }
   }, [disabled]);
   
-  // Set default value for Forma de Ingreso if not already set
-  useEffect(() => {
-    if (!formData.formaIngreso && !formData.formaIngresoDisplay && formasIngreso.length > 0) {
-      const defaultForma = formasIngreso.find(f => f.FORMA_INGRESO === '1') || formasIngreso[0];
-      if (defaultForma) {
-        console.log('Setting default forma de ingreso:', defaultForma);
-        onFormChange('formaIngreso', defaultForma.FORMA_INGRESO);
-        onFormChange('formaIngresoDisplay', `(${defaultForma.FORMA_INGRESO}) - ${defaultForma.NOMBRE}`);
-        if (onFormaIngresoChange) {
-          onFormaIngresoChange(defaultForma.FORMA_INGRESO, defaultForma);
-        }
-      }
-    }
-  }, [formasIngreso, formData.formaIngreso, formData.formaIngresoDisplay]);
+  // Ya no establecemos un valor por defecto para Forma de Ingreso
+  // El usuario debe seleccionarlo manualmente
 
   // Set default value for Seguro from patient context data
   useEffect(() => {
@@ -407,29 +395,6 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           disabled={disabled}
         />
 
-        {/* Motivo de Ingreso */}
-        <SearchableSelect
-          label="Motivo de Ingreso"
-          value={formData.motivoEmergenciaDisplay || ""}
-          options={formatMotivos}
-          loading={loadingMotivos}
-          search={searchMotivo}
-          onSearchChange={(v: string) => {
-            setSearchMotivo(v);
-            loadMotivos(v);
-          }}
-          onSelect={(opt: OptionItem) => {
-            onFormChange("motivoEmergencia", opt.value);
-            onFormChange("motivoEmergenciaDisplay", opt.display);
-            onMotivoChange(opt.value, opt.data);
-          }}
-          selectName="motivo"
-          required
-          error={validationErrors.motivoEmergencia}
-          placeholder="Seleccionar motivo..."
-          disabled={disabled}
-        />
-
         {/* Consultorio */}
         <SearchableSelect
           label="Consultorio"
@@ -456,7 +421,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         {/* Forma de Ingreso */}
         <SearchableSelect
           label="Forma de Ingreso"
-          value={formData.formaIngresoDisplay || "(1) - Caminando"}
+          value={formData.formaIngresoDisplay || ""}
           options={formatFormas}
           loading={loadingFormas}
           search={searchForma}
@@ -530,6 +495,29 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           disabled={disabled}
         />
       </div>
+
+        {/* Motivo de Ingreso */}
+        <SearchableSelect
+          label="Motivo de Ingreso"
+          value={formData.motivoEmergenciaDisplay || ""}
+          options={formatMotivos}
+          loading={loadingMotivos}
+          search={searchMotivo}
+          onSearchChange={(v: string) => {
+            setSearchMotivo(v);
+            loadMotivos(v);
+          }}
+          onSelect={(opt: OptionItem) => {
+            onFormChange("motivoEmergencia", opt.value);
+            onFormChange("motivoEmergenciaDisplay", opt.display);
+            onMotivoChange(opt.value, opt.data);
+          }}
+          selectName="motivo"
+          required
+          error={validationErrors.motivoEmergencia}
+          placeholder="Seleccionar motivo..."
+          disabled={disabled}
+        />
 
       {/* Observaciones */}
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">

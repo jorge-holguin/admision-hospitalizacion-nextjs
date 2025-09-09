@@ -59,11 +59,7 @@ interface PacienteData {
   [key: string]: any;
 }
 
-// Datos de ejemplo para desarrollo/testing
-const EJEMPLO_PACIENTE: PacienteData = {
-  NOMBRES: "HILARIO GARCIA MIGUEL ANGEL",
-  HISTORIA: "41877141"
-};
+// No se utilizan datos de ejemplo
 
 // The actual component that receives patientId as a prop
 function HospitalizationOrders({ patientId }: { patientId: string }) {
@@ -179,21 +175,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       
       // Usar la nueva API de hospitalización en lugar de filiacion2
       const response = await fetch(`/hospitalization/orders/${patientId}`);
-      
-      if (!response.ok) {
-        // Si la API falla, usar datos de ejemplo para desarrollo
-        console.warn('Usando datos de ejemplo debido a error en la API');
-        setPacienteData(EJEMPLO_PACIENTE);
         
-        // Guardar en caché
-        patientDataCache.current = {
-          id: patientId,
-          data: EJEMPLO_PACIENTE,
-          timestamp: now
-        };
-        
-        return EJEMPLO_PACIENTE;
-      }
       
       const data = await response.json();      
       // Verificar la estructura de la respuesta y extraer los datos del paciente
@@ -204,8 +186,8 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       } else if (data.NOMBRES) {
         pacienteInfo = data;
       } else {
-        // Si no se encuentra la estructura esperada, usar datos de ejemplo
-        pacienteInfo = EJEMPLO_PACIENTE;
+        // Si no se encuentra la estructura esperada, mostrar error
+        throw new Error('Estructura de datos del paciente no reconocida');
       }
       
       // Actualizar el estado y el caché
@@ -224,26 +206,17 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
     } catch (error) {
       console.error('Error al cargar datos del paciente:', error);
       
-      // En caso de error, usar datos de ejemplo
-      setPacienteData(EJEMPLO_PACIENTE);
-      
-      // Guardar en caché
-      patientDataCache.current = {
-        id: patientId,
-        data: EJEMPLO_PACIENTE,
-        timestamp: now
-      };
-      
       // Mostrar error visual si se solicita
       if (showError) {
         toast({
-          title: "Advertencia",
-          description: `Se están usando datos de ejemplo. ${error instanceof Error ? error.message : 'Error desconocido'}`,
-          variant: "warning"
+          title: "Error",
+          description: `No se pudieron cargar los datos del paciente. ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          variant: "destructive"
         });
       }
       
-      return EJEMPLO_PACIENTE;
+      // No devolver datos en caso de error
+      return null;
     } finally {
       setPacienteLoading(false);
     }

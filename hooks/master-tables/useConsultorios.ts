@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { consultorioService, Consultorio } from "../../services/master-tables/consultorioService";
+
+// Definir interfaz local para evitar importar código de servidor en el cliente
+export interface Consultorio {
+  CONSULTORIO: string;
+  NOMBRE: string;
+  ABREVIATURA?: string;
+  ESPECIALIDAD?: string;
+  HIS_NOMSERVICIO?: string;
+  ACTIVO: string;
+  [key: string]: any;
+}
 
 
 interface Pagination {
@@ -25,19 +35,27 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
     setError(null);
 
     try {
-      const result = await consultorioService.getConsultorios(
-        pagination.page,
-        pagination.pageSize,
-        filters
-      );
-
-      setData(result.data || []);
-      setPagination({
-        page: result.page,
-        pageSize: result.pageSize,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.pageSize),
+      const params = new URLSearchParams({
+        page: String(pagination.page),
+        pageSize: String(pagination.pageSize),
       });
+      Object.entries(filters || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && String(v).length > 0) {
+          params.set(k, String(v));
+        }
+      });
+
+      const res = await fetch(`/api/master-tables/consultorios?${params.toString()}`);
+      if (!res.ok) throw new Error(`Error ${res.status} al obtener consultorios`);
+      const result = await res.json();
+
+      setData((result?.data as Consultorio[]) || []);
+      setPagination((prev) => ({
+        page: result?.page ?? prev.page,
+        pageSize: result?.pageSize ?? prev.pageSize,
+        total: result?.total ?? 0,
+        totalPages: Math.ceil((result?.total ?? 0) / (result?.pageSize ?? prev.pageSize)),
+      }));
     } catch (err) {
       console.error("Error fetching data:", err);
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -71,7 +89,15 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
   const createConsultorio = async (consultorioData: Partial<Consultorio>) => {
     setIsLoading(true);
     try {
-      await consultorioService.createConsultorio(consultorioData);
+      const res = await fetch(`/api/master-tables/consultorios`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(consultorioData),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${res.status} al crear consultorio`);
+      }
       refreshData();
       return { success: true };
     } catch (err) {
@@ -88,7 +114,15 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
   const updateConsultorio = async (id: string, consultorioData: Partial<Consultorio>) => {
     setIsLoading(true);
     try {
-      await consultorioService.updateConsultorio(id, consultorioData);
+      const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(consultorioData),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${res.status} al actualizar consultorio`);
+      }
       refreshData();
       return { success: true };
     } catch (err) {
@@ -105,7 +139,13 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
   const deleteConsultorio = async (id: string) => {
     setIsLoading(true);
     try {
-      await consultorioService.deleteConsultorio(id);
+      const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${res.status} al eliminar consultorio`);
+      }
       refreshData();
       return { success: true };
     } catch (err) {

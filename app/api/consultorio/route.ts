@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
     if (tipo === 'E') {
       // Obtener consultorios de emergencia (tipo E)
       items = await consultorioEmergenciaService.getAllConsultoriosEmergencia(search)
+    } else if (tipo === 'C') {
+      // Obtener consultorios de citas (tipo C)
+      items = await consultorioEmergenciaService.getAllConsultoriosCitas(search)
     } else {
       // Por defecto, obtenemos los departamentos de hospital (tipo H)
       items = await consultorioService.findHospitalDepartments()

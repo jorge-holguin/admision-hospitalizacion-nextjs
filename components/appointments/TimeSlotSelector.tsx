@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Clock, ChevronUp, ChevronDown } from "lucide-react"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
+// Usamos utilidades nativas de Date para evitar dependencias y errores de tipo
 
 interface TimeSlot {
   time: string
@@ -53,12 +52,14 @@ export function TimeSlotSelector({
   appointments = [],
   className = "" 
 }: TimeSlotSelectorProps) {
-  const [visibleSlots, setVisibleSlots] = useState({ start: 0, end: 8 })
-  const [scrollPosition, setScrollPosition] = useState(0)
+  // Renderizaremos todos los horarios y usaremos el scroll nativo
 
   const getAppointmentCountForTime = (time: string) => {
     if (!selectedDate) return 0
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
+    const y = selectedDate.getFullYear()
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0')
+    const d = String(selectedDate.getDate()).padStart(2, '0')
+    const dateStr = `${y}-${m}-${d}`
     return appointments.filter(apt => 
       apt.fecha === dateStr && apt.hora === time
     ).length
@@ -69,29 +70,11 @@ export function TimeSlotSelector({
     return count < 3 // Assuming max 3 appointments per slot
   }
 
-  const scrollUp = () => {
-    if (visibleSlots.start > 0) {
-      setVisibleSlots(prev => ({
-        start: Math.max(0, prev.start - 1),
-        end: Math.max(8, prev.end - 1)
-      }))
-      setScrollPosition(prev => Math.max(0, prev - 1))
-    }
-  }
-
-  const scrollDown = () => {
-    if (visibleSlots.end < timeSlots.length) {
-      setVisibleSlots(prev => ({
-        start: Math.min(timeSlots.length - 8, prev.start + 1),
-        end: Math.min(timeSlots.length, prev.end + 1)
-      }))
-      setScrollPosition(prev => Math.min(timeSlots.length - 8, prev + 1))
-    }
-  }
+  // Eliminamos navegación por flechas, el usuario puede desplazarse con el scroll
 
   const formatDateHeader = (date: Date | undefined) => {
     if (!date) return "Selecciona una fecha"
-    return format(date, "EEE dd", { locale: es })
+    return date.toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit' })
   }
 
   return (
@@ -102,35 +85,14 @@ export function TimeSlotSelector({
             <Clock className="w-4 h-4 mr-1" />
             {formatDateHeader(selectedDate)}
           </h3>
-          {selectedDate && (
-            <div className="flex flex-col space-y-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 p-0"
-                onClick={scrollUp}
-                disabled={visibleSlots.start === 0}
-              >
-                <ChevronUp className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 p-0"
-                onClick={scrollDown}
-                disabled={visibleSlots.end >= timeSlots.length}
-              >
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
+          {/* Se removieron flechas; el ScrollArea permite desplazamiento natural */}
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <ScrollArea className="h-80">
           <div className="space-y-1">
             {selectedDate ? (
-              timeSlots.slice(visibleSlots.start, visibleSlots.end).map((slot) => {
+              timeSlots.map((slot) => {
                 const appointmentCount = getAppointmentCountForTime(slot.time)
                 const available = isTimeAvailable(slot.time)
                 const isSelected = selectedTime === slot.time
