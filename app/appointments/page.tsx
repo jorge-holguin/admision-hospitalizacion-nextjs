@@ -18,6 +18,9 @@
   import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
   import { ArrowLeft, User, Unlock, CalendarClock, UserPlus, Eye, Search, Filter, Clock, Check, ChevronsUpDown, X } from "lucide-react"
+import { PatientSearchModal } from "@/components/appointments/PatientSearchModal"
+import { PatientAssignmentModal } from "@/components/appointments/PatientAssignmentModal"
+import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDetailsModal"
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
   import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
   // Removed date-fns format to avoid TS type import issues; using native formatting below
@@ -25,6 +28,7 @@
   import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
   import { MedicosProvider } from "@/contexts/MedicosContext"
   import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
+  import { House } from "lucide-react"
   import MedicoDisplay from "@/components/appointments/MedicoDisplay"
 
   // Lista vacía para almacenar citas
@@ -50,6 +54,8 @@
     const [openEstado, setOpenEstado] = useState(false)
     const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
     const [showAssignModal, setShowAssignModal] = useState(false)
+    const [showPatientAssignmentModal, setShowPatientAssignmentModal] = useState(false)
+    const [selectedPatient, setSelectedPatient] = useState<any>(null)
     const [showRescheduleModal, setShowRescheduleModal] = useState(false)
     const [showReleaseModal, setShowReleaseModal] = useState(false)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -93,7 +99,7 @@
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
-        const url = `http://192.168.0.21:9011/api/cita/buscar?${qs.toString()}`
+        const url = `${process.env.NEXT_PUBLIC_API_CITAS_URL}/buscar?${qs.toString()}`
         const res = await fetch(url)
         if (!res.ok) {
           return
@@ -115,11 +121,21 @@
                  String(it.turno ?? it.TURNO ?? "MAÑANA"),
           turnoConsulta: String(it.turnoConsulta ?? it.TURNO_CONSULTA ?? ""),
           consultorio: String(it.consultorio ?? it.CONSULTORIO ?? "").trim(),
+          consultorioNombre: String(it.consultorioNombre ?? it.CONSULTORIO_NOMBRE ?? it.NOMBRE_CONSULTORIO ?? "").trim(),
           medico: String(it.medico ?? it.MEDICO ?? "").trim(),
+          medicoNombre: String(it.medicoNombre ?? it.MEDICO_NOMBRE ?? it.NOMBRE_MEDICO ?? "").trim(),
           seguro: String(it.seguro ?? it.SEGURO ?? ""),
-          paciente: String(it.paciente ?? it.PACIENTE ?? "") + " " + String(it.nombre ?? it.NOMBRE ?? ""),
+          paciente: String(it.nombre ?? it.NOMBRE ?? it.paciente ?? it.PACIENTE ?? "").replace(/^\d+\s*/, "").trim(),
+          codigoPaciente: String(it.paciente ?? it.PACIENTE ?? "").trim(),
+          numero: String(it.numero ?? it.NUMERO ?? ""),
+          usuario: String(it.usuario ?? it.USUARIO ?? ""),
           fechaProgramada: String(it.fechaProgramacion ?? it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
           fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
+          fechaOtorgada: String(it.fechaOtorgada ?? it.FECHA_OTORGADA ?? ""),
+          pagoId: String(it.pagoId ?? it.PAGO_ID ?? it.PAGOID ?? ""),
+          orden: String(it.orden ?? it.ORDEN ?? ""),
+          entidadSis: String(it.entidadSis ?? it.ENTIDAD_SIS ?? it.ENTIDADSIS ?? ""),
+          idRefcon: it.idRefcon ?? it.ID_REFCON ?? it.IDREFCON ?? null,
         }))
         setFilteredAppointments(mapped)
         const total = (typeof data?.total === 'number') ? data.total
@@ -148,7 +164,7 @@
         return
       }
       try {
-        const res = await fetch(`http://192.168.0.21:9011/api/cita/${encodeURIComponent(id)}`)
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${encodeURIComponent(id)}`)
         if (!res.ok) {
           applyFilters()
           return
@@ -166,6 +182,8 @@
           medico: String(it.medico ?? it.MEDICO ?? ""),
           seguro: String(it.seguro ?? it.SEGURO ?? ""),
           paciente: String(it.paciente ?? it.PACIENTE ?? ""),
+          numero: String(it.numero ?? it.NUMERO ?? ""),
+          usuario: String(it.usuario ?? it.USUARIO ?? ""),
           fechaProgramada: String(it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
           fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
         }))
@@ -192,9 +210,18 @@
     }
 
     const handleAction = (action: string, appointment: any) => {
+      console.log('🎯 handleAction - Acción:', action, 'Appointment:', {
+        id: appointment.id,
+        consultorio: appointment.consultorio,
+        consultorioNombre: appointment.consultorioNombre,
+        medico: appointment.medico,
+        medicoNombre: appointment.medicoNombre
+      })
+      
       setSelectedAppointment(appointment)
       switch (action) {
         case "assign":
+          console.log('📋 Abriendo modal de asignación con appointment:', appointment)
           setShowAssignModal(true)
           break
         case "reschedule":
@@ -243,7 +270,8 @@
               className="font-bold text-lg" 
               onClick={() => window.location.href = '/dashboard'}
             >
-              _dashboard
+              <House className="mr-2 h-4 w-4" />
+              Dashboard
             </Button>
           </div>
           <MedicosProvider>
@@ -461,29 +489,32 @@
 
       {/* Modals */}
 
-      {/* Assign Patient Modal */}
-      <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-blue-800 font-semibold">Asignar Paciente</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-semibold">Buscar Paciente</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input placeholder="DNI o nombre del paciente..." className="pl-10" />
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowAssignModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">Asignar</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Patient Search Modal */}
+      <PatientSearchModal
+        isOpen={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        onPatientSelect={(patient) => {
+          setSelectedPatient(patient)
+          setShowAssignModal(false)
+          setShowPatientAssignmentModal(true)
+        }}
+      />
+
+      {/* Patient Assignment Modal */}
+      <PatientAssignmentModal
+        isOpen={showPatientAssignmentModal}
+        onClose={() => {
+          setShowPatientAssignmentModal(false)
+          setSelectedPatient(null)
+        }}
+        patient={selectedPatient}
+        appointment={selectedAppointment}
+        onAssign={async (assignmentData) => {
+          // TODO: Implement assignment logic
+          console.log('Assignment data:', assignmentData)
+          // Here you would call the API to assign the patient to the appointment
+        }}
+      />
 
       {/* Reschedule Modal */}
       <Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
@@ -534,71 +565,12 @@
       </Dialog>
 
       {/* Details Modal */}
-      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-blue-800 font-semibold">Detalles de la Cita</DialogTitle>
-          </DialogHeader>
-          {selectedAppointment && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-semibold text-gray-700">ID CITA</Label>
-                  <p className="text-sm font-medium">{selectedAppointment.id}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold text-gray-700">ESTADO</Label>
-                  <div className="mt-1">{getEstadoBadge(selectedAppointment.estado)}</div>
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold text-gray-700">FECHA</Label>
-                  <p className="text-sm font-medium">{new Date(selectedAppointment.fecha).toLocaleDateString('es-ES')}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold text-gray-700">FECHA PROGRAMADA</Label>
-                  <p className="text-sm font-medium">
-                    {new Date(selectedAppointment.fechaProgramada).toLocaleDateString('es-ES')}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold text-gray-700">FECHA PAGO</Label>
-                  <p className="text-sm font-medium">
-                    {selectedAppointment.fechaPago
-                      ? new Date(selectedAppointment.fechaPago).toLocaleDateString('es-ES')
-                      : "Sin pago"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold text-gray-700">HORA</Label>
-                  <p className="text-sm font-medium">{selectedAppointment.hora}</p>
-                </div>
-              </div>
-              <div>
-                <Label className="text-sm font-semibold text-gray-700">MÉDICO</Label>
-                <p className="text-sm font-medium">
-                  {/* Usar el contexto de médicos para mostrar el nombre completo */}
-                  <MedicosProvider>
-                    <MedicoDisplay code={selectedAppointment.medico} />
-                  </MedicosProvider>
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-semibold text-gray-700">PACIENTE</Label>
-                <p className="text-sm font-medium">{selectedAppointment.paciente}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-semibold text-gray-700">CONSULTORIO</Label>
-                <p className="text-sm font-medium">{selectedAppointment.consultorio}</p>
-              </div>
-              <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
-                  Cerrar
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AppointmentDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        appointment={selectedAppointment}
+        getEstadoBadge={getEstadoBadge}
+      />
     </div>
   )
 }

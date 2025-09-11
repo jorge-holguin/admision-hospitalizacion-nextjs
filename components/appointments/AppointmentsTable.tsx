@@ -19,7 +19,9 @@ export interface AppointmentRow {
   medico: string
   seguro?: string
   paciente?: string
+  numero?: string
   fechaProgramada?: string | null
+  usuario?: string
   fechaPago?: string | null
   [key: string]: any
 }
@@ -83,10 +85,12 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="font-semibold">Estado</TableHead>
+              <TableHead className="font-semibold">ID</TableHead>
               <TableHead className="font-semibold">Hora</TableHead>
               <TableHead className="font-semibold">Turno</TableHead>
               <TableHead className="font-semibold">Consultorio</TableHead>
               <TableHead className="font-semibold">Médico</TableHead>
+              <TableHead className="font-semibold">Paciente</TableHead>
               <TableHead className="font-semibold">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -94,10 +98,12 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
             {appointments.map((appointment) => (
               <TableRow key={appointment.id} className="hover:bg-blue-50 transition-colors">
                 <TableCell>{getEstadoBadge(appointment.estado)}</TableCell>
+                <TableCell className="font-medium">{appointment.id}</TableCell>
                 <TableCell className="font-medium">{appointment.hora}</TableCell>
                 <TableCell className="font-medium">{turnode(appointment)}</TableCell>
                 <TableCell className="font-medium">{displayConsultorio(appointment)}</TableCell>
                 <TableCell className="text-sm">{displayMedico(appointment)}</TableCell>
+                <TableCell className="text-sm">{appointment.paciente || '-'}</TableCell>
                 <TableCell>
                   <div className="flex space-x-1">
                     <Button
@@ -105,6 +111,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("release", appointment)}
                       title="Liberar"
+                      disabled={Number(appointment.estado) !== 2}
                     >
                       <Unlock className="w-4 h-4" />
                     </Button>
@@ -121,6 +128,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("assign", appointment)}
                       title="Asignar"
+                      disabled={Number(appointment.estado) !== 1}
                     >
                       <UserPlus className="w-4 h-4" />
                     </Button>
@@ -152,17 +160,40 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 {getEstadoBadge(appointment.estado)}
               </div>
               <div className="flex items-center gap-4 text-sm">
+                <div><span className="text-gray-600">ID:</span> <span className="font-medium">{appointment.id}</span></div>
                 <div><span className="text-gray-600">Turno:</span> <span className="font-medium">{turnode(appointment)}</span></div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
                 <div><span className="text-gray-600">Consultorio:</span> <span className="font-medium">{displayConsultorio(appointment)}</span></div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Médico:</div>
                 <div className="font-medium text-sm">{displayMedico(appointment)}</div>
               </div>
+              <div>
+                <div className="text-sm text-gray-600">Paciente:</div>
+                <div className="font-medium text-sm">{appointment.paciente || '-'}</div>
+              </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button size="sm" variant="outline" onClick={() => onAction("release", appointment)} className="text-xs">Liberar</Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => onAction("release", appointment)} 
+                  className="text-xs"
+                  disabled={Number(appointment.estado) !== 2 && Boolean(appointment.fechaPago)}
+                >
+                  Liberar
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => onAction("reschedule", appointment)} className="text-xs">Reprogramar</Button>
-                <Button size="sm" variant="outline" onClick={() => onAction("assign", appointment)} className="text-xs">Asignar</Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => onAction("assign", appointment)} 
+                  className="text-xs"
+                  disabled={Number(appointment.estado) !== 1}
+                >
+                  Asignar
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => onAction("details", appointment)} className="text-xs">Ver más</Button>
               </div>
             </div>
