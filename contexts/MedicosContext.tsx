@@ -28,52 +28,10 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState<boolean>(false);
   const medicoCache = useRef<Map<string, MedicoInfo>>(new Map());
 
-  // Cargar médicos iniciales y configurar el cache
-  useEffect(() => {
-    const fetchMedicos = async () => {
-      if (initialized) return;
-      
-      try {
-        setLoading(true);
-        // Intentar primero con la ruta relativa
-        let response = await fetch('/api/medicos?limit=100');
-        
-        // Si falla, intentar con la URL completa
-        if (!response.ok) {
-          console.log('Intentando cargar médicos con URL absoluta...');
-          response = await fetch('http://192.168.0.21:9011/api/medicos?limit=100');
-        }
-        
-        if (response.ok) {
-          const data = await response.json();
-          // Asegurar que los datos tienen el formato correcto
-          const medicosData = Array.isArray(data) ? data : 
-                             Array.isArray(data?.data) ? data.data : 
-                             Array.isArray(data?.items) ? data.items : [];
-          
-          console.log(`Cargados ${medicosData.length} médicos iniciales`);
-          
-          // Actualizar el cache con los médicos cargados
-          medicosData.forEach((medico: MedicoInfo) => {
-            if (medico.MEDICO) {
-              medicoCache.current.set(medico.MEDICO.trim(), medico);
-            }
-          });
-          
-          setMedicos(medicosData);
-        } else {
-          console.error('No se pudieron cargar los médicos, status:', response.status);
-        }
-      } catch (error) {
-        console.error('Error al cargar médicos:', error);
-      } finally {
-        setLoading(false);
-        setInitialized(true);
-      }
-    };
-
-    fetchMedicos();
-  }, [initialized]);
+  // No longer load médicos initially - only when needed
+  // useEffect(() => {
+  //   // Removed initial loading - médicos are now loaded only when selectors are used
+  // }, [initialized]);
   
   // Función para cargar médicos por códigos (batch fetch)
   const loadMedicosByCodigos = useCallback(async (codigos: string[]) => {

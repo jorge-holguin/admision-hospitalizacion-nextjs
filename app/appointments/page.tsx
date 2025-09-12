@@ -1,6 +1,6 @@
   "use client"
 
-  import { useState, useEffect } from "react"
+  import React, { useState, useEffect, useCallback } from "react"
   import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
   import { Button } from "@/components/ui/button"
   import { Input } from "@/components/ui/input"
@@ -8,28 +8,22 @@
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
   import { Badge } from "@/components/ui/badge"
   import { AppointmentCalendar } from "@/components/appointments/AppointmentCalendar"
-  import { TimeSlotSelector } from "@/components/appointments/TimeSlotSelector"
   import { ConsultorioCitasSelector } from "@/components/appointments/ConsultorioCitasSelector"
   import { MedicoSelector } from "@/components/appointments/MedicoSelector"
   import { EstadoSelector, ESTADO_OPTIONS } from "@/components/appointments/EstadoSelector"
   import { AppointmentsTable } from "@/components/appointments/AppointmentsTable"
   import { ShiftFilter } from "@/components/appointments/ShiftFilter"
-  import { Separator } from "@/components/ui/separator"
   import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
   import { ArrowLeft, User, Unlock, CalendarClock, UserPlus, Eye, Search, Filter, Clock, Check, ChevronsUpDown, X } from "lucide-react"
 import { PatientSearchModal } from "@/components/appointments/PatientSearchModal"
 import { PatientAssignmentModal } from "@/components/appointments/PatientAssignmentModal"
 import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDetailsModal"
-  import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
   import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
   // Removed date-fns format to avoid TS type import issues; using native formatting below
   import { Navbar } from "@/components/Navbar"
   import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-  import { MedicosProvider } from "@/contexts/MedicosContext"
-  import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
   import { House } from "lucide-react"
-  import MedicoDisplay from "@/components/appointments/MedicoDisplay"
 
   // Lista vacía para almacenar citas
   const emptyAppointments: any[] = []
@@ -72,7 +66,7 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
     }
 
     // Buscar citas por parámetros (usa la fecha seleccionada en el calendario como desde/hasta)
-    const searchAppointmentsByParams = async (dateOverride?: Date) => {
+    const searchAppointmentsByParams = useCallback(async (dateOverride?: Date) => {
       try {
         const qs = new URLSearchParams()
         const targetDate = dateOverride || selectedDate
@@ -92,7 +86,7 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
           // Mapear de 'MAÑANA'/'TARDE' a 'M'/'T' para el backend
           const turnoBackend = filters.turno === 'MAÑANA' ? 'M' : filters.turno === 'TARDE' ? 'T' : null
           if (turnoBackend) {
-            qs.set('turno', turnoBackend)
+            qs.set('turnoConsulta', turnoBackend)
           }
         }
         
@@ -125,6 +119,7 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
           medico: String(it.medico ?? it.MEDICO ?? "").trim(),
           medicoNombre: String(it.medicoNombre ?? it.MEDICO_NOMBRE ?? it.NOMBRE_MEDICO ?? "").trim(),
           seguro: String(it.seguro ?? it.SEGURO ?? ""),
+          seguroNombre: String(it.seguroNombre ?? it.SEGURO_NOMBRE ?? it.NOMBRE_SEGURO ?? "").trim(),
           paciente: String(it.nombre ?? it.NOMBRE ?? it.paciente ?? it.PACIENTE ?? "").replace(/^\d+\s*/, "").trim(),
           codigoPaciente: String(it.paciente ?? it.PACIENTE ?? "").trim(),
           numero: String(it.numero ?? it.NUMERO ?? ""),
@@ -148,7 +143,7 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
       } catch (e) {
         // noop silencioso
       }
-    }
+    }, [selectedDate, filters, pageParam, sizeParam])
 
     // Estas funciones ya no son necesarias al eliminar los datos de ejemplo
 
@@ -238,22 +233,28 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
     
     const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
       setFilters({ ...filters, turno: shift })
+      setPageParam(1) // Reset to page 1 when filter changes
     }
 
-    // Cargar citas del día actual al iniciar
-    useEffect(() => {
-      if (isInitialLoad) {
-        searchAppointmentsByParams()
-        setIsInitialLoad(false)
+    // Cargar citas del día actual al iniciar y cuando cambien los filtros
+  // Use a ref to track if this is the first render
+  const isFirstRender = React.useRef(true);
+  
+  useEffect(() => {
+    // Only run on initial load or when filters change
+    if (isInitialLoad) {
+      searchAppointmentsByParams();
+      setIsInitialLoad(false);
+    } else if (!searchQuery) {
+      // Skip the first effect run after initial load to prevent duplicate calls
+      if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
       }
-    }, [isInitialLoad])
-    
-    // Aplicar filtros cuando cambien
-    useEffect(() => {
-      if (!isInitialLoad) {
-        applyFilters()
-      }
-    }, [filters, isInitialLoad])
+      // Solo aplicar filtros si no hay una búsqueda por ID activa
+      searchAppointmentsByParams();
+    }
+  }, [isInitialLoad, searchQuery, filters, pageParam, sizeParam])
 
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
@@ -274,8 +275,6 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
               Dashboard
             </Button>
           </div>
-          <MedicosProvider>
-            <ConsultoriosProvider>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Calendario (25%) */}
                 <div className="xl:col-span-1 space-y-6">
@@ -370,9 +369,10 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                         <EstadoSelector
                           label="Estado"
                           value={filters.estado}
-                          onChange={(val: string | "all") =>
+                          onChange={(val: string | "all") => {
                             setFilters({ ...filters, estado: val })
-                          }
+                            setPageParam(1) // Reset to page 1 when filter changes
+                          }}
                           className="space-y-2"
                           options={ESTADO_OPTIONS}
                         />
@@ -380,18 +380,20 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                         <ConsultorioCitasSelector
                           label="Consultorio"
                           value={filters.consultorio}
-                          onChange={(val: string | "all") =>
+                          onChange={(val: string | "all") => {
                             setFilters({ ...filters, consultorio: val })
-                          }
+                            setPageParam(1) // Reset to page 1 when filter changes
+                          }}
                           className="space-y-2"
                         />
     
                         <MedicoSelector
                           label="Médico"
                           value={filters.medico}
-                          onChange={(val: string | "all") =>
+                          onChange={(val: string | "all") => {
                             setFilters({ ...filters, medico: val })
-                          }
+                            setPageParam(1) // Reset to page 1 when filter changes
+                          }}
                           className="mt-1"
                         />
                       </div>
@@ -434,7 +436,7 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                                   if (pageParam <= 1) return
                                   const newPage = Math.max(1, pageParam - 1)
                                   setPageParam(newPage)
-                                  if (lastRemote) searchAppointmentsByParams()
+                                  // API call will be triggered by useEffect when pageParam changes
                                 }}
                                 aria-disabled={pageParam <= 1}
                               />
@@ -461,7 +463,7 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                                     ? pageParam + 1
                                     : Math.min(totalPages, pageParam + 1)
                                   setPageParam(newPage)
-                                  if (lastRemote) searchAppointmentsByParams()
+                                  // API call will be triggered by useEffect when pageParam changes
                                 }}
                                 aria-disabled={
                                   pageParam * sizeParam >= totalCount && !lastRemote
@@ -483,8 +485,6 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                   </Card>
                 </div>
               </div>
-            </ConsultoriosProvider>
-          </MedicosProvider>
         </main>
 
       {/* Modals */}

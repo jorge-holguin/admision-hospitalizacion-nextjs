@@ -22,27 +22,10 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
-  useEffect(() => {
-    const fetchConsultorios = async () => {
-      if (initialized) return
-      try {
-        setLoading(true)
-        // Traer consultorios tipo C (citas) sin filtro para precargar
-        const res = await fetch('/api/consultorio?tipo=C&search=')
-        if (res.ok) {
-          const data = await res.json()
-          const items: ConsultorioInfo[] = Array.isArray(data?.items) ? data.items : []
-          setConsultorios(items)
-        }
-      } catch (e) {
-        console.error('Error al cargar consultorios:', e)
-      } finally {
-        setLoading(false)
-        setInitialized(true)
-      }
-    }
-    fetchConsultorios()
-  }, [initialized])
+  // No longer load consultorios initially - only when needed
+  // useEffect(() => {
+  //   // Removed initial loading - consultorios are now loaded only when selectors are used
+  // }, [initialized])
 
   const getConsultorioNombre = useCallback((codigo: string): string => {
     if (!codigo) return '-'

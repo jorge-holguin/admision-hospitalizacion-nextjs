@@ -37,21 +37,23 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
   const { getConsultorioNombre } = useConsultorios()
 
   const displayMedico = (row: AppointmentRow) => {
-    // Prefer explicit name fields from backend, if any
+    // Use the medicoNombre field directly from the API response
     const direct = (row as any).medicoNombre || (row as any).MEDICO_NOMBRE || (row as any).NOMBRE_MEDICO || (row as any).NOMBRE
-    if (direct && typeof direct === 'string' && direct.trim().length > 0) return String(direct)
+    if (direct && typeof direct === 'string' && direct.trim().length > 0) return String(direct).trim()
+    
+    // Fallback to code display if no name is available
     const code = String(row.medico || '').trim()
-    if (!code) return "-"
-    // getMedicoInfo ahora devuelve solo el nombre
-    return getMedicoInfo(code)
+    return code || "-"
   }
 
   const displayConsultorio = (row: AppointmentRow) => {
+    // Use the consultorioNombre field directly from the API response
     const direct = (row as any).consultorioNombre || (row as any).CONSULTORIO_NOMBRE || (row as any).NOMBRE_CONSULTORIO || (row as any).NOMBRE
-    if (direct && typeof direct === 'string' && direct.trim().length > 0) return String(direct)
+    if (direct && typeof direct === 'string' && direct.trim().length > 0) return String(direct).trim()
+    
+    // Fallback to code display if no name is available
     const code = String(row.consultorio || '').trim()
-    if (!code) return "-"
-    return getConsultorioNombre(code)
+    return code || "-"
   }
   const turnode = (apt: AppointmentRow) => {
     if (apt.turnoConsulta && typeof apt.turnoConsulta === "string") return apt.turnoConsulta.trim().toUpperCase()
@@ -60,22 +62,10 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
     return ""
   }
 
-  // Cargar los médicos necesarios cuando cambian las citas
-  React.useEffect(() => {
-    if (appointments.length > 0) {
-      // Extraer códigos únicos de médicos
-      const codigosMedicos = appointments
-        .map(apt => String(apt.medico || '').trim())
-        .filter(codigo => codigo.length > 0)
-        .filter((codigo, index, self) => self.indexOf(codigo) === index);
-      
-      // Cargar los médicos necesarios
-      if (codigosMedicos.length > 0) {
-        console.log('Cargando médicos para las citas:', codigosMedicos);
-        loadMedicosByCodigos(codigosMedicos);
-      }
-    }
-  }, [appointments, loadMedicosByCodigos]);
+  // No longer needed since medicoNombre and consultorioNombre come directly from API
+  // React.useEffect(() => {
+  //   // This effect has been removed because the API now returns medicoNombre and consultorioNombre directly
+  // }, [appointments, loadMedicosByCodigos]);
 
   return (
     <div className="overflow-x-auto">

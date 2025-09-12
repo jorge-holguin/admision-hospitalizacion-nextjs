@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { MedicosProvider } from "@/contexts/MedicosContext"
-import MedicoDisplay from "@/components/appointments/MedicoDisplay"
 import { extractUserSurnameFromToken } from "@/utils/jwtUtils"
 import { Calendar, Clock, User, Stethoscope, Building, CreditCard, FileText, Hospital, Hash, Shield, Clipboard, MapPin, AlertCircle } from "lucide-react"
 
@@ -80,9 +78,10 @@ export function AppointmentDetailsModal({
                 <Stethoscope className="h-4 w-4 text-gray-500" /> MÉDICO
               </Label>
               <p className="text-sm font-medium">
-                <MedicosProvider>
-                  <MedicoDisplay code={appointment.medico} />
-                </MedicosProvider>
+                {appointment.medicoNombre 
+                  ? `${appointment.medico} - ${appointment.medicoNombre}`
+                  : appointment.medico || '-'
+                }
               </p>
             </div>
             <div className="space-y-1">
@@ -110,7 +109,12 @@ export function AppointmentDetailsModal({
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <Shield className="h-4 w-4 text-gray-500" /> SEGURO
               </Label>
-              <p className="text-sm font-medium">{appointment.seguro || '-'}</p>
+              <p className="text-sm font-medium">
+                {appointment.seguroNombre 
+                  ? `${appointment.seguro} - ${appointment.seguroNombre}`
+                  : appointment.seguro || '-'
+                }
+              </p>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
