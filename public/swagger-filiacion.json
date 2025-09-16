@@ -1,0 +1,145 @@
+{
+  "paths": {
+    "/api/filiacion2/optimized/{id}": {
+      "get": {
+        "tags": ["Filiación"],
+        "summary": "Obtener datos de filiación optimizados",
+        "description": "Retorna los datos de filiación de un paciente con campos optimizados para los componentes PatientInfo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del paciente",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos de filiación del paciente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiliacionOptimizada"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros inválidos"
+          },
+          "404": {
+            "description": "Paciente no encontrado"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FiliacionOptimizada": {
+        "type": "object",
+        "properties": {
+          "paciente": {
+            "type": "string",
+            "description": "ID del paciente"
+          },
+          "historia": {
+            "type": "string",
+            "description": "Número de historia clínica"
+          },
+          "nombres": {
+            "type": "string",
+            "description": "Nombre completo del paciente"
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Primer nombre del paciente"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "description": "Apellido paterno"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "description": "Apellido materno"
+          },
+          "documento": {
+            "type": "string",
+            "description": "Número de documento de identidad"
+          },
+          "tipoDocumento": {
+            "type": "string",
+            "description": "Tipo de documento de identidad"
+          },
+          "fechaNacimiento": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha de nacimiento"
+          },
+          "edad": {
+            "type": "string",
+            "description": "Edad del paciente"
+          },
+          "sexo": {
+            "type": "string",
+            "description": "Sexo del paciente (M/F)"
+          },
+          "estadoCivil": {
+            "type": "string",
+            "description": "Estado civil del paciente"
+          },
+          "direccion": {
+            "type": "string",
+            "description": "Dirección del paciente"
+          },
+          "distrito": {
+            "type": "string",
+            "description": "Distrito de nacimiento"
+          },
+          "distritoDir": {
+            "type": "string",
+            "description": "Distrito actual de residencia"
+          },
+          "telefono1": {
+            "type": "string",
+            "description": "Teléfono principal"
+          },
+          "telefono2": {
+            "type": "string",
+            "description": "Teléfono secundario"
+          },
+          "seguro": {
+            "type": "string",
+            "description": "Código del seguro"
+          },
+          "religion": {
+            "type": "string",
+            "description": "Código de religión"
+          },
+          "descreligion": {
+            "type": "string",
+            "description": "Descripción de la religión"
+          },
+          "localidad": {
+            "type": "string",
+            "description": "Código de localidad"
+          },
+          "nombreLocalidad": {
+            "type": "string",
+            "description": "Nombre de la localidad"
+          },
+          "photo": {
+            "type": "string",
+            "description": "Foto del paciente en formato Base64"
+          }
+        }
+      }
+    }
+  }
+}

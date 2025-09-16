@@ -1,7 +1,5 @@
 import React from 'react';
 import { DateTimeFields } from '@/components/hospitalization/DateTimeFields';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 
 interface FormHeaderProps {
   date: string;

@@ -27,34 +27,43 @@ export default function MasterTablesPage() {
   const [selectedConsultorio, setSelectedConsultorio] = useState<any>(null)
   const [selectedLocalidad, setSelectedLocalidad] = useState<any>(null)
 
-  // Handlers para abrir formularios de creación
+  // Handlers para abrir formularios de creación - sin llamadas a la API
   const handleNewMedico = () => {
+    // Simplemente establecemos el estado a null y abrimos el diálogo
+    // No se hace ninguna llamada a la API aquí
     setSelectedMedico(null)
     setMedicoDialogOpen(true)
   }
 
   const handleNewConsultorio = () => {
+    // Simplemente establecemos el estado a null y abrimos el diálogo
+    // No se hace ninguna llamada a la API aquí
     setSelectedConsultorio(null)
     setConsultorioDialogOpen(true)
   }
 
   const handleNewLocalidad = () => {
+    // Simplemente establecemos el estado a null y abrimos el diálogo
+    // No se hace ninguna llamada a la API aquí
     setSelectedLocalidad(null)
     setLocalidadDialogOpen(true)
   }
 
-  // Handlers para abrir formularios de edición
+  // Handlers para abrir formularios de edición - pasando solo el ID necesario
   const handleEditMedico = (medico: any) => {
+    // Pasamos el objeto completo para evitar una llamada adicional a la API
     setSelectedMedico(medico)
     setMedicoDialogOpen(true)
   }
 
   const handleEditConsultorio = (consultorio: any) => {
+    // Pasamos el objeto completo para evitar una llamada adicional a la API
     setSelectedConsultorio(consultorio)
     setConsultorioDialogOpen(true)
   }
 
   const handleEditLocalidad = (localidad: any) => {
+    // Pasamos el objeto completo para evitar una llamada adicional a la API
     setSelectedLocalidad(localidad)
     setLocalidadDialogOpen(true)
   }
@@ -116,7 +125,7 @@ export default function MasterTablesPage() {
 
       {/* Diálogo para Médicos */}
       <Dialog open={medicoDialogOpen} onOpenChange={setMedicoDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedMedico ? "Editar Médico" : "Nuevo Médico"}</DialogTitle>
           </DialogHeader>

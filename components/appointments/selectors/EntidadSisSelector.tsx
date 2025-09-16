@@ -18,6 +18,11 @@ interface EntidadSisSelectorProps {
   label?: string
   placeholder?: string
   required?: boolean
+  initialValue?: string
+  sisEstablecimiento?: {
+    codigo: string
+    nombre: string
+  }
 }
 
 export function EntidadSisSelector({ 
@@ -25,7 +30,9 @@ export function EntidadSisSelector({
   onChange, 
   label = "Establecimiento",
   placeholder = "Seleccionar establecimiento...",
-  required = false
+  required = false,
+  initialValue,
+  sisEstablecimiento
 }: EntidadSisSelectorProps) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<EntidadSis[]>([])
@@ -36,6 +43,32 @@ export function EntidadSisSelector({
   useEffect(() => {
     loadEntidadesIniciales()
   }, [])
+
+  // Efecto para manejar el valor inicial
+  useEffect(() => {
+    if (initialValue && !value) {
+      onChange(initialValue)
+    }
+  }, [initialValue, value, onChange])
+
+  // Efecto para manejar el establecimiento SIS
+  useEffect(() => {
+    if (sisEstablecimiento && sisEstablecimiento.codigo) {
+      // Actualizar el valor con el código del establecimiento SIS
+      onChange(sisEstablecimiento.codigo)
+      
+      // Si no existe en los items, agregarlo temporalmente
+      if (!items.some(item => item.ENTIDADSIS === sisEstablecimiento.codigo)) {
+        setItems(prevItems => [
+          ...prevItems,
+          {
+            ENTIDADSIS: sisEstablecimiento.codigo,
+            NOMBRE: sisEstablecimiento.nombre || ''
+          }
+        ])
+      }
+    }
+  }, [sisEstablecimiento, onChange])
 
   const loadEntidadesIniciales = async () => {
     try {

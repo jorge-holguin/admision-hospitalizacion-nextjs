@@ -12,9 +12,22 @@ export async function GET(
   try {
     const id = params.id;
     
-    // Buscar el consultorio por ID
+    // Buscar el consultorio por ID con todos los campos
     const consultorio = await prisma.$queryRaw`
-      SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO
+      SELECT 
+        CONSULTORIO,
+        upstrama,
+        HIS_CODSERVICIO,
+        NOMBRE,
+        ABREVIATURA,
+        ESPECIALIDAD,
+        TIPO,
+        ORDEN,
+        ROL,
+        MUESTRAROL,
+        ACTIVO,
+        NUMERO,
+        HIS_NOMSERVICIO
       FROM CONSULTORIO
       WHERE CONSULTORIO = ${id}
     `;

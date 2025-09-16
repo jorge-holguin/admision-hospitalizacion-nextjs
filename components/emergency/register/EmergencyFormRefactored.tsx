@@ -3,12 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
-import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, Save } from "lucide-react"
 import { usePatientAccount } from '@/contexts/PatientAccountContext'
 
 // Componentes modulares para emergencia

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PatientInfoCardEmergency } from './PatientInfoCardEmergency';
+import { PatientInfoCardEmergency } from '../PatientInfoCardEmergency';
 
 interface PatientSectionEmergencyProps {
   patientId: string;

@@ -6,59 +6,50 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
+import { useTipoCita } from '@/contexts/TipoCitaContext'
 
-interface TipoSeguro {
-  Seguro: string
+interface TipoCita {
+  Tipo_cita: string
   Nombre: string
-  CREA_CUENTA: string
 }
 
-interface TipoSeguroSelectorProps {
+interface TipoCitaSelectorProps {
   value: string
   onChange: (value: string) => void
   label?: string
   placeholder?: string
   required?: boolean
+  initialValue?: string
 }
 
-export function TipoSeguroSelector({ 
+export function TipoCitaSelector({ 
   value, 
   onChange, 
-  label = "Tipo de Seguro",
-  placeholder = "Seleccionar tipo de seguro...",
-  required = false
-}: TipoSeguroSelectorProps) {
+  label = "Tipo de Cita",
+  placeholder = "Seleccionar tipo de cita...",
+  required = false,
+  initialValue = "C"
+}: TipoCitaSelectorProps) {
   const [open, setOpen] = useState(false)
-  const [items, setItems] = useState<TipoSeguro[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [search, setSearch] = useState("")
+  
+  // Use context instead of local state and API calls
+  const { tiposCita: items, loading: isLoading } = useTipoCita()
 
+  // Establecer valor inicial cuando se cargan los datos
   useEffect(() => {
-    loadTiposSeguros()
-  }, [])
-
-  const loadTiposSeguros = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/seguros')
-      if (response.ok) {
-        const data = await response.json()
-        setItems(data || [])
-      }
-    } catch (error) {
-      console.error('Error loading tipos de seguro:', error)
-    } finally {
-      setIsLoading(false)
+    if (initialValue && !value && items.length > 0) {
+      onChange(initialValue)
     }
-  }
+  }, [initialValue, value, items, onChange])
 
-  const buildDisplayText = (tipoSeguro: TipoSeguro) => {
-    return `${tipoSeguro.Seguro} - ${tipoSeguro.Nombre}`
+  const buildDisplayText = (tipoCita: TipoCita) => {
+    return `${tipoCita.Tipo_cita} - ${tipoCita.Nombre}`
   }
 
   const getSelectedText = () => {
     if (!value) return placeholder
-    const selected = items.find(item => item.Seguro === value)
+    const selected = items.find(item => item.Tipo_cita === value)
     return selected ? buildDisplayText(selected) : placeholder
   }
 
@@ -85,33 +76,33 @@ export function TipoSeguroSelector({
         <PopoverContent className="w-full p-0" align="start">
           <Command>
             <CommandInput 
-              placeholder="Buscar tipo de seguro..." 
+              placeholder="Buscar tipo de cita..." 
               value={search}
               onValueChange={setSearch}
             />
             <CommandList>
-              <CommandEmpty>No se encontraron tipos de seguro.</CommandEmpty>
+              <CommandEmpty>No se encontraron tipos de cita.</CommandEmpty>
               <CommandGroup>
                 {items
-                  .filter((tipoSeguro) => {
+                  .filter((tipoCita) => {
                     const searchTerm = search.toLowerCase()
                     return (
-                      tipoSeguro.Seguro.toLowerCase().includes(searchTerm) ||
-                      tipoSeguro.Nombre.toLowerCase().includes(searchTerm)
+                      tipoCita.Tipo_cita.toLowerCase().includes(searchTerm) ||
+                      tipoCita.Nombre.toLowerCase().includes(searchTerm)
                     )
                   })
-                  .map((tipoSeguro, idx) => {
-                    const displayText = buildDisplayText(tipoSeguro)
+                  .map((tipoCita, idx) => {
+                    const displayText = buildDisplayText(tipoCita)
                     return (
                       <CommandItem
-                        key={`${tipoSeguro.Seguro}-${idx}`}
+                        key={`${tipoCita.Tipo_cita}-${idx}`}
                         value={displayText}
                         onSelect={() => {
-                          onChange(tipoSeguro.Seguro)
+                          onChange(tipoCita.Tipo_cita)
                           setOpen(false)
                         }}
                       >
-                        <Check className={`mr-2 h-4 w-4 ${value === tipoSeguro.Seguro ? "opacity-100" : "opacity-0"}`} />
+                        <Check className={`mr-2 h-4 w-4 ${value === tipoCita.Tipo_cita ? "opacity-100" : "opacity-0"}`} />
                         {displayText}
                       </CommandItem>
                     )

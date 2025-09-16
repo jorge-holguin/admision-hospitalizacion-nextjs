@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Label } from "@/components/ui/label";
 import { SeguroSelector } from '@/components/hospitalization/SeguroSelector';
 import { DiagnosticoSelector } from '@/components/hospitalization/DiagnosticoSelector';

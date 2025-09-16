@@ -1,5 +1,5 @@
 import React from 'react';
-import { PatientInfoCardEmergency } from '../register/PatientInfoCardEmergency';
+import { PatientInfoCardEmergency } from '../PatientInfoCardEmergency';
 import { usePatientData } from '@/contexts/PatientDataContext';
 
 interface PatientSectionEmergencyProps {

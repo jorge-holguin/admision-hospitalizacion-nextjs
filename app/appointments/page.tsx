@@ -1,29 +1,48 @@
   "use client"
 
-  import React, { useState, useEffect, useCallback } from "react"
-  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-  import { Button } from "@/components/ui/button"
-  import { Input } from "@/components/ui/input"
-  import { Label } from "@/components/ui/label"
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-  import { Badge } from "@/components/ui/badge"
-  import { AppointmentCalendar } from "@/components/appointments/AppointmentCalendar"
-  import { ConsultorioCitasSelector } from "@/components/appointments/ConsultorioCitasSelector"
-  import { MedicoSelector } from "@/components/appointments/MedicoSelector"
-  import { EstadoSelector, ESTADO_OPTIONS } from "@/components/appointments/EstadoSelector"
-  import { AppointmentsTable } from "@/components/appointments/AppointmentsTable"
-  import { ShiftFilter } from "@/components/appointments/ShiftFilter"
-  import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-  import { ArrowLeft, User, Unlock, CalendarClock, UserPlus, Eye, Search, Filter, Clock, Check, ChevronsUpDown, X } from "lucide-react"
-import { PatientSearchModal } from "@/components/appointments/PatientSearchModal"
-import { PatientAssignmentModal } from "@/components/appointments/PatientAssignmentModal"
-import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDetailsModal"
-  import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-  // Removed date-fns format to avoid TS type import issues; using native formatting below
-  import { Navbar } from "@/components/Navbar"
-  import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-  import { House } from "lucide-react"
+import React, { useState, useEffect, useCallback } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { 
+  ArrowLeft, 
+  User, 
+  Unlock, 
+  CalendarClock, 
+  UserPlus, 
+  Eye, 
+  Search, 
+  Filter, 
+  Clock, 
+  Check, 
+  ChevronsUpDown, 
+  X, 
+  House 
+} from "lucide-react"
+import { Navbar } from "@/components/Navbar"
+import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
+import { SeguroProvider } from "@/contexts/SeguroContext"
+
+// Import all components from the appointments module
+import {
+  AppointmentCalendar,
+  ConsultorioCitasSelector,
+  MedicoSelector,
+  EstadoSelector, 
+  ESTADO_OPTIONS,
+  AppointmentsTable,
+  ShiftFilter,
+  PatientSearchModal,
+  PatientAssignmentModal,
+  AppointmentDetailsModal
+} from "@/components/appointments"
 
   // Lista vacía para almacenar citas
   const emptyAppointments: any[] = []
@@ -161,10 +180,22 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${encodeURIComponent(id)}`)
         if (!res.ok) {
-          applyFilters()
+          // Si no encuentra la cita, mostrar lista vacía en lugar de aplicar filtros
+          console.log(`❌ No se encontró la cita con ID: ${id}`)
+          setFilteredAppointments([])
+          setTotalCount(0)
           return
         }
         const data = await res.json()
+        
+        // Verificar si realmente se encontró una cita válida
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+          console.log(`❌ No se encontró la cita con ID: ${id}`)
+          setFilteredAppointments([])
+          setTotalCount(0)
+          return
+        }
+        
         const list = Array.isArray(data) ? data : [data]
         const mapped = list.map((it: any) => ({
           id: it.id || it.ID || id,
@@ -182,9 +213,14 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
           fechaProgramada: String(it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
           fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
         }))
+        
+        console.log(`✅ Cita encontrada con ID: ${id}`)
         setFilteredAppointments(mapped)
+        setTotalCount(mapped.length)
       } catch (e) {
-        applyFilters()
+        console.log(`❌ Error al buscar la cita con ID: ${id}`, e)
+        setFilteredAppointments([])
+        setTotalCount(0)
       }
     }
 
@@ -257,24 +293,26 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
   }, [isInitialLoad, searchQuery, filters, pageParam, sizeParam])
 
     return (
-      <div className="flex flex-col min-h-screen bg-gray-50">
-        {/* Navbar fijo arriba */}
-        <Navbar />
+      <TipoCitaProvider>
+        <SeguroProvider>
+          <div className="flex flex-col min-h-screen bg-gray-50">
+            {/* Navbar fijo arriba */}
+            <Navbar />
     
-        {/* Main Content */}
-        <main className="container mx-auto px-6 py-8">
-          {/* Botón para volver al dashboard */}
-          <div className="mb-6">
-            <Button 
-              variant="destructive" 
-              size="lg"
-              className="font-bold text-lg" 
-              onClick={() => window.location.href = '/dashboard'}
-            >
-              <House className="mr-2 h-4 w-4" />
-              Dashboard
-            </Button>
-          </div>
+            {/* Main Content */}
+            <main className="container mx-auto px-6 py-8">
+              {/* Botón para volver al dashboard */}
+              <div className="mb-6">
+                <Button 
+                  variant="destructive" 
+                  size="lg"
+                  className="font-bold text-lg" 
+                  onClick={() => window.location.href = '/dashboard'}
+                >
+                  <House className="mr-2 h-4 w-4" />
+                  Dashboard
+                </Button>
+              </div>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Calendario (25%) */}
                 <div className="xl:col-span-1 space-y-6">
@@ -356,7 +394,13 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                             />
                           </div>
                           <Button
-                            onClick={() => searchAppointmentsByParams()}
+                            onClick={() => {
+                              if (searchQuery.trim()) {
+                                searchAppointmentById(searchQuery)
+                              } else {
+                                searchAppointmentsByParams()
+                              }
+                            }}
                             className="font-medium w-full sm:w-auto"
                           >
                             Buscar
@@ -485,92 +529,105 @@ import { AppointmentDetailsModal } from "@/components/appointments/AppointmentDe
                   </Card>
                 </div>
               </div>
-        </main>
+            </main>
 
-      {/* Modals */}
+            {/* Modals */}
 
-      {/* Patient Search Modal */}
-      <PatientSearchModal
-        isOpen={showAssignModal}
-        onClose={() => setShowAssignModal(false)}
-        onPatientSelect={(patient) => {
-          setSelectedPatient(patient)
-          setShowAssignModal(false)
-          setShowPatientAssignmentModal(true)
-        }}
-      />
+            {/* Patient Search Modal */}
+            <PatientSearchModal
+              isOpen={showAssignModal}
+              onClose={() => setShowAssignModal(false)}
+              onPatientSelect={(patient, searchType) => {
+                console.log('🔍 Tipo de búsqueda:', searchType)
+                setSelectedPatient(patient)
+                setShowAssignModal(false)
+                setShowPatientAssignmentModal(true)
+                // Guardar el tipo de búsqueda en un atributo del paciente para pasarlo al modal de asignación
+                setSelectedPatient({...patient, _searchType: searchType})
+              }}
+            />
 
-      {/* Patient Assignment Modal */}
-      <PatientAssignmentModal
-        isOpen={showPatientAssignmentModal}
-        onClose={() => {
-          setShowPatientAssignmentModal(false)
-          setSelectedPatient(null)
-        }}
-        patient={selectedPatient}
-        appointment={selectedAppointment}
-        onAssign={async (assignmentData) => {
-          // TODO: Implement assignment logic
-          console.log('Assignment data:', assignmentData)
-          // Here you would call the API to assign the patient to the appointment
-        }}
-      />
+            {/* Patient Assignment Modal */}
+            <PatientAssignmentModal
+              isOpen={showPatientAssignmentModal}
+              onClose={() => {
+                setShowPatientAssignmentModal(false)
+                setSelectedPatient(null)
+              }}
+              onBack={() => {
+                setShowPatientAssignmentModal(false)
+                setShowAssignModal(true)
+              }}
+              patient={selectedPatient}
+              appointment={selectedAppointment}
+              searchType={selectedPatient?._searchType || 'document'}
+              onAssign={async (assignmentData) => {
+                console.log('Assignment data:', assignmentData)
+              }}
+              onSuccess={(citaId) => {
+                // Buscar automáticamente la cita asignada
+                setSearchQuery(citaId)
+                searchAppointmentById(citaId)
+              }}
+            />
 
-      {/* Reschedule Modal */}
-      <Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-blue-800 font-semibold">Reprogramar Cita</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-semibold">Nueva Fecha</Label>
-              <Input type="date" className="mt-1" />
-            </div>
-            <div>
-              <Label className="text-sm font-semibold">Nueva Hora</Label>
-              <Input type="time" className="mt-1" />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowRescheduleModal(false)}>
-                Cancelar
-              </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">Reprogramar</Button>
-            </div>
+            {/* Reschedule Modal */}
+            <Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-blue-800 font-semibold">Reprogramar Cita</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold">Nueva Fecha</Label>
+                    <Input type="date" className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">Nueva Hora</Label>
+                    <Input type="time" className="mt-1" />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowRescheduleModal(false)}>
+                      Cancelar
+                    </Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700">Reprogramar</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Release Modal */}
+            <Dialog open={showReleaseModal} onOpenChange={setShowReleaseModal}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-blue-800 font-semibold">Liberar Cita</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    ¿Está seguro que desea liberar la cita <strong>{selectedAppointment?.id}</strong>?
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Esta acción no se puede deshacer y la cita quedará disponible para otros pacientes.
+                  </p>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowReleaseModal(false)}>
+                      Cancelar
+                    </Button>
+                    <Button variant="destructive">Liberar Cita</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Details Modal */}
+            <AppointmentDetailsModal
+              isOpen={showDetailsModal}
+              onClose={() => setShowDetailsModal(false)}
+              appointment={selectedAppointment}
+              getEstadoBadge={getEstadoBadge}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Release Modal */}
-      <Dialog open={showReleaseModal} onOpenChange={setShowReleaseModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-blue-800 font-semibold">Liberar Cita</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-gray-700">
-              ¿Está seguro que desea liberar la cita <strong>{selectedAppointment?.id}</strong>?
-            </p>
-            <p className="text-sm text-gray-600">
-              Esta acción no se puede deshacer y la cita quedará disponible para otros pacientes.
-            </p>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowReleaseModal(false)}>
-                Cancelar
-              </Button>
-              <Button variant="destructive">Liberar Cita</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Details Modal */}
-      <AppointmentDetailsModal
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-        appointment={selectedAppointment}
-        getEstadoBadge={getEstadoBadge}
-      />
-    </div>
+        </SeguroProvider>
+      </TipoCitaProvider>
   )
 }

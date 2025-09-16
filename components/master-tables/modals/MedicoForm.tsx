@@ -3,7 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { 
+  Loader2, 
+  Check, 
+  ChevronsUpDown, 
+  User, 
+  Fingerprint, 
+  Building, 
+  BookOpen, 
+  Stethoscope, 
+  Award, 
+  Briefcase, 
+  Hash, 
+  BadgeCheck,
+  RefreshCw,
+  UserCheck
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -17,7 +32,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useMedicos } from "@/hooks/master-tables/useMedicos";
+import { useOptimizedMedicos } from "@/hooks/master-tables/useOptimizedMedicos";
+import { useMedicoById } from "@/hooks/master-tables/useMedicoById";
 
 interface MedicoFormProps {
   medico?: any;
@@ -31,7 +47,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   onSuccess,
 }) => {
   const { toast } = useToast();
-  const { createMedico, updateMedico } = useMedicos();
+  const { createMedico, updateMedico, isLoading: apiLoading } = useOptimizedMedicos();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     DNI: "",
@@ -56,6 +72,8 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const [consultorioOpen, setConsultorioOpen] = useState(false);
   const [loadingEspecialidades, setLoadingEspecialidades] = useState(false);
   const [loadingConsultorios, setLoadingConsultorios] = useState(false);
+  const [codigosSugeridos, setCodigosSugeridos] = useState<string[]>([]);
+  const [loadingCodigos, setLoadingCodigos] = useState(false);
 
   // Load especialidades on component mount
   useEffect(() => {
@@ -68,6 +86,19 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
       loadConsultorios(formData.ESPECIALIDAD);
     }
   }, [formData.ESPECIALIDAD]);
+
+  // Load códigos sugeridos when nombre changes
+  useEffect(() => {
+    if (formData.NOMBRE && formData.NOMBRE.trim().length > 0 && !medico) {
+      const timeoutId = setTimeout(() => {
+        loadCodigosSugeridos(formData.NOMBRE);
+      }, 500); // Debounce de 500ms
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      setCodigosSugeridos([]);
+    }
+  }, [formData.NOMBRE, medico]);
 
   // Cargar datos si estamos editando
   useEffect(() => {
@@ -117,6 +148,46 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
       console.error('Error loading consultorios:', error);
     } finally {
       setLoadingConsultorios(false);
+    }
+  };
+
+  const loadCodigosSugeridos = async (nombreCompleto: string) => {
+    setLoadingCodigos(true);
+    try {
+      const response = await fetch('/api/medicos/sugerir-codigo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nombreCompleto }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.candidatos) {
+        setCodigosSugeridos(result.candidatos);
+        // Si hay códigos sugeridos, seleccionar el primero por defecto
+        if (result.candidatos.length > 0 && !formData.MEDICO) {
+          setFormData(prev => ({ ...prev, MEDICO: result.candidatos[0] }));
+        }
+      } else {
+        setCodigosSugeridos([]);
+        toast({
+          title: "Sin códigos disponibles",
+          description: "No se encontraron códigos disponibles para este nombre",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error loading códigos sugeridos:', error);
+      setCodigosSugeridos([]);
+      toast({
+        title: "Error",
+        description: "Error al obtener códigos sugeridos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingCodigos(false);
     }
   };
 
@@ -186,258 +257,351 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
-      {/* DNI and Código */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="DNI">DNI *</Label>
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <UserCheck className="mr-2 h-5 w-5" /> Información Personal
+        </h3>
+        
+        {/* EESS (Fixed) - Movido arriba */}
+        <div className="space-y-2 mb-4">
+          <Label htmlFor="EESS" className="flex items-center">
+            <Building className="mr-2 h-4 w-4" /> Cod EESS (HJATCH)
+          </Label>
           <Input
-            id="DNI"
-            name="DNI"
-            value={formData.DNI}
+            id="EESS"
+            name="EESS"
+            value={formData.EESS}
+            disabled
+            className="bg-gray-100"
+          />
+        </div>
+        
+        {/* Apellidos y Nombres */}
+        <div className="space-y-2 mb-4">
+          <Label htmlFor="NOMBRE" className="flex items-center">
+            <User className="mr-2 h-4 w-4" /> Apellidos y Nombres *
+          </Label>
+          <Input
+            id="NOMBRE"
+            name="NOMBRE"
+            value={formData.NOMBRE}
             onChange={handleChange}
-            placeholder="Solo números"
-            maxLength={8}
+            placeholder="Ej: HOLGUIN CUCALON JORGE"
+            maxLength={100}
             required
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="MEDICO">Código *</Label>
-          <Input
-            id="MEDICO"
-            name="MEDICO"
-            value={formData.MEDICO}
-            onChange={handleChange}
-            disabled={!!medico}
-            maxLength={10}
-            required
-          />
-        </div>
-      </div>
 
-      {/* EESS (Fixed) */}
-      <div className="space-y-2">
-        <Label htmlFor="EESS">Cod EESS (HJATCH)</Label>
-        <Input
-          id="EESS"
-          name="EESS"
-          value={formData.EESS}
-          disabled
-          className="bg-gray-100"
-        />
-      </div>
-
-      {/* Apellidos y Nombres */}
-      <div className="space-y-2">
-        <Label htmlFor="NOMBRE">Apellidos y Nombres *</Label>
-        <Input
-          id="NOMBRE"
-          name="NOMBRE"
-          value={formData.NOMBRE}
-          onChange={handleChange}
-          placeholder="Ej: HOLGUIN CUCALON JORGE"
-          maxLength={100}
-          required
-        />
-      </div>
-
-      {/* Abreviatura and Colegiatura */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="ABREVIATURA">Abreviatura *</Label>
-          <select
-            id="ABREVIATURA"
-            name="ABREVIATURA"
-            value={formData.ABREVIATURA}
-            onChange={handleChange}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            required
-          >
-            <option value="MED">MED</option>
-            <option value="ENF">ENF</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="COLEGIO">Colegiatura *</Label>
-          <Input
-            id="COLEGIO"
-            name="COLEGIO"
-            value={formData.COLEGIO}
-            onChange={handleChange}
-            placeholder="Ej: 15072"
-            maxLength={20}
-            required
-          />
-        </div>
-      </div>
-
-      {/* Colegiatura de Especialidad */}
-      <div className="space-y-2">
-        <Label htmlFor="COLESP">Colegiatura de Especialidad</Label>
-        <Input
-          id="COLESP"
-          name="COLESP"
-          value={formData.COLESP}
-          onChange={handleChange}
-          placeholder="Ej: 787878"
-          maxLength={20}
-        />
-      </div>
-
-      {/* Especialidad Actual Selector */}
-      <div className="space-y-2">
-        <Label>Especialidad Actual *</Label>
-        <Popover open={especialidadOpen} onOpenChange={setEspecialidadOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={especialidadOpen}
-              className="w-full justify-between"
-              disabled={loadingEspecialidades}
-            >
-              {formData.ESPECIALIDAD
-                ? especialidades.find((esp) => esp.Codigo === formData.ESPECIALIDAD)?.Nombre || formData.ESPECIALIDAD
-                : "Seleccionar especialidad..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
-            <Command>
-              <CommandInput placeholder="Buscar especialidad..." />
-              <CommandEmpty>No se encontró especialidad.</CommandEmpty>
-              <CommandGroup>
-                {especialidades.map((especialidad) => (
-                  <CommandItem
-                    key={especialidad.Codigo}
-                    onSelect={() => handleEspecialidadSelect(especialidad.Codigo)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        formData.ESPECIALIDAD === especialidad.Codigo ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {especialidad.Codigo} - {especialidad.Nombre}
-                  </CommandItem>
+        {/* DNI and Código - Ahora en 2 columnas para mejor aprovechamiento del espacio */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="DNI" className="flex items-center">
+              <Fingerprint className="mr-2 h-4 w-4" /> DNI *
+            </Label>
+            <Input
+              id="DNI"
+              name="DNI"
+              value={formData.DNI}
+              onChange={handleChange}
+              placeholder="Solo números"
+              maxLength={8}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="MEDICO" className="flex items-center">
+                <Hash className="mr-2 h-4 w-4" /> Código *
+              </Label>
+              {!medico && loadingCodigos && (
+                <div className="flex items-center text-xs text-gray-500">
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Generando códigos...
+                </div>
+              )}
+            </div>
+            {!medico ? (
+              <select
+                id="MEDICO"
+                name="MEDICO"
+                value={formData.MEDICO}
+                onChange={handleChange}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                required
+                disabled={loadingCodigos || codigosSugeridos.length === 0}
+              >
+                <option value="">Seleccionar código...</option>
+                {codigosSugeridos.map((codigo) => (
+                  <option key={codigo} value={codigo}>
+                    {codigo}
+                  </option>
                 ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Departamento/Servicio Selector */}
-      <div className="space-y-2">
-        <Label>Departamento/Servicio *</Label>
-        <Popover open={consultorioOpen} onOpenChange={setConsultorioOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={consultorioOpen}
-              className="w-full justify-between"
-              disabled={loadingConsultorios || !formData.ESPECIALIDAD}
-            >
-              {formData.CONSULTORIO
-                ? consultorios.find((cons) => cons.Consultorio === formData.CONSULTORIO)?.Nombre || formData.CONSULTORIO
-                : "Seleccionar consultorio..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
-            <Command>
-              <CommandInput placeholder="Buscar consultorio..." />
-              <CommandEmpty>No se encontró consultorio.</CommandEmpty>
-              <CommandGroup>
-                {consultorios.map((consultorio) => (
-                  <CommandItem
-                    key={consultorio.Consultorio}
-                    onSelect={() => handleConsultorioSelect(consultorio.Consultorio)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        formData.CONSULTORIO === consultorio.Consultorio ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {consultorio.Consultorio} - {consultorio.Nombre}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Codigo HIS */}
-      <div className="space-y-2">
-        <Label htmlFor="CODHIS">Código HIS</Label>
-        <Input
-          id="CODHIS"
-          name="CODHIS"
-          value={formData.CODHIS}
-          onChange={handleChange}
-          placeholder="Ej: 10976872001"
-          maxLength={20}
-        />
-      </div>
-
-      {/* Condicion Laboral */}
-      <div className="space-y-2">
-        <Label htmlFor="CONTRATO">Condición Laboral *</Label>
-        <select
-          id="CONTRATO"
-          name="CONTRATO"
-          value={formData.CONTRATO}
-          onChange={handleChange}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          required
-        >
-          <option value="NINGUNO">NINGUNO</option>
-          <option value="CAS">CAS</option>
-          <option value="NOMBRADO">NOMBRADO</option>
-          <option value="TERCERO">TERCERO</option>
-        </select>
-      </div>
-
-      {/* Estado Activo */}
-      <div className="space-y-2">
-        <Label>Estado *</Label>
-        <div className="flex gap-4">
-          <Button
-            type="button"
-            variant={formData.ACTIVO === "1" ? "default" : "outline"}
-            onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "1" }))}
-            className={formData.ACTIVO === "1" ? "bg-green-600 hover:bg-green-700" : ""}
-          >
-            Activo
-          </Button>
-          <Button
-            type="button"
-            variant={formData.ACTIVO === "0" ? "default" : "outline"}
-            onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "0" }))}
-            className={formData.ACTIVO === "0" ? "bg-red-600 hover:bg-red-700" : ""}
-          >
-            Inactivo
-          </Button>
+              </select>
+            ) : (
+              <Input
+                id="MEDICO"
+                name="MEDICO"
+                value={formData.MEDICO}
+                disabled
+                className="bg-gray-100"
+              />
+            )}
+            {!medico && codigosSugeridos.length === 0 && !loadingCodigos && formData.NOMBRE && (
+              <p className="text-xs text-red-500">Ingrese apellidos y nombres para generar códigos sugeridos</p>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <Award className="mr-2 h-5 w-5" /> Información Profesional
+        </h3>
+        
+        {/* Abreviatura, Colegiatura y Colegiatura de Especialidad en 3 columnas */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="ABREVIATURA" className="flex items-center">
+              <BadgeCheck className="mr-2 h-4 w-4" /> Abreviatura *
+            </Label>
+            <select
+              id="ABREVIATURA"
+              name="ABREVIATURA"
+              value={formData.ABREVIATURA}
+              onChange={handleChange}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              required
+            >
+              <option value="MED">MED</option>
+              <option value="ENF">ENF</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="COLEGIO" className="flex items-center">
+              <BookOpen className="mr-2 h-4 w-4" /> Colegiatura *
+            </Label>
+            <Input
+              id="COLEGIO"
+              name="COLEGIO"
+              value={formData.COLEGIO}
+              onChange={handleChange}
+              placeholder="Ej: 15072"
+              maxLength={20}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="COLESP" className="flex items-center">
+              <Stethoscope className="mr-2 h-4 w-4" /> Col. Especialidad
+            </Label>
+            <Input
+              id="COLESP"
+              name="COLESP"
+              value={formData.COLESP}
+              onChange={handleChange}
+              placeholder="Ej: 787878"
+              maxLength={20}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <Stethoscope className="mr-2 h-5 w-5" /> Especialidad y Área
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Especialidad Actual Selector */}
+          <div className="space-y-2">
+            <Label className="flex items-center">
+              <Award className="mr-2 h-4 w-4" /> Especialidad Actual *
+            </Label>
+            <Popover open={especialidadOpen} onOpenChange={setEspecialidadOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={especialidadOpen}
+                  className="w-full justify-between"
+                  disabled={loadingEspecialidades}
+                >
+                  {loadingEspecialidades ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cargando...
+                    </>
+                  ) : formData.ESPECIALIDAD ? (
+                    especialidades.find((esp) => esp.Codigo === formData.ESPECIALIDAD)?.Nombre || formData.ESPECIALIDAD
+                  ) : (
+                    "Seleccionar especialidad..."
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Buscar especialidad..." />
+                  <CommandEmpty>No se encontró especialidad.</CommandEmpty>
+                  <CommandGroup>
+                    {especialidades.map((especialidad) => (
+                      <CommandItem
+                        key={especialidad.Codigo}
+                        onSelect={() => handleEspecialidadSelect(especialidad.Codigo)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            formData.ESPECIALIDAD === especialidad.Codigo ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {especialidad.Codigo} - {especialidad.Nombre}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Departamento/Servicio Selector */}
+          <div className="space-y-2">
+            <Label className="flex items-center">
+              <Building className="mr-2 h-4 w-4" /> Departamento/Servicio *
+            </Label>
+            <Popover open={consultorioOpen} onOpenChange={setConsultorioOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={consultorioOpen}
+                  className="w-full justify-between"
+                  disabled={loadingConsultorios || !formData.ESPECIALIDAD}
+                >
+                  {loadingConsultorios ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cargando...
+                    </>
+                  ) : formData.CONSULTORIO ? (
+                    consultorios.find((cons) => cons.Consultorio === formData.CONSULTORIO)?.Nombre || formData.CONSULTORIO
+                  ) : (
+                    "Seleccionar consultorio..."
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Buscar consultorio..." />
+                  <CommandEmpty>No se encontró consultorio.</CommandEmpty>
+                  <CommandGroup>
+                    {consultorios.map((consultorio) => (
+                      <CommandItem
+                        key={consultorio.Consultorio}
+                        onSelect={() => handleConsultorioSelect(consultorio.Consultorio)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            formData.CONSULTORIO === consultorio.Consultorio ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {consultorio.Consultorio} - {consultorio.Nombre}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <Briefcase className="mr-2 h-5 w-5" /> Información Laboral
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Codigo HIS */}
+          <div className="space-y-2">
+            <Label htmlFor="CODHIS" className="flex items-center">
+              <Hash className="mr-2 h-4 w-4" /> Código HIS
+            </Label>
+            <Input
+              id="CODHIS"
+              name="CODHIS"
+              value={formData.CODHIS}
+              onChange={handleChange}
+              placeholder="Ej: 10976872001"
+              maxLength={20}
+            />
+          </div>
+
+          {/* Condicion Laboral */}
+          <div className="space-y-2">
+            <Label htmlFor="CONTRATO" className="flex items-center">
+              <Briefcase className="mr-2 h-4 w-4" /> Condición Laboral *
+            </Label>
+            <select
+              id="CONTRATO"
+              name="CONTRATO"
+              value={formData.CONTRATO}
+              onChange={handleChange}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              required
+            >
+              <option value="NINGUNO">NINGUNO</option>
+              <option value="CAS">CAS</option>
+              <option value="NOMBRADO">NOMBRADO</option>
+              <option value="TERCERO">TERCERO</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* Estado Activo */}
+        <div className="space-y-2 mt-4">
+          <Label className="flex items-center">
+            <UserCheck className="mr-2 h-4 w-4" /> Estado *
+          </Label>
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant={formData.ACTIVO === "1" ? "default" : "outline"}
+              onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "1" }))}
+              className="flex items-center"
+            >
+              <Check className="mr-2 h-4 w-4" /> Activo
+            </Button>
+            <Button
+              type="button"
+              variant={formData.ACTIVO === "0" ? "default" : "outline"}
+              onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "0" }))}
+              className="flex items-center"
+            >
+              <User className="mr-2 h-4 w-4" /> Inactivo
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex items-center">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="flex items-center">
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Guardando...
             </>
           ) : medico ? (
-            "Actualizar"
+            <>
+              <Check className="mr-2 h-4 w-4" /> Actualizar
+            </>
           ) : (
-            "Crear"
+            <>
+              <Check className="mr-2 h-4 w-4" /> Crear
+            </>
           )}
         </Button>
       </div>

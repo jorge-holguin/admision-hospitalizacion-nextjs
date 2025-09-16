@@ -3,20 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
-import { Spinner } from "@/components/ui/spinner"
+
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { Button } from "@/components/ui/button"
-import { Loader2, Save } from "lucide-react"
 import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter'
-import { printMultiplePdfsViaDirectApi, printMergedPDF } from '@/utils/pdfUtils'
+import { printMultiplePdfsViaDirectApi } from '@/utils/pdfUtils'
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
 import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
 import { datetimeService } from '@/services/datetimeService'
 import { usePatient } from '@/contexts/PatientContext'
-
-// Componentes reutilizables
-import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico'
 
 // Componentes modulares refactorizados
 import { PatientSection } from './PatientSection'
@@ -69,9 +64,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
   // Estos handlers se definen más abajo
   
   // Estado para el origen de hospitalización
-  const [origenes, setOrigenes] = useState<OrigenHospitalizacion[]>([])
-  const [loadingOrigenes, setLoadingOrigenes] = useState(false)
-  const [searchOrigin, setSearchOrigin] = useState('')
+
   const [selectedOrigin, setSelectedOrigin] = useState<OrigenHospitalizacion | null>(null)
   const [showAllOrigins, setShowAllOrigins] = useState(false)
   

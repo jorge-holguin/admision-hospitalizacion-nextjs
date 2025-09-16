@@ -4,31 +4,18 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
 import { usePatientAccount } from "@/contexts/PatientAccountContext";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Search, ChevronDown, ChevronUp, Save, Trash2, X, Loader2, AlertCircle } from "lucide-react";
+import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { FormActionsEmergency } from "../register/FormActionsEmergency";
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
 import { AdditionalViewFieldsSection } from './AdditionalViewFieldsSection'
 import { FormHeaderEmergency } from '../register/FormHeaderEmergency'
-import { validateEmergencyForm } from '../register/FormValidatorEmergency'
 import { Card, CardContent } from '@/components/ui/card'
 
 interface OptionItem {

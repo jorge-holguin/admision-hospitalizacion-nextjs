@@ -67,7 +67,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
   const display = useMemo(() => {
     if (value === "all" || !value) return "Seleccionar médico..."
     const found = items.find(m => m.MEDICO === value)
-    return found ? buildNombre(found) : value
+    return found ? `${found.MEDICO} - ${buildNombre(found)}` : value
   }, [value, items])
 
   return (
@@ -107,20 +107,26 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
                   Todos los médicos
                 </CommandItem>
                 {items
-                  .filter((m) => buildNombre(m).toLowerCase().includes(search.toLowerCase()))
+                  .filter((m) => {
+                    const nombre = buildNombre(m)
+                    const codigo = m.MEDICO || ''
+                    return nombre.toLowerCase().includes(search.toLowerCase()) || 
+                           codigo.toLowerCase().includes(search.toLowerCase())
+                  })
                   .map((m, idx) => {
                     const nombre = buildNombre(m)
+                    const codigo = m.MEDICO || ''
                     return (
                       <CommandItem
-                        key={`${nombre}-${idx}`}
-                        value={nombre}
+                        key={`${codigo}-${idx}`}
+                        value={`${codigo} ${nombre}`}
                         onSelect={() => {
-                          onChange(m.MEDICO || '') // Enviar el código en lugar del nombre
+                          onChange(codigo) // Enviar el código en lugar del nombre
                           setOpen(false)
                         }}
                       >
-                        <Check className={`mr-2 h-4 w-4 ${value === m.MEDICO ? "opacity-100" : "opacity-0"}`} />
-                        {nombre}
+                        <Check className={`mr-2 h-4 w-4 ${value === codigo ? "opacity-100" : "opacity-0"}`} />
+                        {codigo} - {nombre}
                       </CommandItem>
                     )
                   })}

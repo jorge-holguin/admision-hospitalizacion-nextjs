@@ -25,7 +25,7 @@ interface Patient {
 interface PatientSearchModalProps {
   isOpen: boolean
   onClose: () => void
-  onPatientSelect: (patient: Patient) => void
+  onPatientSelect: (patient: Patient, searchType: 'document' | 'name') => void
 }
 
 export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: PatientSearchModalProps) {
@@ -34,6 +34,65 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
   const [patients, setPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  
+  // Función para formatear fechas en formato YYYY-MM-DD a DD/MM/YYYY
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '-';
+    
+    try {
+      // Caso 1: Formato "1983-02-16 00:00:00.0" (YYYY-MM-DD HH:MM:SS.S)
+      if (dateString.includes('-') && dateString.includes('00:00:00.0')) {
+        const parts = dateString.split(' ')[0].split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          return `${day}/${month}/${year}`;
+        }
+      }
+      
+      // Caso 2: Formato "16 00:00:00.0/02/1983" (DD HH:MM:SS.S/MM/YYYY)
+      if (dateString.includes('00:00:00.0') && dateString.includes('/')) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+          // Extraer el día del primer segmento
+          const dayPart = parts[0].trim();
+          const day = dayPart.split(' ')[0].trim().padStart(2, '0');
+          const month = parts[1].trim().padStart(2, '0');
+          const year = parts[2].trim();
+          return `${day}/${month}/${year}`;
+        }
+      }
+      
+      // Caso 3: Fecha ya en formato DD/MM/YYYY
+      if (dateString.includes('/') && !dateString.includes('00:00:00.0')) {
+        return dateString;
+      }
+      
+      // Caso 4: Formato YYYY-MM-DD
+      if (dateString.includes('-') && !dateString.includes(' ')) {
+        const [year, month, day] = dateString.split('-');
+        if (year && month && day) {
+          return `${day}/${month}/${year}`;
+        }
+      }
+      
+      // Caso 5: Cualquier otro formato de fecha/hora
+      if (dateString.includes(':') || dateString.includes('-')) {
+        try {
+          const date = new Date(dateString);
+          if (!isNaN(date.getTime())) {
+            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+          }
+        } catch (e) {
+          console.error('Error parsing date:', e);
+        }
+      }
+      
+      return dateString;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateString;
+    }
+  }
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return
@@ -155,7 +214,6 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
                         <TableHead>Historia</TableHead>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Sexo</TableHead>
-                        <TableHead>Documento</TableHead>
                         <TableHead>Fecha Nac.</TableHead>
                         <TableHead>Dirección</TableHead>
                         <TableHead>Distrito</TableHead>
@@ -172,14 +230,13 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
                               {patient.SEXO}
                             </Badge>
                           </TableCell>
-                          <TableCell>{patient.DOCUMENTO}</TableCell>
-                          <TableCell>{patient.FECHA_NACIMIENTO}</TableCell>
+                          <TableCell>{formatDate(patient.FECHA_NACIMIENTO)}</TableCell>
                           <TableCell className="max-w-xs truncate">{patient.DIRECCION}</TableCell>
                           <TableCell>{patient.DISTRITO || patient.Distrito_Dir || '-'}</TableCell>
                           <TableCell>
                             <Button
                               size="sm"
-                              onClick={() => onPatientSelect(patient)}
+                              onClick={() => onPatientSelect(patient, searchType === 'documento' ? 'document' : 'name')}
                               className="bg-blue-600 hover:bg-blue-700"
                             >
                               Asignar

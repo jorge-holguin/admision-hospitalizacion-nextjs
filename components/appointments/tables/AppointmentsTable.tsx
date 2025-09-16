@@ -110,6 +110,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("reschedule", appointment)}
                       title="Reprogramar"
+                      disabled={Number(appointment.estado) !== 3}
                     >
                       <CalendarClock className="w-4 h-4" />
                     </Button>

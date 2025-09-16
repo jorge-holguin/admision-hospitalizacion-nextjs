@@ -1,103 +1,49 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
 import { User, Calendar, Phone, MapPin, CreditCard, Heart, House } from 'lucide-react';
-import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
 
-interface PatientInfoCardEmergencyProps {
-  patientId: string;
-  onDataLoaded?: (data: any) => void;
+interface Patient {
+  // Campos que vienen del servicio filiacion2Service
+  HISTORIA: string
+  NOMBRES: string
+  NOMBRE?: string
+  PATERNO?: string
+  MATERNO?: string
+  SEXO: string
+  DOCUMENTO: string
+  TIPO_DOCUMENTO?: string
+  FECHA_NACIMIENTO: string
+  EDAD?: string
+  ESTADO_CIVIL?: string
+  DIRECCION: string
+  DISTRITO: string
+  Distrito_Dir?: string
+  TELEFONO1?: string
+  TELEFONO2?: string
+  SEGURO?: string
+  NOMBRE_SEGURO?: string
+  RELIGION?: string
+  DESRELIGION?: string
+  Nombre_Localidad?: string
+  LOCALIDAD?: string
+  STRING_FOTO?: string
+  PACIENTE?: string
+}
+
+interface PatientInfoCardAppointmentProps {
+  patient: Patient;
   className?: string;
 }
 
-interface PatientData {
-  paciente: string;
-  nombres: string;
-  nombre: string;
-  historia: string;
-  apellidoPaterno: string;
-  apellidoMaterno: string;
-  documento: string;
-  tipoDocumento: string;
-  fechaNacimiento: string;
-  edad: string;
-  sexo: string;
-  estadoCivil: string;
-  direccion: string;
-  distrito: string;
-  distritoDir: string;
-  telefono1: string;
-  telefono2: string;
-  seguro: string;
-  descSeguro: string;
-  // Campos adicionales para emergencia
-  religion?: string;
-  descreligion?: string;
-  nombreLocalidad?: string;
-  localidad?: string;
-  nombreOcupacion?: string;
-  photo?: string; // Base64 encoded photo
-}
-
-export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> = ({
-  patientId,
-  onDataLoaded,
+export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProps> = ({
+  patient,
   className = ""
 }) => {
-  // Use the patient data context
-  const { getPatientData } = usePatientData();
-  const [patientData, setPatientData] = useState<PatientData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Use a ref to track if we've already loaded data for this patient ID
-  const hasLoadedRef = useRef<{[key: string]: boolean}>({});
-  
-  useEffect(() => {
-    // Only read from context - don't make API calls
-    // The parent component (EmergencyFormRefactored) is responsible for loading data
-    const existingData = getPatientData(patientId);
-    
-    if (existingData) {
-      setPatientData(existingData);
-      if (onDataLoaded && !hasLoadedRef.current[patientId]) {
-        onDataLoaded(existingData);
-        hasLoadedRef.current[patientId] = true;
-      }
-    }
-  }, [patientId, getPatientData, onDataLoaded]);  // Listen for context changes
-
-  if (isLoading) {
-    return (
-      <Card className={className}>
-        <CardContent className="pt-6">
-          <div className="flex justify-center items-center py-8">
-            <Spinner size="lg" />
-            <span className="ml-3">Cargando datos del paciente...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-
-  if (!patientData) {
-    return (
-      <Card className={className}>
-        <CardContent className="pt-6">
-          <Alert>
-            <AlertDescription>No se encontraron datos del paciente</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No especificado';
     try {
@@ -128,19 +74,47 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
     }
   };
 
+  const processPhotoData = (photoData: string): string => {
+    if (!photoData) return '';
+    
+    try {
+      // Remove any whitespace, newlines or other non-base64 characters
+      photoData = photoData.trim();
+      
+      // If it's already a data URL, keep it as is
+      if (!photoData.startsWith('data:')) {
+        // Check if it's a valid base64 string
+        try {
+          // Try to decode the first few characters to validate it's base64
+          const testSample = photoData.substring(0, 10);
+          atob(testSample);
+          
+          // If we got here, it's likely valid base64, so add the proper prefix
+          photoData = `data:image/jpeg;base64,${photoData}`;
+        } catch (e) {
+          console.error('Invalid base64 data received:', e);
+          return '';
+        }
+      }
+      
+      return photoData;
+    } catch (error) {
+      console.error('Error processing photo data:', error);
+      return '';
+    }
+  };
+
   return (
     <Card className={className}>
-      <CardHeader className="pb-3">
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4">
         {/* Foto del paciente - Centrada y más grande */}
         <div className="flex flex-col items-center space-y-4">
           {/* Foto del paciente */}
           <div className="relative w-32 h-40 flex-shrink-0">
-            {patientData.photo ? (
+            {patient.STRING_FOTO ? (
               <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm">
                 <ImageWithLoader 
-                  src={patientData.photo}
+                  src={processPhotoData(patient.STRING_FOTO)}
                   alt="Foto del paciente"
                   width={128}
                   height={160}
@@ -152,8 +126,6 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
                   style={{ objectFit: 'cover' }}
                   onError={(e) => {
                     console.error('Error loading patient image:', e);
-                    // Log the image source for debugging
-                    console.error('Failed image source:', patientData.photo ? patientData.photo.substring(0, 100) + '...' : 'undefined');
                     // Hide the image container on error
                     const target = e.target as HTMLImageElement;
                     const container = target.closest('.relative') as HTMLElement;
@@ -173,9 +145,9 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           {/* Información básica - Centrada */}
           <div className="text-center">
             <h3 className="font-semibold text-lg text-gray-900">
-              {`${patientData.nombres}`.trim()}
+              {patient.NOMBRES?.trim()}
             </h3>
-            <p className="text-sm text-gray-500">HC: {patientData.historia}</p>
+            <p className="text-sm text-gray-500">HC: {patient.HISTORIA}</p>
           </div>
         </div>
 
@@ -184,39 +156,38 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>DNI:</strong> {patientData.documento || 'No especificado'}
+              <strong>DNI:</strong> {patient.DOCUMENTO || 'No especificado'}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Nacimiento:</strong> {formatDate(patientData.fechaNacimiento)}
+              <strong>Nacimiento:</strong> {formatDate(patient.FECHA_NACIMIENTO)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Edad:</strong> {patientData.edad || 'No especificado'}
+              <strong>Edad:</strong> {patient.EDAD || 'No especificado'}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-400" />
+            <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
             </span>
-            <Badge className={getSexoBadgeColor(patientData.sexo)}>
-              {patientData.sexo === 'M' ? 'Masculino' : patientData.sexo === 'F' ? 'Femenino' : patientData.sexo}
+            <Badge className={getSexoBadgeColor(patient.SEXO)}>
+              {patient.SEXO === 'M' ? 'Masculino' : patient.SEXO === 'F' ? 'Femenino' : patient.SEXO}
             </Badge>
-
           </div>
 
           <div className="flex items-center gap-2">
             <Heart className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Estado Civil:</strong> {getCivilStatusDescription(patientData.estadoCivil)}
+              <strong>Estado Civil:</strong> {getCivilStatusDescription(patient.ESTADO_CIVIL)}
             </span>
           </div>
         </div>
@@ -228,25 +199,13 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
             <div className="flex items-center gap-2">
               <House className="h-4 w-4 text-gray-400" />
               <span className="text-sm">
-                {patientData.direccion || 'Dirección no especificada'}
+                {patient.DIRECCION || 'Dirección no especificada'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm">{patientData.distrito}</span>
-            </div>
-
-            {patientData.telefono1 && (
+            {patient.TELEFONO1 && (
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{patientData.telefono1}</span>
-              </div>
-            )}
-
-            {patientData.telefono2 && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{patientData.telefono2}</span>
+                <span className="text-sm">{patient.TELEFONO1}</span>
               </div>
             )}
           </div>
@@ -257,22 +216,12 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           <h4 className="font-medium text-sm text-gray-700 mb-2">Información Adicional</h4>
           <div className="space-y-2">
             <div className="text-sm">
-              <strong>Seguro:</strong> {patientData.descSeguro || 'No especificado'}
+              <strong>Seguro:</strong> {patient.NOMBRE_SEGURO || 'No especificado'}
             </div>
             
-            {patientData.religion && (
-              <div className="text-sm">
-                <strong>Religión:</strong> {patientData.descreligion}
-              </div>
-            )}
-            
-              <div className="text-sm">
-                <strong>Localidad:</strong> {patientData.nombreLocalidad}
-              </div>
-
             <div className="text-sm">
-                <strong>Distrito Actual:</strong> {patientData.distritoDir}
-              </div>
+              <strong>Distrito Nacimiento:</strong> {patient.Distrito_Dir}
+            </div>
           </div>
         </div>
       </CardContent>

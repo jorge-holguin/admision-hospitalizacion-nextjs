@@ -3,8 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search } from "lucide-react";
-import { useConsultorios } from "@/hooks/master-tables/useConsultorios";
+import { 
+  Loader2, 
+  Search, 
+  Hash, 
+  Building, 
+  FileText, 
+  Award, 
+  Tag, 
+  ListOrdered, 
+  ToggleLeft, 
+  ToggleRight, 
+  Check, 
+  X,
+  Stethoscope,
+  Settings
+} from "lucide-react";
+import { useOptimizedConsultorios } from "@/hooks/master-tables/useOptimizedConsultorios";
+import { useConsultorioById } from "@/hooks/master-tables/useConsultorioById";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +33,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 
 interface ConsultorioFormProps {
   consultorio?: any;
@@ -30,7 +47,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
   onSuccess,
 }) => {
   const { toast } = useToast();
-  const { createConsultorio, updateConsultorio } = useConsultorios();
+  const { createConsultorio, updateConsultorio, isLoading: apiLoading } = useOptimizedConsultorios();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     CONSULTORIO: "",
@@ -82,24 +99,29 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     loadData();
   }, []);
 
-  // Cargar datos si estamos editando
+  // Cargar datos si estamos editando - usando el ID directamente en lugar de pasar el objeto completo
   useEffect(() => {
-    if (consultorio) {
-      setFormData({
-        CONSULTORIO: consultorio.CONSULTORIO || "",
-        UPSTRAMA: consultorio.UPSTRAMA || "",
-        HIS_CODSERVICIO: consultorio.HIS_CODSERVICIO || "",
-        NOMBRE: consultorio.NOMBRE || "",
-        ABREVIATURA: consultorio.ABREVIATURA || "",
-        ESPECIALIDAD: consultorio.ESPECIALIDAD || "",
-        TIPO: consultorio.TIPO || "",
-        ORDEN: consultorio.ORDEN || "",
-        ROL: consultorio.ROL || "0",
-        MUESTRAROL: consultorio.MUESTRAROL || "0",
-        ACTIVO: consultorio.ACTIVO || "1",
-        NUMERO: consultorio.NUMERO || "",
-      });
-    }
+    const loadConsultorioData = async () => {
+      if (consultorio && consultorio.CONSULTORIO) {
+        // Si ya tenemos todos los datos del consultorio, usarlos directamente
+        setFormData({
+          CONSULTORIO: consultorio.CONSULTORIO || "",
+          UPSTRAMA: consultorio.upstrama || "",
+          HIS_CODSERVICIO: consultorio.HIS_CODSERVICIO || "",
+          NOMBRE: consultorio.NOMBRE || "",
+          ABREVIATURA: consultorio.ABREVIATURA || "",
+          ESPECIALIDAD: consultorio.ESPECIALIDAD || "",
+          TIPO: consultorio.TIPO || "",
+          ORDEN: consultorio.ORDEN || "",
+          ROL: consultorio.ROL || "0",
+          MUESTRAROL: consultorio.MUESTRAROL || "0",
+          ACTIVO: consultorio.ACTIVO || "1",
+          NUMERO: consultorio.NUMERO || "",
+        });
+      }
+    };
+    
+    loadConsultorioData();
   }, [consultorio]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -141,29 +163,44 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validar código único
-    if (!consultorio && codigoExists) {
-      toast({
-        title: "Error",
-        description: "El código ya existe. Por favor, ingrese un código único.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsLoading(true);
 
     try {
-      let result;
-      
-      if (consultorio) {
-        // Actualizar consultorio existente
-        result = await updateConsultorio(consultorio.CONSULTORIO, formData);
-      } else {
-        // Crear nuevo consultorio
-        result = await createConsultorio(formData);
+      // Validaciones
+      if (!formData.CONSULTORIO) {
+        toast({
+          title: "Error",
+          description: "El código del consultorio es obligatorio",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
       }
+
+      if (!formData.NOMBRE) {
+        toast({
+          title: "Error",
+          description: "El nombre del consultorio es obligatorio",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (codigoExists && !consultorio) {
+        toast({
+          title: "Error",
+          description: "El código del consultorio ya existe",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Enviar datos usando los hooks optimizados
+      const result = consultorio
+        ? await updateConsultorio(consultorio.CONSULTORIO, formData)
+        : await createConsultorio(formData);
 
       if (result.success) {
         toast({
@@ -176,15 +213,15 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
       } else {
         toast({
           title: "Error",
-          description: result.error || "No se pudo guardar el consultorio",
+          description: result.error || "Ha ocurrido un error",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error al guardar:", error);
+      console.error("Error:", error);
       toast({
         title: "Error",
-        description: "Ocurrió un error al guardar el consultorio",
+        description: "Ha ocurrido un error inesperado",
         variant: "destructive",
       });
     } finally {
@@ -203,243 +240,254 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="CONSULTORIO">Código *</Label>
-          <div className="relative">
-            <Input
-              id="CONSULTORIO"
-              name="CONSULTORIO"
-              value={formData.CONSULTORIO}
-              onChange={handleChange}
-              disabled={!!consultorio}
-              required
-              className={codigoExists ? "border-red-500" : ""}
-            />
-            {checkingCodigo && (
-              <div className="absolute right-2 top-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </div>
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <Hash className="mr-2 h-5 w-5" /> Información Básica
+        </h3>
+        
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="space-y-2">
+            <Label htmlFor="CONSULTORIO" className="flex items-center">
+              <Hash className="mr-2 h-4 w-4" /> Código *
+            </Label>
+            <div className="relative">
+              <Input
+                id="CONSULTORIO"
+                name="CONSULTORIO"
+                value={formData.CONSULTORIO}
+                onChange={handleChange}
+                disabled={!!consultorio}
+                required
+                className={codigoExists ? "border-red-500" : ""}
+              />
+              {checkingCodigo && (
+                <div className="absolute right-2 top-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              )}
+            </div>
+            {codigoExists && (
+              <p className="text-sm text-red-500">Este código ya existe</p>
             )}
           </div>
-          {codigoExists && (
-            <p className="text-sm text-red-500">Este código ya existe</p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="UPSTRAMA">Código UPS</Label>
-          <Input
-            id="UPSTRAMA"
-            name="UPSTRAMA"
-            value={formData.UPSTRAMA}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="HIS_CODSERVICIO">Código HIS</Label>
-        <Input
-          id="HIS_CODSERVICIO"
-          name="HIS_CODSERVICIO"
-          value={formData.HIS_CODSERVICIO}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="NOMBRE">Nombre *</Label>
-        <Input
-          id="NOMBRE"
-          name="NOMBRE"
-          value={formData.NOMBRE}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="ABREVIATURA">Abreviatura *</Label>
-          <Input
-            id="ABREVIATURA"
-            name="ABREVIATURA"
-            value={formData.ABREVIATURA}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Especialidad *</Label>
-          <Popover open={openEspecialidad} onOpenChange={setOpenEspecialidad}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={openEspecialidad}
-                className="w-full justify-between"
-              >
-                {formData.ESPECIALIDAD ? getEspecialidadName(formData.ESPECIALIDAD) : "Seleccionar especialidad..."}
-                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Buscar especialidad..." />
-                <CommandEmpty>No se encontraron especialidades.</CommandEmpty>
-                <CommandGroup>
-                  {especialidades.map((esp) => (
-                    <CommandItem
-                      key={esp.Especialidad}
-                      onSelect={() => handleEspecialidadSelect(esp)}
-                    >
-                      {esp.Especialidad} - {esp.Nombre}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Tipo *</Label>
-          <Popover open={openTipo} onOpenChange={setOpenTipo}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={openTipo}
-                className="w-full justify-between"
-              >
-                {formData.TIPO ? getTipoName(formData.TIPO) : "Seleccionar tipo..."}
-                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Buscar tipo..." />
-                <CommandEmpty>No se encontraron tipos.</CommandEmpty>
-                <CommandGroup>
-                  {tipos.map((tipo) => (
-                    <CommandItem
-                      key={tipo.Codigo}
-                      onSelect={() => handleTipoSelect(tipo)}
-                    >
-                      {tipo.Codigo} - {tipo.Nombre}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="ORDEN">Orden</Label>
-          <Input
-            id="ORDEN"
-            name="ORDEN"
-            type="number"
-            value={formData.ORDEN}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>Programa Rol</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={formData.ROL === "1" ? "default" : "outline"}
-              onClick={() => setFormData(prev => ({ ...prev, ROL: "1" }))}
-              className="flex-1"
-            >
-              Sí
-            </Button>
-            <Button
-              type="button"
-              variant={formData.ROL === "0" ? "default" : "outline"}
-              onClick={() => setFormData(prev => ({ ...prev, ROL: "0" }))}
-              className="flex-1"
-            >
-              No
-            </Button>
+          <div className="space-y-2">
+            <Label htmlFor="UPSTRAMA" className="flex items-center">
+              <Building className="mr-2 h-4 w-4" /> Código UPS
+            </Label>
+            <Input
+              id="UPSTRAMA"
+              name="UPSTRAMA"
+              value={formData.UPSTRAMA}
+              onChange={handleChange}
+              placeholder="223900"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="HIS_CODSERVICIO" className="flex items-center">
+              <Settings className="mr-2 h-4 w-4" /> Código HIS
+            </Label>
+            <Input
+              id="HIS_CODSERVICIO"
+              name="HIS_CODSERVICIO"
+              value={formData.HIS_CODSERVICIO}
+              onChange={handleChange}
+              placeholder="303008"
+            />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label>Muestra Rol</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={formData.MUESTRAROL === "1" ? "default" : "outline"}
-              onClick={() => setFormData(prev => ({ ...prev, MUESTRAROL: "1" }))}
-              className="flex-1"
-            >
-              Sí
-            </Button>
-            <Button
-              type="button"
-              variant={formData.MUESTRAROL === "0" ? "default" : "outline"}
-              onClick={() => setFormData(prev => ({ ...prev, MUESTRAROL: "0" }))}
-              className="flex-1"
-            >
-              No
-            </Button>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="NOMBRE" className="flex items-center">
+              <FileText className="mr-2 h-4 w-4" /> Nombre *
+            </Label>
+            <Input
+              id="NOMBRE"
+              name="NOMBRE"
+              value={formData.NOMBRE}
+              onChange={handleChange}
+              required
+            />
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label>Estado</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={formData.ACTIVO === "1" ? "default" : "outline"}
-              onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "1" }))}
-              className={`flex-1 ${formData.ACTIVO === "1" ? "bg-green-600 hover:bg-green-700" : ""}`}
-            >
-              Activo
-            </Button>
-            <Button
-              type="button"
-              variant={formData.ACTIVO === "0" ? "default" : "outline"}
-              onClick={() => setFormData(prev => ({ ...prev, ACTIVO: "0" }))}
-              className={`flex-1 ${formData.ACTIVO === "0" ? "bg-red-600 hover:bg-red-700" : ""}`}
-            >
-              Inactivo
-            </Button>
+          <div className="space-y-2">
+            <Label htmlFor="ABREVIATURA" className="flex items-center">
+              <Tag className="mr-2 h-4 w-4" /> Abreviatura *
+            </Label>
+            <Input
+              id="ABREVIATURA"
+              name="ABREVIATURA"
+              value={formData.ABREVIATURA}
+              onChange={handleChange}
+              required
+            />
           </div>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="NUMERO">Número</Label>
-        <Input
-          id="NUMERO"
-          name="NUMERO"
-          value={formData.NUMERO}
-          onChange={handleChange}
-        />
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+        <h3 className="text-lg font-medium mb-3 flex items-center">
+          <Stethoscope className="mr-2 h-5 w-5" /> Configuración Médica
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="space-y-2">
+            <Label className="flex items-center">
+              <Award className="mr-2 h-4 w-4" /> Especialidad *
+            </Label>
+            <Popover open={openEspecialidad} onOpenChange={setOpenEspecialidad}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openEspecialidad}
+                  className="w-full justify-between"
+                >
+                  {formData.ESPECIALIDAD ? getEspecialidadName(formData.ESPECIALIDAD) : "Seleccionar especialidad..."}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Buscar especialidad..." />
+                  <CommandEmpty>No se encontraron especialidades.</CommandEmpty>
+                  <CommandGroup>
+                    {especialidades.map((esp) => (
+                      <CommandItem
+                        key={esp.Especialidad}
+                        onSelect={() => handleEspecialidadSelect(esp)}
+                      >
+                        {esp.Especialidad} - {esp.Nombre}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center">
+              <Tag className="mr-2 h-4 w-4" /> Tipo *
+            </Label>
+            <Popover open={openTipo} onOpenChange={setOpenTipo}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openTipo}
+                  className="w-full justify-between"
+                >
+                  {formData.TIPO ? getTipoName(formData.TIPO) : "Seleccionar tipo..."}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Buscar tipo..." />
+                  <CommandEmpty>No se encontraron tipos.</CommandEmpty>
+                  <CommandGroup>
+                    {tipos.map((tipo) => (
+                      <CommandItem
+                        key={tipo.Codigo}
+                        onSelect={() => handleTipoSelect(tipo)}
+                      >
+                        {tipo.Codigo} - {tipo.Nombre}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="ORDEN" className="flex items-center">
+              <ListOrdered className="mr-2 h-4 w-4" /> Orden
+            </Label>
+            <Input
+              id="ORDEN"
+              name="ORDEN"
+              type="number"
+              value={formData.ORDEN}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="NUMERO" className="flex items-center">
+              <Hash className="mr-2 h-4 w-4" /> Número
+            </Label>
+            <Input
+              id="NUMERO"
+              name="NUMERO"
+              value={formData.NUMERO}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
       </div>
 
+      <div className="border border-gray-200 rounded-lg p-4 mb-4">
+  <h3 className="text-lg font-medium mb-3 flex items-center">
+    <Settings className="mr-2 h-5 w-5" /> Configuración de Estado
+  </h3>
+  
+  <div className="grid grid-cols-3 gap-4">
+    <div className="space-y-2">
+      <Label className="flex items-center justify-between">
+        <div className="flex items-center">
+          <ToggleLeft className="mr-2 h-4 w-4" /> Programa ROL
+        </div>
+        <ToggleSwitch 
+          checked={formData.ROL === "1"} 
+          onChange={(checked) => setFormData(prev => ({ ...prev, ROL: checked ? "1" : "0" }))}
+        />
+      </Label>
+    </div>
+    <div className="space-y-2">
+      <Label className="flex items-center justify-between">
+        <div className="flex items-center">
+          <ToggleRight className="mr-2 h-4 w-4" /> Muestra ROL
+        </div>
+        <ToggleSwitch 
+          checked={formData.MUESTRAROL === "1"} 
+          onChange={(checked) => setFormData(prev => ({ ...prev, MUESTRAROL: checked ? "1" : "0" }))}
+        />
+      </Label>
+    </div>
+    <div className="space-y-2">
+      <Label className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Settings className="mr-2 h-4 w-4" /> Estado
+        </div>
+        <ToggleSwitch 
+          checked={formData.ACTIVO === "1"} 
+          onChange={(checked) => setFormData(prev => ({ ...prev, ACTIVO: checked ? "1" : "0" }))}
+        />
+      </Label>
+    </div>
+  </div>
+</div>  
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex items-center">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="flex items-center">
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Guardando...
             </>
           ) : consultorio ? (
-            "Actualizar"
+            <>
+              <Check className="mr-2 h-4 w-4" /> Actualizar
+            </>
           ) : (
-            "Crear"
+            <>
+              <Check className="mr-2 h-4 w-4" /> Crear
+            </>
           )}
         </Button>
       </div>

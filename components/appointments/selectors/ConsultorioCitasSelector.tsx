@@ -52,7 +52,7 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
   const display = useMemo(() => {
     if (value === "all" || !value) return "Seleccionar consultorio..."
     const found = items.find(i => i.CONSULTORIO === value)
-    return found?.NOMBRE ?? value
+    return found ? `${found.CONSULTORIO} - ${found.NOMBRE}` : value
   }, [value, items])
 
   return (
@@ -95,14 +95,14 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
                   .map((c) => (
                   <CommandItem
                     key={`${c.CONSULTORIO}-${c.NOMBRE}`}
-                    value={c.NOMBRE}
+                    value={`${c.CONSULTORIO} ${c.NOMBRE}`}
                     onSelect={() => {
                       onChange(c.CONSULTORIO) // Enviar el código en lugar del nombre
                       setOpen(false)
                     }}
                   >
                     <Check className={`mr-2 h-4 w-4 ${value === c.CONSULTORIO ? "opacity-100" : "opacity-0"}`} />
-                    {c.NOMBRE}
+                    {c.CONSULTORIO} - {c.NOMBRE}
                   </CommandItem>
                 ))}
               </CommandGroup>

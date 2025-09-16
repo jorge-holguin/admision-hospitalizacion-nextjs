@@ -1,0 +1,748 @@
+{
+  "paths": {
+    "/api/hospitaliza/orden-hospitalizacion": {
+      "get": {
+        "tags": ["Hospitalización"],
+        "summary": "Obtener órdenes de hospitalización",
+        "description": "Retorna un listado paginado de órdenes de hospitalización",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número de página",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Tamaño de página",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Término de búsqueda (nombre, documento, historia)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "description": "Filtrar por estado",
+            "schema": {
+              "type": "string",
+              "enum": ["0", "1", "2"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de órdenes de hospitalización",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrdenHospitalizacionResumen"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Hospitalización"],
+        "summary": "Crear nueva orden de hospitalización",
+        "description": "Registra una nueva orden de hospitalización",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrdenHospitalizacionNueva"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Orden de hospitalización creada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ORDEN_ID": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/hospitaliza/orden-hospitalizacion/{id}": {
+      "get": {
+        "tags": ["Hospitalización"],
+        "summary": "Obtener detalles de una orden de hospitalización",
+        "description": "Retorna los detalles de una orden de hospitalización específica por su ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la orden de hospitalización",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalles de la orden de hospitalización",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrdenHospitalizacionDetalle"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Orden de hospitalización no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Hospitalización"],
+        "summary": "Actualizar orden de hospitalización",
+        "description": "Actualiza una orden de hospitalización existente",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la orden de hospitalización",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrdenHospitalizacionActualizar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Orden de hospitalización actualizada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "404": {
+            "description": "Orden de hospitalización no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Hospitalización"],
+        "summary": "Cancelar orden de hospitalización",
+        "description": "Cancela una orden de hospitalización (borrado lógico)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la orden de hospitalización",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orden de hospitalización cancelada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Orden de hospitalización no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/hospitaliza/origen-hospitalizacion/paciente/{pacienteId}": {
+      "get": {
+        "tags": ["Hospitalización"],
+        "summary": "Obtener orígenes de hospitalización de un paciente",
+        "description": "Retorna los orígenes de hospitalización asociados a un paciente específico",
+        "parameters": [
+          {
+            "name": "pacienteId",
+            "in": "path",
+            "required": true,
+            "description": "ID del paciente",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlyPending",
+            "in": "query",
+            "description": "Filtrar solo orígenes pendientes",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "origen",
+            "in": "query",
+            "description": "Filtrar por tipo de origen (CE: Consulta Externa, EM: Emergencia)",
+            "schema": {
+              "type": "string",
+              "enum": ["CE", "EM"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de orígenes de hospitalización del paciente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrigenHospitalizacion"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Paciente no encontrado"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/hospitaliza/camas": {
+      "get": {
+        "tags": ["Hospitalización"],
+        "summary": "Obtener disponibilidad de camas",
+        "description": "Retorna la disponibilidad de camas por servicio",
+        "parameters": [
+          {
+            "name": "servicio",
+            "in": "query",
+            "description": "Filtrar por servicio",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disponibilidad de camas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "servicios": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DisponibilidadCamas"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/hospitaliza/alta/{id}": {
+      "post": {
+        "tags": ["Hospitalización"],
+        "summary": "Registrar alta de hospitalización",
+        "description": "Registra el alta de un paciente hospitalizado",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la hospitalización",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AltaHospitalizacion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Alta registrada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "404": {
+            "description": "Hospitalización no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "OrdenHospitalizacionResumen": {
+        "type": "object",
+        "properties": {
+          "ORDEN_ID": {
+            "type": "string"
+          },
+          "PACIENTE": {
+            "type": "string"
+          },
+          "NOMBRES": {
+            "type": "string"
+          },
+          "DOCUMENTO": {
+            "type": "string"
+          },
+          "FECHA": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "CONSULTORIO": {
+            "type": "string"
+          },
+          "NOM_CONSULTORIO": {
+            "type": "string"
+          },
+          "MEDICO": {
+            "type": "string"
+          },
+          "NOM_MEDICO": {
+            "type": "string"
+          },
+          "ESTADO": {
+            "type": "string",
+            "enum": ["0", "1", "2"]
+          },
+          "ORIGEN": {
+            "type": "string",
+            "enum": ["CE", "EM"]
+          },
+          "ORIGEN_ID": {
+            "type": "string"
+          }
+        }
+      },
+      "OrdenHospitalizacionDetalle": {
+        "type": "object",
+        "properties": {
+          "ORDEN_ID": {
+            "type": "string"
+          },
+          "PACIENTE": {
+            "type": "string"
+          },
+          "NOMBRES": {
+            "type": "string"
+          },
+          "DOCUMENTO": {
+            "type": "string"
+          },
+          "TIPO_DOCUMENTO": {
+            "type": "string"
+          },
+          "FECHA": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "CONSULTORIO": {
+            "type": "string"
+          },
+          "NOM_CONSULTORIO": {
+            "type": "string"
+          },
+          "MEDICO": {
+            "type": "string"
+          },
+          "NOM_MEDICO": {
+            "type": "string"
+          },
+          "ESTADO": {
+            "type": "string",
+            "enum": ["0", "1", "2"]
+          },
+          "SEGURO": {
+            "type": "string"
+          },
+          "NOM_SEGURO": {
+            "type": "string"
+          },
+          "CUENTA_ID": {
+            "type": "string"
+          },
+          "FUA": {
+            "type": "string"
+          },
+          "DX": {
+            "type": "string"
+          },
+          "DX_DES": {
+            "type": "string"
+          },
+          "OBSERVACIONES": {
+            "type": "string"
+          },
+          "ORIGEN": {
+            "type": "string",
+            "enum": ["CE", "EM"]
+          },
+          "ORIGEN_ID": {
+            "type": "string"
+          },
+          "CAMA": {
+            "type": "string"
+          },
+          "SERVICIO": {
+            "type": "string"
+          }
+        }
+      },
+      "OrdenHospitalizacionNueva": {
+        "type": "object",
+        "required": ["PACIENTE", "CONSULTORIO", "SEGURO", "ORIGEN", "ORIGEN_ID"],
+        "properties": {
+          "PACIENTE": {
+            "type": "string",
+            "description": "ID del paciente"
+          },
+          "CONSULTORIO": {
+            "type": "string",
+            "description": "Código del consultorio"
+          },
+          "MEDICO": {
+            "type": "string",
+            "description": "Código del médico"
+          },
+          "SEGURO": {
+            "type": "string",
+            "description": "Código del seguro"
+          },
+          "DX": {
+            "type": "string",
+            "description": "Código de diagnóstico"
+          },
+          "DX_DES": {
+            "type": "string",
+            "description": "Descripción del diagnóstico"
+          },
+          "OBSERVACIONES": {
+            "type": "string",
+            "description": "Observaciones adicionales"
+          },
+          "ORIGEN": {
+            "type": "string",
+            "enum": ["CE", "EM"],
+            "description": "Origen de la hospitalización (CE: Consulta Externa, EM: Emergencia)"
+          },
+          "ORIGEN_ID": {
+            "type": "string",
+            "description": "ID del origen (ID de cita o emergencia)"
+          },
+          "SERVICIO": {
+            "type": "string",
+            "description": "Código del servicio de hospitalización"
+          },
+          "CAMA": {
+            "type": "string",
+            "description": "Código de la cama asignada"
+          }
+        }
+      },
+      "OrdenHospitalizacionActualizar": {
+        "type": "object",
+        "properties": {
+          "CONSULTORIO": {
+            "type": "string",
+            "description": "Código del consultorio"
+          },
+          "MEDICO": {
+            "type": "string",
+            "description": "Código del médico"
+          },
+          "SEGURO": {
+            "type": "string",
+            "description": "Código del seguro"
+          },
+          "DX": {
+            "type": "string",
+            "description": "Código de diagnóstico"
+          },
+          "DX_DES": {
+            "type": "string",
+            "description": "Descripción del diagnóstico"
+          },
+          "OBSERVACIONES": {
+            "type": "string",
+            "description": "Observaciones adicionales"
+          },
+          "ESTADO": {
+            "type": "string",
+            "enum": ["0", "1", "2"],
+            "description": "Estado de la orden (0: Cancelada, 1: Activa, 2: Finalizada)"
+          },
+          "SERVICIO": {
+            "type": "string",
+            "description": "Código del servicio de hospitalización"
+          },
+          "CAMA": {
+            "type": "string",
+            "description": "Código de la cama asignada"
+          }
+        }
+      },
+      "OrigenHospitalizacion": {
+        "type": "object",
+        "properties": {
+          "ORIGEN": {
+            "type": "string",
+            "enum": ["CE", "EM"]
+          },
+          "CODIGO": {
+            "type": "string"
+          },
+          "CONSULTORIO": {
+            "type": "string"
+          },
+          "NOM_CONSULTORIO": {
+            "type": "string"
+          },
+          "PACIENTE": {
+            "type": "string"
+          },
+          "FECHA": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "MEDICO": {
+            "type": "string"
+          },
+          "NOM_MEDICO": {
+            "type": "string"
+          },
+          "NOMBRES": {
+            "type": "string"
+          },
+          "DNI": {
+            "type": "string"
+          },
+          "ESTADO": {
+            "type": "string"
+          },
+          "DX": {
+            "type": "string"
+          },
+          "DX_DES": {
+            "type": "string"
+          },
+          "SEGURO": {
+            "type": "string"
+          }
+        }
+      },
+      "DisponibilidadCamas": {
+        "type": "object",
+        "properties": {
+          "SERVICIO": {
+            "type": "string"
+          },
+          "NOM_SERVICIO": {
+            "type": "string"
+          },
+          "TOTAL_CAMAS": {
+            "type": "integer"
+          },
+          "CAMAS_OCUPADAS": {
+            "type": "integer"
+          },
+          "CAMAS_DISPONIBLES": {
+            "type": "integer"
+          },
+          "CAMAS": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "CAMA_ID": {
+                  "type": "string"
+                },
+                "NUMERO": {
+                  "type": "string"
+                },
+                "ESTADO": {
+                  "type": "string",
+                  "enum": ["0", "1"]
+                },
+                "PACIENTE": {
+                  "type": "string"
+                },
+                "NOMBRES": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AltaHospitalizacion": {
+        "type": "object",
+        "required": ["FECHA_ALTA", "MOTIVO_ALTA"],
+        "properties": {
+          "FECHA_ALTA": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha y hora del alta"
+          },
+          "MOTIVO_ALTA": {
+            "type": "string",
+            "enum": ["1", "2", "3", "4", "5"],
+            "description": "Motivo del alta (1: Médica, 2: Voluntaria, 3: Traslado, 4: Defunción, 5: Otro)"
+          },
+          "OBSERVACIONES": {
+            "type": "string",
+            "description": "Observaciones adicionales"
+          },
+          "MEDICO": {
+            "type": "string",
+            "description": "Código del médico que autoriza el alta"
+          }
+        }
+      }
+    }
+  }
+}

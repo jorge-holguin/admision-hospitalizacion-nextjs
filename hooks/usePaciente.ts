@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { debounce } from 'lodash';
+
+// Simple debounce implementation to replace lodash
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
+}
 
 interface PacienteFilter {
   historia?: string;

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import EmergenciaForm from '@/components/emergency/EmergencyForm';
-import { Box, CircularProgress, Alert } from '@mui/material';
+import { EmergencyFormRefactored } from '@/components/emergency/register/EmergencyFormRefactored';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 interface EditEmergenciaPageProps {
   params: {
@@ -53,37 +55,47 @@ export default function EditEmergenciaPage({ params }: EditEmergenciaPageProps) 
   
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
+      <Card className="m-4">
+        <CardContent className="flex justify-center p-6">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
     );
   }
   
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      </Box>
+      <Card className="m-4">
+        <CardContent className="p-6">
+          <Alert className="mb-4">
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
   
   if (!emergencia || !pacienteId) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
-          No se encontró la emergencia solicitada o falta el ID del paciente.
-        </Alert>
-      </Box>
+      <Card className="m-4">
+        <CardContent className="p-6">
+          <Alert>
+            <AlertDescription>
+              No se encontró la emergencia solicitada o falta el ID del paciente.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
   
   return (
-    <EmergenciaForm 
-      pacienteId={pacienteId} 
-      emergenciaId={emergenciaId} 
-      initialData={emergencia} 
+    <EmergencyFormRefactored 
+      patientId={pacienteId} 
+      emergencyId={emergenciaId} 
+      emergencyData={emergencia} 
     />
   );
 }

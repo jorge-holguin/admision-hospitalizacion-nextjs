@@ -4,15 +4,12 @@ import { entidadSisService } from '@/services/citas/entidadSisService'
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = searchParams.get('limit')
-    const search = searchParams.get('search')
+    const limit = parseInt(searchParams.get('limit') || '10', 10) // default 10
+    const search = searchParams.get('search') || undefined
     
     console.log('API: Obteniendo entidades SIS', { limit, search })
     
-    const entidades = await entidadSisService.getEntidadesSis(
-      limit ? parseInt(limit) : undefined,
-      search || undefined
-    )
+    const entidades = await entidadSisService.getEntidadesSis(limit, search)
     
     return NextResponse.json({
       success: true,

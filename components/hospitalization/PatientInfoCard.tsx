@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { User, Calendar, Phone, MapPin, FileText, Activity, CreditCard, Heart, VenusAndMars, House, Home, Book } from 'lucide-react';
+import { User, Calendar, Phone, MapPin, FileText, Heart, VenusAndMars, House, Home, Book } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
 import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
@@ -397,7 +396,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             </div>
             
             <div className="text-sm">
-              <strong>Distrito Actual:</strong> {patientData.currentDistrict || 'No especificado'}
+              <strong>Distrito Nacimiento:</strong> {patientData.currentDistrict || 'No especificado'}
             </div>
           </div>
         </div>

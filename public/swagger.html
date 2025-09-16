@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - Sistema de Gestión Hospitalaria</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .swagger-ui .topbar {
+            background-color: #2C3E50;
+        }
+        .swagger-ui .info .title {
+            color: #2C3E50;
+        }
+        .swagger-ui .opblock.opblock-get {
+            border-color: #61affe;
+            background: rgba(97, 175, 254, 0.1);
+        }
+        .swagger-ui .opblock.opblock-post {
+            border-color: #49cc90;
+            background: rgba(73, 204, 144, 0.1);
+        }
+        .swagger-ui .opblock.opblock-put {
+            border-color: #fca130;
+            background: rgba(252, 161, 48, 0.1);
+        }
+        .swagger-ui .opblock.opblock-delete {
+            border-color: #f93e3e;
+            background: rgba(249, 62, 62, 0.1);
+        }
+        .custom-header {
+            background-color: #2C3E50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .custom-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .custom-header p {
+            margin: 5px 0 0;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>Sistema de Gestión Hospitalaria - Documentación API</h1>
+        <p>Versión 1.0.0</p>
+    </div>
+    
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui-bundle.js"></script>
+    <script src="/swagger-loader.js"></script>
+    <script>
+        window.onload = function() {
+            // Inicializar Swagger UI con la configuración base
+            window.ui = SwaggerUIBundle({
+                spec: {
+                    openapi: "3.0.0",
+                    info: {
+                        title: "Sistema de Gestión Hospitalaria API",
+                        version: "1.0.0",
+                        description: "Documentación completa de la API del Sistema de Gestión Hospitalaria, incluyendo módulos de citas, emergencias, hospitalización y tablas maestras."
+                    },
+                    servers: [
+                        {
+                            url: "http://192.168.0.18:3000",
+                            description: "Servidor de desarrollo"
+                        },
+                        {
+                            url: "http://localhost:3000",
+                            description: "Servidor local"
+                        }
+                    ],
+                    tags: [
+                        { name: "Citas", description: "Operaciones relacionadas con citas médicas" },
+                        { name: "Emergencias", description: "Operaciones relacionadas con atenciones de emergencia" },
+                        { name: "Hospitalización", description: "Operaciones relacionadas con hospitalizaciones" },
+                        { name: "Tablas Maestras", description: "Operaciones relacionadas con tablas maestras" },
+                        { name: "Cuentas", description: "Operaciones relacionadas con cuentas de pacientes" },
+                        { name: "Filiación", description: "Operaciones relacionadas con datos de filiación de pacientes" }
+                    ],
+                    paths: {}
+                },
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+                layout: "BaseLayout",
+                docExpansion: "none",
+                filter: true,
+                tagsSorter: "alpha",
+                operationsSorter: "alpha"
+            });
+            
+            // Cargar todas las definiciones de API
+            loadSwaggerDefinitions();
+        }
+    </script>
+</body>
+</html>

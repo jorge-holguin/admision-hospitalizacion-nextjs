@@ -1,0 +1,490 @@
+{
+  "paths": {
+    "/api/emergencia/active": {
+      "get": {
+        "tags": ["Emergencias"],
+        "summary": "Obtener emergencias activas",
+        "description": "Retorna un listado paginado de emergencias activas",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número de página",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Tamaño de página",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Término de búsqueda (nombre, documento, historia)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "consultorio",
+            "in": "query",
+            "description": "Filtrar por código de consultorio",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de emergencias activas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EmergenciaResumen"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/emergencia/patient/{patientId}": {
+      "get": {
+        "tags": ["Emergencias"],
+        "summary": "Obtener emergencias de un paciente",
+        "description": "Retorna las emergencias asociadas a un paciente específico",
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "description": "ID del paciente",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlyActive",
+            "in": "query",
+            "description": "Filtrar solo emergencias activas",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de emergencias del paciente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmergenciaResumen"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Paciente no encontrado"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/emergencia/{id}": {
+      "get": {
+        "tags": ["Emergencias"],
+        "summary": "Obtener detalles de una emergencia",
+        "description": "Retorna los detalles de una emergencia específica por su ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la emergencia",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalles de la emergencia",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergenciaDetalle"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Emergencia no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Emergencias"],
+        "summary": "Actualizar emergencia",
+        "description": "Actualiza una emergencia existente",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la emergencia",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmergenciaActualizar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Emergencia actualizada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "404": {
+            "description": "Emergencia no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Emergencias"],
+        "summary": "Cancelar emergencia",
+        "description": "Cancela una emergencia (borrado lógico)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la emergencia",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Emergencia cancelada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Emergencia no encontrada"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    },
+    "/api/emergencia": {
+      "post": {
+        "tags": ["Emergencias"],
+        "summary": "Crear nueva emergencia",
+        "description": "Registra una nueva atención de emergencia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmergenciaNueva"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Emergencia creada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "EMERGENCIA_ID": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "500": {
+            "description": "Error del servidor"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EmergenciaResumen": {
+        "type": "object",
+        "properties": {
+          "EMERGENCIA_ID": {
+            "type": "string"
+          },
+          "PACIENTE": {
+            "type": "string"
+          },
+          "NOMBRES": {
+            "type": "string"
+          },
+          "DOCUMENTO": {
+            "type": "string"
+          },
+          "FECHA": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "CONSULTORIO": {
+            "type": "string"
+          },
+          "NOM_CONSULTORIO": {
+            "type": "string"
+          },
+          "MEDICO": {
+            "type": "string"
+          },
+          "NOM_MEDICO": {
+            "type": "string"
+          },
+          "ESTADO": {
+            "type": "string",
+            "enum": ["0", "1", "2"]
+          },
+          "DX": {
+            "type": "string"
+          },
+          "DX_DES": {
+            "type": "string"
+          }
+        }
+      },
+      "EmergenciaDetalle": {
+        "type": "object",
+        "properties": {
+          "EMERGENCIA_ID": {
+            "type": "string"
+          },
+          "PACIENTE": {
+            "type": "string"
+          },
+          "NOMBRES": {
+            "type": "string"
+          },
+          "DOCUMENTO": {
+            "type": "string"
+          },
+          "TIPO_DOCUMENTO": {
+            "type": "string"
+          },
+          "FECHA": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "HORA": {
+            "type": "string"
+          },
+          "CONSULTORIO": {
+            "type": "string"
+          },
+          "NOM_CONSULTORIO": {
+            "type": "string"
+          },
+          "MEDICO": {
+            "type": "string"
+          },
+          "NOM_MEDICO": {
+            "type": "string"
+          },
+          "ESTADO": {
+            "type": "string",
+            "enum": ["0", "1", "2"]
+          },
+          "SEGURO": {
+            "type": "string"
+          },
+          "NOM_SEGURO": {
+            "type": "string"
+          },
+          "CUENTA_ID": {
+            "type": "string"
+          },
+          "FUA": {
+            "type": "string"
+          },
+          "DX": {
+            "type": "string"
+          },
+          "DX_DES": {
+            "type": "string"
+          },
+          "OBSERVACIONES": {
+            "type": "string"
+          }
+        }
+      },
+      "EmergenciaNueva": {
+        "type": "object",
+        "required": ["PACIENTE", "CONSULTORIO", "SEGURO"],
+        "properties": {
+          "PACIENTE": {
+            "type": "string",
+            "description": "ID del paciente"
+          },
+          "CONSULTORIO": {
+            "type": "string",
+            "description": "Código del consultorio"
+          },
+          "MEDICO": {
+            "type": "string",
+            "description": "Código del médico"
+          },
+          "SEGURO": {
+            "type": "string",
+            "description": "Código del seguro"
+          },
+          "DX": {
+            "type": "string",
+            "description": "Código de diagnóstico"
+          },
+          "DX_DES": {
+            "type": "string",
+            "description": "Descripción del diagnóstico"
+          },
+          "OBSERVACIONES": {
+            "type": "string",
+            "description": "Observaciones adicionales"
+          }
+        }
+      },
+      "EmergenciaActualizar": {
+        "type": "object",
+        "properties": {
+          "CONSULTORIO": {
+            "type": "string",
+            "description": "Código del consultorio"
+          },
+          "MEDICO": {
+            "type": "string",
+            "description": "Código del médico"
+          },
+          "SEGURO": {
+            "type": "string",
+            "description": "Código del seguro"
+          },
+          "DX": {
+            "type": "string",
+            "description": "Código de diagnóstico"
+          },
+          "DX_DES": {
+            "type": "string",
+            "description": "Descripción del diagnóstico"
+          },
+          "OBSERVACIONES": {
+            "type": "string",
+            "description": "Observaciones adicionales"
+          },
+          "ESTADO": {
+            "type": "string",
+            "enum": ["0", "1", "2"],
+            "description": "Estado de la emergencia (0: Cancelada, 1: Activa, 2: Finalizada)"
+          }
+        }
+      }
+    }
+  }
+}
