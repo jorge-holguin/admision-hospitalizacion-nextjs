@@ -3,7 +3,7 @@
 import React, { useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Unlock, CalendarClock, UserPlus, Eye } from "lucide-react"
+import { Unlock, CalendarClock, UserPlus, Eye, RefreshCw } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useMedicos } from "@/contexts/MedicosContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
@@ -23,13 +23,15 @@ export interface AppointmentRow {
   fechaProgramada?: string | null
   usuario?: string
   fechaPago?: string | null
+  pagoId?: string | null
+  PAGOID?: string | null
   [key: string]: any
 }
 
 interface AppointmentsTableProps {
   appointments: AppointmentRow[]
   getEstadoBadge: (estado: number) => React.ReactNode
-  onAction: (action: "release" | "reschedule" | "assign" | "details", appointment: AppointmentRow) => void
+  onAction: (action: "release" | "reschedule" | "assign" | "details" | "reassign", appointment: AppointmentRow) => void
 }
 
 export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: AppointmentsTableProps) {
@@ -110,7 +112,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("reschedule", appointment)}
                       title="Reprogramar"
-                      disabled={Number(appointment.estado) !== 3}
+                      disabled={Number(appointment.estado) !== 3 || !(appointment.pagoId || appointment.PAGOID || (appointment as any).pagoId || (appointment as any).PAGOID)}
                     >
                       <CalendarClock className="w-4 h-4" />
                     </Button>
@@ -175,7 +177,15 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 >
                   Liberar
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => onAction("reschedule", appointment)} className="text-xs">Reprogramar</Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => onAction("reschedule", appointment)} 
+                  className="text-xs"
+                  disabled={Number(appointment.estado) !== 3 || !(appointment.pagoId || appointment.PAGOID || (appointment as any).pagoId || (appointment as any).PAGOID)}
+                >
+                  Reprogramar
+                </Button>
                 <Button 
                   size="sm" 
                   variant="outline" 

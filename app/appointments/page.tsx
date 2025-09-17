@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
@@ -18,17 +18,20 @@ import {
   CalendarClock, 
   UserPlus, 
   Eye, 
+  RefreshCw, 
+  Plus, 
   Search, 
-  Filter, 
-  Clock, 
-  Check, 
+  Calendar, 
+  House,
+  History,
+  Filter,
   ChevronsUpDown, 
-  X, 
-  House 
+  X
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SeguroProvider } from "@/contexts/SeguroContext"
+import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 
 // Import all components from the appointments module
 import {
@@ -41,7 +44,11 @@ import {
   ShiftFilter,
   PatientSearchModal,
   PatientAssignmentModal,
-  AppointmentDetailsModal
+  AppointmentDetailsModal,
+  MedicoReassignmentModal,
+  AdditionalAppointmentModal,
+  RescheduleAppointmentModal,
+  AppointmentHistoryModal
 } from "@/components/appointments"
 
   // Lista vacía para almacenar citas
@@ -72,9 +79,14 @@ import {
     const [showRescheduleModal, setShowRescheduleModal] = useState(false)
     const [showReleaseModal, setShowReleaseModal] = useState(false)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
+    const [showReassignModal, setShowReassignModal] = useState(false)
+    const [showAdditionalAppointmentModal, setShowAdditionalAppointmentModal] = useState(false)
+    const [showAdditionalPatientSearchModal, setShowAdditionalPatientSearchModal] = useState(false)
+    const [selectedPatientForAdditional, setSelectedPatientForAdditional] = useState<any>(null)
+    const [showHistoryModal, setShowHistoryModal] = useState(false)
 
     // Parámetros de paginación para búsqueda remota
-    const [pageParam, setPageParam] = useState<number>(1)
+    const [pageParam, setPageParam] = useState<number>(0)
     const [sizeParam, setSizeParam] = useState<number>(10)
     const [totalCount, setTotalCount] = useState<number>(0)
     const [lastRemote, setLastRemote] = useState<boolean>(false)
@@ -109,6 +121,7 @@ import {
           }
         }
         
+        // Backend API usa paginación basada en 0
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
@@ -264,12 +277,16 @@ import {
         case "details":
           setShowDetailsModal(true)
           break
+        case "reassign":
+          console.log('🔄 Abriendo modal de reasignación con appointment:', appointment)
+          setShowReassignModal(true)
+          break
       }
     }
     
     const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
       setFilters({ ...filters, turno: shift })
-      setPageParam(1) // Reset to page 1 when filter changes
+      setPageParam(0) // Reset to page 0 when filter changes
     }
 
     // Cargar citas del día actual al iniciar y cuando cambien los filtros
@@ -301,8 +318,8 @@ import {
     
             {/* Main Content */}
             <main className="container mx-auto px-6 py-8">
-              {/* Botón para volver al dashboard */}
-              <div className="mb-6">
+              {/* Header con botones de acción */}
+              <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start">
                 <Button 
                   variant="destructive" 
                   size="lg"
@@ -312,6 +329,40 @@ import {
                   <House className="mr-2 h-4 w-4" />
                   Dashboard
                 </Button>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="font-semibold border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => setShowReassignModal(true)}
+                    title="Reasignar médico por turno y consultorio"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reasignar Médico
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="font-semibold border-purple-300 text-purple-700 hover:bg-purple-50"
+                    onClick={() => setShowHistoryModal(true)}
+                    title="Ver historial de citas"
+                  >
+                    <History className="mr-2 h-4 w-4" />
+                    Historial
+                  </Button>
+                  
+                  <Button
+                    variant="default"
+                    size="lg"
+                    className="font-semibold bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => setShowAdditionalPatientSearchModal(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Cita Adicional
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Calendario (25%) */}
@@ -334,6 +385,22 @@ import {
                       </div>
                     </CardContent>
                   </Card>
+                  <Card className="shadow-lg border-0">
+
+
+                    {/* Botón Horario de Médicos */}
+                <div className="p-4 border-t flex justify-center">
+                  <a
+                    href="https://www.hospitalchosica.gob.pe/horario-profesional/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                  >
+                    Horario de Médicos
+                  </a>
+                </div>
+                                    </Card>
+
                 </div>
     
                 {/* Tabla (75%) */}
@@ -415,7 +482,7 @@ import {
                           value={filters.estado}
                           onChange={(val: string | "all") => {
                             setFilters({ ...filters, estado: val })
-                            setPageParam(1) // Reset to page 1 when filter changes
+                            setPageParam(0) // Reset to page 0 when filter changes
                           }}
                           className="space-y-2"
                           options={ESTADO_OPTIONS}
@@ -426,7 +493,7 @@ import {
                           value={filters.consultorio}
                           onChange={(val: string | "all") => {
                             setFilters({ ...filters, consultorio: val })
-                            setPageParam(1) // Reset to page 1 when filter changes
+                            setPageParam(0) // Reset to page 0 when filter changes
                           }}
                           className="space-y-2"
                         />
@@ -436,7 +503,7 @@ import {
                           value={filters.medico}
                           onChange={(val: string | "all") => {
                             setFilters({ ...filters, medico: val })
-                            setPageParam(1) // Reset to page 1 when filter changes
+                            setPageParam(0) // Reset to page 0 when filter changes
                           }}
                           className="mt-1"
                         />
@@ -444,7 +511,7 @@ import {
     
                       {/* Tabla de citas */}
                       {(() => {
-                        const start = (pageParam - 1) * sizeParam
+                        const start = pageParam * sizeParam
                         const end = start + sizeParam
                         const pageItems = lastRemote
                           ? filteredAppointments
@@ -463,7 +530,7 @@ import {
                         <div className="text-sm text-gray-600">
                           Mostrando{" "}
                           {Math.min(
-                            (pageParam - 1) * sizeParam + 1,
+                            pageParam * sizeParam + 1,
                             Math.max(totalCount, 0)
                           )}
                           -
@@ -477,12 +544,12 @@ import {
                                 href="#"
                                 onClick={(e) => {
                                   e.preventDefault()
-                                  if (pageParam <= 1) return
-                                  const newPage = Math.max(1, pageParam - 1)
+                                  if (pageParam <= 0) return
+                                  const newPage = Math.max(0, pageParam - 1)
                                   setPageParam(newPage)
                                   // API call will be triggered by useEffect when pageParam changes
                                 }}
-                                aria-disabled={pageParam <= 1}
+                                aria-disabled={pageParam <= 0}
                               />
                             </PaginationItem>
                             <PaginationItem>
@@ -572,29 +639,17 @@ import {
             />
 
             {/* Reschedule Modal */}
-            <Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-blue-800 font-semibold">Reprogramar Cita</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-semibold">Nueva Fecha</Label>
-                    <Input type="date" className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold">Nueva Hora</Label>
-                    <Input type="time" className="mt-1" />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setShowRescheduleModal(false)}>
-                      Cancelar
-                    </Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700">Reprogramar</Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <RescheduleAppointmentModal
+              isOpen={showRescheduleModal}
+              onClose={() => setShowRescheduleModal(false)}
+              appointment={selectedAppointment}
+              onConfirm={async (data) => {
+                console.log('Reprogramando cita:', data)
+                // TODO: Implement API call for appointment rescheduling
+                // For now, just close the modal
+                setShowRescheduleModal(false)
+              }}
+            />
 
             {/* Release Modal */}
             <Dialog open={showReleaseModal} onOpenChange={setShowReleaseModal}>
@@ -625,6 +680,51 @@ import {
               onClose={() => setShowDetailsModal(false)}
               appointment={selectedAppointment}
               getEstadoBadge={getEstadoBadge}
+            />
+
+            {/* Medico Reassignment Modal */}
+            <MedicoReassignmentModal
+              isOpen={showReassignModal}
+              onClose={() => setShowReassignModal(false)}
+              appointment={null}
+              onConfirm={async (data) => {
+                console.log('Reasignando médico:', data)
+                // TODO: Implement API call for medico reassignment
+                // For now, just close the modal
+                setShowReassignModal(false)
+              }}
+            />
+
+            {/* Additional Patient Search Modal */}
+            <PatientSearchModal
+              isOpen={showAdditionalPatientSearchModal}
+              onClose={() => setShowAdditionalPatientSearchModal(false)}
+              onPatientSelect={(patient, searchType) => {
+                console.log('🔍 Paciente seleccionado para cita adicional:', patient)
+                setSelectedPatientForAdditional(patient)
+                setShowAdditionalPatientSearchModal(false)
+                setShowAdditionalAppointmentModal(true)
+              }}
+            />
+
+            {/* Additional Appointment Modal */}
+            <AdditionalAppointmentModal
+              isOpen={showAdditionalAppointmentModal}
+              onClose={() => {
+                setShowAdditionalAppointmentModal(false)
+                setSelectedPatientForAdditional(null)
+              }}
+              onBack={() => {
+                setShowAdditionalAppointmentModal(false)
+                setShowAdditionalPatientSearchModal(true)
+              }}
+              patient={selectedPatientForAdditional}
+            />
+
+            {/* Appointment History Modal */}
+            <AppointmentHistoryModal
+              isOpen={showHistoryModal}
+              onClose={() => setShowHistoryModal(false)}
             />
           </div>
         </SeguroProvider>
