@@ -12,6 +12,7 @@ import { usePatientData } from '@/contexts/PatientDataContext';
 
 interface PatientInfoCardEmergencyProps {
   patientId: string;
+  patient?: any; // Datos del paciente ya cargados
   onDataLoaded?: (data: any) => void;
   className?: string;
 }
@@ -44,10 +45,12 @@ interface PatientData {
   localidad?: string;
   nombreOcupacion?: string;
   photo?: string; // Base64 encoded photo
+  [key: string]: any; // Para permitir propiedades adicionales
 }
 
 export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> = ({
   patientId,
+  patient,
   onDataLoaded,
   className = ""
 }) => {
@@ -60,8 +63,47 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
   const hasLoadedRef = useRef<{[key: string]: boolean}>({});
   
   useEffect(() => {
-    // Only read from context - don't make API calls
-    // The parent component (EmergencyFormRefactored) is responsible for loading data
+    // Si ya tenemos los datos del paciente como prop, usarlos directamente
+    if (patient) {
+      // Adaptar los datos del paciente al formato esperado
+      const adaptedData: PatientData = {
+        paciente: patient.PACIENTE || patient.paciente || '',
+        nombres: patient.NOMBRES || patient.nombres || '',
+        nombre: patient.NOMBRE || patient.nombre || '',
+        historia: patient.HISTORIA || patient.historia || '',
+        apellidoPaterno: patient.PATERNO || patient.APELLIDO_PATERNO || patient.apellidoPaterno || '',
+        apellidoMaterno: patient.MATERNO || patient.APELLIDO_MATERNO || patient.apellidoMaterno || '',
+        documento: patient.DOCUMENTO || patient.documento || '',
+        tipoDocumento: patient.TIPO_DOCUMENTO || patient.tipoDocumento || '',
+        fechaNacimiento: patient.FECHA_NACIMIENTO || patient.fechaNacimiento || '',
+        edad: patient.EDAD || patient.edad || '',
+        sexo: patient.SEXO || patient.sexo || '',
+        estadoCivil: patient.ESTADO_CIVIL || patient.Expr4 || patient.estadoCivil || '',
+        direccion: patient.DIRECCION || patient.direccion || '',
+        distrito: patient.DISTRITO || patient.distrito || '',
+        departamentoDir: patient.DEPARTAMENTO_DIR || patient.departamentoDir || '',
+        distritoDir: patient.Distrito_Dir || patient.DISTRITO_DIR || patient.distritoDir || '',
+        telefono1: patient.TELEFONO1 || patient.telefono1 || '',
+        telefono2: patient.TELEFONO2 || patient.telefono2 || '',
+        seguro: patient.SEGURO || patient.seguro || '',
+        descSeguro: patient.NOMBRE_SEGURO || patient.DESC_SEGURO || patient.descSeguro || '',
+        religion: patient.RELIGION || patient.religion || '',
+        descreligion: patient.DESRELIGION || patient.DESC_RELIGION || patient.descreligion || '',
+        nombreLocalidad: patient.Nombre_Localidad || patient.NOMBRE_LOCALIDAD || patient.nombreLocalidad || '',
+        localidad: patient.LOCALIDAD || patient.localidad || '',
+        nombreOcupacion: patient.NOMBRE_OCUPACION || patient.nombreOcupacion || '',
+        photo: patient.STRING_FOTO || patient.STRING_PHOTO || patient.photo || ''
+      };
+      
+      setPatientData(adaptedData);
+      if (onDataLoaded && !hasLoadedRef.current[patientId]) {
+        onDataLoaded(adaptedData);
+        hasLoadedRef.current[patientId] = true;
+      }
+      return;
+    }
+    
+    // Si no, intentar obtenerlos del contexto
     const existingData = getPatientData(patientId);
     
     if (existingData) {
@@ -71,7 +113,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
         hasLoadedRef.current[patientId] = true;
       }
     }
-  }, [patientId, getPatientData, onDataLoaded]);  // Listen for context changes
+  }, [patientId, patient, getPatientData, onDataLoaded]);  // Listen for context changes
 
   if (isLoading) {
     return (
@@ -130,10 +172,8 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
   };
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className={`${className} space-y-4`}>
+      {/* Eliminamos Card, CardHeader y CardContent para usar el contenedor externo */}
         {/* Foto del paciente - Centrada y más grande */}
         <div className="flex flex-col items-center space-y-4">
           {/* Foto del paciente */}
@@ -276,7 +316,6 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
               </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 };

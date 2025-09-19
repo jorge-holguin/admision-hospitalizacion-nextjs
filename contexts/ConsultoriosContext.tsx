@@ -22,10 +22,39 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
-  // No longer load consultorios initially - only when needed
-  // useEffect(() => {
-  //   // Removed initial loading - consultorios are now loaded only when selectors are used
-  // }, [initialized])
+  // Cargar consultorios de emergencia al inicializar
+  useEffect(() => {
+    if (!initialized) {
+      loadConsultoriosEmergencia()
+      setInitialized(true)
+    }
+  }, [initialized])
+
+  const loadConsultoriosEmergencia = async () => {
+    try {
+      setLoading(true)
+      console.log('🏥 Cargando consultorios de emergencia desde contexto...')
+      
+      const response = await fetch('/api/consultorio?tipo=E')
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('✅ Consultorios de emergencia cargados en contexto:', data)
+      
+      // Extraer los items de la respuesta
+      const consultoriosData = data.items || data.data || []
+      setConsultorios(consultoriosData)
+      
+    } catch (error) {
+      console.error('❌ Error al cargar consultorios de emergencia en contexto:', error)
+      setConsultorios([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getConsultorioNombre = useCallback((codigo: string): string => {
     if (!codigo) return '-'

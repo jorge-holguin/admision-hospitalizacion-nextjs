@@ -124,24 +124,45 @@ class EmergenciaService {
       const totalResult = await prisma.$queryRawUnsafe(totalQuery) as any[];
       const total = Number(totalResult[0]?.total || 0);
       
-      // Get paginated records with joins
-      const emergenciasQuery = `
-        WITH EmergenciasPaginadas AS (
-          SELECT 
-            e.*,
-            me.NOMBRE as MOTIVO_DESCRIPCION,
-            odd.DESCRIPCION as DIAGNOSTICO_DESCRIPCION,
-            c.NOMBRE as CONSULTORIO_DESCRIPCION,
-            ROW_NUMBER() OVER (ORDER BY e.EMERGENCIA_ID DESC) AS RowNum 
-          FROM EMERGENCIA e
-          LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
-          LEFT JOIN oeiDiagnosticoDetalle odd ON e.CIEX1 = odd.CODIGO
-          LEFT JOIN CONSULTORIO c ON e.CONSULTORIO = c.CONSULTORIO
-          ${whereClause}
-        )
-        SELECT * FROM EmergenciasPaginadas 
-        WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize}
-      `;
+// Get paginated records with joins
+const emergenciasQuery = `
+  WITH EmergenciasPaginadas AS (
+    SELECT 
+      e.EMERGENCIA_ID,
+      e.FECHA,
+      e.HORA,
+      e.PATERNO,
+      e.NOMBRE,
+      e.NOMBRES,
+      e.PACIENTE,
+      e.CUENTAID,
+      e.USUARIO,
+      e.MOTIVO_EMERGENCIA,
+      e.CONSULTORIO,
+      e.SEGURO,
+      e.SEGUROLIQ,
+      e.MEDICO,
+      e.RELATO,
+      e.ESTADO,
+      me.NOMBRE AS MOTIVO_DESCRIPCION,
+      odd.DESCRIPCION AS DIAGNOSTICO_DESCRIPCION,
+      c.NOMBRE AS CONSULTORIO_DESCRIPCION,
+      s.NOMBRE AS SEGURO_NOMBRE,
+      m.NOMBRE AS MEDICO_NOMBRE,
+      ROW_NUMBER() OVER (ORDER BY e.EMERGENCIA_ID DESC) AS RowNum 
+    FROM EMERGENCIA e
+    LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
+    LEFT JOIN oeiDiagnosticoDetalle odd ON e.CIEX1 = odd.CODIGO
+    LEFT JOIN CONSULTORIO c ON e.CONSULTORIO = c.CONSULTORIO
+    LEFT JOIN SEGURO s ON e.SEGURO = s.SEGURO
+    LEFT JOIN MEDICO m ON e.MEDICO = m.MEDICO
+    ${whereClause}
+  )
+  SELECT * 
+  FROM EmergenciasPaginadas 
+  WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
+`;
+
       const emergenciasRaw = await prisma.$queryRawUnsafe(emergenciasQuery) as any[];
       
       // Convert BigInt values to strings to avoid JSON serialization issues
@@ -257,24 +278,45 @@ class EmergenciaService {
       const skip = (page - 1) * pageSize;
       
       // Use Prisma's raw query capability with SQL Server 2008 R2 compatible pagination
-      // Include joins for MOTIVO_EMERGENCIA, oeiDiagnosticoDetalle, and CONSULTORIO descriptions
-      const emergenciasRaw = await prisma.$queryRaw`
-        WITH EmergenciasPaginadas AS (
-          SELECT 
-            e.*,
-            me.NOMBRE as MOTIVO_DESCRIPCION,
-            odd.DESCRIPCION as DIAGNOSTICO_DESCRIPCION,
-            c.NOMBRE as CONSULTORIO_DESCRIPCION,
-            ROW_NUMBER() OVER (ORDER BY e.EMERGENCIA_ID DESC) AS RowNum 
-          FROM EMERGENCIA e
-          LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
-          LEFT JOIN oeiDiagnosticoDetalle odd ON e.CIEX1 = odd.CODIGO
-          LEFT JOIN CONSULTORIO c ON e.CONSULTORIO = c.CONSULTORIO
-          WHERE e.PACIENTE = ${pacienteId}
-        )
-        SELECT * FROM EmergenciasPaginadas 
-        WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize}
-      ` as any[];
+// Include joins for MOTIVO_EMERGENCIA, oeiDiagnosticoDetalle, CONSULTORIO, SEGURO and MEDICO descriptions
+const emergenciasRaw = await prisma.$queryRaw<any[]>`
+WITH EmergenciasPaginadas AS (
+  SELECT 
+    e.EMERGENCIA_ID,
+    e.FECHA,
+    e.HORA,
+    e.PATERNO,
+    e.NOMBRE,
+    e.NOMBRES,
+    e.PACIENTE,
+    e.CUENTAID,
+    e.USUARIO,
+    e.MOTIVO_EMERGENCIA,
+    e.CONSULTORIO,
+    e.SEGURO,
+    e.SEGUROLIQ,
+    e.MEDICO,
+    e.RELATO,
+    e.ESTADO,
+    me.NOMBRE AS MOTIVO_DESCRIPCION,
+    odd.DESCRIPCION AS DIAGNOSTICO_DESCRIPCION,
+    c.NOMBRE AS CONSULTORIO_DESCRIPCION,
+    s.NOMBRE AS SEGURO_NOMBRE,
+    m.NOMBRE AS MEDICO_NOMBRE,
+    ROW_NUMBER() OVER (ORDER BY e.EMERGENCIA_ID DESC) AS RowNum 
+  FROM EMERGENCIA e
+  LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
+  LEFT JOIN oeiDiagnosticoDetalle odd ON e.CIEX1 = odd.CODIGO
+  LEFT JOIN CONSULTORIO c ON e.CONSULTORIO = c.CONSULTORIO
+  LEFT JOIN SEGURO s ON e.SEGURO = s.SEGURO
+  LEFT JOIN MEDICO m ON e.MEDICO = m.MEDICO
+  WHERE e.PACIENTE = ${pacienteId}
+)
+SELECT * 
+FROM EmergenciasPaginadas 
+WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
+`;
+
       
       // Convert BigInt values to strings to avoid JSON serialization issues
       const emergencias = emergenciasRaw.map(record => {

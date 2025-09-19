@@ -52,8 +52,8 @@ export default function Dashboard() {
     fetchKPIs();
   }, []);
   
-  const handleHospitalizacionClick = () => {
-    router.push("/hospitalization")
+  const handleFiliacionClick = () => {
+    router.push("/filiation")
   }
 
   const handleTablasMaestrasClick = () => {
@@ -80,7 +80,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-blue-200"
-            onClick={handleHospitalizacionClick}
+            onClick={handleFiliacionClick}
           >
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">

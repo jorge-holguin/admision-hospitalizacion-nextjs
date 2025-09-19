@@ -4,8 +4,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect, { OptionItem } from "@/components/ui/SearchableSelect";
+import { useSeguros } from "@/contexts/SegurosContext"
+import { useConsultorios } from "@/contexts/ConsultoriosContext"
+import { useMotivosEmergencia } from "@/contexts/MotivosEmergenciaContext"
+import { useFormasIngreso } from "@/contexts/FormasIngresoContext"
+import { ConsultorioEmergencySelector } from "../selectors/ConsultorioEmergencySelector";
 import { usePatientData } from "@/contexts/PatientDataContext";
-
 
 // Using OptionItem from SearchableSelect component
 
@@ -32,6 +36,12 @@ interface EmergencySectionProps {
   loadingSeguros?: boolean;
 }
 
+// Definir opciones para tipo de atención
+const TIPO_ATENCION_OPTIONS = [
+  { value: "E", display: "(E) - Emergencia", description: "Atención de emergencia" },
+  { value: "U", display: "(U) - Urgencia", description: "Atención de urgencia" },
+];
+
 export const EmergencySection: React.FC<EmergencySectionProps> = ({
   formData,
   patientId,
@@ -48,43 +58,39 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   preloadedConsultorios,
   preloadedFormasIngreso,
   preloadedSeguros,
-  loadingMotivos: externalLoadingMotivos,
-  loadingConsultorios: externalLoadingConsultorios,
-  loadingFormas: externalLoadingFormas,
-  loadingSeguros: externalLoadingSeguros,
+  loadingMotivos: propLoadingMotivos,
+  loadingConsultorios: propLoadingConsultorios,
+  loadingFormas: propLoadingFormas,
+  loadingSeguros: propLoadingSeguros,
 }) => {
   // Usar el contexto para obtener datos del paciente
   const { getPatientData } = usePatientData();
   
-  // Hook removido para evitar llamadas duplicadas a la API - los datos de seguro ahora vienen del contexto
-  // ===== Opciones locales =====
-  const TIPO_ATENCION_OPTIONS = [
-    { value: "E", display: "(E) - Emergencia" },
-    { value: "U", display: "(U) - Urgencias" },
-  ];
-
-  // ===== Estados remotos =====
+  // Usar contextos para consultorios 
+  const { consultorios: contextConsultorios, loading: contextLoadingConsultorios } = useConsultorios();
+  const { seguros: contextSeguros, loading: contextLoadingSeguros } = useSeguros();
+  const { motivosEmergencia: contextMotivos, loading: contextLoadingMotivos } = useMotivosEmergencia();
+  const { formasIngreso: contextFormasIngreso, loading: contextLoadingFormasIngreso } = useFormasIngreso();
+  
+  // Internal state for catalogs que no tienen contexto
   const [internalMotivos, setInternalMotivos] = useState<any[]>([]);
-  const [internalConsultorios, setInternalConsultorios] = useState<any[]>([]);
   const [internalFormasIngreso, setInternalFormasIngreso] = useState<any[]>([]);
-  const [internalSeguros, setInternalSeguros] = useState<any[]>([]);
-
-  // ===== Loading =====
+  
+  // Loading states
   const [internalLoadingMotivos, setInternalLoadingMotivos] = useState(false);
-  const [internalLoadingConsultorios, setInternalLoadingConsultorios] = useState(false);
   const [internalLoadingFormas, setInternalLoadingFormas] = useState(false);
-  const [internalLoadingSeguros, setInternalLoadingSeguros] = useState(false);
   
-  // Use preloaded options if available, otherwise use internal state
-  const motivos = preloadedMotivos || internalMotivos;
-  const consultorios = preloadedConsultorios || internalConsultorios;
-  const formasIngreso = preloadedFormasIngreso || internalFormasIngreso;
-  const seguros = preloadedSeguros || internalSeguros;
+  // Use preloaded options if available, otherwise use context or internal state
+  const motivos = preloadedMotivos || contextMotivos || internalMotivos;
+  const consultorios = preloadedConsultorios || contextConsultorios;
+  const formasIngreso = preloadedFormasIngreso || contextFormasIngreso || internalFormasIngreso;
+  const seguros = preloadedSeguros || contextSeguros;
   
-  const loadingMotivos = externalLoadingMotivos !== undefined ? externalLoadingMotivos : internalLoadingMotivos;
-  const loadingConsultorios = externalLoadingConsultorios !== undefined ? externalLoadingConsultorios : internalLoadingConsultorios;
-  const loadingFormas = externalLoadingFormas !== undefined ? externalLoadingFormas : internalLoadingFormas;
-  const loadingSeguros = externalLoadingSeguros !== undefined ? externalLoadingSeguros : internalLoadingSeguros;
+  // Use loading states from props or context
+  const effectiveLoadingMotivos = propLoadingMotivos !== undefined ? propLoadingMotivos : (contextLoadingMotivos || internalLoadingMotivos);
+  const effectiveLoadingConsultorios = propLoadingConsultorios !== undefined ? propLoadingConsultorios : contextLoadingConsultorios;
+  const effectiveLoadingFormas = propLoadingFormas !== undefined ? propLoadingFormas : (contextLoadingFormasIngreso || internalLoadingFormas);
+  const effectiveLoadingSeguros = propLoadingSeguros !== undefined ? propLoadingSeguros : contextLoadingSeguros;
 
   // ===== Búsquedas =====
   const [searchTipoAtencion, setSearchTipoAtencion] = useState("");
@@ -98,11 +104,18 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
   // ===== Cargas remotas =====
   const loadMotivos = async (search: string = "") => {
-    // Skip loading if preloaded options are provided
-    if (preloadedMotivos) return;
+    // Skip loading if preloaded options are provided or if using context
+    if (preloadedMotivos || contextMotivos) {
+      console.log('🚨 Usando motivos desde contexto:', contextMotivos?.length || 0);
+      return;
+    }
+    
+    // Esta función ya no debería ejecutarse si tenemos el contexto configurado correctamente
+    console.warn('⚠️ Llamando a loadMotivos directamente - esto no debería ocurrir si el contexto está configurado');
     
     try {
       setInternalLoadingMotivos(true);
+      console.log('🚨 Cargando motivos desde API directamente (NO RECOMENDADO)');
       const res = await fetch(
         `/api/motivo-emergencia?search=${encodeURIComponent(search)}`
       );
@@ -119,30 +132,29 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     }
   };
 
+  // Ya no necesitamos cargar consultorios manualmente, usamos el contexto
   const loadConsultorios = async (search: string = "") => {
-    // Skip loading if preloaded options are provided
-    if (preloadedConsultorios) return;
+    // Skip loading if preloaded options are provided or if using context
+    if (preloadedConsultorios || contextConsultorios) return;
     
-    try {
-      setInternalLoadingConsultorios(true);
-      const res = await fetch(
-        `/api/consultorio?tipo=E&search=${encodeURIComponent(search)}`
-      );
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      const items = json.items ?? json.data ?? [];
-      setInternalConsultorios(items);
-    } catch (e) {
-      console.error("Error consultorios:", e);
-      setInternalConsultorios([]);
-    } finally {
-      setInternalLoadingConsultorios(false);
-    }
+    // Esta función ya no hace nada, ya que usamos el contexto
+    console.log('Usando consultorios desde el contexto');
+    // No hay más código aquí porque usamos el contexto
   };
 
   const loadFormasIngreso = async (search: string = "") => {
+    // Skip loading if preloaded options are provided or if using context
+    if (preloadedFormasIngreso || contextFormasIngreso) {
+      console.log('🚪 Usando formas de ingreso desde contexto:', contextFormasIngreso?.length || 0);
+      return;
+    }
+    
+    // Esta función ya no debería ejecutarse si tenemos el contexto configurado correctamente
+    console.warn('⚠️ Llamando a loadFormasIngreso directamente - esto no debería ocurrir si el contexto está configurado');
+    
     try {
       setInternalLoadingFormas(true);
+      console.log('🚪 Cargando formas de ingreso desde API directamente (NO RECOMENDADO)');
       const res = await fetch(
         `/api/forma-ingreso?search=${encodeURIComponent(search)}`
       );
@@ -160,54 +172,24 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   };
 
   const loadSeguros = async (search: string = "") => {
-    // Skip loading if preloaded options are provided
-    if (preloadedSeguros) return;
+    // Skip loading if preloaded options are provided or if using context
+    if (preloadedSeguros || contextSeguros) return;
     
-    try {
-      console.log('Cargando seguros, búsqueda:', search);
-      setInternalLoadingSeguros(true);
-      const res = await fetch(
-        `/api/seguros${search ? `?search=${encodeURIComponent(search)}` : ''}`
-      );
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      console.log('Respuesta API seguros:', json);
-      
-      // Determinar la estructura de datos correcta
-      let items = [];
-      if (json.items) {
-        items = json.items;
-        console.log('Usando json.items para seguros');
-      } else if (json.data) {
-        items = json.data;
-        console.log('Usando json.data para seguros');
-      } else if (Array.isArray(json)) {
-        items = json;
-        console.log('Usando array directo para seguros');
-      } else {
-        console.error('Estructura de datos de seguros desconocida:', json);
-        items = [];
-      }
-      
-      console.log('Items de seguros procesados:', items);
-      setInternalSeguros(items);
-    } catch (e) {
-      console.error("Error seguros:", e);
-      setInternalSeguros([]);
-    } finally {
-      setInternalLoadingSeguros(false);
-    }
+    // Esta función ya no hace nada, ya que usamos el contexto
+    console.log('Usando seguros desde el contexto');
+    // No hay más código aquí porque usamos el contexto
   };
 
   useEffect(() => {
-    // Only load catalogs if not disabled (edit mode)
+    // Only load catalogs if not disabled (edit mode) and not already provided
     if (!disabled) {
-      loadMotivos();
-      loadConsultorios();
-      loadFormasIngreso();
-      loadSeguros();
+      // Ya no cargar motivos ni formas de ingreso porque usamos contextos
+      console.log('📋 Usando motivos desde contexto:', contextMotivos?.length || 0);
+      console.log('📋 Usando formas de ingreso desde contexto:', contextFormasIngreso?.length || 0);
+      console.log('📋 Usando consultorios desde contexto:', contextConsultorios?.length || 0);
+      console.log('📋 Usando seguros desde contexto:', contextSeguros?.length || 0);
     }
-  }, [disabled]);
+  }, [disabled, contextMotivos, contextFormasIngreso, contextConsultorios, contextSeguros]);
   
   // Ya no establecemos un valor por defecto para Forma de Ingreso
   // El usuario debe seleccionarlo manualmente
@@ -277,13 +259,17 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   // Using the reusable SearchableSelect component
 
   // ===== Formato de opciones =====
-  const formatTipoAtencion = TIPO_ATENCION_OPTIONS
-    .filter(
-      (o) =>
-        !searchTipoAtencion ||
-        o.display.toLowerCase().includes(searchTipoAtencion.toLowerCase())
-    )
-    .map((o) => ({ value: o.value, display: o.display, data: o }));
+  const formatTipoAtencion = useMemo(() => {
+    return TIPO_ATENCION_OPTIONS.filter(
+      (o: {value: string, display: string, description: string}) => !searchTipoAtencion || 
+      o.display.toLowerCase().includes(searchTipoAtencion.toLowerCase())
+    ).map((o: {value: string, display: string, description: string}) => ({
+      value: o.value,
+      display: o.display,
+      description: o.description,
+      data: o,
+    }));
+  }, [searchTipoAtencion]);
 
   const formatMotivos = motivos
     .filter(
@@ -382,7 +368,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         {/* Tipo de Atención (E/U) */}
         <SearchableSelect
           label="Tipo Atención"
-          value={displayFrom(TIPO_ATENCION_OPTIONS, formData.tipoAtencion || "E")}
+          value={formData.tipoAtencionDisplay || "(E) - Emergencia"}
           options={formatTipoAtencion}
           loading={false}
           search={searchTipoAtencion}
@@ -396,38 +382,39 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         />
 
         {/* Consultorio */}
-        <SearchableSelect
-          label="Consultorio"
-          value={formData.consultorioDisplay || ""}
-          options={formatConsultorios}
-          loading={loadingConsultorios}
-          search={searchConsultorio}
-          onSearchChange={(v: string) => {
-            setSearchConsultorio(v);
-            loadConsultorios(v);
-          }}
-          onSelect={(opt: OptionItem) => {
-            onFormChange("consultorio", opt.value);
-            onFormChange("consultorioDisplay", opt.display);
-            onConsultorioChange(opt.value, opt.data);
-          }}
-          selectName="consultorio"
-          required
-          error={validationErrors.consultorio}
-          placeholder="Seleccionar consultorio..."
-          disabled={disabled}
-        />
+        <div className="space-y-2">
+          <ConsultorioEmergencySelector
+            label="Consultorio"
+            value={formData.consultorio || ""}
+            onChange={(value: string) => {
+              // Buscar el consultorio seleccionado para obtener el display
+              const selectedConsultorio = consultorios.find(c => c.CONSULTORIO === value);
+              const display = selectedConsultorio ? 
+                `${selectedConsultorio.CONSULTORIO} - ${selectedConsultorio.NOMBRE}` : 
+                value;
+              
+              onFormChange("consultorio", value);
+              onFormChange("consultorioDisplay", display);
+              onConsultorioChange(value, selectedConsultorio);
+            }}
+            required
+            placeholder="Seleccionar consultorio..."
+          />
+          {validationErrors.consultorio && (
+            <p className="text-sm text-red-500">{validationErrors.consultorio}</p>
+          )}
+        </div>
 
         {/* Forma de Ingreso */}
         <SearchableSelect
           label="Forma de Ingreso"
           value={formData.formaIngresoDisplay || ""}
           options={formatFormas}
-          loading={loadingFormas}
+          loading={effectiveLoadingFormas}
           search={searchForma}
           onSearchChange={(v: string) => {
             setSearchForma(v);
-            loadFormasIngreso(v);
+            // Ya no llamamos a loadFormasIngreso porque usamos el contexto
           }}
           onSelect={(opt: OptionItem) => {
             onFormChange("formaIngreso", opt.value);
@@ -446,11 +433,11 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           label="Condición del Paciente"
           value={formData.seguroDisplay || ""}
           options={formatSeguros}
-          loading={loadingSeguros}
+          loading={effectiveLoadingSeguros}
           search={searchSeguro}
           onSearchChange={(v: string) => {
             setSearchSeguro(v);
-            loadSeguros(v);
+            // Ya no llamamos a loadSeguros porque usamos el contexto
           }}
           onSelect={(opt: OptionItem) => {
             // Check if the selected insurance is ESSALUD (code 06)
@@ -496,16 +483,15 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         />
       </div>
 
-        {/* Motivo de Ingreso */}
+        {/* Motivo de Emergencia */}
         <SearchableSelect
-          label="Motivo de Ingreso"
+          label="Motivo de Emergencia"
           value={formData.motivoEmergenciaDisplay || ""}
           options={formatMotivos}
-          loading={loadingMotivos}
+          loading={false}
           search={searchMotivo}
           onSearchChange={(v: string) => {
             setSearchMotivo(v);
-            loadMotivos(v);
           }}
           onSelect={(opt: OptionItem) => {
             onFormChange("motivoEmergencia", opt.value);

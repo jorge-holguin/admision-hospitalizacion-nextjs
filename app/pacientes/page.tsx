@@ -65,14 +65,7 @@ export default function PacientesPage() {
                     className="w-full"
                   />
                   {searchTerm && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full"
-                      onClick={clearSearch}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+          
                   )}
                 </div>
                 <Button variant="outline" size="icon" onClick={refreshData}>

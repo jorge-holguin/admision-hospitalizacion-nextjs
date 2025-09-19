@@ -104,9 +104,18 @@ export function useFiliacion() {
     }
   }
 
-  // Fetch data when pagination or filters change
+  // Fetch data when pagination or filters change (only if we have filters)
   useEffect(() => {
-    fetchFiliacion()
+    // Solo hacer la llamada si tenemos filtros activos
+    const hasActiveFilters = filter && (
+      (filter.historia && filter.historia.trim() !== '') ||
+      (filter.documento && filter.documento.trim() !== '') ||
+      (filter.nombres && filter.nombres.trim() !== '')
+    );
+    
+    if (hasActiveFilters) {
+      fetchFiliacion()
+    }
   }, [pagination.page, pagination.pageSize, filter])
 
   const handlePageChange = (page: number) => {
@@ -120,6 +129,15 @@ export function useFiliacion() {
   const handleFilterChange = (newFilter: FiliacionFilter) => {
     setFilter(newFilter)
     setPagination((prev: PaginationState) => ({ ...prev, page: 1 })) // Reset to first page
+  }
+
+  // Función manual para buscar (llamar explícitamente)
+  const search = async (searchFilter?: FiliacionFilter) => {
+    if (searchFilter) {
+      setFilter(searchFilter)
+      setPagination((prev: PaginationState) => ({ ...prev, page: 1 }))
+    }
+    await fetchFiliacion()
   }
 
   const fetchCount = async (countFilter: FiliacionFilter = {}) => {
@@ -178,5 +196,6 @@ export function useFiliacion() {
     handleFilterChange,
     fetchCount,
     refreshData,
+    search,
   }
 }

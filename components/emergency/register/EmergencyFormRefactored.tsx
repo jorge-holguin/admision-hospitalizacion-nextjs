@@ -6,10 +6,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import AlertPortal from "@/components/ui/alert-portal"
 import { usePatientAccount } from '@/contexts/PatientAccountContext'
+import { useSeguros } from '@/contexts/SegurosContext'
+import { useMedicos } from '@/contexts/MedicosContext'
+import { useConsultorios } from '@/contexts/ConsultoriosContext'
 
 // Componentes modulares para emergencia
-import { PatientSectionEmergency } from './PatientSectionEmergency'
 import { EmergencySection } from './EmergencySection'
 import { AdditionalFieldsSection } from './AdditionalFieldsSection'
 import { FormActionsEmergency } from './FormActionsEmergency'
@@ -20,7 +23,9 @@ import { useSelectsState } from './FormUtilsEmergency'
 import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
 
 import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
-import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext'
+import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
+import { useTiposDocumento } from "@/contexts/TiposDocumentoContext";
+import { useServerDateTime } from "@/contexts/ServerDateTimeContext";
 import { datetimeService } from '@/services/datetimeService'
 
 // Extender la interfaz de datos del paciente para incluir los campos adicionales
@@ -65,8 +70,8 @@ interface Medico {
 }
 
 interface Seguro {
-  CODIGO: string;
-  NOMBRE: string;
+  Seguro: string;
+  Nombre: string;
 }
 
 interface Diagnostico {
@@ -78,10 +83,27 @@ interface EmergencyFormProps {
   patientId: string;
   emergencyId?: string | null;
   emergencyData?: any;
-  readOnly?: boolean;
+  patient?: any;
+  onSuccess?: (data: any) => void;
+  onError?: (error: string) => void;
+  onBack?: () => void; // Callback para volver al modal anterior
+  isModal?: boolean;
+  alertsContainerId?: string; // ID del contenedor para mostrar alertas
+  readOnly?: boolean; // Modo solo lectura
 }
 
-export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData, readOnly = false }: EmergencyFormProps) {
+export function EmergencyFormRefactored({ 
+  patientId, 
+  emergencyId, 
+  emergencyData, 
+  patient, 
+  onSuccess, 
+  onError, 
+  onBack,
+  isModal = false,
+  alertsContainerId,
+  readOnly = false
+}: EmergencyFormProps) {
   const router = useRouter();
   const { user } = useAuth();
   
@@ -101,11 +123,14 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [loadingCuenta, setLoadingCuenta] = useState<boolean>(false);
   const [cuentaId, setCuentaId] = useState<string | null>(null);
   
-  // Estado para fecha y hora del servidor
-  const [serverDateTime, setServerDateTime] = useState({
-    date: '',
-    time: ''
-  });
+  // Usar contexto para fecha y hora del servidor
+  const { serverDateTime } = useServerDateTime();
+
+  // Contextos para datos compartidos
+  const { seguros } = useSeguros()
+  const { medicos } = useMedicos()
+  const { consultorios } = useConsultorios()
+  const { tiposDocumento } = useTiposDocumento()
 
   // Memoized callback for FUA validation
   const handleFuaValidationChange = useCallback((isValid: boolean) => {
@@ -130,35 +155,19 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   const [selectedMotivo, setSelectedMotivo] = useState<MotivoEmergencia | null>(null);
   const [searchMotivo, setSearchMotivo] = useState('');
   
-  // Estado para consultorios
-  const [consultorios, setConsultorios] = useState<Consultorio[]>([]);
-  const [loadingConsultorios, setLoadingConsultorios] = useState(false);
+  // Estado para elementos seleccionados (los datos vienen de contextos)
   const [selectedConsultorio, setSelectedConsultorio] = useState<Consultorio | null>(null);
   const [searchConsultorio, setSearchConsultorio] = useState('');
-  
-  // Estado para médicos
-  const [medicos, setMedicos] = useState<Medico[]>([]);
-  const [loadingMedicos, setLoadingMedicos] = useState(false);
   const [selectedMedico, setSelectedMedico] = useState<Medico | null>(null);
   const [searchMedico, setSearchMedico] = useState('');
+  const [selectedSeguro, setSelectedSeguro] = useState<Seguro | null>(null);
+  const [searchSeguro, setSearchSeguro] = useState('');
   
-  // Estado para formas de ingreso
+  // Estado para formas de ingreso (aún no tiene contexto)
   const [formasIngreso, setFormasIngreso] = useState<any[]>([]);
   const [loadingFormasIngreso, setLoadingFormasIngreso] = useState(false);
   const [selectedFormaIngreso, setSelectedFormaIngreso] = useState<any | null>(null);
   const [searchFormaIngreso, setSearchFormaIngreso] = useState('');
-
-  // Estado para seguros
-  const [seguros, setSeguros] = useState<Seguro[]>([]);
-  const [loadingSeguros, setLoadingSeguros] = useState(false);
-  const [selectedSeguro, setSelectedSeguro] = useState<Seguro | null>(null);
-  const [searchSeguro, setSearchSeguro] = useState('');
-  
-  // Estado para tipos de documento
-  const [tiposDocumento, setTiposDocumento] = useState<any[]>([]);
-  const [loadingTiposDocumento, setLoadingTiposDocumento] = useState(false);
-  const [selectedTipoDocumento, setSelectedTipoDocumento] = useState<any | null>(null);
-  const [searchTipoDocumento, setSearchTipoDocumento] = useState('');
   
   // Estado para diagnósticos
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
@@ -225,7 +234,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
 
   // Obtener funciones del contexto de datos del paciente
   const { getPatientData } = usePatientData();
-  const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId);
+  const { fetchPatientData } = useFetchPatientData(patientId || '');
 
   // Función para asegurar que los datos del paciente estén disponibles (orquestador único)
   const ensurePatientData = useCallback(async (patientId: string): Promise<PatientDataExtended | null> => {
@@ -242,71 +251,19 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     return fetchedData as PatientDataExtended | null;
   }, [getPatientData, fetchPatientData]);
 
-  // Cargar fecha y hora del servidor para evitar problemas de zona horaria
+  // Usar fecha y hora del servidor desde el contexto
   useEffect(() => {
-    const fetchServerDateTime = async () => {
-      try {
-        // Obtener fecha y hora del servidor
-        const dateTimeData = await datetimeService.getCurrentDateTime();
-        
-        // Actualizar el estado con la fecha y hora del servidor
-        setServerDateTime({
-          date: dateTimeData.date,
-          time: dateTimeData.time
-        });
-        
-        // Actualizar el formulario con la fecha y hora del servidor
-        setFormData(prev => ({
-          ...prev,
-          fecha: dateTimeData.date,
-          hora: dateTimeData.time
-        }));
-        
-        console.log('Fecha y hora obtenidas del servidor:', dateTimeData);
-      } catch (error) {
-        console.error('Error al obtener fecha y hora del servidor:', error);
-        // En caso de error, usar la fecha y hora local como fallback
-        const now = new Date();
-        const localDate = now.toISOString().split('T')[0];
-        const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        setServerDateTime({
-          date: localDate,
-          time: localTime
-        });
-        
-        setFormData(prev => ({
-          ...prev,
-          fecha: localDate,
-          hora: localTime
-        }));
-      }
-    };
+    if (serverDateTime.date && serverDateTime.time) {
+      // Actualizar formulario con fecha y hora del servidor
+      setFormData(prev => ({
+        ...prev,
+        fecha: serverDateTime.date || fallbackDate,
+        hora: serverDateTime.time || fallbackTime
+      }));
+    }
+  }, [serverDateTime, fallbackDate, fallbackTime]);
 
-    fetchServerDateTime();
-  }, []);
-
-  // Cargar tipos de documento
-  useEffect(() => {
-    const fetchTiposDocumento = async () => {
-      try {
-        setLoadingTiposDocumento(true);
-        const response = await fetch('/api/tipo-documento');
-        if (!response.ok) {
-          throw new Error('Error al obtener tipos de documento');
-        }
-        const data = await response.json();
-        console.log('Tipos de documento cargados:', data);
-        setTiposDocumento(data);
-      } catch (error) {
-        console.error('Error al cargar tipos de documento:', error);
-      } finally {
-        setLoadingTiposDocumento(false);
-      }
-    };
-
-    fetchTiposDocumento();
-  }, []);
+  // Ya no necesitamos cargar tipos de documento, usamos el contexto
 
   // Función para obtener los datos de filiación del paciente desde el contexto
   const getPatientFiliation = useCallback((patientId: string): PatientDataExtended | null => {
@@ -398,14 +355,14 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     // Si no hay emergencyId (modo creación), actualizar el seguro desde los datos del paciente
     if (!emergencyId && data.seguro) {
       let seguroToUse = data.seguro;
-      let seguroEncontrado = seguros.find(s => s.CODIGO === data.seguro);
+      let seguroEncontrado = seguros.find(s => s.Seguro === data.seguro);
       
       // Si el seguro es ESSALUD (06), convertir a PAGANTE (0)
       if (data.seguro.trim() === '06') {
         console.log('Convirtiendo seguro de ESSALUD (06) a PAGANTE (0) en formData');
-        seguroEncontrado = seguros.find(s => s.CODIGO === '0');
+        seguroEncontrado = seguros.find(s => s.Seguro === '0');
         if (seguroEncontrado) {
-          seguroToUse = `${seguroEncontrado.CODIGO} - ${seguroEncontrado.NOMBRE}`;
+          seguroToUse = `${seguroEncontrado.Seguro} - ${seguroEncontrado.Nombre}`;
         } else {
           seguroToUse = '0 - PAGANTE';
         }
@@ -423,12 +380,20 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     }
   }, [emergencyId, seguros]);
 
-  // Efecto para cargar datos del paciente al montar el componente usando el orquestador único
+  // Efecto para cargar datos del paciente al montar el componente
   useEffect(() => {
     const loadInitialPatientData = async () => {
       if (!patientId) return;
       
       try {
+        // Priorizar datos del prop patient si están disponibles
+        if (patient) {
+          console.log('📋 Usando datos del paciente desde prop:', patient);
+          handlePatientDataLoaded(patient);
+          return;
+        }
+        
+        // Si no hay datos en el prop, usar el orquestador único
         const data = await ensurePatientData(patientId);
         if (data) {
           handlePatientDataLoaded(data);
@@ -439,7 +404,7 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
     };
 
     loadInitialPatientData();
-  }, [patientId, ensurePatientData, handlePatientDataLoaded]);
+  }, [patientId, patient, ensurePatientData, handlePatientDataLoaded]);
 
   // Manejar cambios en el formulario
   const handleFormChange = (field: string, value: string) => {
@@ -839,14 +804,21 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
       }
       
       // Mostrar mensaje de éxito
-      toast({
-        title: emergencyId ? "Emergencia actualizada" : "Emergencia creada",
-        description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
-        variant: "default"
-      });
-      
-      // Redirigir a la lista de emergencias
-      router.push(`/emergency/${patientId}`);
+      if (!isModal) {
+        toast({
+          title: emergencyId ? "Emergencia actualizada" : "Emergencia creada",
+          description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
+          variant: "default"
+        });
+        
+        // Redirigir a la lista de emergencias
+        router.push(`/emergency/${patientId}`);
+      } else {
+        // En modo modal, usar callback de éxito
+        if (onSuccess) {
+          onSuccess(result);
+        }
+      }
       
     } catch (err: any) {
       console.error('Error al procesar el formulario:', err);
@@ -869,16 +841,23 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         errorMessage = "No tiene permisos para realizar esta operación.";
       }
       
-      toast({
-        title: errorTitle,
-        description: errorMessage,
-        variant: "destructive",
-      });
-      
-      // Si es un error de permisos o estado, mostrar alerta adicional
-      if (err.message.includes('No se puede editar')) {
-        setError(errorMessage);
-        setShowErrorAlert(true);
+      if (!isModal) {
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // Si es un error de permisos o estado, mostrar alerta adicional
+        if (err.message.includes('No se puede editar')) {
+          setError(errorMessage);
+          setShowErrorAlert(true);
+        }
+      } else {
+        // En modo modal, usar callback de error
+        if (onError) {
+          onError(errorMessage);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -887,7 +866,13 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
 
   // Manejar cancelación del formulario
   const handleCancel = () => {
-    router.push(`/emergency/${patientId}`);
+    if (isModal && onBack) {
+      // En modo modal, usar el callback onBack para volver al modal anterior
+      onBack();
+    } else {
+      // En modo página, usar router para navegar
+      router.push(`/emergency/${patientId}`);
+    }
   };
   
   // Función para manejar el envío del formulario
@@ -973,11 +958,31 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
   }, [patientId, fetchPatientAccount, cuentaId]);
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
+    <form id="emergency-form" onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
       <Toaster />
       
-      {/* Mostrar validación FUA solo para seguros SIS (20-25) */}
-      {patientId && requiresFuaValidation && (
+      {/* Renderizar alertas en el contenedor externo si se proporciona un ID */}
+      {alertsContainerId && patientId && requiresFuaValidation && (
+        <AlertPortal containerId={alertsContainerId}>
+          <FuaEmergencyStatusAlert 
+            patientId={patientId}
+            insuranceCode={insuranceCode}
+            onValidationChange={handleFuaValidationChange}
+          />
+        </AlertPortal>
+      )}
+      
+      {alertsContainerId && showErrorAlert && error && (
+        <AlertPortal containerId={alertsContainerId}>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </AlertPortal>
+      )}
+      
+      {/* Mostrar alertas en el formulario si no hay contenedor externo */}
+      {!alertsContainerId && patientId && requiresFuaValidation && (
         <div className="mb-6">
           <FuaEmergencyStatusAlert 
             patientId={patientId}
@@ -987,27 +992,15 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
         </div>
       )}
       
-      {showErrorAlert && error && (
+      {!alertsContainerId && showErrorAlert && error && (
         <Alert variant="destructive" className="mb-6">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sidebar with Patient Information */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Main form content - Ocupa todo el ancho en modo modal */}
         <div className="lg:col-span-1">
-          <Card className="h-full">
-            <CardContent className="p-6">
-              <PatientSectionEmergency
-                patientId={patientId}
-                onPatientDataLoaded={handlePatientDataLoaded}
-              />
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Main form content */}
-        <div className="lg:col-span-2">
           <Card className="h-full">
             <CardContent className="p-6">
               {/* Form Header - Fecha, hora y número de cuenta */}
@@ -1038,6 +1031,8 @@ export function EmergencyFormRefactored({ patientId, emergencyId, emergencyData,
                 validationErrors={validationErrors}
                 disabled={fieldsLocked}
                 onFormChange={handleFormChange}
+                preloadedSeguros={seguros}
+                preloadedConsultorios={consultorios}
                 onMotivoChange={(value: string, motivoData: any) => {
                   setFormData(prev => ({
                     ...prev,

@@ -14,6 +14,7 @@ import { useFiliacion } from "@/hooks/useFiliacion"
 import { useRouter } from "next/navigation"
 import { SISVerification, SISVerificationResult } from "@/components/dashboard/SISVerification"
 import { usePatient } from "@/contexts/PatientContext"
+import { EmergencyModalProvider } from "@/components/emergency/modals/EmergencyModalProvider"
 
 
 
@@ -39,6 +40,10 @@ export default function HospitalizationSearch() {
   const [searchType, setSearchType] = useState<"historia" | "documento" | "nombres">("documento")
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  
+  // Estado para el modal de emergencia
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false)
+  const [selectedPatientForEmergency, setSelectedPatientForEmergency] = useState<any>(null)
   
   // Aplicar debounce al término de búsqueda con retardo variable basado en el tipo de búsqueda
   const debounceDelay = searchType === "nombres" ? 1000 : 500; // Retardo más largo para la búsqueda por nombre
@@ -95,7 +100,7 @@ export default function HospitalizationSearch() {
       documento: patient.DOCUMENTO,
       pacienteId: patient.PACIENTE
     });
-    router.push(`/hospitalization/orders/${patient.PACIENTE}`);
+    router.push(`/hospitalization/${patient.PACIENTE}`);
   };
 
   const handleEmergencySelect = (patient: any) => {
@@ -106,7 +111,10 @@ export default function HospitalizationSearch() {
       documento: patient.DOCUMENTO,
       pacienteId: patient.PACIENTE
     });
-    router.push(`/emergency/${patient.PACIENTE}`);
+    
+    // Abrir modal de emergencia en lugar de redireccionar
+    setSelectedPatientForEmergency(patient);
+    setIsEmergencyModalOpen(true);
   };
 
   // Estado para almacenar los resultados de verificación SIS por paciente
@@ -408,6 +416,16 @@ export default function HospitalizationSearch() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Modal de Emergencia */}
+      <EmergencyModalProvider
+        isOpen={isEmergencyModalOpen}
+        onClose={() => {
+          setIsEmergencyModalOpen(false);
+          setSelectedPatientForEmergency(null);
+        }}
+        patientId={selectedPatientForEmergency?.PACIENTE || ''}
+      />
     </div>
   )
 }

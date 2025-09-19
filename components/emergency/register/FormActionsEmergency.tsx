@@ -92,7 +92,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
         </div>
       )}
       
-      <div className="flex justify-end space-x-4 pt-6 border-t">
+      <div className="flex justify-end space-x-4 pt-6">
         <Button
           type="button"
           variant="outline"

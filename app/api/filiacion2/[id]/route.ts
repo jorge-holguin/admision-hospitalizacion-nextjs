@@ -3,23 +3,24 @@ import { filiacionService } from '@/services/emergencia/filiacion2Service'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log(`API: Buscando filiación con ID: ${params.id}`)
+    const { id } = await params
+    console.log(`API: Buscando filiación con ID: ${id}`)
     
     // Verificar que el ID sea válido
-    if (!params.id || params.id.trim() === '') {
-      console.error('ID inválido o vacío:', params.id)
+    if (!id || id.trim() === '') {
+      console.error('ID inválido o vacío:', id)
       return NextResponse.json({ 
         success: false, 
         message: 'ID de paciente inválido' 
       }, { status: 400 })
     }
     
-    const filiacion = await filiacionService.getFiliacionById(params.id)
+    const filiacion = await filiacionService.getFiliacionById(id)
     if (!filiacion) {
-      console.log(`No se encontró filiación con ID: ${params.id}`)
+      console.log(`No se encontró filiación con ID: ${id}`)
       return NextResponse.json({ 
         success: false, 
         message: 'Filiación no encontrada' 
@@ -32,7 +33,8 @@ export async function GET(
     })
   } catch (error) {
     // Log detallado del error
-    console.error(`Error detallado al buscar filiación con ID ${params.id}:`, error)
+    const { id } = await params
+    console.error(`Error detallado al buscar filiación con ID ${id}:`, error)
     if (error instanceof Error) {
       console.error('Mensaje de error:', error.message)
       console.error('Stack trace:', error.stack)
