@@ -6,13 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
-import { useSeguro } from '@/contexts/SeguroContext'
-
-interface TipoSeguro {
-  Seguro: string
-  Nombre: string
-  CREA_CUENTA: string
-}
+import { useSegurosCita } from '@/contexts/SegurosCitaContext'
+import { Seguro } from '@/services/citas/seguroService'
 
 interface TipoSeguroSelectorProps {
   value: string
@@ -35,22 +30,27 @@ export function TipoSeguroSelector({
   const [search, setSearch] = useState("")
   
   // Use context instead of local state and API calls
-  const { seguros: items, loading: isLoading } = useSeguro()
+  const { seguros: items, loading: isLoading } = useSegurosCita()
+  
 
   // Establecer valor inicial cuando se cargan los datos
   useEffect(() => {
-    if (initialValue && !value && items.length > 0) {
+    if (initialValue && !value && items && items.length > 0) {
       onChange(initialValue)
     }
   }, [initialValue, value, items, onChange])
 
-  const buildDisplayText = (tipoSeguro: TipoSeguro) => {
-    return `${tipoSeguro.Seguro} - ${tipoSeguro.Nombre}`
+  const buildDisplayText = (seguro: Seguro) => {
+    if (!seguro || !seguro.Seguro?.trim() || !seguro.Nombre?.trim()) {
+      return 'Seguro inválido'
+    }
+    return `${seguro.Seguro.trim()} - ${seguro.Nombre.trim()}`
   }
 
   const getSelectedText = () => {
     if (!value) return placeholder
-    const selected = items.find(item => item.Seguro === value)
+    if (!items || items.length === 0) return placeholder
+    const selected = items.find(item => item && (item.Seguro === value || item.Seguro?.trim() === value))
     return selected ? buildDisplayText(selected) : placeholder
   }
 
@@ -84,26 +84,30 @@ export function TipoSeguroSelector({
             <CommandList>
               <CommandEmpty>No se encontraron tipos de seguro.</CommandEmpty>
               <CommandGroup>
-                {items
-                  .filter((tipoSeguro) => {
+                {(items || [])
+                  .filter((seguro) => {
+                    // Validar que las propiedades existan y tengan contenido después del trim
+                    if (!seguro || !seguro.Seguro?.trim() || !seguro.Nombre?.trim()) {
+                      return false
+                    }
                     const searchTerm = search.toLowerCase()
                     return (
-                      tipoSeguro.Seguro.toLowerCase().includes(searchTerm) ||
-                      tipoSeguro.Nombre.toLowerCase().includes(searchTerm)
+                      seguro.Seguro.trim().toLowerCase().includes(searchTerm) ||
+                      seguro.Nombre.trim().toLowerCase().includes(searchTerm)
                     )
                   })
-                  .map((tipoSeguro, idx) => {
-                    const displayText = buildDisplayText(tipoSeguro)
+                  .map((seguro, idx) => {
+                    const displayText = buildDisplayText(seguro)
                     return (
                       <CommandItem
-                        key={`${tipoSeguro.Seguro}-${idx}`}
+                        key={`${seguro.Seguro}-${idx}`}
                         value={displayText}
                         onSelect={() => {
-                          onChange(tipoSeguro.Seguro)
+                          onChange(seguro.Seguro)
                           setOpen(false)
                         }}
                       >
-                        <Check className={`mr-2 h-4 w-4 ${value === tipoSeguro.Seguro ? "opacity-100" : "opacity-0"}`} />
+                        <Check className={`mr-2 h-4 w-4 ${value === seguro.Seguro ? "opacity-100" : "opacity-0"}`} />
                         {displayText}
                       </CommandItem>
                     )

@@ -431,6 +431,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                       <TableHead className="font-semibold">Hora Ingreso</TableHead>
                       <TableHead className="font-semibold">Origen</TableHead>
                       <TableHead className="font-semibold">Seguro</TableHead>
+                      <TableHead className="font-semibold">Cuenta</TableHead>
                       <TableHead className="font-semibold">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -467,6 +468,11 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.HORA1}</TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.ORIGENOMBRE}</TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>{orden.SEGURONOMBRE}</TableCell>
+                          <TableCell>
+                            <span className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-700'}`}>
+                              {orden.CUENTAID || '-'}
+                            </span>
+                          </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
                               {/* View button - active when state is '3', disabled when state is '2' or deleted */}

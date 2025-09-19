@@ -19,9 +19,10 @@ export interface CitaHistorial {
   medico: string
   medicoNombre?: string
   paciente: string
+  documento?: string
   nombre: string
-  numero: string
-  turno: string
+  numero?: string
+  turno?: string
   observacion?: string
   seguro?: string
   tipoConsulta?: string
@@ -100,6 +101,7 @@ export async function searchCitasByDocumento(
       SELECT * FROM (
         SELECT 
           ROW_NUMBER() OVER (ORDER BY c.FECHA DESC, c.HORA DESC) as ROWNUM,
+          c.CITA_ID,
           c.FECHA,
           c.HORA,
           c.ESTADO,
@@ -108,6 +110,7 @@ export async function searchCitasByDocumento(
           c.MEDICO,
           med.NOMBRE as MEDICO_NOMBRE,
           c.PACIENTE,
+          p.DOCUMENTO,
           c.NOMBRE,
           c.NUMERO,
           c.TURNO_CONSULTA,
@@ -117,6 +120,7 @@ export async function searchCitasByDocumento(
         FROM CITA c
         LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
         LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
+        LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
@@ -126,6 +130,7 @@ export async function searchCitasByDocumento(
     const totalCount = await prisma.$queryRaw(Prisma.sql`
       SELECT COUNT(*) as TOTAL
       FROM CITA c
+      LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
       WHERE ${whereClause}
     `)
 
@@ -134,7 +139,7 @@ export async function searchCitasByDocumento(
 
     // Mapear resultados
     const content: CitaHistorial[] = citas.map((cita: any) => ({
-      id: `${cita.PACIENTE}-${cita.NUMERO}`,
+      id: cita.CITA_ID.toString(),
       fecha: cita.FECHA.toISOString().split('T')[0],
       hora: cita.HORA,
       estado: cita.ESTADO,
@@ -143,6 +148,7 @@ export async function searchCitasByDocumento(
       medico: cita.MEDICO,
       medicoNombre: cita.MEDICO_NOMBRE || undefined,
       paciente: cita.PACIENTE,
+      documento: cita.DOCUMENTO || undefined,
       nombre: cita.NOMBRE,
       numero: cita.NUMERO,
       turno: cita.TURNO_CONSULTA,
@@ -209,6 +215,7 @@ export async function searchCitasByNombres(
       SELECT * FROM (
         SELECT 
           ROW_NUMBER() OVER (ORDER BY c.FECHA DESC, c.HORA DESC) as ROWNUM,
+          c.CITA_ID,
           c.FECHA,
           c.HORA,
           c.ESTADO,
@@ -217,6 +224,7 @@ export async function searchCitasByNombres(
           c.MEDICO,
           med.NOMBRE as MEDICO_NOMBRE,
           c.PACIENTE,
+          p.DOCUMENTO,
           c.NOMBRE,
           c.NUMERO,
           c.TURNO_CONSULTA,
@@ -226,6 +234,7 @@ export async function searchCitasByNombres(
         FROM CITA c
         LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
         LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
+        LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
@@ -235,6 +244,7 @@ export async function searchCitasByNombres(
     const totalCount = await prisma.$queryRaw(Prisma.sql`
       SELECT COUNT(*) as TOTAL
       FROM CITA c
+      LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
       WHERE ${whereClause}
     `)
 
@@ -243,7 +253,7 @@ export async function searchCitasByNombres(
 
     // Mapear resultados
     const content: CitaHistorial[] = citas.map((cita: any) => ({
-      id: `${cita.PACIENTE}-${cita.NUMERO}`,
+      id: cita.CITA_ID.toString(),
       fecha: cita.FECHA.toISOString().split('T')[0],
       hora: cita.HORA,
       estado: cita.ESTADO,
@@ -252,6 +262,7 @@ export async function searchCitasByNombres(
       medico: cita.MEDICO,
       medicoNombre: cita.MEDICO_NOMBRE || undefined,
       paciente: cita.PACIENTE,
+      documento: cita.DOCUMENTO || undefined,
       nombre: cita.NOMBRE,
       numero: cita.NUMERO,
       turno: cita.TURNO_CONSULTA,

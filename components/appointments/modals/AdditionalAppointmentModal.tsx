@@ -32,6 +32,8 @@ export function AdditionalAppointmentModal({
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [appointmentId, setAppointmentId] = useState<string>("")
+  const [isLoadingPatientData, setIsLoadingPatientData] = useState(false)
+  const [enhancedPatient, setEnhancedPatient] = useState<any>(null)
   
   // Form fields
   const [fecha, setFecha] = useState<string>("")
@@ -42,6 +44,61 @@ export function AdditionalAppointmentModal({
   const [turno, setTurno] = useState<string>("")
   const [tipoCita, setTipoCita] = useState<string>("")
   const [tipoSeguro, setTipoSeguro] = useState<string>("")
+
+  // Get API base URL from environment
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL || 'http://localhost:8080/api'
+
+  const loadEnhancedPatientData = async (pacienteId: string) => {
+    if (!pacienteId) return
+    
+    setIsLoadingPatientData(true)
+    try {
+      console.log('🔍 Cargando datos adicionales para paciente ID:', pacienteId)
+      const response = await fetch(`${apiBaseUrl}/paciente-foto/${pacienteId}`)
+      
+      if (response.ok) {
+        const additionalData = await response.json()
+        console.log('📋 Datos adicionales recibidos:', additionalData)
+        
+        // Combinar datos originales con datos adicionales
+        const enhancedPatientData = {
+          ...patient,
+          // Sobrescribir con datos más completos de la API
+          NOMBRES: additionalData.nombres || patient?.NOMBRES,
+          STRING_FOTO: additionalData.stringFoto || patient?.STRING_FOTO,
+          ESTADO_CIVIL: additionalData.estadoCivil || patient?.ESTADO_CIVIL,
+          FECHA_NACIMIENTO: additionalData.fechaNacimiento ? 
+            new Date(additionalData.fechaNacimiento).toISOString().split('T')[0] : 
+            patient?.FECHA_NACIMIENTO,
+          EDAD: additionalData.edad || patient?.EDAD
+        }
+        
+        setEnhancedPatient(enhancedPatientData)
+        console.log('✅ Datos del paciente mejorados:', enhancedPatientData)
+      } else {
+        console.warn('⚠️ No se pudieron cargar datos adicionales, usando datos originales')
+        setEnhancedPatient(patient)
+      }
+    } catch (error) {
+      console.error('❌ Error cargando datos adicionales:', error)
+      setEnhancedPatient(patient)
+    } finally {
+      setIsLoadingPatientData(false)
+    }
+  }
+
+  // Load enhanced patient data when modal opens
+  useEffect(() => {
+    if (isOpen && patient) {
+      // Load enhanced patient data
+      const pacienteId = patient.PACIENTE || patient.HISTORIA
+      if (pacienteId) {
+        loadEnhancedPatientData(pacienteId)
+      } else {
+        setEnhancedPatient(patient)
+      }
+    }
+  }, [isOpen, patient])
 
   // Initialize form when modal opens
   useEffect(() => {
@@ -199,7 +256,7 @@ export function AdditionalAppointmentModal({
           {/* Patient Info Card - Left Side */}
           <div className="lg:col-span-1">
             <PatientInfoCardAppointment 
-              patient={patient}
+              patient={enhancedPatient || patient}
               className="h-full"
             />
           </div>

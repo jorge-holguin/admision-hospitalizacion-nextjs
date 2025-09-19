@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 
 export interface Seguro {
-  SEGURO: string;
-  NOMBRE: string;
+  Seguro: string;
+  Nombre: string;
 }
 
 export const seguroService = {

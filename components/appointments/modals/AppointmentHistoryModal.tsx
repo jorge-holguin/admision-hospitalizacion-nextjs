@@ -50,8 +50,12 @@ interface HistoryAppointment {
 }
 
 export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryModalProps) {
-  // Date filters - default to current day for both
-  const [fechaDesde, setFechaDesde] = useState<Date>(new Date())
+  // Date range filters - Por defecto 1 año de antigüedad
+  const [fechaDesde, setFechaDesde] = useState<Date>(() => {
+    const oneYearAgo = new Date()
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+    return oneYearAgo
+  })
   const [fechaHasta, setFechaHasta] = useState<Date>(new Date())
 
   // Search filters
@@ -82,19 +86,35 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const getEstadoBadge = (estado: number) => {
     const estadoInfo = ESTADO_OPTIONS.find((opt) => opt.value === estado.toString())
     return (
-      <Badge className={`${estadoInfo?.color || 'bg-gray-500'} text-white font-medium text-xs`}>
+      <Badge className={`${estadoInfo?.color || 'bg-gray-500'} text-white font-bold text-xs`}>
         {estadoInfo?.label || 'DESCONOCIDO'}
       </Badge>
     )
   }
 
-  const searchHistory = async (searchAllHistory = false) => {
+  const formatTurno = (turno: string) => {
+    if (!turno) return ''
+    const turnoUpper = turno.toUpperCase().trim()
+    if (turnoUpper === 'M' || turnoUpper === 'MAÑANA') return 'MAÑANA'
+    if (turnoUpper === 'T' || turnoUpper === 'TARDE') return 'TARDE'
+    if (turnoUpper === 'N' || turnoUpper === 'NOCHE') return 'NOCHE'
+    return turno // Devolver original si no coincide
+  }
+
+  const searchHistory = async (searchAllHistory = false, isManualSearch = false) => {
     try {
       setIsLoading(true)
       setError(null)
       
       if (!searchTerm.trim()) {
         setError('Debe ingresar un término de búsqueda')
+        setIsLoading(false)
+        return
+      }
+
+      // Solo permitir búsqueda si es manual o es paginación de una búsqueda existente
+      if (!isManualSearch && !hasSearched) {
+        setIsLoading(false)
         return
       }
       
@@ -126,7 +146,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       let apiUrl = ''
       
       // Determine which API to call based on search type
-      if (searchType === 'documento' || searchType === 'historia') {
+      if (searchType === 'documento') {
         qs.set('documento', searchTerm.trim())
         apiUrl = `/api/citas/search-by-documento?${qs.toString()}`
       } else if (searchType === 'nombres') {
@@ -162,16 +182,16 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
 
   const handleSearch = () => {
     setCurrentPage(0)
-    searchHistory()
+    searchHistory(false, true) // Búsqueda manual
   }
 
   const handleSearchAllHistory = () => {
     setCurrentPage(0)
-    searchHistory(true)
+    searchHistory(true, true) // Búsqueda manual
   }
 
   const handleRetry = () => {
-    searchHistory()
+    searchHistory(false, true) // Búsqueda manual
   }
 
   const handleViewDetails = (appointment: HistoryAppointment) => {
@@ -180,17 +200,19 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   }
 
   const resetFilters = () => {
-    setSearchTerm("")
+    // NO borrar searchTerm ni cerrar showAdditionalFilters
+    // Solo resetear los filtros adicionales
     setEstadoFilter("all")
     setConsultorioFilter("all")
     setMedicoFilter("all")
-    setFechaDesde(new Date())
+    // Resetear fechas a 1 año de antigüedad (valor por defecto)
+    const oneYearAgo = new Date()
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+    setFechaDesde(oneYearAgo)
     setFechaHasta(new Date())
     setCurrentPage(0)
-    setAppointments([])
-    setHasSearched(false)
+    // Mantener appointments y hasSearched para no perder los resultados
     setError(null)
-    setShowAdditionalFilters(false)
   }
 
   // Don't load initial data - wait for user to search
@@ -239,22 +261,19 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="documento">Documento</SelectItem>
-                      <SelectItem value="historia">Historia Clínica</SelectItem>
                       <SelectItem value="nombres">Apellidos y Nombres</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="md:col-span-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    {searchType === 'documento' ? 'Número de Documento' : 
-                     searchType === 'historia' ? 'Historia Clínica' : 'Apellidos y Nombres'}
+                    {searchType === 'documento' ? 'Número de Documento' : 'Apellidos y Nombres'}
                   </Label>
                   <Input
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder={
-                      searchType === 'documento' ? 'Ingrese número de documento' : 
-                      searchType === 'historia' ? 'Ingrese historia clínica' : 'Ingrese apellidos y nombres'
+                      searchType === 'documento' ? 'Ingrese número de documento' : 'Ingrese apellidos y nombres'
                     }
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                     className="mt-1"
@@ -309,31 +328,36 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                 
                 {/* Date Range - Improved */}
                 <div className="mb-4">
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Rango de Fechas</Label>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-1">
-                      <Label className="text-xs text-gray-500">Desde</Label>
-                      <Input
-                        type="date"
-                        value={fechaDesde.toISOString().split('T')[0]}
-                        onChange={(e) => setFechaDesde(new Date(e.target.value))}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div className="flex items-center justify-center pt-6">
-                      <div className="w-4 h-px bg-gray-300"></div>
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-gray-500">Hasta</Label>
-                      <Input
-                        type="date"
-                        value={fechaHasta.toISOString().split('T')[0]}
-                        onChange={(e) => setFechaHasta(new Date(e.target.value))}
-                        className="mt-1"
-                      />
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block flex items-center">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Rango de Fechas
+                  </Label>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-1">
+                        <Label className="text-xs font-medium text-gray-600 mb-1 block">Fecha Desde</Label>
+                        <Input
+                          type="date"
+                          value={fechaDesde.toISOString().split('T')[0]}
+                          onChange={(e) => setFechaDesde(new Date(e.target.value))}
+                          className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex items-center justify-center pt-6">
+                        <div className="w-6 h-px bg-gradient-to-r from-blue-400 to-purple-400"></div>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs font-medium text-gray-600 mb-1 block">Fecha Hasta</Label>
+                        <Input
+                          type="date"
+                          value={fechaHasta.toISOString().split('T')[0]}
+                          onChange={(e) => setFechaHasta(new Date(e.target.value))}
+                          className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -342,6 +366,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                         setFechaDesde(today)
                         setFechaHasta(today)
                       }}
+                      className="text-xs bg-slate-50 border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400"
                     >
                       Hoy
                     </Button>
@@ -355,6 +380,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                         setFechaDesde(lastWeek)
                         setFechaHasta(today)
                       }}
+                      className="text-xs bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400"
                     >
                       Última semana
                     </Button>
@@ -368,8 +394,37 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                         setFechaDesde(lastMonth)
                         setFechaHasta(today)
                       }}
+                      className="text-xs bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-400"
                     >
                       Último mes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date()
+                        const lastYear = new Date()
+                        lastYear.setFullYear(today.getFullYear() - 1)
+                        setFechaDesde(lastYear)
+                        setFechaHasta(today)
+                      }}
+                      className="text-xs bg-blue-50 border-blue-400 text-blue-800 hover:bg-blue-100 hover:border-blue-500 font-medium"
+                    >
+                      Último año
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date()
+                        const fiveYearsAgo = new Date()
+                        fiveYearsAgo.setFullYear(today.getFullYear() - 5)
+                        setFechaDesde(fiveYearsAgo)
+                        setFechaHasta(today)
+                      }}
+                      className="text-xs bg-emerald-50 border-emerald-400 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-500 font-medium"
+                    >
+                      Últimos 5 años
                     </Button>
                   </div>
                 </div>
@@ -472,6 +527,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-50">
+                        <TableHead>ID Cita</TableHead>
                         <TableHead>Fecha</TableHead>
                         <TableHead>Hora</TableHead>
                         <TableHead>Estado</TableHead>
@@ -484,6 +540,9 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                     <TableBody>
                       {appointments.map((appointment) => (
                         <TableRow key={appointment.id} className="hover:bg-gray-50">
+                          <TableCell className="font-medium text-blue-600">
+                            {appointment.id}
+                          </TableCell>
                           <TableCell className="font-medium">
                             {new Date(appointment.fecha).toLocaleDateString('es-ES')}
                           </TableCell>
@@ -495,7 +554,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                           <TableCell>
                             {appointment.medicoNombre || appointment.medico}
                           </TableCell>
-                          <TableCell>{appointment.paciente}</TableCell>
+                          <TableCell>{appointment.nombre}</TableCell>
                           <TableCell>
                             <Button
                               size="sm"
@@ -571,6 +630,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
         }}
         appointment={selectedAppointment}
         getEstadoBadge={getEstadoBadge}
+        formatTurno={formatTurno}
       />
     </>
   )

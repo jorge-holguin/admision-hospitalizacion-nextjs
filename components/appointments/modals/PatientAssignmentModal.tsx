@@ -11,7 +11,7 @@ import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
 import { useTipoCita } from "@/contexts/TipoCitaContext"
-import { useSeguro } from "@/contexts/SeguroContext"
+import { useSegurosCita } from "@/contexts/SegurosCitaContext"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
@@ -90,7 +90,7 @@ export function PatientAssignmentModal({
 }: PatientAssignmentModalProps) {
   // Use contexts instead of local state for tipos de cita and seguros
   const { tiposCita } = useTipoCita()
-  const { seguros } = useSeguro()
+  const { seguros } = useSegurosCita()
   
   const [selectedTipoCita, setSelectedTipoCita] = useState("")
   const [selectedSeguro, setSelectedSeguro] = useState("")
@@ -186,7 +186,7 @@ export function PatientAssignmentModal({
       const requestBody = {
         fechaOtorga: currentDate.toISOString(),
         tipoPaciente: selectedTipoCita,
-        paciente: patient?.HISTORIA || patient?.PACIENTE || '',
+        paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
         estado: '2', // Estado asignado

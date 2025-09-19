@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar"
 import { HospitalizationFormRefactored } from '@/components/hospitalization/register/HospitalizationFormRefactored'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
-import { HospitalizationForm } from '@/components/hospitalization/HospitalizationForm'
+
 
 export default function HospitalizationRegisterPage() {
   const router = useRouter();

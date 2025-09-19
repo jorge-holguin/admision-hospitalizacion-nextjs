@@ -13,13 +13,15 @@ interface AppointmentDetailsModalProps {
   onClose: () => void
   appointment: any
   getEstadoBadge: (estado: number) => React.ReactNode
+  formatTurno?: (turno: string) => string
 }
 
 export function AppointmentDetailsModal({
   isOpen,
   onClose,
   appointment,
-  getEstadoBadge
+  getEstadoBadge,
+  formatTurno
 }: AppointmentDetailsModalProps) {
   if (!appointment) return null
 
@@ -71,7 +73,7 @@ export function AppointmentDetailsModal({
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4 text-gray-500" /> TURNO
               </Label>
-              <p className="text-sm font-medium">{appointment.turno || '-'}</p>
+              <p className="text-sm font-medium">{formatTurno ? formatTurno(appointment.turno) : appointment.turno || '-'}</p>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
@@ -103,7 +105,7 @@ export function AppointmentDetailsModal({
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <User className="h-4 w-4 text-gray-500" /> PACIENTE
               </Label>
-              <p className="text-sm font-medium">{appointment.codigoPaciente} - {appointment.paciente}</p>
+              <p className="text-sm font-medium">{appointment.paciente} - {appointment.nombre}</p>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">

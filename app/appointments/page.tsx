@@ -30,7 +30,6 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
-import { SeguroProvider } from "@/contexts/SeguroContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 
 // Import all components from the appointments module
@@ -311,7 +310,7 @@ import {
 
     return (
       <TipoCitaProvider>
-        <SeguroProvider>
+        <SegurosCitaProvider>
           <div className="flex flex-col min-h-screen bg-gray-50">
             {/* Navbar fijo arriba */}
             <Navbar />
@@ -727,7 +726,7 @@ import {
               onClose={() => setShowHistoryModal(false)}
             />
           </div>
-        </SeguroProvider>
+        </SegurosCitaProvider>
       </TipoCitaProvider>
   )
 }
