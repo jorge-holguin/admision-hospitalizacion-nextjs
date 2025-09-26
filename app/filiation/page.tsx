@@ -3,18 +3,28 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Home, Loader2, Search,Siren, CheckCircle } from "lucide-react"
+import { Dialog } from "@/components/ui/dialog"
+import { Home, Loader2, Search, Siren, CheckCircle, UserPlus } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { DataTable } from "@/components/ui/data-table"
-import { useFiliacion } from "@/hooks/useFiliacion"
 import { useRouter } from "next/navigation"
 import { SISVerification, SISVerificationResult } from "@/components/dashboard/SISVerification"
 import { usePatient } from "@/contexts/PatientContext"
 import { EmergencyModalProvider } from "@/components/emergency/modals/EmergencyModalProvider"
+import { HospitalizationModalProvider } from "@/components/hospitalization/modals/HospitalizationModalProvider"
+
+// Filiation components
+import { PatientSearchBar } from "@/components/filiation/PatientSearchBar"
+import { PatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
+import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
+import { PatientResultsTable } from "@/components/filiation/PatientResultsTable"
+import { PatientViewModal } from "@/components/filiation/modals/PatientViewModal"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
+import { ReniecService } from "@/services/filiation/reniecService"
+import { useFiliacion } from "@/hooks/useFiliacion"
+import { Input } from "@/components/ui/input"
+import { DataTable } from "@/components/ui/data-table"
 
 
 
@@ -35,15 +45,27 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-export default function HospitalizationSearch() {
+export default function FiliationPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [searchType, setSearchType] = useState<"historia" | "documento" | "nombres">("documento")
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   
-  // Estado para el modal de emergencia
+  // Estados para modales de emergencia y hospitalización
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false)
   const [selectedPatientForEmergency, setSelectedPatientForEmergency] = useState<any>(null)
+  const [isHospitalizationModalOpen, setIsHospitalizationModalOpen] = useState(false)
+  const [selectedPatientForHospitalization, setSelectedPatientForHospitalization] = useState<any>(null)
+  
+  // Estados para modales de filiación
+  const [isPatientSearchModalOpen, setIsPatientSearchModalOpen] = useState(false)
+  const [isPatientRegistrationModalOpen, setIsPatientRegistrationModalOpen] = useState(false)
+  const [isPatientViewModalOpen, setIsPatientViewModalOpen] = useState(false)
+  const [isPatientEditModalOpen, setIsPatientEditModalOpen] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<any>(null)
+  const [reniecData, setReniecData] = useState<any>(null)
+  const [documentType, setDocumentType] = useState("DNI")
+  const [documentNumber, setDocumentNumber] = useState("")
   
   // Aplicar debounce al término de búsqueda con retardo variable basado en el tipo de búsqueda
   const debounceDelay = searchType === "nombres" ? 1000 : 500; // Retardo más largo para la búsqueda por nombre
@@ -74,12 +96,15 @@ export default function HospitalizationSearch() {
     }
   }, [debouncedSearchTerm, searchType])
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = useCallback((term?: string, type?: string) => {
+    const searchValue = term || searchTerm
+    const searchBy = type || searchType || "documento"
+    
     setIsSearching(true)
     const filter: any = {}
     
-    if (searchTerm) {
-      filter[searchType] = searchTerm
+    if (searchValue) {
+      filter[searchBy] = searchValue
       setHasSearched(true)
     } else {
       setHasSearched(false)
@@ -100,22 +125,124 @@ export default function HospitalizationSearch() {
       documento: patient.DOCUMENTO,
       pacienteId: patient.PACIENTE
     });
-    router.push(`/hospitalization/${patient.PACIENTE}`);
+    
+    // Abrir modal de hospitalización en lugar de redireccionar
+    setSelectedPatientForHospitalization(patient);
+    setIsHospitalizationModalOpen(true);
   };
 
   const handleEmergencySelect = (patient: any) => {
     // Save patient data to context
     setPatientData({
-      hc: patient.HISTORIA,
-      name: patient.NOMBRES,
-      documento: patient.DOCUMENTO,
-      pacienteId: patient.PACIENTE
+      hc: patient.HISTORIA || patient.hc,
+      name: patient.NOMBRES || patient.name,
+      documento: patient.DOCUMENTO || patient.dni,
+      pacienteId: patient.PACIENTE || patient.id
     });
     
-    // Abrir modal de emergencia en lugar de redireccionar
+    // Abrir modal de emergencia
     setSelectedPatientForEmergency(patient);
     setIsEmergencyModalOpen(true);
   };
+
+  // Funciones para manejar los modales de filiación
+  const handleNewPatientClick = () => {
+    setIsPatientSearchModalOpen(true)
+  }
+
+  const handlePatientSearchComplete = async (searchData: any) => {
+    try {
+      // Buscar si el paciente ya existe
+      const existingPatients = await searchExistingPatient(searchData.dni)
+      
+      if (existingPatients.length > 0) {
+        // Paciente existe, mostrar modal de edición
+        setSelectedPatient(existingPatients[0])
+        setIsPatientEditModalOpen(true)
+        setIsPatientSearchModalOpen(false)
+        toast({
+          title: "Paciente encontrado",
+          description: "El paciente ya existe. Se abrirá el formulario de edición.",
+        })
+      } else {
+        // Paciente no existe, proceder con registro
+        setReniecData(searchData)
+        setDocumentType("DNI")
+        setDocumentNumber(searchData.dni)
+        setIsPatientRegistrationModalOpen(true)
+        setIsPatientSearchModalOpen(false)
+      }
+    } catch (error) {
+      console.error('Error buscando paciente:', error)
+      // Si hay error en la búsqueda, proceder con registro
+      setReniecData(searchData)
+      setDocumentType("DNI")
+      setDocumentNumber(searchData.dni)
+      setIsPatientRegistrationModalOpen(true)
+      setIsPatientSearchModalOpen(false)
+    }
+  }
+
+  const handlePatientView = (patient: any) => {
+    if (!patient) {
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la información del paciente.",
+        variant: "destructive"
+      })
+      return
+    }
+    setSelectedPatient(patient)
+    setIsPatientViewModalOpen(true)
+  }
+
+  const handlePatientEdit = (patient: any) => {
+    if (!patient) {
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la información del paciente para editar.",
+        variant: "destructive"
+      })
+      return
+    }
+    setSelectedPatient(patient)
+    setIsPatientEditModalOpen(true)
+  }
+
+  const handleRegistrationSuccess = () => {
+    setIsPatientRegistrationModalOpen(false)
+    setReniecData(null)
+    toast({
+      title: "Paciente registrado",
+      description: "La historia clínica ha sido creada exitosamente.",
+    })
+    // Refrescar la búsqueda
+    refreshData()
+  }
+
+  const handleEditSuccess = () => {
+    setIsPatientEditModalOpen(false)
+    setSelectedPatient(null)
+    toast({
+      title: "Paciente actualizado",
+      description: "La información del paciente ha sido actualizada.",
+    })
+    // Refrescar la búsqueda
+    refreshData()
+  }
+
+  // Función auxiliar para buscar paciente existente
+  const searchExistingPatient = async (dni: string) => {
+    try {
+      const filter = { documento: dni }
+      handleFilterChange(filter)
+      // Simular búsqueda - en implementación real esto vendría del hook
+      return [] // Retornar array vacío por ahora
+    } catch (error) {
+      console.error('Error searching existing patient:', error)
+      return []
+    }
+  }
 
   // Estado para almacenar los resultados de verificación SIS por paciente
   const [sisVerificationResults, setSisVerificationResults] = useState<Record<string, SISVerificationResult>>({});
@@ -268,7 +395,16 @@ export default function HospitalizationSearch() {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Criterios de Búsqueda</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Búsqueda de Pacientes</span>
+              <Button
+                onClick={handleNewPatientClick}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Nuevo Paciente
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
@@ -287,7 +423,6 @@ export default function HospitalizationSearch() {
                 </select>
               </div>
               <div className="relative flex-1">
-                {/* Search icon (always visible) */}
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                 
                 <Input
@@ -298,7 +433,6 @@ export default function HospitalizationSearch() {
                   disabled={isLoading}
                 />
                 
-                {/* Single clear button - using Input's built-in type="search" would create a duplicate X */}
                 {searchTerm && (
                   <button
                     type="button"
@@ -319,7 +453,7 @@ export default function HospitalizationSearch() {
               </div>
               <Button 
                 type="submit" 
-                onClick={handleSearch} 
+                onClick={() => handleSearch()} 
                 disabled={isLoading || isSearching}
               >
                 {isLoading || isSearching ? (
@@ -397,7 +531,7 @@ export default function HospitalizationSearch() {
                       </span>
                       {searchTerm && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs">
-                          Filtrado por: {searchType === "nombres" ? "Nombres" : searchType === "historia" ? "Historia Clínica" : "DNI"} - "{searchTerm}"
+                          Filtrado por: {searchType === "nombres" ? "Nombres" : searchType === "historia" ? "Historia Clínica" : "Documento"} - "{searchTerm}"
                         </span>
                       )}
                     </div>
@@ -425,7 +559,56 @@ export default function HospitalizationSearch() {
           setSelectedPatientForEmergency(null);
         }}
         patientId={selectedPatientForEmergency?.PACIENTE || ''}
+        patientName={selectedPatientForEmergency?.NOMBRES || ''}
       />
+
+      {/* Modal de Hospitalización */}
+      <HospitalizationModalProvider
+        isOpen={isHospitalizationModalOpen}
+        onClose={() => {
+          setIsHospitalizationModalOpen(false);
+          setSelectedPatientForHospitalization(null);
+        }}
+        patientId={selectedPatientForHospitalization?.PACIENTE || ''}
+        patientName={selectedPatientForHospitalization?.NOMBRES || ''}
+      />
+
+      {/* Modales de Filiación */}
+      <Dialog open={isPatientSearchModalOpen} onOpenChange={setIsPatientSearchModalOpen}>
+        <PatientSearchModal 
+          onSearchComplete={handlePatientSearchComplete}
+          onCancel={() => setIsPatientSearchModalOpen(false)}
+        />
+      </Dialog>
+
+      <Dialog open={isPatientRegistrationModalOpen} onOpenChange={setIsPatientRegistrationModalOpen}>
+        <PatientRegistrationModal
+          reniecData={reniecData}
+          documentType={documentType}
+          documentNumber={documentNumber}
+          onCancel={() => setIsPatientRegistrationModalOpen(false)}
+          onSuccess={handleRegistrationSuccess}
+        />
+      </Dialog>
+
+      <Dialog open={isPatientViewModalOpen && selectedPatient !== null} onOpenChange={setIsPatientViewModalOpen}>
+        <PatientViewModal
+          patient={selectedPatient}
+          onClose={() => setIsPatientViewModalOpen(false)}
+          onEdit={() => {
+            setIsPatientViewModalOpen(false);
+            setIsPatientEditModalOpen(true);
+          }}
+        />
+      </Dialog>
+
+      <Dialog open={isPatientEditModalOpen && selectedPatient !== null} onOpenChange={setIsPatientEditModalOpen}>
+        <PatientEditModal
+          patient={selectedPatient}
+          onCancel={() => setIsPatientEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+        />
+      </Dialog>
     </div>
   )
 }

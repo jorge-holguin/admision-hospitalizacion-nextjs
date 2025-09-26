@@ -5,6 +5,7 @@ import { Loader2, Save, AlertCircle, CheckCircle2, X } from "lucide-react"
 import { useRouter } from 'next/navigation'
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useState } from 'react'
+import { usePatientAccount } from '@/contexts/PatientAccountContext'
 
 interface FormActionsProps {
   onSave: () => void
@@ -25,7 +26,8 @@ export function FormActions({
   insuranceCode,
   onBeforeSave
 }: FormActionsProps) {
-  const router = useRouter();
+  const router = useRouter()
+  const { fetchPatientAccountBySeguro } = usePatientAccount()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
   const [checkingFua, setCheckingFua] = useState(false)
@@ -70,14 +72,16 @@ export function FormActions({
       setCheckingFua(true)
       try {
         const trimmedCode = insuranceCode?.split(' ')[0] || ''
-        const response = await fetch(`/api/cuenta/validate?patientId=${patientId}&tipoSeguro=${trimmedCode}`)
-        const data = await response.json()
+        console.log('🏥 Validando cuenta usando contexto (FormActions) para:', patientId, trimmedCode)
         
-        setHasFua(data.isValid)
-        setFuaId(data.fuaId)
-        setShowFuaWarning(!data.isValid) // Show warning only if validation failed
+        // Usar contexto en lugar de llamada directa
+        const accountData = await fetchPatientAccountBySeguro(patientId, trimmedCode)
+        
+        setHasFua(!!accountData)
+        setFuaId(accountData?.cuentaId || null)
+        setShowFuaWarning(!accountData) // Show warning only if validation failed
       } catch (error) {
-        console.error('Error validating cuenta and FUA:', error)
+        console.error('Error validating cuenta usando contexto:', error)
         // If there's an error checking, we'll show the warning
         setShowFuaWarning(true)
       } finally {

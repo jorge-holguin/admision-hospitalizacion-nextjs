@@ -44,13 +44,22 @@ export function TiposDocumentoProvider({ children }: { children: React.ReactNode
       const data = await response.json()
       console.log('✅ Tipos de documento cargados en contexto:', data)
       
-      // Extraer los items de la respuesta
-      const tiposDocumentoData = data.items || data.data || []
+      // Extraer los items de la respuesta - Corregido para manejar array directo
+      const tiposDocumentoData = Array.isArray(data) ? data : (data.items || data.data || [])
+      console.log('📄 Datos procesados de tipos de documento:', tiposDocumentoData)
       setTiposDocumento(tiposDocumentoData)
       
     } catch (error) {
       console.error('❌ Error al cargar tipos de documento en contexto:', error)
-      setTiposDocumento([])
+      // Datos de fallback en caso de error
+      const fallbackData = [
+        { TIPO_DOCUMENTO: 'D  ', NOMBRE: 'DNI' },
+        { TIPO_DOCUMENTO: 'CE ', NOMBRE: 'Carnet de Extranjería' },
+        { TIPO_DOCUMENTO: 'PP ', NOMBRE: 'Pasaporte' },
+        { TIPO_DOCUMENTO: '0  ', NOMBRE: '*Ninguno' }
+      ];
+      console.log('📄 Usando datos de fallback para tipos de documento')
+      setTiposDocumento(fallbackData)
     } finally {
       setLoading(false)
     }
@@ -59,7 +68,21 @@ export function TiposDocumentoProvider({ children }: { children: React.ReactNode
   const getTipoDocumentoNombre = (codigo: string): string => {
     if (!codigo) return '-'
     const clean = String(codigo).trim()
-    const found = tiposDocumento.find(td => td.TIPO_DOCUMENTO && td.TIPO_DOCUMENTO.trim() === clean)
+    
+    // Buscar primero una coincidencia exacta
+    let found = tiposDocumento.find(td => td.TIPO_DOCUMENTO && td.TIPO_DOCUMENTO.trim() === clean)
+    
+    // Si no se encuentra, buscar ignorando espacios en blanco
+    if (!found) {
+      found = tiposDocumento.find(td => {
+        if (!td.TIPO_DOCUMENTO) return false;
+        // Eliminar todos los espacios para comparación
+        const docTrimmed = td.TIPO_DOCUMENTO.replace(/\s+/g, '');
+        const codeTrimmed = clean.replace(/\s+/g, '');
+        return docTrimmed === codeTrimmed;
+      });
+    }
+    
     return found?.NOMBRE || clean
   }
 

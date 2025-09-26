@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect, OptionItem } from '@/components/ui/SearchableSelect';
+import { useTiposDocumento } from '@/contexts/TiposDocumentoContext';
 
 interface AdditionalViewFieldsSectionProps {
   formData: any;
@@ -25,58 +26,23 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
     ACTIVO: number;
   }
 
-  // Estados para el SearchableSelect de tipo de documento
+  // Usar contexto en lugar de estado local
+  const { tiposDocumento, loading: loadingTiposDocumento } = useTiposDocumento();
   const [searchTipoDocumento, setSearchTipoDocumento] = useState<string>('');
-  const [loadingTiposDocumento, setLoadingTiposDocumento] = useState<boolean>(false);
-  const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
 
-  // Cargar tipos de documento desde la API
-  const loadTiposDocumento = async (search: string = '') => {
-    try {
-      setLoadingTiposDocumento(true);
-      const response = await fetch(`/api/tipo-documento${search ? `?search=${encodeURIComponent(search)}` : ''}`);
-      
-      if (!response.ok) {
-        throw new Error('Error al obtener tipos de documento');
-      }
-      
-      const data = await response.json();
-      
-      // La API devuelve directamente el array de tipos de documento
-      if (Array.isArray(data)) {
-        setTiposDocumento(data);
-      } else {
-        // Fallback para datos de prueba si la API devuelve un formato inesperado
-        setTiposDocumento([
-          { TIPO_DOCUMENTO: 'D', NOMBRE: 'DNI', ACTIVO: 1 },
-          { TIPO_DOCUMENTO: 'CE', NOMBRE: 'Carnet de Extranjería', ACTIVO: 1 },
-          { TIPO_DOCUMENTO: 'PP', NOMBRE: 'Pasaporte', ACTIVO: 1 },
-          { TIPO_DOCUMENTO: '0', NOMBRE: 'Ninguno', ACTIVO: 1 }
-        ]);
-      }
-    } catch (error) {
-      console.error('Error al cargar tipos de documento:', error);
-      // Datos de respaldo en caso de error
-      setTiposDocumento([
-        { TIPO_DOCUMENTO: 'D', NOMBRE: 'DNI', ACTIVO: 1 },
-        { TIPO_DOCUMENTO: 'CE', NOMBRE: 'Carnet de Extranjería', ACTIVO: 1 },
-        { TIPO_DOCUMENTO: 'PP', NOMBRE: 'Pasaporte', ACTIVO: 1 },
-        { TIPO_DOCUMENTO: '0', NOMBRE: 'Ninguno', ACTIVO: 1 }
-      ]);
-    } finally {
-      setLoadingTiposDocumento(false);
-    }
-  };
-  
-  // Cargar datos iniciales
-  useEffect(() => {
-    loadTiposDocumento();
-  }, []);
+  // Ya no necesitamos cargar datos manualmente, usamos el contexto
+  console.log('📄 Tipos de documento disponibles desde contexto (view):', tiposDocumento?.length || 0);
 
   // Formato para el SearchableSelect
   const formatTiposDocumento = useMemo(() => {
+    // Validar que tiposDocumento sea un array válido
+    if (!Array.isArray(tiposDocumento)) {
+      console.warn('📄 tiposDocumento no es un array válido (view):', tiposDocumento);
+      return [];
+    }
     
     const formatted = tiposDocumento
+      .filter(t => t && t.TIPO_DOCUMENTO && t.NOMBRE) // Validar que los objetos tengan las propiedades necesarias
       .filter(t => !searchTipoDocumento || 
         t.NOMBRE?.toLowerCase().includes(searchTipoDocumento.toLowerCase()) ||
         t.TIPO_DOCUMENTO?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
@@ -86,7 +52,8 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
         description: '',
         data: t
       }));
-    
+      
+    console.log('📄 Opciones formateadas para SearchableSelect (view):', formatted);
     return formatted;
   }, [tiposDocumento, searchTipoDocumento]);
   
@@ -154,7 +121,7 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
             search={searchTipoDocumento}
             onSearchChange={(v: string) => {
               setSearchTipoDocumento(v);
-              loadTiposDocumento(v);
+              // Filtrado local usando el contexto
             }}
             onSelect={(opt: OptionItem) => {
               onFormChange("tipoDocumentoA", opt.value);

@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CuentaValidationResult } from '@/services/hospitalizacion/cuentaValidationService'
+import { usePatientAccount } from '@/contexts/PatientAccountContext'
 
 interface FuaStatusAlertProps {
   patientId: string
@@ -12,10 +13,15 @@ interface FuaStatusAlertProps {
 }
 
 export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAlertProps) {
-  const [loading, setLoading] = useState(true)
+  // Usar contexto para evitar llamadas API duplicadas
+  const { fetchPatientAccountBySeguro, isLoading, errors } = usePatientAccount();
+  
   const [validationResult, setValidationResult] = useState<CuentaValidationResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [shouldShow, setShouldShow] = useState(false)
+  
+  // Estados derivados del contexto
+  const loading = isLoading[patientId] || false;
+  const error = errors[patientId] || null;
 
   // Códigos de seguro que requieren validación
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25']
@@ -24,7 +30,6 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
   useEffect(() => {
     if (!insuranceCode) {
       setShouldShow(false)
-      setLoading(false)
       return
     }
 
@@ -35,7 +40,6 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     // Solo mostrar validación para SIS, no para PAGANTE/SOAT
     if (!isSIS) {
       setShouldShow(false)
-      setLoading(false)
       return
     }
     
@@ -43,20 +47,30 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     
     const validateAccount = async () => {
       try {
-        setLoading(true)
-        const response = await fetch(`/api/cuenta/validate?patientId=${patientId}&tipoSeguro=${trimmedCode}`)
+        console.log('🏥 Validando cuenta usando contexto para:', patientId, trimmedCode)
         
-        if (!response.ok) {
-          throw new Error('Error al validar la cuenta')
+        // Usar contexto en lugar de llamada directa
+        const accountData = await fetchPatientAccountBySeguro(patientId, trimmedCode)
+        
+        // Simular el formato de validación esperado
+        const validationData: CuentaValidationResult = {
+          isValid: !!accountData,
+          cuentaId: accountData?.cuentaId || null,
+          fuaId: null, // No disponible desde el contexto
+          message: accountData ? 'Cuenta válida encontrada' : 'No se encontró cuenta válida',
+          tipoValidacion: 'SIS'
         }
         
-        const data = await response.json()
-        setValidationResult(data)
+        setValidationResult(validationData)
       } catch (err) {
-        console.error('Error al validar cuenta:', err)
-        setError('No se pudo validar la cuenta')
-      } finally {
-        setLoading(false)
+        console.error('Error al validar cuenta usando contexto:', err)
+        setValidationResult({
+          isValid: false,
+          cuentaId: null,
+          fuaId: null,
+          message: 'Error al validar la cuenta',
+          tipoValidacion: 'SIS'
+        })
       }
     }
 

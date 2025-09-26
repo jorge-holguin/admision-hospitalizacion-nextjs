@@ -6,6 +6,7 @@ import { EmergencyFormRefactored } from '@/components/emergency/register/Emergen
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { EmergencyProvider } from '@/contexts/EmergencyProvider';
 
 interface EditEmergenciaPageProps {
   params: {
@@ -92,10 +93,12 @@ export default function EditEmergenciaPage({ params }: EditEmergenciaPageProps) 
   }
   
   return (
-    <EmergencyFormRefactored 
-      patientId={pacienteId} 
-      emergencyId={emergenciaId} 
-      emergencyData={emergencia} 
-    />
+    <EmergencyProvider>
+      <EmergencyFormRefactored 
+        patientId={pacienteId} 
+        emergencyId={emergenciaId} 
+        emergencyData={emergencia} 
+      />
+    </EmergencyProvider>
   );
 }

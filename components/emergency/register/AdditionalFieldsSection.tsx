@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import type { OptionItem } from '@/components/ui/SearchableSelect';
+import { useTiposDocumento } from '@/contexts/TiposDocumentoContext';
 
 interface TipoDocumento {
   TIPO_DOCUMENTO: string;
@@ -23,61 +24,25 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
   validationErrors,
   disabled
 }) => {
-  const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
-  const [loadingTiposDocumento, setLoadingTiposDocumento] = useState(false);
+  // Usar contexto en lugar de estado local
+  const { tiposDocumento, loading: loadingTiposDocumento } = useTiposDocumento();
   const [searchTipoDocumento, setSearchTipoDocumento] = useState('');
 
-  // Cargar tipos de documento desde la API
-  const loadTiposDocumento = async (search: string = '') => {
-    try {
-      setLoadingTiposDocumento(true);
-      
-      const url = `/api/tipo-documento${search ? `?search=${encodeURIComponent(search)}` : ''}`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      // La API devuelve directamente el array de tipos de documento
-      if (Array.isArray(data) && data.length > 0) {
-        setTiposDocumento(data);
-      } else {
-        console.warn('API devolvió datos vacíos o inválidos, usando datos de respaldo');
-        // Fallback para datos de prueba si la API falla
-        const fallbackData = [
-          { TIPO_DOCUMENTO: 'D', NOMBRE: 'DNI', ACTIVO: 1 },
-          { TIPO_DOCUMENTO: 'CE', NOMBRE: 'Carnet de Extranjería', ACTIVO: 1 },
-          { TIPO_DOCUMENTO: 'PP', NOMBRE: 'Pasaporte', ACTIVO: 1 },
-          { TIPO_DOCUMENTO: '0', NOMBRE: 'Ninguno', ACTIVO: 1 }
-        ];
-        setTiposDocumento(fallbackData);
-      }
-    } catch (error) {
-      console.error('Error al cargar tipos de documento:', error);
-      // Datos de respaldo en caso de error
-      const fallbackData = [
-        { TIPO_DOCUMENTO: 'D', NOMBRE: 'DNI', ACTIVO: 1 },
-        { TIPO_DOCUMENTO: 'CE', NOMBRE: 'Carnet de Extranjería', ACTIVO: 1 },
-        { TIPO_DOCUMENTO: 'PP', NOMBRE: 'Pasaporte', ACTIVO: 1 },
-        { TIPO_DOCUMENTO: '0', NOMBRE: 'Ninguno', ACTIVO: 1 }
-      ];
-      setTiposDocumento(fallbackData);
-    } finally {
-      setLoadingTiposDocumento(false);
-    }
-  };
-
-  useEffect(() => {
-    loadTiposDocumento();
-  }, []);
+  // Ya no necesitamos cargar datos manualmente, usamos el contexto
+  console.log('📄 Tipos de documento disponibles desde contexto:', tiposDocumento?.length || 0);
+  console.log('📄 Datos de tipos de documento:', tiposDocumento);
+  console.log('📄 Loading tipos documento:', loadingTiposDocumento);
   
   // Formato para el SearchableSelect
   const formatTiposDocumento = useMemo(() => {
-    return tiposDocumento
+    // Validar que tiposDocumento sea un array válido
+    if (!Array.isArray(tiposDocumento)) {
+      console.warn('📄 tiposDocumento no es un array válido:', tiposDocumento);
+      return [];
+    }
+    
+    const formatted = tiposDocumento
+      .filter(t => t && t.TIPO_DOCUMENTO && t.NOMBRE) // Validar que los objetos tengan las propiedades necesarias
       .filter(t => !searchTipoDocumento || 
         t.NOMBRE?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
       .map(t => ({
@@ -86,6 +51,9 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
         description: '',
         data: t
       }));
+    
+    console.log('📄 Opciones formateadas para SearchableSelect:', formatted);
+    return formatted;
   }, [tiposDocumento, searchTipoDocumento]);
   
     
@@ -147,7 +115,7 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
               search={searchTipoDocumento}
               onSearchChange={(v: string) => {
                 setSearchTipoDocumento(v);
-                loadTiposDocumento(v);
+                // Filtrado local usando el contexto
               }}
               onSelect={(opt: OptionItem) => {
                 onFormChange("tipoDocumentoA", opt.value);

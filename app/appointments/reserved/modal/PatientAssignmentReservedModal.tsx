@@ -1,0 +1,560 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, X, AlertTriangle, Image, Eye } from "lucide-react"
+import { TipoCitaSelector } from "../../../../components/appointments/selectors/TipoCitaSelector"
+import { TipoSeguroSelector } from "../../../../components/appointments/selectors/TipoSeguroSelector"
+import { EntidadSisSelector } from "../../../../components/appointments/selectors/EntidadSisSelector"
+import { useTipoCita } from "@/contexts/TipoCitaContext"
+import { useSegurosCita } from "@/contexts/SegurosCitaContext"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { SimpleSISVerification } from "../../../../components/appointments/patient/SimpleSISVerification"
+import { toast } from "@/components/ui/use-toast"
+
+interface Patient {
+  HISTORIA: string
+  NOMBRES: string
+  NOMBRE?: string
+  PATERNO?: string
+  MATERNO?: string
+  SEXO: string
+  DOCUMENTO: string
+  TIPO_DOCUMENTO?: string
+  FECHA_NACIMIENTO: string
+  EDAD?: string
+  ESTADO_CIVIL?: string
+  DIRECCION: string
+  DISTRITO: string
+  Distrito_Dir?: string
+  TELEFONO1?: string
+  TELEFONO2?: string
+  SEGURO?: string
+  NOMBRE_SEGURO?: string
+  RELIGION?: string
+  DESRELIGION?: string
+  Nombre_Localidad?: string
+  LOCALIDAD?: string
+  STRING_FOTO?: string
+  PACIENTE?: string
+}
+
+interface Appointment {
+  codigo: string
+  citaId: string
+  fecha: string
+  hora: string
+  especialidad: string
+  especialidadNombre?: string
+  medico: string
+  medicoNombre?: string
+  estado: string
+}
+
+interface TipoCita {
+  Tipo_cita: string
+  Nombre: string
+}
+
+interface Seguro {
+  Seguro: string
+  Nombre: string
+}
+
+interface PatientAssignmentReservedModalProps {
+  isOpen: boolean
+  onClose: () => void
+  patient: Patient | null
+  appointment: Appointment | null
+  onApprove: (assignmentData: any) => void
+  onDeny: (motivo: string) => void
+  onObserve: (motivo: string) => void
+  onSuccess?: (citaId: string) => void
+  onBack?: () => void
+  searchType?: 'document' | 'name'
+}
+
+// Modal para solicitar motivo
+interface MotivoModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: (motivo: string) => void
+  title: string
+  action: string
+  isLoading: boolean
+}
+
+function MotivoModal({ isOpen, onClose, onConfirm, title, action, isLoading }: MotivoModalProps) {
+  const [motivo, setMotivo] = useState("")
+
+  const handleConfirm = () => {
+    if (motivo.trim()) {
+      onConfirm(motivo.trim())
+    } else {
+      toast({
+        title: "Campo requerido",
+        description: "Debe ingresar un motivo",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleClose = () => {
+    setMotivo("")
+    onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Motivo <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              placeholder={`Ingrese el motivo por el cual se ${action.toLowerCase()} la solicitud...`}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="min-h-[100px] resize-none"
+              maxLength={500}
+            />
+            <div className="text-xs text-gray-500 text-right">
+              {motivo.length}/500 caracteres
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleConfirm}
+            disabled={!motivo.trim() || isLoading}
+            variant={action === "DENEGAR" ? "destructive" : "default"}
+            className={action === "OBSERVAR" ? "bg-yellow-600 hover:bg-yellow-700" : ""}
+          >
+            {isLoading ? "Procesando..." : `Confirmar ${action}`}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL
+
+export function PatientAssignmentReservedModal({ 
+  isOpen, 
+  onClose, 
+  patient, 
+  appointment, 
+  onApprove,
+  onDeny,
+  onObserve,
+  onSuccess,
+  onBack,
+  searchType = 'document'
+}: PatientAssignmentReservedModalProps) {
+  // Use contexts instead of local state for tipos de cita and seguros
+  const { tiposCita } = useTipoCita()
+  const { seguros } = useSegurosCita()
+  
+  const [selectedTipoCita, setSelectedTipoCita] = useState("")
+  const [selectedSeguro, setSelectedSeguro] = useState("")
+  const [selectedEntidadSis, setSelectedEntidadSis] = useState("")
+  const [referencia, setReferencia] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
+  
+  // Estados para modales de motivo
+  const [showMotivoModal, setShowMotivoModal] = useState(false)
+  const [motivoAction, setMotivoAction] = useState<"DENEGAR" | "OBSERVAR">("DENEGAR")
+  const [motivoLoading, setMotivoLoading] = useState(false)
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTipoCita("")
+      setSelectedSeguro(patient?.SEGURO || "")
+      setSelectedEntidadSis("")
+      setReferencia("")
+      setShowSuccess(false)
+      setSisVerificationResult(null)
+    }
+  }, [isOpen, patient])
+
+  const isSisSeguro = () => {
+    if (!selectedSeguro || !seguros) return false
+    // Asumimos que SIS es el seguro con código '21' o nombre que contenga 'SIS'
+    const seguro = seguros.find(s => s.Seguro === selectedSeguro)
+    return seguro?.Seguro === '21' || seguro?.Nombre?.toUpperCase().includes('SIS') || false
+  }
+
+  const handleApprove = async () => {
+    if (!patient || !appointment) return
+
+    setIsLoading(true)
+    try {
+      // Preparar el cuerpo de la solicitud según el formato requerido
+      const currentDate = new Date();
+      const requestBody = {
+        fechaOtorga: currentDate.toISOString(),
+        tipoPaciente: selectedTipoCita,
+        paciente: patient?.PACIENTE || '',
+        nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
+        seguro: selectedSeguro,
+        estado: '2', // Estado asignado
+        horaOtorga: `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`,
+        usuario: localStorage.getItem('username') || 'SISTEMA',
+        numRef: referencia || '',
+        entidadSis: selectedEntidadSis || ''
+      }
+      
+      console.log('📤 Enviando solicitud de asignación:', requestBody)
+      
+      // Construir la URL usando la variable de entorno
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_URL}/${appointment.citaId}/asignar`;
+      console.log('🔗 URL de asignación:', apiUrl);
+      
+      // Realizar la solicitud PUT
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Error al asignar paciente: ${response.status} ${response.statusText}`)
+      }
+      
+      const responseData = await response.json()
+      console.log('✅ Asignación exitosa:', responseData)
+      
+      // Notificar al componente padre sobre la asignación exitosa
+      const assignmentData = {
+        ...requestBody,
+        appointmentId: appointment.id,
+        success: true,
+        responseData
+      }
+
+      await onApprove(assignmentData)
+      
+      setShowSuccess(true)
+      setTimeout(() => {
+        setShowSuccess(false)
+        onClose()
+        if (onSuccess) {
+          onSuccess(appointment.id)
+        }
+      }, 2000)
+    } catch (error) {
+      console.error('Error al aprobar:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo aprobar la solicitud",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDenyClick = () => {
+    setMotivoAction("DENEGAR")
+    setShowMotivoModal(true)
+  }
+
+  const handleObserveClick = () => {
+    setMotivoAction("OBSERVAR")
+    setShowMotivoModal(true)
+  }
+
+  const handleMotivoConfirm = async (motivo: string) => {
+    setMotivoLoading(true)
+    try {
+      if (motivoAction === "DENEGAR") {
+        await onDeny(motivo)
+        toast({
+          title: "Solicitud Denegada",
+          description: "La solicitud ha sido denegada correctamente",
+        })
+      } else {
+        await onObserve(motivo)
+        toast({
+          title: "Solicitud Observada",
+          description: "La solicitud ha sido marcada como observada",
+        })
+      }
+      
+      setShowMotivoModal(false)
+      onClose()
+    } catch (error) {
+      console.error(`Error al ${motivoAction.toLowerCase()}:`, error)
+      toast({
+        title: "Error",
+        description: `No se pudo ${motivoAction.toLowerCase()} la solicitud`,
+        variant: "destructive"
+      })
+    } finally {
+      setMotivoLoading(false)
+    }
+  }
+
+  if (!patient || !appointment) return null
+
+  if (showSuccess) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              ¡Solicitud Aprobada!
+            </h3>
+            <p className="text-gray-600">
+              La solicitud ha sido procesada correctamente
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div className="flex items-center gap-3">
+              {onBack && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onBack}
+                  className="h-8 w-8 p-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <div>
+                <DialogTitle className="text-xl font-semibold text-blue-600">
+                  Confirmar Asignación de Paciente
+                </DialogTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  Información del Paciente
+                </p>
+              </div>
+            </div>
+       
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Columna izquierda: Información del paciente */}
+            <div className="space-y-4 flex flex-col">
+              <PatientInfoCardAppointment patient={patient} className="flex-1" />
+            </div>
+
+            {/* Columna derecha: Información de la cita y datos de asignación */}
+            <div className="space-y-4 flex flex-col">
+              {/* Información de la cita */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Información de la Cita
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Fecha</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        {appointment.fecha}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Hora</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        {appointment.hora}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Especialidad</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Stethoscope className="h-4 w-4 text-gray-400" />
+                        {appointment.especialidadNombre || appointment.especialidad}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Médico</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="h-4 w-4 text-gray-400" />
+                        {appointment.medicoNombre || appointment.medico}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Datos de asignación */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Datos de Asignación</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <TipoCitaSelector
+                    value={selectedTipoCita}
+                    onChange={setSelectedTipoCita}
+                    required={true}
+                  />
+
+                  <TipoSeguroSelector
+                    value={selectedSeguro}
+                    onChange={setSelectedSeguro}
+                    required={true}
+                    initialValue={patient?.SEGURO}
+                  />
+
+                  {/* Verificación SIS - Solo mostrar si el seguro seleccionado es SIS */}
+                  {isSisSeguro() && (
+                    <div className="mt-4">
+                      <SimpleSISVerification
+                        patientId={patient.HISTORIA}
+                        documento={patient.DOCUMENTO}
+                        onVerificationComplete={(result) => {
+                          setSisVerificationResult(result)
+                          if (result.isSuccess && result.eess) {
+                            // Hacer trim a los ceros del código de establecimiento
+                            const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
+                            // Asegurar que se actualice el estado inmediatamente
+                            setSelectedEntidadSis(trimmedEess)
+                            
+                            // Forzar un retraso para asegurar que el estado se actualice
+                            setTimeout(() => {
+                              console.log('Establecimiento autocompletado:', trimmedEess)
+                            }, 100)
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {isSisSeguro() && (
+                    <>
+                      <EntidadSisSelector
+                        value={selectedEntidadSis}
+                        onChange={setSelectedEntidadSis}
+                        required={true}
+                        sisEstablecimiento={sisVerificationResult?.isSuccess ? {
+                          codigo: sisVerificationResult.eess?.replace(/^0+/, '') || '',
+                          nombre: sisVerificationResult.descEESS || ''
+                        } : undefined}
+                      />
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">
+                            Referencia <span className="text-red-500">*</span>
+                          </Label>
+                     {/*      <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // TODO: Implementar modal para ver imagen de referencia
+                              toast({
+                                title: "Funcionalidad pendiente",
+                                description: "El modal para ver la imagen de referencia será implementado próximamente",
+                              })
+                            }}
+                            className="h-8 px-3 text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ver imagen de la referencia
+                          </Button> */}
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="Ingrese número de referencia..."
+                          value={referencia}
+                          onChange={(e) => setReferencia(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Botones de acción - Solo Aprobar, Denegar, Observar */}
+          <div className="flex justify-center gap-3 pt-6">
+            <Button 
+              onClick={handleApprove}
+              disabled={
+                !selectedTipoCita || 
+                !selectedSeguro || 
+                (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) ||
+                isLoading
+              }
+              className="bg-green-600 hover:bg-green-700 min-w-[120px]"
+            >
+              {isLoading ? "Aprobando..." : "Aprobar"}
+            </Button>
+            
+            <Button 
+              onClick={handleDenyClick}
+              disabled={isLoading}
+              variant="destructive"
+              className="min-w-[120px]"
+            >
+              {isLoading ? "Procesando..." : "Denegar"}
+            </Button>
+            
+            <Button 
+              onClick={handleObserveClick}
+              disabled={isLoading}
+              className="bg-yellow-600 hover:bg-yellow-700 min-w-[120px]"
+            >
+              {isLoading ? "Procesando..." : "Observar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para solicitar motivo */}
+      <MotivoModal
+        isOpen={showMotivoModal}
+        onClose={() => setShowMotivoModal(false)}
+        onConfirm={handleMotivoConfirm}
+        title={motivoAction === "DENEGAR" ? "Denegar Solicitud" : "Observar Solicitud"}
+        action={motivoAction}
+        isLoading={motivoLoading}
+      />
+    </>
+  )
+}

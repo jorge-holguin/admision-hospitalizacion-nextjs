@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/use-toast"
+import { extractUserSurnameFromToken } from "@/utils/jwtUtils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -26,7 +28,8 @@ import {
   History,
   Filter,
   ChevronsUpDown, 
-  X
+  X,
+  FileText
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
@@ -283,6 +286,56 @@ import {
       }
     }
     
+    // Función para liberar una cita
+    const handleReleaseAppointment = async (citaId: string) => {
+      if (!citaId) {
+        toast({
+          title: "Error",
+          description: "No se ha seleccionado ninguna cita para liberar",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      try {
+        // Obtener el usuario del token JWT
+        const usuario = extractUserSurnameFromToken()
+        
+        // Llamar al endpoint para liberar la cita
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${citaId}/liberar`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'usuario': usuario
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Error al liberar la cita: ${response.status}`)
+        }
+        
+        // Cerrar el modal
+        setShowReleaseModal(false)
+        
+        // Mostrar mensaje de éxito
+        toast({
+          title: "Éxito",
+          description: "Cita liberada correctamente",
+          variant: "default"
+        })
+        
+        // Actualizar la lista de citas
+        searchAppointmentsByParams()
+      } catch (error) {
+        console.error('Error al liberar la cita:', error)
+        toast({
+          title: "Error",
+          description: "No se pudo liberar la cita. Intente nuevamente.",
+          variant: "destructive"
+        })
+      }
+    }
+    
     const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
       setFilters({ ...filters, turno: shift })
       setPageParam(0) // Reset to page 0 when filter changes
@@ -350,6 +403,17 @@ import {
                   >
                     <History className="mr-2 h-4 w-4" />
                     Historial
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="font-semibold border-orange-300 text-orange-700 hover:bg-orange-50"
+                    onClick={() => window.location.href = '/appointments/reserved'}
+                    title="Ver bandeja de solicitudes de reservas"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Ver Reservas
                   </Button>
                   
                   <Button
@@ -667,7 +731,13 @@ import {
                     <Button variant="outline" onClick={() => setShowReleaseModal(false)}>
                       Cancelar
                     </Button>
-                    <Button variant="destructive">Liberar Cita</Button>
+                    <Button 
+                      variant="destructive"
+                      onClick={() => handleReleaseAppointment(selectedAppointment?.id)}
+                      disabled={!selectedAppointment?.id}
+                    >
+                      Liberar Cita
+                    </Button>
                   </div>
                 </div>
               </DialogContent>

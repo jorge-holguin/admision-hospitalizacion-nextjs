@@ -1,7 +1,6 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
-import { SeguroSelector } from '@/components/hospitalization/SeguroSelector';
-import { DiagnosticoSelector } from '@/components/hospitalization/DiagnosticoSelector';
+import { SeguroSelector, DiagnosticoSelector } from '@/components/hospitalization/selectors';
 import VerificacionDiagnostico, { VerificacionDiagnosticoRef } from '@/components/ui/VerificacionDiagnostico';
 import { toast } from "@/components/ui/use-toast";
 

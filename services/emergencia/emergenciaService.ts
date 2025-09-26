@@ -209,10 +209,22 @@ const emergenciasQuery = `
 
       console.log(`Buscando emergencia con ID: ${emergenciaId}`);
       
-      // Usar consulta SQL nativa en lugar de Prisma ORM para evitar problemas con OFFSET
+      // Usar consulta SQL nativa con joins para obtener todos los campos necesarios
       const result = await prisma.$queryRaw`
-        SELECT TOP 1 * FROM EMERGENCIA 
-        WHERE EMERGENCIA_ID = ${emergenciaId}
+        SELECT TOP 1 
+          e.*,
+          me.NOMBRE AS MOTIVO_DESCRIPCION,
+          c.NOMBRE AS CONSULTORIO_DESCRIPCION,
+          s.NOMBRE AS SEGURO_NOMBRE,
+          sl.NOMBRE AS SEGUROLIQ_NOMBRE,
+          fi.NOMBRE AS FORMA_INGRESO_DESCRIPCION
+        FROM EMERGENCIA e
+        LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
+        LEFT JOIN CONSULTORIO c ON e.CONSULTORIO = c.CONSULTORIO
+        LEFT JOIN SEGURO s ON e.SEGURO = s.SEGURO
+        LEFT JOIN SEGURO sl ON e.SEGUROLIQ = sl.SEGURO
+        LEFT JOIN FORMA_INGRESO fi ON e.FORMA_INGRESO = fi.FORMA_INGRESO
+        WHERE e.EMERGENCIA_ID = ${emergenciaId}
       `;
       
       // Convertir el resultado a un objeto normal

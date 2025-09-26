@@ -15,6 +15,9 @@ import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { TurnoSelector } from "../selectors/TurnoSelector"
 import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { SimpleSISVerification } from "../patient/SimpleSISVerification"
+import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
+import { extractUserSurnameFromToken } from "@/utils/jwtUtils"
 
 interface AdditionalAppointmentModalProps {
   isOpen: boolean
@@ -44,6 +47,10 @@ export function AdditionalAppointmentModal({
   const [turno, setTurno] = useState<string>("")
   const [tipoCita, setTipoCita] = useState<string>("")
   const [tipoSeguro, setTipoSeguro] = useState<string>("")
+  const [observacion, setObservacion] = useState<string>("")
+  const [referencia, setReferencia] = useState<string>("")
+  const [selectedEntidadSis, setSelectedEntidadSis] = useState<string>("")
+  const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
 
   // Get API base URL from environment
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL || 'http://localhost:8080/api'
@@ -120,6 +127,10 @@ export function AdditionalAppointmentModal({
       setMedico("")
       setTurno("")
       setTipoCita("")
+      setObservacion("")
+      setReferencia("")
+      setSelectedEntidadSis("")
+      setSisVerificationResult(null)
       setShowSuccess(false)
       setAppointmentId("")
     }
@@ -153,6 +164,12 @@ export function AdditionalAppointmentModal({
     }
   }, [turno, consultorio])
 
+  // Function to check if selected insurance is SIS
+  const isSisSeguro = () => {
+    const sisTypes = ['20', '21', '22', '23', '24', '25', '01']
+    return sisTypes.includes(tipoSeguro)
+  }
+
   const handleSave = async () => {
     // Validate required fields
     if (!consultorio || !medico || !turno || !tipoCita || !tipoSeguro) {
@@ -164,28 +181,73 @@ export function AdditionalAppointmentModal({
       return
     }
 
+    // Validate SIS specific fields
+    if (isSisSeguro() && (!selectedEntidadSis || !referencia)) {
+      toast({
+        title: "Campos SIS requeridos",
+        description: "Para seguros SIS, debe completar la entidad SIS y número de referencia",
+        variant: "destructive"
+      })
+      return
+    }
+
     try {
       setIsLoading(true)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Get user from JWT token
+      const usuario = extractUserSurnameFromToken()
       
-      // Generate a mock appointment ID
+      // Prepare request body
+      const requestBody = {
+        consultorio: consultorio,
+        medico: medico,
+        fecha: new Date(fecha).toISOString(),
+        hora: hora,
+        turnoConsulta: turno === 'MAÑANA' ? 'M' : 'T',
+        paciente: patient.HISTORIA || patient.PACIENTE,
+        nombre: patient.NOMBRES || patient.NOMBRE || '',
+        observacion: observacion || '',
+        seguro: tipoSeguro,
+        numero: numero,
+        numRef: referencia || '',
+        entidadSis: selectedEntidadSis || ''
+      }
+      
+      console.log('🚀 Enviando cita adicional:', requestBody)
+      
+      // Call the API
+      const response = await fetch(`${apiBaseUrl}/adicional`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'usuario': usuario
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Error en la API: ${response.status}`)
+      }
+      
+      const result = await response.text() || await response.json()
+      console.log('✅ Respuesta de la API:', result)
+      
+      // Show success
       const mockId = `CITA-${Date.now()}`
       setAppointmentId(mockId)
       setShowSuccess(true)
       
       toast({
         title: "¡Éxito!",
-        description: `Cita adicional creada exitosamente. ID: ${mockId}`,
+        description: "Cita adicional creada exitosamente",
         variant: "default"
       })
       
     } catch (error) {
-      console.error('Error creating additional appointment:', error)
+      console.error('❌ Error creating additional appointment:', error)
       toast({
         title: "Error",
-        description: "Hubo un error al crear la cita adicional",
+        description: "Hubo un error al crear la cita adicional. Intente nuevamente.",
         variant: "destructive"
       })
     } finally {
@@ -376,7 +438,69 @@ export function AdditionalAppointmentModal({
                         onChange={setTipoSeguro}
                       />
                     </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Observación
+                      </Label>
+                      <Input
+                        value={observacion}
+                        onChange={(e) => setObservacion(e.target.value)}
+                        placeholder="Ingrese observaciones..."
+                        className="w-full"
+                      />
+                    </div>
                   </div>
+
+                  {/* Verificación SIS - Solo mostrar si el seguro seleccionado es SIS */}
+                  {isSisSeguro() && (
+                    <div className="mt-4">
+                      <SimpleSISVerification
+                        patientId={patient.HISTORIA}
+                        documento={patient.DOCUMENTO}
+                        onVerificationComplete={(result) => {
+                          setSisVerificationResult(result)
+                          if (result.isSuccess && result.eess) {
+                            // Hacer trim a los ceros del código de establecimiento
+                            const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
+                            // Asegurar que se actualice el estado inmediatamente
+                            setSelectedEntidadSis(trimmedEess)
+                            
+                            // Forzar un retraso para asegurar que el estado se actualice
+                            setTimeout(() => {
+                              console.log('Establecimiento autocompletado:', trimmedEess)
+                            }, 100)
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {isSisSeguro() && (
+                    <>
+                      <EntidadSisSelector
+                        value={selectedEntidadSis}
+                        onChange={setSelectedEntidadSis}
+                        required={true}
+                        sisEstablecimiento={sisVerificationResult?.isSuccess ? {
+                          codigo: sisVerificationResult.eess?.replace(/^0+/, '') || '',
+                          nombre: sisVerificationResult.descEESS || ''
+                        } : undefined}
+                      />
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">
+                          Referencia <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          type="number"
+                          placeholder="Ingrese número de referencia..."
+                          value={referencia}
+                          onChange={(e) => setReferencia(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -394,7 +518,7 @@ export function AdditionalAppointmentModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro}
+            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia))}
           >
             {isLoading ? (
               <>
@@ -402,7 +526,7 @@ export function AdditionalAppointmentModal({
                 Guardando...
               </>
             ) : (
-              'Confirmar Asignación'
+              'Confirmar Cita Adicional'
             )}
           </Button>
         </div>

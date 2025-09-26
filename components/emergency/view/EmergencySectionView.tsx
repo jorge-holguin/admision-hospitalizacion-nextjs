@@ -11,6 +11,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { FormActionsEmergency } from "../register/FormActionsEmergency";
+import { useMotivosEmergencia } from "@/contexts/MotivosEmergenciaContext";
+import { useConsultorios } from "@/contexts/ConsultoriosContext";
+import { useFormasIngreso } from "@/contexts/FormasIngresoContext";
+import { useSeguros } from "@/contexts/SegurosContext";
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
@@ -30,6 +34,7 @@ interface EmergencySectionViewProps {
   initialData: any;
   readOnly: boolean;
   onSave?: (data: any) => void;
+  onError?: (error: string) => void;
 }
 
 export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
@@ -37,6 +42,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   initialData,
   readOnly,
   onSave,
+  onError,
 }) => {
   const router = useRouter();
   
@@ -59,9 +65,13 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     tipoAtencion: string;
     condicionPaciente: string;
     motivoEmergencia: string;
+    motivoEmergenciaDisplay?: string;
     consultorio: string;
+    consultorioDisplay?: string;
     formaIngreso: string;
+    formaIngresoDisplay?: string;
     seguro: string;
+    seguroDisplay?: string;
     seguroLiq: string;
     observacion1: string;
     observacion2: string;
@@ -80,9 +90,13 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     tipoAtencion: "",
     condicionPaciente: "",
     motivoEmergencia: "",
+    motivoEmergenciaDisplay: "",
     consultorio: "",
+    consultorioDisplay: "",
     formaIngreso: "",
+    formaIngresoDisplay: "",
     seguro: "",
+    seguroDisplay: "",
     seguroLiq: "",
     observacion1: "",
     observacion2: "",
@@ -214,16 +228,13 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   ];
 
   // ===== Estados remotos =====
-  const [motivos, setMotivos] = useState<any[]>([]);
-  const [consultorios, setConsultorios] = useState<any[]>([]);
-  const [formasIngreso, setFormasIngreso] = useState<any[]>([]);
-  const [seguros, setSeguros] = useState<any[]>([]);
+  const { motivosEmergencia: motivos, loading: loadingMotivos } = useMotivosEmergencia();
+  const { consultorios, loading: loadingConsultorios } = useConsultorios();
+  const { formasIngreso, loading: loadingFormas } = useFormasIngreso();
+  const { seguros, loading: loadingSeguros } = useSeguros();
 
   // ===== Loading =====
-  const [loadingMotivos, setLoadingMotivos] = useState(false);
-  const [loadingConsultorios, setLoadingConsultorios] = useState(false);
-  const [loadingFormas, setLoadingFormas] = useState(false);
-  const [loadingSeguros, setLoadingSeguros] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ===== Búsquedas =====
   const [searchTipoAtencion, setSearchTipoAtencion] = useState("");
@@ -256,79 +267,29 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     };
   }, []);
 
-  // ===== Cargas remotas =====
+  // ===== Cargas remotas - Ya no necesarias porque usamos contextos =====
   const loadMotivos = async (search: string = "") => {
-    try {
-      setLoadingMotivos(true);
-      const res = await fetch(
-        `/api/motivo-emergencia?search=${encodeURIComponent(search)}`
-      );
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      const items = json.items ?? json.data ?? [];
-      const filtered = items.filter((x: any) => !("ACTIVO" in x) || x.ACTIVO === "1");
-      setMotivos(filtered);
-    } catch (e) {
-      console.error("Error motivos:", e);
-      setMotivos([]);
-    } finally {
-      setLoadingMotivos(false);
-    }
+    // Ya no hacemos llamadas directas porque usamos el contexto
+    console.log('🚨 loadMotivos llamado - usando contexto en su lugar');
+    console.log('📋 Motivos disponibles desde contexto:', motivos?.length || 0);
   };
 
   const loadConsultorios = async (search: string = "") => {
-    try {
-      setLoadingConsultorios(true);
-      const res = await fetch(
-        `/api/consultorio?tipo=E&search=${encodeURIComponent(search)}`
-      );
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      const items = json.items ?? json.data ?? [];
-      setConsultorios(items);
-    } catch (e) {
-      console.error("Error consultorios:", e);
-      setConsultorios([]);
-    } finally {
-      setLoadingConsultorios(false);
-    }
+    // Ya no hacemos llamadas directas porque usamos el contexto
+    console.log('🚨 loadConsultorios llamado - usando contexto en su lugar');
+    console.log('🏥 Consultorios disponibles desde contexto:', consultorios?.length || 0);
   };
 
   const loadFormasIngreso = async (search: string = "") => {
-    try {
-      setLoadingFormas(true);
-      const res = await fetch(
-        `/api/forma-ingreso?search=${encodeURIComponent(search)}`
-      );
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      const items = json.items ?? json.data ?? [];
-      const filtered = items.filter((x: any) => !("ACTIVO" in x) || x.ACTIVO === "1");
-      setFormasIngreso(filtered);
-    } catch (e) {
-      console.error("Error formas ingreso:", e);
-      setFormasIngreso([]);
-    } finally {
-      setLoadingFormas(false);
-    }
+    // Ya no hacemos llamadas directas porque usamos el contexto
+    console.log('🚨 loadFormasIngreso llamado - usando contexto en su lugar');
+    console.log('🚪 Formas de ingreso disponibles desde contexto:', formasIngreso?.length || 0);
   };
 
   const loadSeguros = async (search: string = "") => {
-    try {
-      setLoadingSeguros(true);
-      const res = await fetch(
-        `/api/seguros${search ? `?search=${encodeURIComponent(search)}` : ''}`
-      );
-      if (!res.ok) throw new Error(String(res.status));
-      const json = await res.json();
-      const items = Array.isArray(json) ? json : (json.items ?? json.data ?? []);
-      setSeguros(items);
-    } catch (e) {
-      console.error("Error seguros:", e);
-      setSeguros([]);
-    } finally {
-      setLoadingSeguros(false);
-    }
+    // Ya no hacemos llamadas directas porque usamos el contexto
+    console.log('🚨 loadSeguros llamado - usando contexto en su lugar');
+    console.log('🛡️ Seguros disponibles desde contexto:', seguros?.length || 0);
   };
 
   // Cargar datos iniciales
@@ -366,9 +327,19 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         tipoAtencion: cleanApiString(initialData.TIPOATENCION),
         condicionPaciente: cleanApiString(initialData.ESTADO_PACIENTE),
         motivoEmergencia: extractCode(initialData.MOTIVO_EMERGENCIA),
+        motivoEmergenciaDisplay: initialData.MOTIVO_DESCRIPCION ? 
+          `(${extractCode(initialData.MOTIVO_EMERGENCIA)}) - ${initialData.MOTIVO_DESCRIPCION}` : '',
         consultorio: extractCode(initialData.CONSULTORIO),
+        consultorioDisplay: initialData.CONSULTORIO_DESCRIPCION ? 
+          `(${extractCode(initialData.CONSULTORIO)}) - ${initialData.CONSULTORIO_DESCRIPCION}` : '',
         formaIngreso: extractCode(initialData.FORMA_INGRESO),
-        seguro: extractCode(initialData.SEGURO),
+        formaIngresoDisplay: initialData.FORMA_INGRESO_DESCRIPCION ? 
+          `(${extractCode(initialData.FORMA_INGRESO)}) - ${initialData.FORMA_INGRESO_DESCRIPCION}` : '',
+        // Usar SEGUROLIQ en lugar de SEGURO para la condición del paciente
+        seguro: extractCode(initialData.SEGUROLIQ || initialData.SEGURO),
+        seguroDisplay: initialData.SEGUROLIQ_NOMBRE ? 
+          `(${extractCode(initialData.SEGUROLIQ)}) - ${initialData.SEGUROLIQ_NOMBRE}` : 
+          (initialData.SEGURO_NOMBRE ? `(${extractCode(initialData.SEGURO)}) - ${initialData.SEGURO_NOMBRE}` : ''),
         seguroLiq: extractCode(initialData.SEGUROLIQ),
         observacion1: cleanApiString(initialData.OBSERVACION1),
         observacion2: cleanApiString(initialData.OBSERVACION2),
@@ -384,12 +355,13 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       });
     }
 
-    // Cargar catálogos para edición
-    loadMotivos();
-    loadConsultorios();
-    loadFormasIngreso();
-    loadSeguros();
-  }, [initialData]);
+    // Cargar datos desde contextos
+    console.log('📊 Datos disponibles desde contextos:');
+    console.log('  - Motivos:', motivos?.length || 0);
+    console.log('  - Consultorios:', consultorios?.length || 0);
+    console.log('  - Formas de ingreso:', formasIngreso?.length || 0);
+    console.log('  - Seguros:', seguros?.length || 0);
+  }, [motivos, consultorios, formasIngreso, seguros]);
 
   // Función para validar el formulario
   interface ValidationResult {
@@ -713,11 +685,19 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         router.back();
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Error al guardar los cambios",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || "Error al guardar los cambios";
+      
+      // Call onError if provided (for modal integration)
+      if (onError) {
+        onError(errorMessage);
+      } else {
+        // Default toast if no onError handler
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSaving(false);
     }

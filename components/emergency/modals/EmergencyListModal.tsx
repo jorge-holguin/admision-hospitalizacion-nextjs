@@ -26,6 +26,8 @@ interface EmergencyData {
   DIAGNOSTICO_DESCRIPCION?: string;
   CONSULTORIO_DESCRIPCION?: string;
   ESTADO: string;
+  SEGUROLIQ?: string;
+  SEGURO_NOMBRE?: string;
   RowNum?: string;
 }
 
@@ -40,6 +42,7 @@ interface EmergencyListModalProps {
   isOpen: boolean
   onClose: () => void
   patientId: string
+  patientName?: string
   onCreateNew: () => void
   onEdit: (emergencyId: string, emergencyData: EmergencyData) => void
   onView: (emergencyId: string, emergencyData: EmergencyData) => void
@@ -107,6 +110,7 @@ export function EmergencyListModal({
   isOpen,
   onClose,
   patientId,
+  patientName,
   onCreateNew,
   onEdit,
   onView
@@ -273,7 +277,7 @@ export function EmergencyListModal({
                   {emergencies.map((emergency) => (
                     <TableRow 
                       key={emergency.EMERGENCIA_ID}
-                      className={emergency.ESTADO === 'ANULADO' ? 'opacity-50 bg-gray-50' : ''}
+                      className={emergency.ESTADO === '0' || emergency.ESTADO === 'ANULADO' ? 'opacity-50 bg-gray-50' : ''}
                     >
                       <TableCell>{getStatusDisplay(emergency.ESTADO)}</TableCell>
                       <TableCell className="font-medium">{emergency.EMERGENCIA_ID}</TableCell>
@@ -283,7 +287,10 @@ export function EmergencyListModal({
                       <TableCell>{emergency.CONSULTORIO_DESCRIPCION || emergency.CONSULTORIO}</TableCell>
                       <TableCell>{emergency.MOTIVO_DESCRIPCION || emergency.MOTIVO_EMERGENCIA}</TableCell>
                       <TableCell>
-                        {emergency.CIEX1 || '-'}
+                        {emergency.SEGUROLIQ && emergency.SEGURO_NOMBRE ? 
+                          `(${emergency.SEGUROLIQ.trim()}) - ${emergency.SEGURO_NOMBRE}` : 
+                          emergency.CIEX1 || '-'
+                        }
                       </TableCell>
                       <TableCell>{emergency.DIAGNOSTICO_DESCRIPCION || '0'}</TableCell>
                       <TableCell>
@@ -296,6 +303,7 @@ export function EmergencyListModal({
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
+                          {/* Botón Ver - siempre disponible */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -304,33 +312,32 @@ export function EmergencyListModal({
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* Solo mostrar botones de edición y eliminación si NO está anulado */}
-                          {emergency.ESTADO !== 'ANULADO' && (
-                            <>
-                              {emergency.ESTADO === '2' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => onEdit(emergency.EMERGENCIA_ID, emergency)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setDeleteDialog({
-                                  isOpen: true,
-                                  emergencyId: emergency.EMERGENCIA_ID,
-                                  emergencyData: emergency
-                                })}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+                          
+                          {/* Botón Editar - disponible solo para estado 2, deshabilitado para otros */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => emergency.ESTADO === '2' ? onEdit(emergency.EMERGENCIA_ID, emergency) : undefined}
+                            className="h-8 w-8 p-0"
+                            disabled={emergency.ESTADO !== '2'}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          
+                          {/* Botón Eliminar - disponible solo para estado 2, deshabilitado para otros */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => emergency.ESTADO === '2' ? setDeleteDialog({
+                              isOpen: true,
+                              emergencyId: emergency.EMERGENCIA_ID,
+                              emergencyData: emergency
+                            }) : undefined}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:hover:text-gray-400"
+                            disabled={emergency.ESTADO !== '2'}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

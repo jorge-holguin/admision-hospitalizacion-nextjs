@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ConsultorioSelector } from '@/components/hospitalization/ConsultorioSelector'
-import { MedicoSelector } from '@/components/hospitalization/MedicoSelector'
-import { DiagnosticoSelector } from '@/components/hospitalization/DiagnosticoSelector'
-import { SeguroSelector } from '@/components/hospitalization/SeguroSelector'
-import { OrigenSelector } from '@/components/hospitalization/OrigenSelector'
-import { ProcedenciaSelector } from '@/components/hospitalization/ProcedenciaSelector'
+import { 
+  ConsultorioSelector,
+  MedicoSelector,
+  DiagnosticoSelector,
+  SeguroSelector,
+  OrigenSelector,
+  ProcedenciaSelector
+} from '@/components/hospitalization/selectors'
 
 interface HospitalizationInfoProps {
   formData: any;

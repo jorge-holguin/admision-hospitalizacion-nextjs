@@ -64,7 +64,9 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
   // Estos handlers se definen más abajo
   
   // Estado para el origen de hospitalización
-
+  const [origenes, setOrigenes] = useState<OrigenHospitalizacion[]>([])
+  const [loadingOrigenes, setLoadingOrigenes] = useState(false)
+  const [searchOrigin, setSearchOrigin] = useState('')
   const [selectedOrigin, setSelectedOrigin] = useState<OrigenHospitalizacion | null>(null)
   const [showAllOrigins, setShowAllOrigins] = useState(false)
   

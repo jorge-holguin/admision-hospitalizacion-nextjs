@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
+import { useConsultorios } from '@/contexts/ConsultoriosContext'
 
 interface ConsultorioEmergencySelectorProps {
   value: string
@@ -26,40 +27,20 @@ export function ConsultorioEmergencySelector({
 }: ConsultorioEmergencySelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  
+  // Usar contexto en lugar de estado local
+  const { consultorios: items, loading: isLoading } = useConsultorios()
 
-  // Función para cargar consultorios de emergencia
+  // Ya no necesitamos cargar consultorios porque usamos el contexto
   const loadConsultorios = async (searchTerm: string = "") => {
-    try {
-      setIsLoading(true)
-      console.log('🏥 Cargando consultorios de emergencia...')
-      
-      const response = await fetch(`/api/consultorio?tipo=E&search=${encodeURIComponent(searchTerm)}`)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      console.log('✅ Consultorios de emergencia cargados:', data)
-      
-      // Extraer los items de la respuesta
-      const consultorios = data.items || data.data || []
-      setItems(consultorios)
-      
-    } catch (error) {
-      console.error('❌ Error al cargar consultorios de emergencia:', error)
-      setItems([])
-    } finally {
-      setIsLoading(false)
-    }
+    console.log('🚨 loadConsultorios llamado - usando contexto en su lugar');
+    console.log('🏥 Consultorios disponibles desde contexto:', items?.length || 0);
   }
 
-  // Cargar consultorios al montar el componente
+  // Ya no necesitamos cargar consultorios porque usamos el contexto
   useEffect(() => {
-    loadConsultorios()
-  }, [])
+    console.log('🏥 Consultorios disponibles desde contexto:', items?.length || 0);
+  }, [items])
 
   // Establecer valor inicial cuando se cargan los datos
   useEffect(() => {
@@ -107,10 +88,8 @@ export function ConsultorioEmergencySelector({
               value={search}
               onValueChange={(value) => {
                 setSearch(value)
-                // Buscar en tiempo real cuando el usuario escribe
-                if (value.length > 2 || value.length === 0) {
-                  loadConsultorios(value)
-                }
+                // Ya no hacemos llamadas a la API porque usamos el contexto
+                // El filtrado se hace localmente
               }}
             />
             <CommandList>
@@ -137,9 +116,10 @@ export function ConsultorioEmergencySelector({
                           onChange(consultorio.CONSULTORIO)
                           setOpen(false)
                         }}
+                        className="font-normal" // Quitar negrita
                       >
                         <Check className={`mr-2 h-4 w-4 ${value === consultorio.CONSULTORIO ? "opacity-100" : "opacity-0"}`} />
-                        {displayText}
+                        <span className="font-normal">{displayText}</span>
                       </CommandItem>
                     )
                   })}

@@ -18,6 +18,8 @@ interface EmergencyViewModalProps {
   emergencyId: string
   mode?: 'view' | 'edit'
   onModeChange?: (mode: 'view' | 'edit') => void
+  onSuccess?: (data: any) => void
+  onError?: (error: string) => void
 }
 
 export function EmergencyViewModal({
@@ -26,7 +28,9 @@ export function EmergencyViewModal({
   onBack,
   emergencyId,
   mode = 'view',
-  onModeChange
+  onModeChange,
+  onSuccess,
+  onError
 }: EmergencyViewModalProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -133,10 +137,17 @@ export function EmergencyViewModal({
   const handleSave = (updatedData: any) => {
     // Update local state with new data
     setEmergencyData(updatedData)
-    toast({
-      title: "Datos actualizados",
-      description: "Los datos de emergencia se han actualizado correctamente"
-    })
+    
+    // Call onSuccess if provided (for modal integration)
+    if (onSuccess) {
+      onSuccess(updatedData)
+    } else {
+      // Default toast if no onSuccess handler
+      toast({
+        title: "Datos actualizados",
+        description: "Los datos de emergencia se han actualizado correctamente"
+      })
+    }
     
     // Switch back to view mode after saving
     setCurrentMode('view')
@@ -146,6 +157,20 @@ export function EmergencyViewModal({
     })
     if (onModeChange) {
       onModeChange('view')
+    }
+  }
+
+  const handleError = (error: string) => {
+    // Call onError if provided (for modal integration)
+    if (onError) {
+      onError(error)
+    } else {
+      // Default toast if no onError handler
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive"
+      })
     }
   }
 
@@ -223,6 +248,7 @@ export function EmergencyViewModal({
                 initialData={emergencyData}
                 readOnly={statusInfo.isReadOnly}
                 onSave={handleSave}
+                onError={handleError}
               />
             )
           )}

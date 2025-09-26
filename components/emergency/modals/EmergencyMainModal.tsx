@@ -11,6 +11,7 @@ interface EmergencyMainModalProps {
   isOpen: boolean
   onClose: () => void
   patientId: string
+  patientName?: string
 }
 
 type ModalStep = 'list' | 'create' | 'edit' | 'view'
@@ -35,7 +36,8 @@ interface EmergencyData {
 export function EmergencyMainModal({
   isOpen,
   onClose,
-  patientId
+  patientId,
+  patientName
 }: EmergencyMainModalProps) {
   const { patientData } = usePatient()
   const [currentStep, setCurrentStep] = useState<ModalStep>('list')
@@ -116,6 +118,7 @@ export function EmergencyMainModal({
         isOpen={isOpen && currentStep === 'list'}
         onClose={handleClose}
         patientId={patientId}
+        patientName={patientName}
         onCreateNew={handleCreateNew}
         onEdit={handleEdit}
         onView={handleView}
@@ -132,41 +135,25 @@ export function EmergencyMainModal({
         onError={handleCreateError}
       />
 
-      {/* Modal de Vista/Edición */}
+      {/* Modal de Vista/Edición - Ambos modos usan EmergencyViewModal */}
       {selectedEmergencyId && (
-        <>
-          {currentStep === 'edit' && (
-            <EmergencyRegistrationModal
-              isOpen={isOpen && currentStep === 'edit'}
-              onClose={handleClose}
-              onBack={handleBackToList}
-              patient={patientData}
-              patientId={patientId}
-              emergencyId={selectedEmergencyId}
-              emergencyData={selectedEmergencyData}
-              onSuccess={(data) => {
-                toast({
-                  title: "Emergencia actualizada",
-                  description: "Se ha actualizado la emergencia correctamente",
-                  variant: "default"
-                })
-                handleBackToList()
-              }}
-              onError={handleCreateError}
-            />
-          )}
-
-          {currentStep === 'view' && (
-            <EmergencyViewModal
-              isOpen={isOpen && currentStep === 'view'}
-              onClose={handleClose}
-              onBack={handleBackToList}
-              emergencyId={selectedEmergencyId}
-              mode={viewMode}
-              onModeChange={handleModeChange}
-            />
-          )}
-        </>
+        <EmergencyViewModal
+          isOpen={isOpen && (currentStep === 'view' || currentStep === 'edit')}
+          onClose={handleClose}
+          onBack={handleBackToList}
+          emergencyId={selectedEmergencyId}
+          mode={viewMode}
+          onModeChange={handleModeChange}
+          onSuccess={(data) => {
+            toast({
+              title: "Emergencia actualizada",
+              description: "Se ha actualizado la emergencia correctamente",
+              variant: "default"
+            })
+            handleBackToList()
+          }}
+          onError={handleCreateError}
+        />
       )}
     </>
   )

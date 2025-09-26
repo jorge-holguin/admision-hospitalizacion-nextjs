@@ -1,7 +1,6 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
-import { ConsultorioSelector } from '@/components/hospitalization/ConsultorioSelector';
-import { MedicoSelector } from '@/components/hospitalization/MedicoSelector';
+import { ConsultorioSelector, MedicoSelector } from '@/components/hospitalization/selectors';
 
 interface ConsultorioMedicoSectionProps {
   hospitalizedIn: string;

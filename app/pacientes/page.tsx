@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, X, RefreshCw } from 'lucide-react';
+import { Loader2, Search, X, RefreshCw, Activity, Building2 } from 'lucide-react';
+import { EmergencyModalProvider } from '@/components/emergency/modals';
+import { HospitalizationModalProvider } from '@/components/hospitalization/modals';
 
 export default function PacientesPage() {
   const {
@@ -28,10 +30,41 @@ export default function PacientesPage() {
   } = usePaciente();
 
   const [mounted, setMounted] = useState(false);
+  
+  // Estados para los modales
+  const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
+  const [hospitalizationModalOpen, setHospitalizationModalOpen] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+  const [selectedPatientName, setSelectedPatientName] = useState<string>('');
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Funciones para manejar los modales
+  const handleOpenEmergencyModal = (patientId: string, patientName: string) => {
+    setSelectedPatientId(patientId);
+    setSelectedPatientName(patientName);
+    setEmergencyModalOpen(true);
+  };
+
+  const handleOpenHospitalizationModal = (patientId: string, patientName: string) => {
+    setSelectedPatientId(patientId);
+    setSelectedPatientName(patientName);
+    setHospitalizationModalOpen(true);
+  };
+
+  const handleCloseEmergencyModal = () => {
+    setEmergencyModalOpen(false);
+    setSelectedPatientId('');
+    setSelectedPatientName('');
+  };
+
+  const handleCloseHospitalizationModal = () => {
+    setHospitalizationModalOpen(false);
+    setSelectedPatientId('');
+    setSelectedPatientName('');
+  };
 
   if (!mounted) {
     return null;
@@ -133,26 +166,52 @@ export default function PacientesPage() {
                       <TableHead>Apellidos</TableHead>
                       <TableHead>Sexo</TableHead>
                       <TableHead>Edad</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pacientes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           No se encontraron pacientes con los criterios de búsqueda.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      pacientes.map((paciente) => (
-                        <TableRow key={paciente.PACIENTE}>
-                          <TableCell>{paciente.HISTORIA}</TableCell>
-                          <TableCell>{paciente.DOCUMENTO}</TableCell>
-                          <TableCell>{paciente.NOMBRE}</TableCell>
-                          <TableCell>{`${paciente.PATERNO} ${paciente.MATERNO}`}</TableCell>
-                          <TableCell>{paciente.SEXO === 'M' ? 'Masculino' : paciente.SEXO === 'F' ? 'Femenino' : paciente.SEXO}</TableCell>
-                          <TableCell>{paciente.EDAD}</TableCell>
-                        </TableRow>
-                      ))
+                      pacientes.map((paciente) => {
+                        const patientName = `${paciente.NOMBRE} ${paciente.PATERNO} ${paciente.MATERNO}`.trim();
+                        return (
+                          <TableRow key={paciente.PACIENTE}>
+                            <TableCell>{paciente.HISTORIA}</TableCell>
+                            <TableCell>{paciente.DOCUMENTO}</TableCell>
+                            <TableCell>{paciente.NOMBRE}</TableCell>
+                            <TableCell>{`${paciente.PATERNO} ${paciente.MATERNO}`}</TableCell>
+                            <TableCell>{paciente.SEXO === 'M' ? 'Masculino' : paciente.SEXO === 'F' ? 'Femenino' : paciente.SEXO}</TableCell>
+                            <TableCell>{paciente.EDAD}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenEmergencyModal(paciente.PACIENTE, patientName)}
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                >
+                                  <Activity className="h-4 w-4 mr-1" />
+                                  Emergencia
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenHospitalizationModal(paciente.PACIENTE, patientName)}
+                                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                >
+                                  <Building2 className="h-4 w-4 mr-1" />
+                                  Hospitalización
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -218,6 +277,21 @@ export default function PacientesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modales */}
+      <EmergencyModalProvider
+        isOpen={emergencyModalOpen}
+        onClose={handleCloseEmergencyModal}
+        patientId={selectedPatientId}
+        patientName={selectedPatientName}
+      />
+
+      <HospitalizationModalProvider
+        isOpen={hospitalizationModalOpen}
+        onClose={handleCloseHospitalizationModal}
+        patientId={selectedPatientId}
+        patientName={selectedPatientName}
+      />
     </div>
   );
 }
