@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +15,8 @@ import {
   Hash, 
   Home 
 } from "lucide-react"
+import { SearchableSelect, OptionItem } from "@/components/ui/SearchableSelect"
+import { paisOptions, departamentoOptions, distritoLimaOptions } from "@/lib/constants/filiation-options"
 
 interface Step1BasicDataProps {
   formData: any
@@ -21,6 +24,7 @@ interface Step1BasicDataProps {
   documentType: string
   documentNumber: string
   reniecData?: any
+  patientData?: any  // Datos del paciente en modo edición
 }
 
 export function Step1BasicData({ 
@@ -28,8 +32,60 @@ export function Step1BasicData({
   onInputChange, 
   documentType, 
   documentNumber, 
-  reniecData 
+  reniecData,
+  patientData
 }: Step1BasicDataProps) {
+  const [paisSearch, setPaisSearch] = useState("")
+  const [departamentoSearch, setDepartamentoSearch] = useState("")
+  const [distritoSearch, setDistritoSearch] = useState("")
+
+  // Convertir opciones al formato OptionItem
+  const paisOptionsFormatted: OptionItem[] = paisOptions.map(opt => ({
+    value: opt.value,
+    display: opt.label,
+    data: opt
+  }))
+
+  const departamentoOptionsFormatted: OptionItem[] = departamentoOptions.map(opt => ({
+    value: opt.value,
+    display: opt.label,
+    data: opt
+  }))
+
+  const distritoOptionsFormatted: OptionItem[] = distritoLimaOptions.map(opt => ({
+    value: opt.value,
+    display: opt.label,
+    data: opt
+  }))
+
+  // Filtrar opciones basado en búsqueda
+  const filteredPaisOptions = paisOptionsFormatted.filter(opt =>
+    opt.display.toLowerCase().includes(paisSearch.toLowerCase())
+  )
+
+  const filteredDepartamentoOptions = departamentoOptionsFormatted.filter(opt =>
+    opt.display.toLowerCase().includes(departamentoSearch.toLowerCase())
+  )
+
+  const filteredDistritoOptions = distritoOptionsFormatted.filter(opt =>
+    opt.display.toLowerCase().includes(distritoSearch.toLowerCase())
+  )
+
+  // Obtener el display actual
+  const getPaisDisplay = () => {
+    const option = paisOptionsFormatted.find(opt => opt.value === formData.paisNacimiento)
+    return option?.display || ""
+  }
+
+  const getDepartamentoDisplay = () => {
+    const option = departamentoOptionsFormatted.find(opt => opt.value === formData.lugarNacimiento)
+    return option?.display || ""
+  }
+
+  const getDistritoDisplay = () => {
+    const option = distritoOptionsFormatted.find(opt => opt.value === formData.distritoProcedencia)
+    return option?.display || ""
+  }
   // Generar datos automáticos
   const currentDate = new Date()
   const currentDateTime = currentDate.toLocaleString("es-PE", {
@@ -75,10 +131,18 @@ export function Step1BasicData({
           <div className="flex items-center space-x-6">
             {/* Foto del Paciente */}
             <div className="flex flex-col items-center space-y-2">
-              <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                <User className="w-12 h-12 text-gray-400" />
+              <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
+                {patientData?.STRING_FOTO ? (
+                  <img 
+                    src={`data:image/jpeg;base64,${patientData.STRING_FOTO}`} 
+                    alt="Foto del paciente"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-16 h-16 text-gray-400" />
+                )}
               </div>
-              <p className="text-xs text-gray-500 text-center max-w-20">Foto RENIEC</p>
+              <p className="text-xs text-gray-500 text-center max-w-32">Foto RENIEC</p>
             </div>
 
             {/* Campos del sistema */}
@@ -88,7 +152,12 @@ export function Step1BasicData({
                   <FileText className="w-4 h-4 mr-1" />
                   N° Historia Clínica
                 </Label>
-                <Input id="hc" value="Se genera automáticamente" disabled className="bg-gray-50 text-gray-600" />
+                <Input 
+                  id="hc" 
+                  value={patientData?.HISTORIA?.trim() || "Se genera automáticamente"} 
+                  disabled 
+                  className="bg-gray-50 text-gray-600" 
+                />
               </div>
               <div>
                 <Label htmlFor="tipoDocumento" className="flex items-center text-sm font-medium text-gray-700">
@@ -132,7 +201,7 @@ export function Step1BasicData({
                 </Label>
                 <Input
                   id="codigoPaciente"
-                  value={generatePatientCode()}
+                  value={patientData?.PACIENTE || generatePatientCode()}
                   disabled
                   className="bg-gray-50 text-gray-600"
                 />
@@ -142,7 +211,16 @@ export function Step1BasicData({
                   <Clock className="w-4 h-4 mr-1" />
                   Fecha y Hora de Apertura
                 </Label>
-                <Input id="fechaApertura" value={currentDateTime} disabled className="bg-gray-50 text-gray-600" />
+                <Input 
+                  id="fechaApertura" 
+                  value={
+                    patientData?.FECHA_APERTURA && patientData.FECHA_APERTURA !== '1901-01-01 00:00:00.000'
+                      ? `${patientData.FECHA_APERTURA} ${patientData.HORA_APERTURA || ''}`
+                      : patientData?.HORA_APERTURA || currentDateTime
+                  } 
+                  disabled 
+                  className="bg-gray-50 text-gray-600" 
+                />
               </div>
             </div>
           </div>
@@ -228,22 +306,32 @@ export function Step1BasicData({
 
     {/* País y Lugar de Nacimiento */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <Label htmlFor="paisNacimiento">País de Nacimiento</Label>
-        <Input
-          id="paisNacimiento"
-          value={formData.paisNacimiento}
-          onChange={(e) => onInputChange("paisNacimiento", e.target.value)}
-        />
-      </div>
-      <div>
-        <Label htmlFor="lugarNacimiento">Lugar Nacimiento (Departamento)</Label>
-        <Input
-          id="lugarNacimiento"
-          value={formData.lugarNacimiento}
-          onChange={(e) => onInputChange("lugarNacimiento", e.target.value)}
-        />
-      </div>
+      <SearchableSelect
+        label="País de Nacimiento"
+        value={getPaisDisplay()}
+        options={filteredPaisOptions}
+        search={paisSearch}
+        onSearchChange={setPaisSearch}
+        onSelect={(option) => {
+          onInputChange("paisNacimiento", option.value)
+          setPaisSearch("")
+        }}
+        selectName="paisNacimiento"
+        placeholder="Seleccionar país..."
+      />
+      <SearchableSelect
+        label="Lugar Nacimiento (Departamento)"
+        value={getDepartamentoDisplay()}
+        options={filteredDepartamentoOptions}
+        search={departamentoSearch}
+        onSearchChange={setDepartamentoSearch}
+        onSelect={(option) => {
+          onInputChange("lugarNacimiento", option.value)
+          setDepartamentoSearch("")
+        }}
+        selectName="lugarNacimiento"
+        placeholder="Seleccionar departamento..."
+      />
     </div>
 
     {/* Dirección y Distrito */}
@@ -257,15 +345,19 @@ export function Step1BasicData({
           onChange={(e) => onInputChange("direccion", e.target.value)}
         />
       </div>
-      <div>
-        <Label htmlFor="distritoProcedencia">Distrito de Procedencia</Label>
-        <Input
-          id="distritoProcedencia"
-          placeholder="Distrito donde reside el paciente"
-          value={formData.distritoProcedencia}
-          onChange={(e) => onInputChange("distritoProcedencia", e.target.value)}
-        />
-      </div>
+      <SearchableSelect
+        label="Distrito de Procedencia"
+        value={getDistritoDisplay()}
+        options={filteredDistritoOptions}
+        search={distritoSearch}
+        onSearchChange={setDistritoSearch}
+        onSelect={(option) => {
+          onInputChange("distritoProcedencia", option.value)
+          setDistritoSearch("")
+        }}
+        selectName="distritoProcedencia"
+        placeholder="Seleccionar distrito..."
+      />
     </div>
   </CardContent>
 </Card>

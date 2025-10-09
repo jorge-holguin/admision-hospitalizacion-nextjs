@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import { Diagnostico } from "@/services/hospitalizacion/diagnosticoService";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAuth } from "@/components/AuthProvider";
+import { toast } from "@/hooks/use-toast";
 
 // Extender la interfaz Diagnostico
 interface DiagnosticoExtendido extends Diagnostico {
@@ -70,6 +72,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [initialDiagnostico, setInitialDiagnostico] = useState<DiagnosticoExtendido | null>(null);
+  const { logout } = useAuth();
 
   // Transformar datos de CIEX al formato de Diagnostico
   const transformCiexData = (ciexItems: CiexItem[]): DiagnosticoExtendido[] => {
@@ -104,7 +107,24 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    if (!response.ok) throw new Error(`Error en API CIEX: ${response.status}`);
+    if (!response.ok) {
+      // Verificar si es error 403 de token expirado
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.statusCode === 403 || errorData.message?.includes('Token')) {
+          toast({
+            title: "Sesión expirada",
+            description: "Su token ha expirado. Por favor, vuelva a iniciar sesión.",
+            variant: "destructive",
+            duration: 5000,
+          });
+          // Cerrar sesión después de un breve delay
+          setTimeout(() => logout(), 2000);
+          throw new Error('Token expirado');
+        }
+      }
+      throw new Error(`Error en API CIEX: ${response.status}`);
+    }
 
     const ciexData: CiexResponse = await response.json();
     return ciexData.data ? transformCiexData(ciexData.data) : [];
@@ -124,6 +144,21 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
     const response = await fetch(url);
 
     if (!response.ok && !isSpecificId) {
+      // Verificar si es error 403 de token expirado
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.statusCode === 403 || errorData.message?.includes('Token')) {
+          toast({
+            title: "Sesión expirada",
+            description: "Su token ha expirado. Por favor, vuelva a iniciar sesión.",
+            variant: "destructive",
+            duration: 5000,
+          });
+          // Cerrar sesión después de un breve delay
+          setTimeout(() => logout(), 2000);
+          throw new Error('Token expirado');
+        }
+      }
       throw new Error(`Error en API diagnósticos: ${response.status}`);
     }
 
@@ -161,9 +196,15 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
       } else {
         setDiagnosticos(results);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error al cargar/buscar diagnósticos:", err);
-      setError("Error al cargar/buscar diagnósticos");
+      
+      // Si es error de token expirado, no mostrar mensaje adicional
+      if (err.message === 'Token expirado') {
+        setError("Sesión expirada. Por favor, vuelva a iniciar sesión.");
+      } else {
+        setError("Error al cargar/buscar diagnósticos");
+      }
     } finally {
       setLoading(false);
     }

@@ -31,3 +31,40 @@ export const extractUserSurnameFromToken = (): string => {
     return 'SUPERVISOR';
   }
 };
+
+/**
+ * Extracts the document number (DNI) from the JWT token
+ * @returns The document number from the 'sub' field or an empty string if extraction fails
+ */
+export const extractDocumentFromToken = (): string => {
+  try {
+    // Obtener el token del localStorage
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      console.warn('No se encontró authToken en localStorage');
+      return '';
+    }
+    
+    // Decodificar el token (solo la parte del payload)
+    const tokenParts = authToken.split('.');
+    if (tokenParts.length !== 3) {
+      console.warn('Token JWT no tiene el formato correcto');
+      return '';
+    }
+    
+    // Decodificar la parte del payload (segunda parte)
+    const payload = JSON.parse(atob(tokenParts[1]));
+    
+    // Extraer el campo 'sub' que contiene el documento
+    const documento = payload.sub;
+    if (!documento) {
+      console.warn('No se encontró el campo "sub" en el token');
+      return '';
+    }
+    
+    return documento;
+  } catch (error) {
+    console.error('Error al extraer el documento del token:', error);
+    return '';
+  }
+};

@@ -44,8 +44,8 @@ interface HospitalizationListModalProps {
   patientId: string
   patientName?: string
   onCreateNew: () => void
-  onView: (hospitalizationId: string) => void
-  onEdit: (hospitalizationId: string) => void
+  onView: (hospitalizationId: string, hospitalizationData: any) => void
+  onEdit: (hospitalizationId: string, hospitalizationData: any) => void
 }
 
 export function HospitalizationListModal({
@@ -133,11 +133,15 @@ export function HospitalizationListModal({
   }
 
   const handleViewOrder = (hospitalizacionId: string) => {
-    onView(hospitalizacionId)
+    // Encontrar los datos de la hospitalización
+    const hospitalizationData = ordenesHospitalizacion.find(orden => orden.idHOSPITALIZACION === hospitalizacionId)
+    onView(hospitalizacionId, hospitalizationData)
   }
 
   const handleEditOrder = (hospitalizacionId: string) => {
-    onEdit(hospitalizacionId)
+    // Encontrar los datos de la hospitalización
+    const hospitalizationData = ordenesHospitalizacion.find(orden => orden.idHOSPITALIZACION === hospitalizacionId)
+    onEdit(hospitalizacionId, hospitalizationData)
   }
 
   // Función para manejar impresión
@@ -156,61 +160,33 @@ export function HospitalizationListModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold text-gray-900">
-              Hospitalizaciones - {patientName || patientData?.name || 'Paciente'}
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
+       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
+         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+           <div>
+             <DialogTitle className="text-xl font-semibold text-blue-700">
+               Hospitalizaciones
+             </DialogTitle>
+             {patientData && (
+               <p className="text-sm text-gray-600 mt-1">
+                 Paciente: {patientData.name} - Cod.Paciente: {patientData.pacienteId} - HC: {patientData.hc} - DNI: {patientData.documento}
+               </p>
+             )}
+           </div>
+           <div className="flex items-center gap-2">
+             <Button
+               onClick={onCreateNew}
+               className="bg-green-600 hover:bg-green-700 text-white mr-6"
+               size="sm"
+             >
+               <Plus className="h-4 w-4 mr-2" />
+               Nueva Hospitalización
+             </Button>
+           </div>
+         </DialogHeader>
+             
 
         <div className="flex-1 overflow-hidden flex flex-col space-y-4">
           {/* Información del paciente y botón nueva hospitalización */}
-          <div className="flex-shrink-0 flex items-center justify-between gap-4">
-            <div className="flex-1">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-blue-900">Información del Paciente</h3>
-                    <div className="text-sm text-blue-700 mt-1">
-                      <span className="font-medium">Paciente:</span> {patientName || pacienteData?.NOMBRES || 'No especificado'}
-                    </div>
-                    <div className="text-sm text-blue-700">
-                      <span className="font-medium">HC:</span> {pacienteData?.HISTORIA || 'No especificado'} | 
-                      <span className="font-medium ml-2">DNI:</span> {pacienteData?.DOCUMENTO || 'No especificado'}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-blue-600">ID Paciente</div>
-                    <div className="font-mono text-sm font-semibold text-blue-800">{patientId}</div>
-                  </div>
-                </div>
-              </div>
-              {/* Barra de búsqueda */}
-              <div className="mt-3 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar por consultorio, médico, origen, seguro o ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Button onClick={onCreateNew} className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Hospitalización
-            </Button>
-          </div>
 
           {/* Contenido principal */}
           <div className="flex-1 overflow-hidden">
@@ -255,11 +231,9 @@ export function HospitalizationListModal({
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-semibold">Estado</TableHead>
                       <TableHead className="font-semibold">ID</TableHead>
-                      <TableHead className="font-semibold">Historia</TableHead>
                       <TableHead className="font-semibold">Consultorio</TableHead>
                       <TableHead className="font-semibold">Médico</TableHead>
-                      <TableHead className="font-semibold">Fecha Ingreso</TableHead>
-                      <TableHead className="font-semibold">Hora</TableHead>
+                      <TableHead className="font-semibold">Fecha y Hora Ingreso</TableHead>
                       <TableHead className="font-semibold">Origen</TableHead>
                       <TableHead className="font-semibold">Seguro</TableHead>
                       <TableHead className="font-semibold">Cuenta</TableHead>
@@ -290,19 +264,16 @@ export function HospitalizationListModal({
                             {orden.idHOSPITALIZACION}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {orden.HISTORIA}
-                          </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
                             {orden.CONSULNOMBRE}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
                             {orden.MEDICONOMBRE || 'No especificado'}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {formatDate(orden.FECHA1)}
-                          </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {orden.HORA1}
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold">{formatDate(orden.FECHA1)}</span>
+                              <span className="text-xs text-gray-500">{orden.HORA1}</span>
+                            </div>
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
                             {orden.ORIGENOMBRE}

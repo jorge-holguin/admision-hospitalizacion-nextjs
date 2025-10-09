@@ -123,12 +123,6 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   };
 
   useEffect(() => {
-    // Log de datos disponibles desde contextos
-    console.log('📊 Datos disponibles desde contextos:');
-    console.log('  - Motivos:', contextMotivos?.length || 0);
-    console.log('  - Consultorios:', contextConsultorios?.length || 0);
-    console.log('  - Formas de ingreso:', contextFormasIngreso?.length || 0);
-    console.log('  - Seguros:', contextSeguros?.length || 0);
   }, [contextMotivos, contextFormasIngreso, contextConsultorios, contextSeguros]);
   
   // Ya no establecemos un valor por defecto para Forma de Ingreso
@@ -148,12 +142,9 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     
     // Limpiar el código de seguro (remover espacios)
     let seguroCode = patientData.seguro.trim();
-    console.log('Estableciendo seguro inicial del paciente:', seguroCode);
-    console.log('Descripción del seguro:', patientData.descSeguro);
     
     // CASO ESPECIAL: Si el seguro es 06 (ESSALUD), cambiarlo automáticamente a 0 (PAGANTE)
     if (seguroCode === '06') {
-      console.log('Seguro ESSALUD (06) detectado, cambiando automáticamente a PAGANTE (0)');
       
       // Find PAGANTE in the list of available insurance options
       const paganteSeguro = seguros.find(s => 
@@ -292,9 +283,8 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
   return (
     <div className="space-y-6 mt-8" data-testid="emergency-section">
-      <h3 className="text-lg font-semibold mb-4">Datos de la Emergencia</h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <h2 className="text-lg font-semibold mb-4">Datos de la Emergencia</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
         {/* Tipo de Atención (E/U) */}
         <SearchableSelect
           label="Tipo Atención"
@@ -430,7 +420,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       </div>
 
       {/* Observaciones */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
         <div className="space-y-2">
           <Label htmlFor="observacion1">Observaciones</Label>
           <Textarea

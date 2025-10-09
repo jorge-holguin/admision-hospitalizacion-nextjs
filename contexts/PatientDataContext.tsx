@@ -4,6 +4,7 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // Define the patient data interface
 interface PatientData {
+  // Campos principales
   paciente: string;
   nombres: string;
   nombre: string;
@@ -29,9 +30,41 @@ interface PatientData {
   localidad?: string;
   nombreOcupacion?: string;
   photo?: string;
-  // Añadir campos para el código de ubigeo y lugar de nacimiento
-  Expr2?: string;
+  
+  // Campos de ubigeo y lugar de nacimiento
+  COD_DISTRITO?: string;
   LUGAR_NACIMIENTO?: string;
+  
+  // Campos adicionales de filiación
+  COD_ETNIA?: string;
+  CONYUGE_NOMBRE?: string;
+  CONYUGE_OCUPACION?: string;
+  DIRECCION_RENIEC?: string;
+  DISTRITO_RENIEC?: string;
+  Departamento_Dir?: string;
+  EMAIL?: string;
+  FECHA_APERTURA?: any;
+  GRADO_INSTRUCCION?: string;
+  HIJOS?: any;
+  HORA_APERTURA?: string;
+  MADRE?: string;
+  NOMBRE_DOCUMENTO?: string;
+  NOMBRE_ESTADO_CIVIL?: string;
+  NOMBRE_SEGURO?: string;
+  OCUPACION?: string;
+  PADRE?: string;
+  PAIS?: string;
+  RESPONSABLE_DIRECCION?: string;
+  RESPONSABLE_NOMBRE?: string;
+  RESPONSABLE_OCUPACION?: string;
+  RESPONSABLE_PARENTESCO?: string;
+  RESPONSABLE_TELEFONO?: string;
+  RESPONSABLE_TRABAJO?: string;
+  STRING_FOTO?: string;
+  RowNum?: string;
+  
+  // Permitir campos adicionales dinámicos
+  [key: string]: any;
 }
 
 // Define the context interface
@@ -174,7 +207,7 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
             nombreOcupacion: data.data.NOMBRE_OCUPACION || '',
             photo: processPhotoData(data.data.STRING_PHOTO || data.data.STRING_FOTO || ''),
             // Añadir los campos de ubigeo y lugar de nacimiento
-            Expr2: data.data.Expr2 || '',
+            COD_DISTRITO: data.data.COD_DISTRITO || '',
             LUGAR_NACIMIENTO: data.data.LUGAR_NACIMIENTO || ''
           };
           

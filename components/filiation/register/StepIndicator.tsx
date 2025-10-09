@@ -10,7 +10,6 @@ const steps = [
   { id: 1, title: "Datos Básicos", description: "Información personal y RENIEC" },
   { id: 2, title: "Datos Adicionales", description: "Información complementaria" },
   { id: 3, title: "Datos Familiares", description: "Información familiar y acompañante" },
-  { id: 4, title: "Confirmación", description: "Revisar y confirmar datos" },
 ]
 
 export function StepIndicator({ currentStep }: StepIndicatorProps) {

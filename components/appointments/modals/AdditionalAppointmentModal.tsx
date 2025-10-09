@@ -17,7 +17,7 @@ import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
-import { extractUserSurnameFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken } from "@/utils/jwtUtils"
 
 interface AdditionalAppointmentModalProps {
   isOpen: boolean
@@ -195,7 +195,7 @@ export function AdditionalAppointmentModal({
       setIsLoading(true)
       
       // Get user from JWT token
-      const usuario = extractUserSurnameFromToken()
+      const usuario = extractDocumentFromToken()
       
       // Prepare request body
       const requestBody = {

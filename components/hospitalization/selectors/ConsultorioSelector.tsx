@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
+import { useConsultorios } from '@/contexts/ConsultoriosContext';
 
 interface Consultorio {
   CONSULTORIO: string;
@@ -27,42 +28,11 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
   className = ''
 }) => {
   const [open, setOpen] = useState(false);
-  const [consultorios, setConsultorios] = useState<Consultorio[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchConsultorios = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Usar la ruta correcta sin parámetros innecesarios
-        const url = `/api/consultorio`;
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Error al cargar consultorios: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.items && Array.isArray(data.items)) {
-          setConsultorios(data.items);
-        } else {
-          setError('Formato de respuesta inesperado');
-        }
-      } catch (error) {
-        console.error('Error al cargar consultorios:', error);
-        setError('Error al cargar consultorios');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchConsultorios();
-  }, []);
+  
+  // Usar el contexto de consultorios en lugar de llamada directa a la API
+  const { consultorios, loading } = useConsultorios();
+  
+  console.log('🏥 ConsultorioSelector: Usando contexto, consultorios disponibles:', consultorios?.length || 0);
 
   const selectedConsultorio = consultorios.find(consultorio => 
     value === `${consultorio.CONSULTORIO} - ${consultorio.NOMBRE}`
@@ -105,8 +75,6 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
                     <Spinner size="sm" />
                     <span className="ml-2">Cargando...</span>
                   </div>
-                ) : error ? (
-                  <div className="text-center p-4 text-red-500">{error}</div>
                 ) : (
                   "No se encontraron resultados"
                 )}

@@ -75,14 +75,15 @@ export function HospitalizationRegistrationModal({
     })
 
     // Llamar callback de éxito si existe
+    // El padre (HospitalizationMainModal) se encargará de volver a la lista
     if (onSuccess) {
       onSuccess(data)
     }
 
-    // Cerrar modal después de un breve delay
+    // Limpiar estado de éxito después de un breve delay
+    // NO cerramos el modal aquí porque el padre maneja la navegación
     setTimeout(() => {
       setSubmitSuccess(false)
-      onClose()
     }, 1500)
   }
 
@@ -113,22 +114,31 @@ export function HospitalizationRegistrationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
-        <DialogHeader className="px-6 py-4 border-b bg-gray-50">
+      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 py-4 border-b bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              {onBack && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBack}
-                  className="mr-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              {hospitalizationId ? 'Editar Hospitalización' : 'Nueva Hospitalización'}
-            </DialogTitle>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                {onBack && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBack}
+                    className="mr-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <DialogTitle className="text-lg font-bold text-blue-600">
+                  {hospitalizationId ? 'Editar Hospitalización' : 'Registro de Hospitalización'}
+                </DialogTitle>
+              </div>
+              <p className="text-sm text-gray-600 mt-1 ml-10">
+                {hospitalizationId 
+                  ? 'Modifique los datos de la hospitalización' 
+                  : 'Complete los datos para registrar la hospitalización'}
+              </p>
+            </div>
             
             {submitSuccess && (
               <div className="flex items-center gap-2 text-green-600">
@@ -139,43 +149,19 @@ export function HospitalizationRegistrationModal({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
-            {/* Patient Info - Left Side */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-0">
-                {patientDataLoading ? (
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                  </div>
-                ) : enhancedPatient ? (
-                  <PatientInfoCard
-                    patientData={enhancedPatient}
-                    className="border-0 shadow-none"
-                  />
-                ) : (
-                  <div className="text-center p-4 text-gray-500">
-                    No se pudieron cargar los datos del paciente
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Hospitalization Form - Right Side */}
-            <div className="lg:col-span-3">
-                <HospitalizationFormRefactored
-                  patientId={patientId}
-                  hospitalizationId={hospitalizationId}
-                  hospitalizationData={hospitalizationData}
-                  patient={enhancedPatient}
-                  onSuccess={handleSuccess}
-                  onError={handleError}
-                  onBack={onBack}
-                  isModal={true}
-                  alertsContainerId="alertas-container"
-                />
-            </div>
-          </div>
+        <div className="flex-1 overflow-auto p-6">
+          {/* Hospitalization Form - Full Width */}
+          <HospitalizationFormRefactored
+            patientId={patientId}
+            hospitalizationId={hospitalizationId}
+            hospitalizationData={hospitalizationData}
+            patient={enhancedPatient}
+            onSuccess={handleSuccess}
+            onError={handleError}
+            onBack={onBack}
+            isModal={true}
+            alertsContainerId="alertas-container"
+          />
         </div>
 
         {/* Container para alertas */}

@@ -22,7 +22,7 @@ import { validateEmergencyForm } from './FormValidatorEmergency'
 import { useSelectsState } from './FormUtilsEmergency'
 import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
 
-import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
 import { useTiposDocumento } from "@/contexts/TiposDocumentoContext";
 import { useServerDateTime } from "@/contexts/ServerDateTimeContext";
@@ -45,7 +45,7 @@ interface PatientDataExtended {
   nombres?: string;
   apellidoPaterno?: string;
   apellidoMaterno?: string;
-  Expr2?: string;
+  COD_DISTRITO?: string;
   LUGAR_NACIMIENTO?: string;
   [key: string]: any; // Para permitir acceso a propiedades adicionales
 }
@@ -182,7 +182,7 @@ export function EmergencyFormRefactored({
   
   // Estado para los selectores abiertos
   const { openSelects, toggleSelect, closeAllSelects } = useSelectsState();
-  const primerApellido = typeof window !== 'undefined' ? extractUserSurnameFromToken() : 'SUPERVISOR';
+  const primerApellido = typeof window !== 'undefined' ? extractDocumentFromToken() : 'SUPERVISOR';
 
   // Initialize form data with empty values
   const [formData, setFormData] = useState({
@@ -228,7 +228,7 @@ export function EmergencyFormRefactored({
     cuentaId: '',
     usuario: primerApellido || 'SISTEMA',
     // Campos adicionales para distrito y lugar de nacimiento
-    Expr2: '',
+    COD_DISTRITO: '',
     LUGAR_NACIMIENTO: ''
   });
 
@@ -302,11 +302,12 @@ export function EmergencyFormRefactored({
       nombres: patientDataFromContext.nombres ? patientDataFromContext.nombres.trim() : '',
       apellidoPaterno: patientDataFromContext.apellidoPaterno ? patientDataFromContext.apellidoPaterno.trim() : '',
       apellidoMaterno: patientDataFromContext.apellidoMaterno ? patientDataFromContext.apellidoMaterno.trim() : '',
-      // Incluir campos sexo y edad
+      // Incluir campos sexo, edad y fecha de nacimiento
       sexo: patientDataFromContext.sexo ? patientDataFromContext.sexo.trim() : '',
       edad: patientDataFromContext.edad ? patientDataFromContext.edad.trim() : '',
+      fechaNacimiento: patientDataFromContext.fechaNacimiento ? patientDataFromContext.fechaNacimiento.trim() : '', // ✅ Agregado
       // Añadir campos adicionales para distrito y lugar de nacimiento
-      Expr2: patientDataFromContext.Expr2 ? patientDataFromContext.Expr2.trim() : '',
+      COD_DISTRITO: patientDataFromContext.COD_DISTRITO ? patientDataFromContext.COD_DISTRITO.trim() : '',
       LUGAR_NACIMIENTO: patientDataFromContext.LUGAR_NACIMIENTO ? patientDataFromContext.LUGAR_NACIMIENTO.trim() : ''
     };
   }, [getPatientData]);
@@ -332,11 +333,12 @@ export function EmergencyFormRefactored({
       localidad: data.localidad || '',
       seguro: data.seguro || '',
       religion: data.religion || '',
-      // Incluir campos sexo y edad
+      // Incluir campos sexo, edad y fecha de nacimiento
       sexo: data.sexo || '',
       edad: data.edad || '',
+      fechaNacimiento: data.fechaNacimiento || '', // ✅ Agregado
       // Campos adicionales
-      Expr2: data.Expr2 || '',
+      COD_DISTRITO: data.COD_DISTRITO || '',
       LUGAR_NACIMIENTO: data.LUGAR_NACIMIENTO || ''
     }));
     
@@ -556,7 +558,7 @@ export function EmergencyFormRefactored({
             localidad: filiacionData.localidad || prev.localidad || '',
             seguro: filiacionData.seguro ? `${filiacionData.seguro} - ${filiacionData.descSeguro || ''}` : prev.seguro || '',
             religion: filiacionData.religion || prev.religion || '',
-            Expr2: filiacionData.Expr2 || prev.Expr2 || '',
+            COD_DISTRITO: filiacionData.COD_DISTRITO || prev.COD_DISTRITO || '',
             LUGAR_NACIMIENTO: filiacionData.LUGAR_NACIMIENTO || prev.LUGAR_NACIMIENTO || ''
           };
         });
@@ -646,8 +648,8 @@ export function EmergencyFormRefactored({
         SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1), // Limitar a 1 caracter
         ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100), // Limitar a 100 caracteres
-        // Usar el valor de ubigeo (Expr2) para el distrito
-        DISTRITO: (filiacionData?.Expr2 || '').trim().substring(0, 7), // Limitar a 7 caracteres
+        // Usar el valor de ubigeo (COD_DISTRITO) para el distrito
+        DISTRITO: (filiacionData?.COD_DISTRITO || '').trim().substring(0, 7), // Limitar a 7 caracteres
         TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20), // Limitar a 20 caracteres
         TELEFONO2: (filiacionData?.telefono2 || formData.telefono2 || '').substring(0, 20), // Limitar a 20 caracteres
         ACOMPANANTE: (formData.acompanante || '').substring(0, 100), // Limitar a 100 caracteres
@@ -811,12 +813,23 @@ export function EmergencyFormRefactored({
           variant: "default"
         });
         
-        // Redirigir a la lista de emergencias
-        router.push(`/emergency/${patientId}`);
+        // Redirigir a la lista de emergencias SOLO si no estamos en un modal
+        // Comprobación adicional para asegurar que no redirigimos desde un modal
+        if (window && window.location.pathname.includes('/emergency/register/') || 
+            window.location.pathname.includes('/emergency/view/')) {
+          router.push(`/emergency/${patientId}`);
+        }
       } else {
         // En modo modal, usar callback de éxito
         if (onSuccess) {
           onSuccess(result);
+        } else {
+          // Si estamos en modal pero no hay callback de éxito, mostrar toast
+          toast({
+            title: emergencyId ? "Emergencia actualizada" : "Emergencia creada",
+            description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
+            variant: "default"
+          });
         }
       }
       
@@ -870,8 +883,15 @@ export function EmergencyFormRefactored({
       // En modo modal, usar el callback onBack para volver al modal anterior
       onBack();
     } else {
-      // En modo página, usar router para navegar
-      router.push(`/emergency/${patientId}`);
+      // Verificar si estamos en una página de emergencia antes de redirigir
+      if (window && (window.location.pathname.includes('/emergency/register/') || 
+          window.location.pathname.includes('/emergency/view/'))) {
+        // En modo página, usar router para navegar
+        router.push(`/emergency/${patientId}`);
+      } else if (onBack) {
+        // Si no estamos en una página de emergencia pero tenemos onBack, usarlo
+        onBack();
+      }
     }
   };
   

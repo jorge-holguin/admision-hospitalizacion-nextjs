@@ -83,7 +83,7 @@ export default function MasterTablesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar title="SIGSALUD" subtitle="TABLAS MAESTRAS" showBackButton={false} />
+      <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="TABLAS MAESTRAS" showBackButton={false} />
       <Toaster />
 
       {/* Main Content */}

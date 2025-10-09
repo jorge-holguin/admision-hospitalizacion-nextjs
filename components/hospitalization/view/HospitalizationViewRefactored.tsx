@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/use-toast"
-import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { convertDateFormat, convertTimeFormat, convertTo12HourFormat } from '@/utils/dateFormatUtils'
 import { usePatient } from '@/contexts/PatientContext'
 
@@ -21,13 +21,25 @@ import { ViewActions } from './ViewActions'
 import { ViewDetails } from './ViewDetails'
 
 interface HospitalizationViewProps {
-  patientId: string;
-  orderId: string | null;
+  hospitalizationId: string;
+  initialData?: any;
+  readOnly?: boolean;
+  onSave?: (data: any) => void;
+  onError?: (error: string) => void;
 }
 
-export function HospitalizationViewRefactored({ patientId, orderId }: HospitalizationViewProps) {
+export function HospitalizationViewRefactored({ 
+  hospitalizationId, 
+  initialData, 
+  readOnly = false,
+  onSave,
+  onError 
+}: HospitalizationViewProps) {
   const router = useRouter();
   const { patientData, setPatientData } = usePatient();
+  
+  // Extraer patientId de initialData
+  const patientId = initialData?.PACIENTE || initialData?.pacienteId || initialData?.id;
   
   // Callback memoizado para manejar datos del paciente
   const handlePatientDataLoaded = useCallback((data: any) => {
@@ -71,96 +83,122 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
     attentionOrigin: ''
   });
   
-  // Función para cargar detalles de hospitalización
-  const fetchHospitalizationDetails = async (id: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${id}`);
+  // Función para procesar los datos iniciales recibidos del padre
+  const processInitialData = (data: any) => {
+    console.log('🔄 Procesando initialData:', data);
+    
+    // Asegurar que orderData incluya TODOS los campos
+    const completeOrderData = {
+      ...data,
+      ACOMPANANTE_NOMBRE: data.ACOMPANANTE_NOMBRE || '',
+      ACOMPANANTE_TELEFONO: data.ACOMPANANTE_TELEFONO || '',
+      ACOMPANANTE_DIRECCION: data.ACOMPANANTE_DIRECCION || ''
+    };
+    
+    setOrderData(completeOrderData);
+    
+    // Verificar el estado Y el prop readOnly para determinar si es editable
+    // Si readOnly es true (modo 'view'), NUNCA debe ser editable
+    if (readOnly) {
+      setIsEditable(false);
+      setFieldsLocked(true);
+    } else if (data.ESTADO === '2') {
+      // Solo editable si NO está en readOnly y el estado es '2'
+      setIsEditable(true);
+      setFieldsLocked(false);
+    } else if (data.ESTADO === '3') {
+      setIsEditable(false);
+      setFieldsLocked(true);
       
-      if (!response.ok) {
-        console.error(`Error en respuesta API: ${response.status} ${response.statusText}`);
-        const errorText = await response.text();
-        console.error(`Contenido de error: ${errorText}`);
-        throw new Error(`Error al cargar detalles de hospitalización: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      setOrderData(data);
-      
-      // Verificar el estado para determinar si es editable
-      if (data.ESTADO === '2') {
-        setIsEditable(true);
-        setFieldsLocked(false);
-      } else if (data.ESTADO === '3') {
-        setIsEditable(false);
-        setFieldsLocked(true);
-        
-        // Mostrar mensaje informativo
-        setTimeout(() => {
-          toast({
-            title: "Información",
-            description: "Esta hospitalización está en estado finalizado y no puede ser modificada.",
-            variant: "default"
-          });
-        }, 500);
-      } else {
-        // Para cualquier otro estado, modo solo lectura
-        setIsEditable(false);
-        setFieldsLocked(true);
-      }
-      
-      // Convertir la fecha del formato DD/MM/YYYY a YYYY-MM-DD
-      const formattedDate = data.FECHA1 ? convertDateFormat(data.FECHA1) : '';
-      
-      // Convertir la hora del formato 12h a 24h
-      const formattedTime = data.HORA1 ? convertTimeFormat(data.HORA1) : '';
-      
-      console.log('Fecha original:', data.FECHA1, 'Fecha convertida:', formattedDate);
-      console.log('Hora original:', data.HORA1, 'Hora convertida:', formattedTime);
-      
-      // Actualizar el estado del formulario con los datos de la orden
-      setFormData({
-        date: formattedDate,
-        time: formattedTime,
-        dateEdited: false, // Inicialmente no está editado
-        timeEdited: false, // Inicialmente no está editado
-        hospitalizationId: data.ORIGENID?.trim() || '', // Usar ORIGENID para el código de origen de atención
-        origin: data.ORIGEN || '',
-        originName: data.ORIGENOMBRE || '',
-        consultorio: data.CONSULTORIO1 || '',
-        consultorioName: data.CONSULNOMBRE || '',
-        medico: data.MEDICO1 || '',
-        medicoName: data.MEDICONOMBRE || '',
-        seguro: data.SEGURO || '',
-        seguroName: data.SEGURONOMBRE || '',
-        diagnostico: data.DIAGNOSTICO || '',
-        diagnosticoNombre: data.DIAGNOSTICONOMBRE || '',
-        attentionOrigin: data.ATENCION || ''
-      });
-      
-      // Si hay datos de filiación en la respuesta, actualizarlos
-      if (data.FILIACION) {
-        setFiliacionData(data.FILIACION);
-      }
-      
-    } catch (error) {
-      console.error('Error al cargar detalles de hospitalización:', error);
-      setError('Error al cargar detalles de hospitalización. Por favor, inténtelo de nuevo.');
-    } finally {
-      setLoading(false);
+      // Mostrar mensaje informativo
+      setTimeout(() => {
+        toast({
+          title: "Información",
+          description: "Esta hospitalización está en estado finalizado y no puede ser modificada.",
+          variant: "default"
+        });
+      }, 500);
+    } else {
+      setIsEditable(false);
+      setFieldsLocked(true);
     }
+    
+    // Convertir la fecha del formato DD/MM/YYYY a YYYY-MM-DD
+    const formattedDate = data.FECHA1 ? convertDateFormat(data.FECHA1) : '';
+    
+    // Convertir la hora del formato 12h a 24h
+    const formattedTime = data.HORA1 ? convertTimeFormat(data.HORA1) : '';
+    
+    // Actualizar el estado del formulario con los datos de la orden
+    const newFormData = {
+      date: formattedDate,
+      time: formattedTime,
+      dateEdited: false,
+      timeEdited: false,
+      hospitalizationId: data.ORIGENID?.toString().trim() || '',
+      origin: data.ORIGEN || '',
+      originName: data.ORIGENOMBRE || '',
+      consultorio: data.CONSULTORIO1?.toString().trim() || '',
+      consultorioName: data.CONSULNOMBRE || '',
+      medico: data.MEDICO1 || '',
+      medicoName: data.MEDICONOMBRE || '',
+      seguro: data.SEGURO?.toString().trim() || '',
+      seguroName: data.SEGURONOMBRE || '',
+      diagnostico: data.DIAGNOSTICO || '',
+      diagnosticoNombre: data.DIAGNOSTICONOMBRE || '',
+      attentionOrigin: data.ATENCION || ''
+    };
+    
+    setFormData(newFormData);
+    
+    // Establecer datos de filiación del paciente
+    const filiacionFromData = {
+      historyNumber: data.HISTORIA?.trim() || '',
+      names: data.NOMBRES?.trim() || '',
+      document: data.DOCUMENTO || '',
+      paternalSurname: '',
+      maternalSurname: '',
+      sex: data.SEXO || '',
+      birthDate: data.FECHA_NACIMIENTO || '',
+      age: data.EDAD || '',
+      civilStatus: data.ESTADO_CIVIL || '',
+      address: data.DIRECCION || '',
+      district: data.DISTRITO || '',
+      phone: data.TELEFONO1 || '',
+      documentType: data.TIPO_DOCUMENTO || '',
+      religion: data.RELIGION || ''
+    };
+    
+    setFiliacionData(filiacionFromData);
+    
+    // Actualizar contexto del paciente
+    setPatientData({
+      hc: data.HISTORIA?.trim() || '',
+      name: data.NOMBRES?.trim() || '',
+      documento: data.DOCUMENTO || '',
+      pacienteId: data.PACIENTE || ''
+    });
   };
 
-  // Efecto para cargar datos iniciales
+  // Efecto para procesar datos iniciales cuando están disponibles
   useEffect(() => {
-    if (orderId) {
-      fetchHospitalizationDetails(orderId);
-    } else {
+    if (!initialData) {
+      console.log('⚠️ No hay initialData disponible');
+      setError('No se proporcionaron datos de hospitalización');
       setLoading(false);
-      setError('No se proporcionó ID de orden de hospitalización');
+      return;
     }
-  }, [orderId]);
+    
+    console.log('✅ InitialData recibido, procesando...', {
+      IDHOSPITALIZACION: initialData.IDHOSPITALIZACION,
+      ACOMPANANTE_NOMBRE: initialData.ACOMPANANTE_NOMBRE,
+      ORIGENID: initialData.ORIGENID
+    });
+    
+    // Procesar los datos recibidos del padre
+    processInitialData(initialData);
+    setLoading(false);
+  }, [initialData, readOnly, setPatientData]);
 
   // Función para manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
@@ -235,7 +273,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
       
       // Preparar datos para enviar a la API
       const updateData = {
-        orderId: orderId,
+        hospitalizationId: hospitalizationId,
         patientId: patientId,
         fecha: serverDate,
         hora: time12h, // Usar el formato de 12 horas
@@ -254,7 +292,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
       // Crear objeto con los valores correctamente formateados para SQL
       const valoresSQL = {
         // Incluir el IDHOSPITALIZACION obtenido del servicio
-        IDHOSPITALIZACION: orderId,
+        IDHOSPITALIZACION: hospitalizationId,
         PACIENTE: patientId,
         NOMBRES: orderData?.NOMBRES || '',
         CONSULTORIO1: consultorioCode.padEnd(6, ' ').substring(0, 6), // Exactamente 6 caracteres
@@ -266,11 +304,11 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
         ESTADO: '2',
         // Obtener el apellido del usuario desde el token JWT
         USUARIO: (() => {
-          const apellido = typeof window !== 'undefined' ? extractUserSurnameFromToken() : 'SUPERVISOR';
+          const apellido = typeof window !== 'undefined' ? extractDocumentFromToken() : 'SUPERVISOR';
           return apellido || 'SUPERVISOR';
         })(),
         USUARIO_IMP: (() => {
-          const apellido = typeof window !== 'undefined' ? extractUserSurnameFromToken() : 'SUPERVISOR';
+          const apellido = typeof window !== 'undefined' ? extractDocumentFromToken() : 'SUPERVISOR';
           return apellido || 'SUPERVISOR';
         })(),
         DIAGNOSTICO: diagnosticoCode,
@@ -284,7 +322,7 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
       };
       
       // Enviar datos a la API
-      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${orderId}`, {
+      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${hospitalizationId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -295,38 +333,63 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
         }),
       });
       
-      if (!response.ok) {
-        throw new Error(`Error al guardar: ${response.statusText}`);
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Hospitalización actualizada exitosamente:', result);
+        
+        // Si tenemos callback onSave (modo modal), usarlo
+        if (onSave) {
+          onSave(result.data || result);
+        } else {
+          // Modo página independiente
+          toast({
+            title: "Éxito",
+            description: "Hospitalización actualizada correctamente",
+            variant: "default"
+          });
+          
+          // Redirigir a la lista de hospitalizaciones
+          router.push(`/hospitalization/orders/${patientId}`);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error al actualizar hospitalización:', errorData);
+        
+        const errorMessage = errorData.message || "Error al actualizar la hospitalización";
+        
+        // Si tenemos callback onError (modo modal), usarlo
+        if (onError) {
+          onError(errorMessage);
+        } else {
+          // Modo página independiente
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        }
       }
-      
-      // Mostrar mensaje de éxito
-      setShowSuccessMessage(true);
-      toast({
-        title: "Éxito",
-        description: "Se actualizó la hospitalización correctamente.",
-        variant: "default"
-      });
-      
-      // Redirigir después de un breve retraso
-      setTimeout(() => {
-        router.push(`/hospitalization/orders/${patientId}`);
-      }, 2000);
-      
     } catch (error) {
-      console.error('Error al guardar los datos:', error);
-      toast({
-        title: "Error",
-        description: "Error al guardar los datos. Por favor, inténtelo de nuevo.",
-        variant: "destructive"
-      });
+      console.error('❌ Error al enviar formulario:', error);
+      const errorMessage = 'Error al actualizar la hospitalización. Por favor, inténtelo de nuevo.';
+      
+      if (onError) {
+        onError(errorMessage);
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Función para manejar el botón de volver
+  // Función para manejar el botón "Volver"
   const handleGoBack = () => {
-    router.push(`/hospitalization/orders/${patientId}`);
+    router.back();
   };
 
   // Mostrar spinner mientras carga
@@ -368,8 +431,9 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
               <div className="flex-1 flex flex-col">
                 <PatientInfoCard
                   patientId={patientId}
-                  hospitalizationOrderId={orderId || undefined}
+                  hospitalizationOrderId={hospitalizationId || undefined}
                   onDataLoaded={handlePatientDataLoaded}
+                  initialData={initialData} // Pasar los datos iniciales para evitar llamada a API
                   className="flex-1"
                 />
               </div>
@@ -424,13 +488,13 @@ export function HospitalizationViewRefactored({ patientId, orderId }: Hospitaliz
         </div>
       </div>
       
-      {/* Componente para cargar detalles de la vista */}
-      <ViewDetails
-        orderId={orderId}
+      {/* Componente para cargar detalles de la vista - Comentado temporalmente */}
+      {/* <ViewDetails
+        hospitalizationId={hospitalizationId}
         onDataLoaded={(data) => {
           // Opcional: manejar datos adicionales si es necesario
         }}
-      />
+      /> */}
       
       {/* Acciones de la vista */}
       <ViewActions 

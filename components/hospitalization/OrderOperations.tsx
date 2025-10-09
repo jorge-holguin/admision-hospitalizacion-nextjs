@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { extractUserSurnameFromToken } from '@/utils/jwtUtils';
+import { extractDocumentFromToken } from '@/utils/jwtUtils';
 
 interface OrderOperationsProps {
   onOrderDeleted?: () => void;
@@ -46,7 +46,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
       // Obtener el apellido del usuario desde el token JWT usando la utilidad
       let usuario = 'SISTEMA';
       try {
-        usuario = extractUserSurnameFromToken();
+        usuario = extractDocumentFromToken();
       } catch (e) {
         console.error('Error al obtener datos de usuario del token JWT:', e);
       }

@@ -99,14 +99,15 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
     <div className="space-y-6 mt-6" data-testid="additional-view-fields-section">
       {/* Cuarta fila - Datos del Acompañante */}
       <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
         <div className="space-y-2">
           <Label htmlFor="acompanante">Nombre del Acompañante <span className="text-red-500">*</span></Label>
           <Input
             id="acompanante"
             value={formData.acompanante || ''}
             onChange={(e) => onFormChange('acompanante', e.target.value)}
-            disabled={disabled}
+            disabled={disabled || readOnly}
+            readOnly={readOnly}
             placeholder="Nombre completo..."
             className="md:text-sm"
           />
@@ -142,7 +143,8 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
             id="documentoA"
             value={formData.documentoA || ''}
             onChange={(e) => onFormChange('documentoA', e.target.value)}
-            disabled={disabled}
+            disabled={disabled || readOnly}
+            readOnly={readOnly}
             placeholder="Número de documento..."
             className="md:text-sm"
           />

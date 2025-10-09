@@ -4,7 +4,13 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
-import { Home, Loader2, Search, Siren, CheckCircle, UserPlus } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit, Trash2, Eye } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -150,37 +156,29 @@ export default function FiliationPage() {
     setIsPatientSearchModalOpen(true)
   }
 
+  // Cuando se encuentra un paciente en filiación
+  const handlePatientFound = (patientData: any) => {
+    // Cerrar modal de búsqueda
+    setIsPatientSearchModalOpen(false);
+    
+    // Actualizar el término de búsqueda para mostrar el paciente en la tabla
+    setSearchTerm(patientData.DOCUMENTO || patientData.documento || '');
+    setSearchType('documento');
+    
+    toast({
+      title: "Paciente encontrado",
+      description: `Paciente ${patientData.NOMBRES || patientData.nombres} encontrado en el sistema.`,
+    });
+  };
+
+  // Cuando no se encuentra y se obtienen datos de RENIEC
   const handlePatientSearchComplete = async (searchData: any) => {
-    try {
-      // Buscar si el paciente ya existe
-      const existingPatients = await searchExistingPatient(searchData.dni)
-      
-      if (existingPatients.length > 0) {
-        // Paciente existe, mostrar modal de edición
-        setSelectedPatient(existingPatients[0])
-        setIsPatientEditModalOpen(true)
-        setIsPatientSearchModalOpen(false)
-        toast({
-          title: "Paciente encontrado",
-          description: "El paciente ya existe. Se abrirá el formulario de edición.",
-        })
-      } else {
-        // Paciente no existe, proceder con registro
-        setReniecData(searchData)
-        setDocumentType("DNI")
-        setDocumentNumber(searchData.dni)
-        setIsPatientRegistrationModalOpen(true)
-        setIsPatientSearchModalOpen(false)
-      }
-    } catch (error) {
-      console.error('Error buscando paciente:', error)
-      // Si hay error en la búsqueda, proceder con registro
-      setReniecData(searchData)
-      setDocumentType("DNI")
-      setDocumentNumber(searchData.dni)
-      setIsPatientRegistrationModalOpen(true)
-      setIsPatientSearchModalOpen(false)
-    }
+    // Paciente no existe en filiación, proceder con registro usando datos de RENIEC
+    setReniecData(searchData);
+    setDocumentType("DNI");
+    setDocumentNumber(searchData.dni);
+    setIsPatientRegistrationModalOpen(true);
+    setIsPatientSearchModalOpen(false);
   }
 
   const handlePatientView = (patient: any) => {
@@ -255,6 +253,39 @@ export default function FiliationPage() {
     }));
   };
 
+  // Función para editar paciente
+  const handleEditPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setIsPatientEditModalOpen(true);
+  };
+
+  // Función para ver registro del paciente
+  const handleViewPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setIsPatientViewModalOpen(true);
+  };
+
+  // Función para anular paciente
+  const handleDeletePatient = async (patient: any) => {
+    if (confirm(`¿Está seguro de anular el paciente ${patient.NOMBRES}?`)) {
+      try {
+        // Aquí iría la lógica para anular el paciente
+        toast({
+          title: "Paciente anulado",
+          description: `El paciente ${patient.NOMBRES} ha sido anulado correctamente.`,
+        });
+        // Recargar la lista
+        handleSearch();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo anular el paciente.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   // Definición de columnas para la DataTable
   const columns = [
     {
@@ -270,8 +301,8 @@ export default function FiliationPage() {
       header: "Sexo",
     },
     {
-      key: "DOCUMENTO",
-      header: "DNI",
+      key: "PACIENTE",
+      header: "Código Paciente",
     },
     {
       key: "FECHA_NACIMIENTO",
@@ -338,32 +369,56 @@ export default function FiliationPage() {
       key: "actions",
       header: "Acciones",
       cell: (patient: any) => (
-        <div className="flex flex-col space-y-2">
-          <div className="flex space-x-2">
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="bg-blue-500 hover:bg-blue-600 text-white" 
-              onClick={() => handlePatientSelect(patient)}
-            >
-              <Home className="mr-2 h-4 w-4" /> HOSPITALIZAR
-            </Button>
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="bg-red-500 hover:bg-red-600 text-white" 
-              onClick={() => handleEmergencySelect(patient)}
-            >
-              <Siren className="mr-2 h-4 w-4" /> EMERGENCIA
-            </Button>
-            <SISVerification 
-              patientId={patient.PACIENTE}
-              documento={patient.DOCUMENTO}
-              buttonSize="sm"
-              onVerificationComplete={handleSISVerificationComplete}
-            />
-            
-          </div>
+        <div className="flex items-center space-x-2">
+          {/* Botones principales siempre visibles */}
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="bg-blue-500 hover:bg-blue-600 text-white" 
+            onClick={() => handlePatientSelect(patient)}
+          >
+            <Home className="mr-1 h-4 w-4" /> Hospitalizar
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="bg-red-500 hover:bg-red-600 text-white" 
+            onClick={() => handleEmergencySelect(patient)}
+          >
+            <Siren className="mr-1 h-4 w-4" /> Emergencia
+          </Button>
+          <SISVerification 
+            patientId={patient.PACIENTE}
+            documento={patient.DOCUMENTO}
+            buttonSize="sm"
+            onVerificationComplete={handleSISVerificationComplete}
+          />
+          
+          {/* Menú desplegable para acciones secundarias */}
+        {/*   <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Ver Registro
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleDeletePatient(patient)}
+                className="text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Anular
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu> */}
         </div>
       ),
     },
@@ -371,7 +426,7 @@ export default function FiliationPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar title="SIGSALUD" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
+      <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
       <Toaster />
 
       {/* Main Content */}
@@ -397,13 +452,13 @@ export default function FiliationPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Búsqueda de Pacientes</span>
-              <Button
+              {/* <Button
                 onClick={handleNewPatientClick}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Nuevo Paciente
-              </Button>
+              </Button> */}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -577,6 +632,7 @@ export default function FiliationPage() {
       <Dialog open={isPatientSearchModalOpen} onOpenChange={setIsPatientSearchModalOpen}>
         <PatientSearchModal 
           onSearchComplete={handlePatientSearchComplete}
+          onPatientFound={handlePatientFound}
           onCancel={() => setIsPatientSearchModalOpen(false)}
         />
       </Dialog>

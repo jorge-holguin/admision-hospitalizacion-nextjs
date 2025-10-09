@@ -8,10 +8,10 @@ import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter'
 import { printMultiplePdfsViaDirectApi } from '@/utils/pdfUtils'
-import { extractUserSurnameFromToken } from '@/utils/jwtUtils'
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
-import { datetimeService } from '@/services/datetimeService'
 import { usePatient } from '@/contexts/PatientContext'
+import { useServerDateTime } from '@/contexts/ServerDateTimeContext'
 
 // Componentes modulares refactorizados
 import { PatientSection } from './PatientSection'
@@ -33,16 +33,34 @@ import { useAuth } from '@/components/AuthProvider';
 
 interface HospitalizationFormProps {
   patientId: string;
-  orderId?: string | null;
+  hospitalizationId?: string;
+  hospitalizationData?: any;
+  patient?: any;
+  onSuccess?: (data: any) => void;
+  onError?: (error: string) => void;
+  onBack?: () => void;
+  isModal?: boolean;
+  alertsContainerId?: string;
 }
 
 const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 
-export function HospitalizationFormRefactored({ patientId, orderId }: HospitalizationFormProps) {
+export function HospitalizationFormRefactored({ 
+  patientId, 
+  hospitalizationId, 
+  hospitalizationData, 
+  patient, 
+  onSuccess, 
+  onError, 
+  onBack, 
+  isModal = false, 
+  alertsContainerId 
+}: HospitalizationFormProps) {
   const router = useRouter();
   const { user } = useAuth(); // Moved inside the component
   const { patientData, setPatientData } = usePatient();
-  const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null) as React.RefObject<VerificacionDiagnosticoRef>;
+  const { serverDateTime: contextServerDateTime, loading: dateTimeLoading } = useServerDateTime();
+  // const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null) as React.RefObject<VerificacionDiagnosticoRef>;
   
   // Estado para loading y error handling
   const [loading, setLoading] = useState(true);
@@ -56,8 +74,10 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
   // Utilizar el hook de impresión directa con callback de redirección
   const { handleDirectPrint } = useDocumentPrinter({
     onPrintComplete: () => {
-      // Redirigir a la lista de órdenes después de iniciar la impresión
-      router.push(`/hospitalization/orders/${patientId}`);
+      // Solo redirigir si no estamos en modo modal
+      if (!isModal) {
+        router.push(`/hospitalization/orders/${patientId}`);
+      }
     }
   });
   
@@ -353,7 +373,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
       };
       
       // Obtener el primer apellido solo si estamos en el navegador
-      const primerApellido = typeof window !== 'undefined' ? extractUserSurnameFromToken() : 'SUPERVISOR';
+      const primerApellido = typeof window !== 'undefined' ? extractDocumentFromToken() : 'SUPERVISOR';
       
       // Preparar datos para enviar al servidor en el formato esperado por la API
       const hospitalData = {
@@ -427,13 +447,18 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
         
         // Mostrar mensaje de éxito
         setSubmitting(false);
-        toast({
-          title: "Hospitalización creada",
-          description: `Se ha creado la hospitalización con ID: ${result.IDHOSPITALIZACION}`,
-          variant: "default"
-        });
+        
+        // Solo mostrar toast si no estamos en modal
+        if (!isModal) {
+          toast({
+            title: "Hospitalización creada",
+            description: `Se ha creado la hospitalización con ID: ${result.IDHOSPITALIZACION}`,
+            variant: "default"
+          });
+        }
         
         // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
+        // IMPORTANTE: Esto debe ejecutarse ANTES de llamar a onSuccess o return
         const seguroCode = result.SEGURO?.trim();
         if (["0", "02", "17"].includes(seguroCode)) {
           try {
@@ -520,8 +545,13 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
               variant: "default"
             });
             
-            // Redirigir a la lista de órdenes después de iniciar la impresión
-            router.push(`/hospitalization/orders/${patientId}`);
+            // Si estamos en modo modal, llamar a onSuccess DESPUÉS de imprimir
+            if (isModal && onSuccess) {
+              onSuccess(result);
+            } else {
+              // Solo redirigir si no estamos en modo modal
+              router.push(`/hospitalization/orders/${patientId}`);
+            }
           } else {
             // Si falla el método primario, usar el método secundario (merge PDF)
             console.log('Impresión directa falló, usando método secundario (merge PDF)...');
@@ -529,6 +559,11 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
             // Imprimir directamente los PDFs sin mostrar el visor usando el método actual
             // La redirección se maneja en el callback onPrintComplete del hook useDocumentPrinter
             handleDirectPrint(pdfUrls);
+            
+            // Si estamos en modo modal, llamar a onSuccess después de iniciar impresión
+            if (isModal && onSuccess) {
+              onSuccess(result);
+            }
           }
         } catch (printError) {
           console.error('Error en el proceso de impresión:', printError);
@@ -536,6 +571,11 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
           // Si ocurre cualquier error, usar el método secundario (merge PDF)
           console.log('Error en impresión, usando método secundario (merge PDF)...');
           handleDirectPrint(pdfUrls);
+          
+          // Si estamos en modo modal, llamar a onSuccess incluso si falla la impresión
+          if (isModal && onSuccess) {
+            onSuccess(result);
+          }
         }
       } catch (fetchError) {
         console.error('Error en la solicitud fetch:', fetchError);
@@ -545,11 +585,18 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
       
     } catch (err: any) {
       console.error('Error al procesar el formulario:', err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
+      
+      // Si estamos en modo modal, usar callback onError
+      if (isModal && onError) {
+        onError(err.message);
+      } else {
+        // Solo mostrar toast si no estamos en modal
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -557,7 +604,11 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
 
   // Manejar cancelación del formulario
   const handleCancel = () => {
-    router.push(`/hospitalization/orders/${patientId}`);
+    if (isModal && onBack) {
+      onBack();
+    } else {
+      router.push(`/hospitalization/orders/${patientId}`);
+    }
   };
   
   // Función para manejar el envío del formulario
@@ -589,53 +640,48 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
     return true;
   };
 
-  // Cargar datos iniciales y obtener fecha/hora del servidor
+  // Cargar datos iniciales usando el contexto ServerDateTime
   useEffect(() => {
-    const fetchServerDateTime = async () => {
-      try {
-        // Obtener fecha y hora del servidor
-        const dateTimeData = await datetimeService.getCurrentDateTime();
-        
-        // Actualizar el estado con la fecha y hora del servidor
-        setServerDateTime({
-          date: dateTimeData.date,
-          time: dateTimeData.time
-        });
-        
-        // Actualizar el formulario con la fecha y hora del servidor
-        setFormData(prev => ({
-          ...prev,
-          date: dateTimeData.date,
-          time: dateTimeData.time,
-          hospitalizationDate: dateTimeData.date
-        }));
-        
-        console.log('Fecha y hora obtenidas del servidor:', dateTimeData);
-      } catch (error) {
-        console.error('Error al obtener fecha y hora del servidor:', error);
-        // En caso de error, usar la fecha y hora local como fallback
-        const now = new Date();
-        const localDate = now.toISOString().split('T')[0];
-        const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        setServerDateTime({
-          date: localDate,
-          time: localTime
-        });
-        
-        setFormData(prev => ({
-          ...prev,
-          date: localDate,
-          time: localTime,
-          hospitalizationDate: localDate
-        }));
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchServerDateTime();
-  }, []);
+    if (contextServerDateTime && !dateTimeLoading) {
+      console.log('🏥 Usando fecha y hora del contexto ServerDateTime:', contextServerDateTime);
+      
+      // Actualizar el estado con la fecha y hora del contexto
+      setServerDateTime({
+        date: contextServerDateTime.date,
+        time: contextServerDateTime.time
+      });
+      
+      // Actualizar el formulario con la fecha y hora del contexto
+      setFormData(prev => ({
+        ...prev,
+        date: contextServerDateTime.date,
+        time: contextServerDateTime.time,
+        hospitalizationDate: contextServerDateTime.date
+      }));
+      
+      setLoading(false);
+    } else if (!dateTimeLoading && !contextServerDateTime) {
+      // Fallback a fecha/hora local si el contexto no está disponible
+      console.warn('⚠️ Contexto ServerDateTime no disponible, usando fecha/hora local');
+      const now = new Date();
+      const localDate = now.toISOString().split('T')[0];
+      const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      setServerDateTime({
+        date: localDate,
+        time: localTime
+      });
+      
+      setFormData(prev => ({
+        ...prev,
+        date: localDate,
+        time: localTime,
+        hospitalizationDate: localDate
+      }));
+      
+      setLoading(false);
+    }
+  }, [contextServerDateTime, dateTimeLoading]);
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
@@ -653,7 +699,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
             <CardContent className="pt-6">
               <PatientSection
                 patientId={patientId}
-                hospitalizationOrderId={orderId || undefined}
+                hospitalizationOrderId={hospitalizationId || undefined}
                 onPatientDataLoaded={handlePatientDataLoaded}
               />
             </CardContent>
@@ -703,7 +749,7 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
                 patientId={patientId}
                 validationErrors={validationErrors}
                 disabled={fieldsLocked}
-                verificacionDiagnosticoRef={verificacionDiagnosticoRef}
+                // verificacionDiagnosticoRef={verificacionDiagnosticoRef}
                 onFormChange={handleFormChange}
                 onOrigenChange={(value, origenData) => {
                   setFormData(prev => ({
@@ -797,12 +843,12 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
       </div>
       
       
-      {/* Componente para cargar datos de hospitalización existente */}
-      <HospitalizationDetails
-        orderId={orderId}
+      {/* Componente para cargar datos de hospitalización existente - Comentado temporalmente */}
+      {/* <HospitalizationDetails
+        hospitalizationId={hospitalizationId}
         onDataLoaded={handleHospitalizationDataLoaded}
         onStatusChange={handleStatusChange}
-      />
+      /> */}
       
       {/* Diálogo de confirmación */}
       <FormActions 
@@ -828,22 +874,23 @@ export function HospitalizationFormRefactored({ patientId, orderId }: Hospitaliz
           // Verificar el diagnóstico antes de procesar el formulario solo para origen 'CE'
           const origenCode = formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' ')[0] : 'CE';
           
-          if (formData.diagnosis && origenCode === 'CE' && verificacionDiagnosticoRef.current) {
-            const resultado = await verificacionDiagnosticoRef.current.verificar();
-            
-            if (!resultado.valido) {
-              // Si el diagnóstico no es válido, detener el proceso
-              return false;
-            }
-            
-            // Si hay un reemplazo sugerido, actualizar el diagnóstico
-            if (resultado.reemplazo && !resultado.multiples) {
-              setFormData(prev => ({
-                ...prev,
-                diagnosis: resultado.reemplazo || prev.diagnosis
-              }));
-            }
-          }
+          // Comentado temporalmente - verificación de diagnóstico
+          // if (formData.diagnosis && origenCode === 'CE' && verificacionDiagnosticoRef.current) {
+          //   const resultado = await verificacionDiagnosticoRef.current.verificar();
+          //   
+          //   if (!resultado.valido) {
+          //     // Si el diagnóstico no es válido, detener el proceso
+          //     return false;
+          //   }
+          //   
+          //   // Si hay un reemplazo sugerido, actualizar el diagnóstico
+          //   if (resultado.reemplazo && !resultado.multiples) {
+          //     setFormData(prev => ({
+          //       ...prev,
+          //       diagnosis: resultado.reemplazo || prev.diagnosis
+          //     }));
+          //   }
+          // }
           
           return true;
         }}

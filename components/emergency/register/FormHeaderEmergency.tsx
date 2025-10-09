@@ -74,7 +74,7 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
   return (
       <div className="mb-6 pt-6">
         <h3 className="text-lg font-semibold mb-4">Información de la Emergencia</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
         {/* Número de Cuenta */}
         <div className="space-y-2">
           <Label>Nro de cuenta</Label>
@@ -104,6 +104,7 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
             value={fecha}
             onChange={(e) => onFechaChange(e.target.value)}
             disabled={disabled}
+            readOnly={disabled}
             className={validationErrors.fecha ? 'border-red-500' : ''}
           />
           {validationErrors.fecha && (
@@ -122,6 +123,7 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
             value={hora}
             onChange={(e) => onHoraChange(e.target.value)}
             disabled={disabled}
+            readOnly={disabled}
             className={validationErrors.hora ? 'border-red-500' : ''}
           />
           {validationErrors.hora && (

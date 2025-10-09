@@ -656,33 +656,39 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       
       const result = await response.json();
       
-      toast({
-        title: "Datos actualizados",
-        description: "Los datos de emergencia se han actualizado correctamente",
-      });
-      
-      // Notificar al componente padre
+      // Notificar al componente padre si existe (modo modal)
       if (onSave) {
+        // Si tenemos un callback onSave, estamos en un modal
         onSave(result.data);
-      }
-      
-      // Redirigir a la lista de emergencias del paciente
-      if (initialData && initialData.PACIENTE) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Redirigiendo a lista de emergencias del paciente:', initialData.PACIENTE);
-        }
-        router.push(`/emergency/${initialData.PACIENTE}`);
-      } else if (patientData && patientData.PACIENTE) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Redirigiendo a lista de emergencias (usando patientData):', patientData.PACIENTE);
-        }
-        router.push(`/emergency/${patientData.PACIENTE}`);
       } else {
-        // Si no se encuentra el ID del paciente, volver a la página anterior
-        if (process.env.NODE_ENV === 'development') {
-          console.log('No se encontró ID del paciente, volviendo atrás');
+        // Si no tenemos callback onSave, estamos en modo página
+        toast({
+          title: "Datos actualizados",
+          description: "Los datos de emergencia se han actualizado correctamente",
+        });
+        
+        // Verificar si estamos en una página de emergencia antes de redirigir
+        if (typeof window !== 'undefined' && 
+            window.location.pathname.includes('/emergency/view/')) {
+          // Redirigir a la lista de emergencias del paciente
+          if (initialData && initialData.PACIENTE) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Redirigiendo a lista de emergencias del paciente:', initialData.PACIENTE);
+            }
+            router.push(`/emergency/${initialData.PACIENTE}`);
+          } else if (patientData && patientData.PACIENTE) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Redirigiendo a lista de emergencias (usando patientData):', patientData.PACIENTE);
+            }
+            router.push(`/emergency/${patientData.PACIENTE}`);
+          } else {
+            // Si no se encuentra el ID del paciente, volver a la página anterior
+            if (process.env.NODE_ENV === 'development') {
+              console.log('No se encontró ID del paciente, volviendo atrás');
+            }
+            router.back();
+          }
         }
-        router.back();
       }
     } catch (error: any) {
       const errorMessage = error.message || "Error al guardar los cambios";
@@ -984,11 +990,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className={`text-lg font-semibold ${isDeleted ? 'text-gray-500' : ''}`}>
-          Datos de la Emergencia {isDeleted && '(Eliminado)'}
-        </h3>
-      </div>
       <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${isDeleted ? 'opacity-70' : ''}`} data-testid="emergency-section-view">
         {/* Sidebar with Patient Information */}
         <div className="lg:col-span-1">
@@ -1012,7 +1013,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 hora={formData.hora}
                 onFechaChange={(value) => handleFormChange('fecha', value)}
                 onHoraChange={(value) => handleFormChange('hora', value)}
-                disabled={!isFieldEnabled('fecha')}
+                disabled={readOnly || !isFieldEnabled('fecha')}
                 validationErrors={validationErrors}
                 patientId={initialData?.PACIENTE}
                 onFormChange={handleFormChange}
@@ -1033,7 +1034,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
               <div className="space-y-6 mt-8">
                 <h3 className="text-lg font-semibold mb-4">Datos de la Emergencia</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
                   {/* Tipo de Atención */}
                   <SearchableSelect
                     label="Tipo Atención"
@@ -1047,7 +1048,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.tipoAtencion}
                     placeholder="Seleccionar tipo de atención..."
-                    disabled={!isFieldEnabled('tipoAtencion')}
+                    disabled={readOnly || !isFieldEnabled('tipoAtencion')}
                   />
 
 
@@ -1067,7 +1068,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.consultorio}
                     placeholder="Seleccionar consultorio..."
-                    disabled={true}
+                    disabled={readOnly || true}
                   />
 
                   {/* Forma de Ingreso */}
@@ -1086,7 +1087,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.formaIngreso}
                     placeholder="Seleccionar forma de ingreso..."
-                    disabled={!isFieldEnabled('formaIngreso')}
+                    disabled={readOnly || !isFieldEnabled('formaIngreso')}
                   />
 
                   {/* Seguro */}
@@ -1105,11 +1106,10 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.seguroLiq}
                     placeholder="Seleccionar seguro..."
-                    disabled={!isFieldEnabled('seguroLiq')}
+                    disabled={readOnly || !isFieldEnabled('seguroLiq')}
                   />
-                </div>
 
-                 {/* Motivo de Emergencia */}
+                        {/* Motivo de Emergencia */}
                  <SearchableSelect
                     label="Motivo de Ingreso"
                     value={findMotivoName(formData.motivoEmergencia)}
@@ -1125,19 +1125,21 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     required
                     error={validationErrors.motivoEmergencia}
                     placeholder="Seleccionar motivo..."
-                    disabled={!isFieldEnabled('motivoEmergencia')}
+                    disabled={readOnly || !isFieldEnabled('motivoEmergencia')}
                   />
 
+                </div>
 
                 {/* Observaciones */}
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
                   <div className="space-y-2">
                     <Label htmlFor="observacion1">Observaciones</Label>
                     <Textarea
                       id="observacion1"
                       value={formData.observacion1 || ""}
                       onChange={(e) => handleFormChange("observacion1", e.target.value)}
-                      disabled={!isFieldEnabled('observacion1')}
+                      disabled={readOnly || !isFieldEnabled('observacion1')}
+                      readOnly={readOnly}
                       placeholder="Observaciones adicionales..."
                       rows={3}
                       className="md:text-sm"

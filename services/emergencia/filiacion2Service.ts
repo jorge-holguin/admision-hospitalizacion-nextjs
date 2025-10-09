@@ -77,7 +77,7 @@ export interface Filiacion {
   TELEFONO2: string;
   SEGURO: string;
   // Código de ubigeo del distrito
-  Expr2: string;
+  COD_DISTRITO: string;
   // Campos adicionales para debugging
   [key: string]: any;
 }
@@ -351,16 +351,16 @@ export const filiacionService = {
             LOCALIDAD: record.LOCALIDAD !== undefined ? 'presente' : 'ausente',
             TELEFONO2: record.TELEFONO2 !== undefined ? 'presente' : 'ausente',
             SEGURO: record.SEGURO !== undefined ? 'presente' : 'ausente',
-            Expr2: record.Expr2 !== undefined ? 'presente' : 'ausente',
+            COD_DISTRITO: record.COD_DISTRITO !== undefined ? 'presente' : 'ausente',
             LUGAR_NACIMIENTO: record.LUGAR_NACIMIENTO !== undefined ? 'presente' : 'ausente'
           }
         );
         
-        // Log específico para el campo Expr2 (ubigeo)
-        if (record.Expr2 !== undefined) {
-          console.log('Valor de Expr2 (ubigeo):', record.Expr2, 'Tipo:', typeof record.Expr2);
+        // Log específico para el campo COD_DISTRITO (ubigeo)
+        if (record.COD_DISTRITO !== undefined) {
+          console.log('Valor de COD_DISTRITO (ubigeo):', record.COD_DISTRITO, 'Tipo:', typeof record.COD_DISTRITO);
         } else {
-          console.log('Campo Expr2 (ubigeo) no encontrado en el registro');
+          console.log('Campo COD_DISTRITO (ubigeo) no encontrado en el registro');
         }
         
         // Log de todos los campos disponibles en el registro

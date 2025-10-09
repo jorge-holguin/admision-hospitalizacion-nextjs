@@ -66,7 +66,7 @@ Este documento presenta un análisis detallado de los campos de la API de filiac
 | `USUARIO_IMP` | Metadato interno, no relevante para UI |
 | `HISTORIA_ANT` | No se muestra en ningún componente |
 | `CODIGOBARRAS` | No se muestra en ningún componente |
-| `Expr2` | Código de ubigeo, no se muestra directamente |
+| `COD_DISTRITO` | Código de ubigeo, no se muestra directamente |
 
 ## Beneficios de la Optimización
 

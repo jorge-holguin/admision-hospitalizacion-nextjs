@@ -355,7 +355,7 @@ function HospitalizationOrders({ patientId }: { patientId: string }) {
       />
       {/* Header */}
       <Navbar 
-        title="SIGSALUD" 
+        title="Sistema de Integral de Admisión Hospitalaria" 
         subtitle="HOSPITALIZACIÓN" 
         showBackButton={true} 
         backUrl="/hospitalization" 

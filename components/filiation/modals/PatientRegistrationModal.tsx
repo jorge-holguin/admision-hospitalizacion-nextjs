@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -8,7 +8,6 @@ import { StepIndicator } from "../register/StepIndicator"
 import { Step1BasicData } from "../register/Step1BasicData"
 import { Step2AdditionalData } from "../register/Step2AdditionalData"
 import { Step3FamilyData } from "../register/Step3FamilyData"
-import { Step4Confirmation } from "../register/Step4Confirmation"
 
 interface PatientRegistrationModalProps {
   reniecData?: any
@@ -29,6 +28,13 @@ export function PatientRegistrationModal({
   const docType = documentType || "DNI";
   const docNumber = documentNumber || "";
   const [currentStep, setCurrentStep] = useState(1)
+  
+  // Resetear al paso 1 cuando se abre el modal
+  useEffect(() => {
+    if (documentNumber) {
+      setCurrentStep(1)
+    }
+  }, [documentNumber])
   const [formData, setFormData] = useState({
     // Datos básicos
     apellidoPaterno: reniecData?.apellidoPaterno || "",
@@ -72,7 +78,7 @@ export function PatientRegistrationModal({
   }
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < 3) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -123,15 +129,6 @@ export function PatientRegistrationModal({
             onInputChange={handleInputChange}
           />
         )
-      case 4:
-        return (
-          <Step4Confirmation
-            formData={formData}
-            documentType={docType}
-            documentNumber={docNumber}
-            reniecData={reniecData}
-          />
-        )
       default:
         return null
     }
@@ -167,7 +164,7 @@ export function PatientRegistrationModal({
             Cancelar
           </Button>
 
-          {currentStep < 4 ? (
+          {currentStep < 3 ? (
             <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700">
               Siguiente
               <ChevronRight className="w-4 h-4 ml-2" />

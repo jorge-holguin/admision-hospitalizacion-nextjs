@@ -22,6 +22,7 @@ export function HospitalizationMainModal({
 }: HospitalizationMainModalProps) {
   const [currentStep, setCurrentStep] = useState<ModalStep>('list')
   const [selectedHospitalizationId, setSelectedHospitalizationId] = useState<string | null>(null)
+  const [selectedHospitalizationData, setSelectedHospitalizationData] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view')
 
   // Manejar navegación entre modales
@@ -30,14 +31,22 @@ export function HospitalizationMainModal({
     setSelectedHospitalizationId(null)
   }
 
-  const handleView = (hospitalizationId: string) => {
+  const handleView = (hospitalizationId: string, hospitalizationData: any) => {
+    console.log('🏥 HospitalizationMainModal: Ver hospitalización ID:', hospitalizationId)
     setSelectedHospitalizationId(hospitalizationId)
+    // NO pasar hospitalizationData porque viene de la lista y no tiene todos los campos
+    // HospitalizationViewModal cargará los datos completos desde la API
+    setSelectedHospitalizationData(null)
     setViewMode('view')
     setCurrentStep('view')
   }
 
-  const handleEdit = (hospitalizationId: string) => {
+  const handleEdit = (hospitalizationId: string, hospitalizationData: any) => {
+    console.log('🏥 HospitalizationMainModal: Editar hospitalización ID:', hospitalizationId)
     setSelectedHospitalizationId(hospitalizationId)
+    // NO pasar hospitalizationData porque viene de la lista y no tiene todos los campos
+    // HospitalizationViewModal cargará los datos completos desde la API
+    setSelectedHospitalizationData(null)
     setViewMode('edit')
     setCurrentStep('view')
   }
@@ -45,6 +54,7 @@ export function HospitalizationMainModal({
   const handleBackToList = () => {
     setCurrentStep('list')
     setSelectedHospitalizationId(null)
+    setSelectedHospitalizationData(null)
   }
 
   const handleSuccess = (data: any) => {
@@ -103,6 +113,7 @@ export function HospitalizationMainModal({
           onClose={handleCloseAll}
           hospitalizationId={selectedHospitalizationId}
           mode={viewMode}
+          initialData={selectedHospitalizationData} // Pasar datos iniciales para evitar llamada duplicada
           onSuccess={handleSuccess}
           onError={handleError}
           onBack={handleBackToList}

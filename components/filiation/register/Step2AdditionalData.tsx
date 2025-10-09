@@ -10,10 +10,13 @@ import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Check, ChevronsUpDown, FileText } from "lucide-react"
+import { SearchableSelect, OptionItem } from "@/components/ui/SearchableSelect"
+import { religionOptions, etniaOptions, centroPobladoOptions } from "@/lib/constants/filiation-options"
 
 interface Step2AdditionalDataProps {
   formData: any
   onInputChange: (field: string, value: string) => void
+  patientData?: any  // Datos del paciente en modo edición
 }
 
 const occupationOptions = [
@@ -34,8 +37,59 @@ const occupationOptions = [
   "OTROS",
 ]
 
-export function Step2AdditionalData({ formData, onInputChange }: Step2AdditionalDataProps) {
+export function Step2AdditionalData({ formData, onInputChange, patientData }: Step2AdditionalDataProps) {
   const [openOccupation, setOpenOccupation] = useState(false)
+  const [religionSearch, setReligionSearch] = useState("")
+  const [etniaSearch, setEtniaSearch] = useState("")
+  const [centroPobladoSearch, setCentroPobladoSearch] = useState("")
+
+  // Convertir opciones al formato OptionItem
+  const religionOptionsFormatted: OptionItem[] = religionOptions.map(opt => ({
+    value: opt.value,
+    display: opt.label,
+    data: opt
+  }))
+
+  const etniaOptionsFormatted: OptionItem[] = etniaOptions.map(opt => ({
+    value: opt.value,
+    display: opt.label,
+    data: opt
+  }))
+
+  const centroPobladoOptionsFormatted: OptionItem[] = centroPobladoOptions.map(opt => ({
+    value: opt.value,
+    display: opt.label,
+    data: opt
+  }))
+
+  // Filtrar opciones basado en búsqueda
+  const filteredReligionOptions = religionOptionsFormatted.filter(opt =>
+    opt.display.toLowerCase().includes(religionSearch.toLowerCase())
+  )
+
+  const filteredEtniaOptions = etniaOptionsFormatted.filter(opt =>
+    opt.display.toLowerCase().includes(etniaSearch.toLowerCase())
+  )
+
+  const filteredCentroPobladoOptions = centroPobladoOptionsFormatted.filter(opt =>
+    opt.display.toLowerCase().includes(centroPobladoSearch.toLowerCase())
+  )
+
+  // Obtener el display actual
+  const getReligionDisplay = () => {
+    const option = religionOptionsFormatted.find(opt => opt.value === formData.religion)
+    return option?.display || ""
+  }
+
+  const getEtniaDisplay = () => {
+    const option = etniaOptionsFormatted.find(opt => opt.value === formData.etnia)
+    return option?.display || ""
+  }
+
+  const getCentroPobladoDisplay = () => {
+    const option = centroPobladoOptionsFormatted.find(opt => opt.value === formData.centroPoblado)
+    return option?.display || ""
+  }
 
   return (
     <Card>
@@ -129,30 +183,45 @@ export function Step2AdditionalData({ formData, onInputChange }: Step2Additional
 
         {/* Religión - Etnia - Centro poblado */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="religion">Religión</Label>
-            <Input
-              id="religion"
-              value={formData.religion}
-              onChange={(e) => onInputChange("religion", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="etnia">Etnia</Label>
-            <Input
-              id="etnia"
-              value={formData.etnia}
-              onChange={(e) => onInputChange("etnia", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="centroPoblado">Centro Poblado</Label>
-            <Input
-              id="centroPoblado"
-              value={formData.centroPoblado}
-              onChange={(e) => onInputChange("centroPoblado", e.target.value)}
-            />
-          </div>
+          <SearchableSelect
+            label="Religión"
+            value={getReligionDisplay()}
+            options={filteredReligionOptions}
+            search={religionSearch}
+            onSearchChange={setReligionSearch}
+            onSelect={(option) => {
+              onInputChange("religion", option.value)
+              setReligionSearch("")
+            }}
+            selectName="religion"
+            placeholder="Seleccionar religión..."
+          />
+          <SearchableSelect
+            label="Etnia"
+            value={getEtniaDisplay()}
+            options={filteredEtniaOptions}
+            search={etniaSearch}
+            onSearchChange={setEtniaSearch}
+            onSelect={(option) => {
+              onInputChange("etnia", option.value)
+              setEtniaSearch("")
+            }}
+            selectName="etnia"
+            placeholder="Seleccionar etnia..."
+          />
+          <SearchableSelect
+            label="Centro Poblado"
+            value={getCentroPobladoDisplay()}
+            options={filteredCentroPobladoOptions}
+            search={centroPobladoSearch}
+            onSearchChange={setCentroPobladoSearch}
+            onSelect={(option) => {
+              onInputChange("centroPoblado", option.value)
+              setCentroPobladoSearch("")
+            }}
+            selectName="centroPoblado"
+            placeholder="Seleccionar centro poblado..."
+          />
         </div>
 
         {/* Teléfonos e hijos */}

@@ -2,12 +2,10 @@
 
 import React from 'react'
 import { SegurosProvider } from "@/contexts/SegurosContext"
-import { MedicosProvider } from "@/contexts/MedicosContext"
 import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
 import { TiposDocumentoProvider } from "@/contexts/TiposDocumentoContext"
 import { ServerDateTimeProvider } from "@/contexts/ServerDateTimeContext"
 import { OrigenHospitalizacionProvider } from "@/contexts/OrigenHospitalizacionContext"
-import { DiagnosticosProvider } from "@/contexts/DiagnosticosContext"
 
 interface HospitalizationProviderProps {
   children: React.ReactNode
@@ -20,19 +18,15 @@ interface HospitalizationProviderProps {
 export function HospitalizationProvider({ children }: HospitalizationProviderProps) {
   return (
     <SegurosProvider>
-      <MedicosProvider>
-        <ConsultoriosProvider>
-          <TiposDocumentoProvider>
-            <ServerDateTimeProvider>
-              <OrigenHospitalizacionProvider>
-                <DiagnosticosProvider>
-                  {children}
-                </DiagnosticosProvider>
-              </OrigenHospitalizacionProvider>
-            </ServerDateTimeProvider>
-          </TiposDocumentoProvider>
-        </ConsultoriosProvider>
-      </MedicosProvider>
+      <ConsultoriosProvider>
+        <TiposDocumentoProvider>
+          <ServerDateTimeProvider>
+            <OrigenHospitalizacionProvider>
+                {children}
+            </OrigenHospitalizacionProvider>
+          </ServerDateTimeProvider>
+        </TiposDocumentoProvider>
+      </ConsultoriosProvider>
     </SegurosProvider>
   )
 }

@@ -91,7 +91,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
           
-          {<Card
+          {/* {<Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-blue-200"
             onClick={handleCitasClick}
           >
@@ -115,103 +115,7 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-gray-800 mb-2">Tablas Maestras</h3>
               <p className="text-gray-600 text-sm">Gestión de pacientes en emergencia</p>
             </CardContent>
-          </Card> }
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-12">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Total Citas</p>
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin text-blue-200" />
-                      <p className="text-2xl font-bold">Cargando...</p>
-                    </div>
-                  ) : error ? (
-                    <p className="text-2xl font-bold">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold">{kpis.totalCitas.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="w-8 h-8 text-blue-200 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm">Total Hospitalizaciones</p>
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin text-orange-200" />
-                      <p className="text-2xl font-bold">Cargando...</p>
-                    </div>
-                  ) : error ? (
-                    <p className="text-2xl font-bold">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold">{kpis.totalHospitalizaciones.toLocaleString()}</p>
-                  )}
-                </div>
-                <Home className="w-8 h-8 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-teal-500 to-teal-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-teal-100 text-sm">Nuevos Ingresos (Hoy)</p>
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin text-teal-200" />
-                      <p className="text-2xl font-bold">Cargando...</p>
-                    </div>
-                  ) : error ? (
-                    <p className="text-2xl font-bold">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold">{kpis.nuevosIngresosHoy.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 bg-white rounded-full"></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-pink-100 text-sm">Total Altas Médicas</p>
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin text-pink-200" />
-                      <p className="text-2xl font-bold">Cargando...</p>
-                    </div>
-                  ) : error ? (
-                    <p className="text-2xl font-bold">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold">{kpis.totalAltasMedicas.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="w-8 h-8 bg-pink-400 rounded-full flex items-center justify-center">
-                  <LogOut className="w-4 h-4 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          </Card> } */}
         </div>
       </main>
     </div>

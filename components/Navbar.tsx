@@ -15,7 +15,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ 
-  title = "SIGSALUD", 
+  title = "Sistema de Integral de Admisión Hospitalaria", 
   subtitle = "HOSPITALIZACIÓN", 
   showBackButton = false,
   backUrl = "/"

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
 import { useDebounce } from '@/hooks/useDebounce';
 import { Medico } from '@/services/hospitalizacion/medicoService';
+import { useMedicosOnDemand } from '@/hooks/useMedicosOnDemand';
 
 interface MedicoSelectorProps {
   value: string;
@@ -19,64 +20,31 @@ interface MedicoSelectorProps {
 
 export const MedicoSelector: React.FC<MedicoSelectorProps> = ({ 
   value, 
-  onChange, 
+  onChange,
   disabled = false,
   consultorioId,
   className
 }) => {
   const [open, setOpen] = useState(false);
-  const [medicos, setMedicos] = useState<Medico[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  // Cargar médicos cuando cambia el término de búsqueda o el consultorio
+  
+  // Usar hook de médicos bajo demanda
+  const { medicos, loading, error, searchMedicos } = useMedicosOnDemand();
+  
+  // Buscar médicos cuando cambie el término de búsqueda o consultorio
   useEffect(() => {
-    const fetchMedicos = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        let url = '/api/medicos';
-        const params = new URLSearchParams();
-        
-        if (debouncedSearchTerm) {
-          params.append('search', debouncedSearchTerm);
-        }
-        
-        if (consultorioId) {
-          params.append('consultorio', consultorioId);
-        }
-        
-        if (params.toString()) {
-          url += `?${params.toString()}`;
-        }
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Error al cargar médicos: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setMedicos(data);
-      } catch (error) {
-        setError('Error al cargar médicos');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchMedicos();
-  }, [consultorioId, debouncedSearchTerm]);
+    if (open && debouncedSearchTerm) {
+      searchMedicos(debouncedSearchTerm, consultorioId);
+    }
+  }, [debouncedSearchTerm, consultorioId, open, searchMedicos]);
 
-  const selectedMedico = medicos.find(medico => 
+  const selectedMedico = medicos.find((medico: Medico) => 
     value === `${medico.MEDICO} - ${medico.NOMBRE}`
   );
 
   const handleSelect = (selectedValue: string) => {
-    const selected = medicos.find(medico => 
+    const selected = medicos.find((medico: Medico) => 
       selectedValue === `${medico.MEDICO} - ${medico.NOMBRE}`
     );
     onChange(selectedValue, selected);

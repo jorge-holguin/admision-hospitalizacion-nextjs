@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { extractUserSurnameFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken } from "@/utils/jwtUtils"
 import { Calendar, Clock, User, Stethoscope, Building, CreditCard, FileText, Hospital, Hash, Shield, Clipboard, MapPin, AlertCircle } from "lucide-react"
 
 interface AppointmentDetailsModalProps {
@@ -25,7 +25,7 @@ export function AppointmentDetailsModal({
 }: AppointmentDetailsModalProps) {
   if (!appointment) return null
 
-  const currentUser = extractUserSurnameFromToken()
+  const currentUser = extractDocumentFromToken()
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

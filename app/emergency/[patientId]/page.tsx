@@ -371,10 +371,10 @@ function EmergencyList({ patientId }: { patientId: string }) {
 
         {/* Header */}
         <Navbar
-          title="SIGSALUD"
+          title="Sistema de Integral de Admisión Hospitalaria"
           subtitle="EMERGENCIAS"
           showBackButton={true}
-          backUrl="/hospitalization"
+          backUrl="/filiation"
         />
 
         {/* Main Content */}

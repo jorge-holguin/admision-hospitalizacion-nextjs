@@ -78,7 +78,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
         fechaNacimiento: patient.FECHA_NACIMIENTO || patient.fechaNacimiento || '',
         edad: patient.EDAD || patient.edad || '',
         sexo: patient.SEXO || patient.sexo || '',
-        estadoCivil: patient.ESTADO_CIVIL || patient.Expr4 || patient.estadoCivil || '',
+        estadoCivil: patient.ESTADO_CIVIL || patient.NOMBRE_ESTADO_CIVIL || patient.estadoCivil || '',
         direccion: patient.DIRECCION || patient.direccion || '',
         distrito: patient.DISTRITO || patient.distrito || '',
         departamentoDir: patient.DEPARTAMENTO_DIR || patient.departamentoDir || '',

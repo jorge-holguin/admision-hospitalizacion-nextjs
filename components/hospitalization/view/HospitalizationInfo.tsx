@@ -170,6 +170,7 @@ export function HospitalizationInfo({ formData, setFormData, isEditable, fieldsL
                 readOnly
                 disabled={true}
                 className="w-full font-medium"
+                placeholder="No registrado"
               />
             )}
           </div>

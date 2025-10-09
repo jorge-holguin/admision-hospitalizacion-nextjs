@@ -15,6 +15,7 @@ interface PatientInfoCardProps {
   hospitalizationOrderId?: string;
   className?: string;
   onDataLoaded?: (data: any) => void;
+  initialData?: any; // Datos iniciales para evitar llamada a API
 }
 
 interface PatientData {
@@ -51,7 +52,8 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   patientId,
   hospitalizationOrderId,
   className = '',
-  onDataLoaded
+  onDataLoaded,
+  initialData
 }) => {
   // Usar el contexto para obtener datos del paciente
   const { fetchPatientData, isLoading, error: fetchError } = useFetchPatientData(patientId);
@@ -75,6 +77,58 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
     const loadPatientData = async () => {
       if (!patientId) {
         console.warn('PatientInfoCard: No patientId provided');
+        return;
+      }
+
+      // Si tenemos initialData, usarlos directamente
+      if (initialData) {
+        console.log('🏥 PatientInfoCard: Usando initialData, evitando llamada a API:', initialData);
+        
+        // Intentar obtener datos del contexto para la foto
+        let contextData = getPatientData(patientId);
+        
+        // Si no hay datos en el contexto, cargarlos para obtener la foto
+        if (!contextData) {
+          console.log('🏥 PatientInfoCard: No hay datos en contexto, cargando para obtener foto');
+          await fetchPatientData();
+          contextData = getPatientData(patientId);
+        }
+        
+        const patientDataObj: PatientData = {
+          historyNumber: initialData.HISTORIA?.trim() || '',
+          paternalSurname: '', // No disponible directamente en initialData
+          maternalSurname: '', // No disponible directamente en initialData
+          names: initialData.NOMBRES?.trim() || '',
+          document: initialData.DOCUMENTO || '',
+          documentType: initialData.TIPO_DOCUMENTO || '',
+          sex: initialData.SEXO || '',
+          birthDate: initialData.FECHA_NACIMIENTO || '',
+          age: initialData.EDAD || '',
+          insurance: initialData.SEGURONOMBRE || '',
+          phone: initialData.TELEFONO1 || '',
+          phone2: '',
+          district: initialData.DISTRITO || '',
+          locality: initialData.LOCALIDAD || '',
+          localityDescription: initialData.NOMLOCALIDAD || '',
+          address: initialData.DIRECCION || '',
+          currentDistrict: initialData.DISTRITO || '',
+          religion: initialData.RELIGION || 'NO ESPECIFICA',
+          desc_religion: initialData.RELIGION || 'NO ESPECIFICA',
+          maritalStatus: initialData.ESTADO_CIVIL || '',
+          photo: contextData?.photo || '' // Usar foto del contexto si está disponible
+        };
+
+        // Construir el nombre completo
+        patientDataObj.fullName = initialData.NOMBRES?.trim() || '';
+
+        setPatientData(patientDataObj);
+        setLoading(false);
+        
+        // Llamar al callback si existe
+        if (onDataLoaded) {
+          onDataLoaded(patientDataObj);
+        }
+        
         return;
       }
 
@@ -135,7 +189,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
     };
 
     loadPatientData();
-  }, [patientId, fetchPatientData, getPatientData, memoizedOnDataLoaded]);
+  }, [patientId, fetchPatientData, getPatientData, memoizedOnDataLoaded, initialData]);
 
   // Actualizar el estado de carga cuando cambie en el contexto
   useEffect(() => {
@@ -147,42 +201,21 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
     setError(fetchError);
   }, [fetchError]);
 
-  // Fetch hospitalization order data if ID is provided
+  // Cargar datos de diagnóstico desde initialData (sin llamada a API)
   useEffect(() => {
-    const fetchHospitalizationOrder = async () => {
-      if (!hospitalizationOrderId) {
-        return;
-      }
+    if (!hospitalizationOrderId) {
+      return;
+    }
 
-      try {
-        const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${hospitalizationOrderId}`);
-        
-        if (!response.ok) {
-          console.error(`Error fetching hospitalization order: ${response.status}`);
-          return;
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.data) {
-          // Extract diagnosis information
-          const diagnosisCode = data.data.DIAGNOSTICO || '';
-          
-          // Set diagnosis data
-          setDiagnosisData({
-            code: diagnosisCode.trim(),
-            description: data.data.DIAGNOSTICO_DESC || 'Descripción no disponible'
-          });
-
-          console.log('Diagnosis data loaded:', diagnosisCode);
-        }
-      } catch (err) {
-        console.error('Error fetching hospitalization order:', err);
-      }
-    };
-
-    fetchHospitalizationOrder();
-  }, [hospitalizationOrderId]);
+    // Si tenemos initialData, extraer el diagnóstico de ahí
+    if (initialData && initialData.DIAGNOSTICO) {
+      console.log('🏥 PatientInfoCard: Usando diagnóstico de initialData');
+      setDiagnosisData({
+        code: initialData.DIAGNOSTICO.trim(),
+        description: initialData.DIAGNOSTICONOMBRE || 'Descripción no disponible'
+      });
+    }
+  }, [hospitalizationOrderId, initialData]);
 
   if (loading) {
     return (

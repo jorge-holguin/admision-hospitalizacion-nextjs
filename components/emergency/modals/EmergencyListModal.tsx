@@ -28,6 +28,7 @@ interface EmergencyData {
   ESTADO: string;
   SEGUROLIQ?: string;
   SEGURO_NOMBRE?: string;
+  CUENTAID?: string;
   RowNum?: string;
 }
 
@@ -222,7 +223,7 @@ export function EmergencyListModal({
             </DialogTitle>
             {patientData && (
               <p className="text-sm text-gray-600 mt-1">
-                Paciente: {patientData.name} - HC: {patientData.hc} - DNI: {patientData.documento}
+                Nombres: {patientData.name} - Cod.Paciente: {patientData.pacienteId} - HC: {patientData.hc} - DNI: {patientData.documento} 
               </p>
             )}
           </div>
@@ -261,12 +262,11 @@ export function EmergencyListModal({
                   <TableRow>
                     <TableHead className="font-semibold">Estado</TableHead>
                     <TableHead className="font-semibold">ID</TableHead>
-                    <TableHead className="font-semibold">Paciente</TableHead>
-                    <TableHead className="font-semibold">Fecha</TableHead>
-                    <TableHead className="font-semibold">Hora</TableHead>
+                    <TableHead className="font-semibold">Fecha y Hora</TableHead>
                     <TableHead className="font-semibold">Consultorio</TableHead>
                     <TableHead className="font-semibold">Motivo</TableHead>
                     <TableHead className="font-semibold">Seguro Liquidador</TableHead>
+                    <TableHead className="font-semibold">Cuenta</TableHead>
                     <TableHead className="font-semibold">Diagnóstico</TableHead>
                     <TableHead className="font-semibold">Médico</TableHead>
                     <TableHead className="font-semibold">Relato</TableHead>
@@ -281,9 +281,12 @@ export function EmergencyListModal({
                     >
                       <TableCell>{getStatusDisplay(emergency.ESTADO)}</TableCell>
                       <TableCell className="font-medium">{emergency.EMERGENCIA_ID}</TableCell>
-                      <TableCell>{emergency.PACIENTE}</TableCell>
-                      <TableCell>{formatDate(emergency.FECHA)}</TableCell>
-                      <TableCell>{emergency.HORA}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm">{formatDate(emergency.FECHA)}</span>
+                          <span className="text-xs text-gray-500">{emergency.HORA}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>{emergency.CONSULTORIO_DESCRIPCION || emergency.CONSULTORIO}</TableCell>
                       <TableCell>{emergency.MOTIVO_DESCRIPCION || emergency.MOTIVO_EMERGENCIA}</TableCell>
                       <TableCell>
@@ -291,6 +294,11 @@ export function EmergencyListModal({
                           `(${emergency.SEGUROLIQ.trim()}) - ${emergency.SEGURO_NOMBRE}` : 
                           emergency.CIEX1 || '-'
                         }
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-blue-600">
+                          {emergency.CUENTAID || '-'}
+                        </span>
                       </TableCell>
                       <TableCell>{emergency.DIAGNOSTICO_DESCRIPCION || '0'}</TableCell>
                       <TableCell>

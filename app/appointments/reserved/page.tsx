@@ -4,16 +4,21 @@ import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Eye, Search, RefreshCw, Calendar, User, Clock, FileText, UserCheck } from "lucide-react"
+import { ArrowLeft, Eye, Search, RefreshCw, Calendar, User, Clock, FileText, UserCheck, XCircle } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { PatientAssignmentReservedModal } from "@/app/appointments/reserved/modal/PatientAssignmentReservedModal"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
+import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { AlertCircle } from "lucide-react"
 
 // Interfaces
 interface ReservaData {
@@ -76,6 +81,7 @@ export default function ReservedAppointmentsPage() {
   const [loadingEspecialidades, setLoadingEspecialidades] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedEspecialidad, setSelectedEspecialidad] = useState<string>("0001")
+  const [selectedEstado, setSelectedEstado] = useState<string>("all")
   const [selectedReserva, setSelectedReserva] = useState<ReservaData | null>(null)
   const [patientData, setPatientData] = useState<PatientData | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -84,6 +90,12 @@ export default function ReservedAppointmentsPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize] = useState(10)
   const [totalElements, setTotalElements] = useState(0)
+  const [solicitudEnRevision, setSolicitudEnRevision] = useState<ReservaData | null>(null)
+  const [showRevisionPendienteModal, setShowRevisionPendienteModal] = useState(false)
+  const [showPacienteNoEncontradoModal, setShowPacienteNoEncontradoModal] = useState(false)
+  const [reservaSinPaciente, setReservaSinPaciente] = useState<ReservaData | null>(null)
+  const [motivoDenegacion, setMotivoDenegacion] = useState("")
+  const [isDenegando, setIsDenegando] = useState(false)
 
   // Función para obtener fechas
   const getDateRange = () => {
@@ -134,7 +146,18 @@ export default function ReservedAppointmentsPage() {
   const loadReservas = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/listar-paginado?especialidad=${selectedEspecialidad}&page=${currentPage}&size=${pageSize}`)
+      // Construir URL con filtros
+      let url = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/listar-paginado?especialidad=${selectedEspecialidad}`
+      
+      // Agregar filtro de estado si no es "all"
+      if (selectedEstado && selectedEstado !== 'all') {
+        url += `&estado=${selectedEstado}`
+      }
+      
+      url += `&page=${currentPage}&size=${pageSize}`
+      
+      console.log('🔍 URL de carga:', url)
+      const response = await fetch(url)
       
       if (!response.ok) {
         throw new Error('Error al cargar reservas')
@@ -162,12 +185,12 @@ export default function ReservedAppointmentsPage() {
     loadEspecialidades()
   }, [])
 
-  // Cargar reservas cuando cambie la especialidad o página
+  // Cargar reservas cuando cambie la especialidad, estado o página
   useEffect(() => {
     if (selectedEspecialidad) {
       loadReservas()
     }
-  }, [selectedEspecialidad, currentPage])
+  }, [selectedEspecialidad, selectedEstado, currentPage])
 
   // Buscar paciente por documento usando API filiacion2
   const searchPatientByDocument = async (documento: string, reservaCodigo: string) => {
@@ -276,18 +299,79 @@ export default function ReservedAppointmentsPage() {
     }
   }
 
+  // Función para cambiar el estado de una solicitud
+  const cambiarEstadoSolicitud = async (codigo: string, nuevoEstado: string, observacion?: string, usuario?: string) => {
+    try {
+      console.log(`🔄 Cambiando estado de solicitud ${codigo} a ${nuevoEstado}`)
+      
+      // Obtener usuario si no se proporciona
+      const usuarioFinal = usuario || extractDocumentFromToken()
+      
+      const url = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/codigo/${codigo}/estado`
+      const body: any = { 
+        estado: nuevoEstado,
+        usuario: usuarioFinal
+      }
+      
+      if (observacion) {
+        body.observacion = observacion
+      }
+      
+      console.log('📤 Body enviado:', body)
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': '*/*'
+        },
+        body: JSON.stringify(body)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error al cambiar estado: ${response.status} ${response.statusText}`)
+      }
+
+      console.log(`✅ Estado cambiado exitosamente a ${nuevoEstado}`)
+      return true
+    } catch (error) {
+      console.error('❌ Error al cambiar estado:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo cambiar el estado de la solicitud",
+        variant: "destructive"
+      })
+      return false
+    }
+  }
+
   // Manejar clic en revisar
   const handleRevisar = async (reserva: ReservaData) => {
     console.log('🔄 Iniciando revisión de reserva:', reserva.codigo)
+    
+    // Verificar si ya hay una solicitud en revisión Y no es la misma
+    if (solicitudEnRevision && solicitudEnRevision.codigo !== reserva.codigo) {
+      console.log('⚠️ Ya hay una solicitud en revisión:', solicitudEnRevision.codigo)
+      setShowRevisionPendienteModal(true)
+      return
+    }
+    
     setSelectedReserva(reserva)
     
-    // Cambiar estado a "EN REVISION" si está pendiente
-    if (reserva.estado === "PENDIENTE") {
+    // Obtener el apellido del usuario desde el JWT
+    const usuarioApellido = extractDocumentFromToken()
+    console.log('👤 Usuario que revisa:', usuarioApellido)
+    
+    // Cambiar estado a "EN_REVISION" al hacer clic en Revisar
+    const cambioExitoso = await cambiarEstadoSolicitud(reserva.codigo, "EN_REVISION", undefined, usuarioApellido)
+    if (cambioExitoso) {
       setReservas(prev => prev.map(r => 
         r.codigo === reserva.codigo 
           ? { ...r, estado: "EN REVISION" }
           : r
       ))
+      // Guardar la solicitud en revisión
+      setSolicitudEnRevision(reserva)
     }
     
     // Obtener información completa de la solicitud (incluyendo citaId)
@@ -322,6 +406,79 @@ export default function ReservedAppointmentsPage() {
       setIsModalOpen(true)
     } else {
       console.log('❌ No se pudo abrir el modal - datos del paciente no encontrados')
+      // Mostrar modal de advertencia de paciente no encontrado
+      setReservaSinPaciente(reserva)
+      setShowPacienteNoEncontradoModal(true)
+    }
+  }
+
+  // Manejar denegación cuando no se encuentra el paciente
+  const handleDenegarSinPaciente = async () => {
+    if (!reservaSinPaciente || !motivoDenegacion.trim()) {
+      toast({
+        title: "Campo requerido",
+        description: "Debe ingresar un motivo para denegar",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsDenegando(true)
+    try {
+      const usuarioApellido = extractDocumentFromToken()
+      const cambioExitoso = await cambiarEstadoSolicitud(
+        reservaSinPaciente.codigo, 
+        "DENEGADO", 
+        motivoDenegacion,
+        usuarioApellido
+      )
+      
+      if (cambioExitoso) {
+        toast({
+          title: "Solicitud Denegada",
+          description: "La solicitud ha sido denegada por falta de información del paciente",
+        })
+        // Actualizar estado en la lista
+        setReservas(prev => prev.map(r => 
+          r.codigo === reservaSinPaciente.codigo 
+            ? { ...r, estado: "DENEGADO" }
+            : r
+        ))
+        // Colocar el código en el filtro de búsqueda
+        setSearchTerm(reservaSinPaciente.codigo)
+        // Limpiar la solicitud en revisión
+        setSolicitudEnRevision(null)
+        // Cerrar modal y limpiar estados
+        setShowPacienteNoEncontradoModal(false)
+        setReservaSinPaciente(null)
+        setMotivoDenegacion("")
+        loadReservas()
+      }
+    } catch (error) {
+      console.error('Error al denegar:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo denegar la solicitud",
+        variant: "destructive"
+      })
+    } finally {
+      setIsDenegando(false)
+    }
+  }
+
+  // Manejar denegar desde la tabla
+  const handleDenegarDesdeTabla = async (reserva: ReservaData) => {
+    const cambioExitoso = await cambiarEstadoSolicitud(reserva.codigo, "DENEGADO")
+    if (cambioExitoso) {
+      setReservas(prev => prev.map(r => 
+        r.codigo === reserva.codigo 
+          ? { ...r, estado: "DENEGADO" }
+          : r
+      ))
+      toast({
+        title: "Solicitud Denegada",
+        description: `La solicitud ${reserva.codigo} ha sido denegada`,
+      })
     }
   }
 
@@ -346,17 +503,22 @@ export default function ReservedAppointmentsPage() {
   const getEstadoBadgeColor = (estado: string) => {
     switch (estado) {
       case "PENDIENTE":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+        return "bg-yellow-100 text-yellow-800 border-yellow-300"
+      case "EN_REVISION":
+      case "EN REVISION":
+        return "bg-blue-100 text-blue-800 border-blue-300"
+      case "CITADO":
+        return "bg-green-100 text-green-800 border-green-300"
+      case "DENEGADO":
+        return "bg-red-100 text-red-800 border-red-300"
+      case "ELIMINADO":
+        return "bg-gray-100 text-gray-800 border-gray-300"
       case "APROBADA":
         return "bg-green-100 text-green-800 border-green-200"
-      case "DENEGADA":
-        return "bg-red-100 text-red-800 border-red-200"
       case "OBSERVADA":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+        return "bg-orange-100 text-orange-800 border-orange-200"
       case "ANULADA":
         return "bg-gray-100 text-gray-800 border-gray-200"
-      case "EN REVISION":
-        return "bg-orange-100 text-orange-800 border-orange-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
@@ -415,8 +577,8 @@ export default function ReservedAppointmentsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-4 flex-col sm:flex-row">
-                  <div className="flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
                     <label className="text-sm font-medium mb-2 block">Especialidad</label>
                     <Select
                       value={selectedEspecialidad}
@@ -438,10 +600,32 @@ export default function ReservedAppointmentsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex-1">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Estado</label>
+                    <Select
+                      value={selectedEstado}
+                      onValueChange={(value) => {
+                        setSelectedEstado(value)
+                        setCurrentPage(0) // Reset página al cambiar estado
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos los estados..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los estados</SelectItem>
+                        <SelectItem value="PENDIENTE">Pendiente</SelectItem>
+                        <SelectItem value="EN_REVISION">En Revisión</SelectItem>
+                        <SelectItem value="CITADO">Citado</SelectItem>
+                        <SelectItem value="DENEGADO">Denegado</SelectItem>
+                        <SelectItem value="ELIMINADO">Eliminado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <label className="text-sm font-medium mb-2 block">Buscar</label>
                     <Input
-                      placeholder="Buscar por código, paciente, especialidad o médico..."
+                      placeholder="Buscar por código, paciente..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full"
@@ -538,7 +722,13 @@ export default function ReservedAppointmentsPage() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleRevisar(reserva)}
-                                  disabled={loadingReservas.has(reserva.codigo)}
+                                  disabled={
+                                    loadingReservas.has(reserva.codigo) ||
+                                    reserva.estado === "CITADO" ||
+                                    reserva.estado === "ANULADO" ||
+                                    reserva.estado === "ELIMINADO" ||
+                                    reserva.estado === "DENEGADO"
+                                  }
                                   className="flex items-center gap-2"
                                 >
                                   <UserCheck className="h-4 w-4" />
@@ -547,15 +737,6 @@ export default function ReservedAppointmentsPage() {
                                     : 'Revisar'
                                   }
                                 </Button>
-                {/*                 <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleVerFichaReferencia(reserva)}
-                                  className="flex items-center gap-2"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                  Ver Imagen
-                                </Button> */}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -641,22 +822,49 @@ export default function ReservedAppointmentsPage() {
                 medicoNombre: selectedReserva.medicoNombre,
                 estado: selectedReserva.estado
               }}
-              onApprove={(data: any) => {
+              onApprove={async (data: any) => {
                 console.log('Aprobación de reserva:', data)
-                // Aquí iría la lógica para aprobar la reserva
-                toast({
-                  title: "Reserva Aprobada",
-                  description: "La solicitud ha sido aprobada correctamente",
-                })
-                setIsModalOpen(false)
-                setSelectedReserva(null)
-                setPatientData(null)
-                loadReservas()
+                // Cambiar estado a "CITADO" al aprobar
+                if (selectedReserva) {
+                  const usuarioApellido = extractDocumentFromToken()
+                  const cambioExitoso = await cambiarEstadoSolicitud(selectedReserva.codigo, "CITADO", undefined, usuarioApellido)
+                  if (cambioExitoso) {
+                    toast({
+                      title: "Reserva Aprobada",
+                      description: "La solicitud ha sido aprobada correctamente",
+                    })
+                    // Colocar el código en el filtro de búsqueda
+                    setSearchTerm(selectedReserva.codigo)
+                    // Limpiar la solicitud en revisión
+                    setSolicitudEnRevision(null)
+                    setIsModalOpen(false)
+                    setSelectedReserva(null)
+                    setPatientData(null)
+                    loadReservas()
+                  }
+                }
               }}
-              onDeny={(motivo: string) => {
+              onDeny={async (motivo: string) => {
                 console.log('Denegación de reserva:', motivo)
-                // Aquí iría la lógica para denegar la reserva
-                return Promise.resolve()
+                // Cambiar estado a "DENEGADO" con observación
+                if (selectedReserva) {
+                  const usuarioApellido = extractDocumentFromToken()
+                  const cambioExitoso = await cambiarEstadoSolicitud(selectedReserva.codigo, "DENEGADO", motivo, usuarioApellido)
+                  if (cambioExitoso) {
+                    toast({
+                      title: "Solicitud Denegada",
+                      description: "La solicitud ha sido denegada correctamente",
+                    })
+                    // Colocar el código en el filtro de búsqueda
+                    setSearchTerm(selectedReserva.codigo)
+                    // Limpiar la solicitud en revisión
+                    setSolicitudEnRevision(null)
+                    setIsModalOpen(false)
+                    setSelectedReserva(null)
+                    setPatientData(null)
+                    loadReservas()
+                  }
+                }
               }}
               onObserve={(motivo: string) => {
                 console.log('Observación de reserva:', motivo)
@@ -676,6 +884,157 @@ export default function ReservedAppointmentsPage() {
               }}
             />
           )}
+
+          {/* Modal de advertencia de paciente no encontrado */}
+          <Dialog open={showPacienteNoEncontradoModal} onOpenChange={(open) => {
+            setShowPacienteNoEncontradoModal(open)
+            if (!open) {
+              setReservaSinPaciente(null)
+              setMotivoDenegacion("")
+              // Limpiar la solicitud en revisión si se cierra sin denegar
+              setSolicitudEnRevision(null)
+            }
+          }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-5 w-5" />
+                  Paciente No Encontrado
+                </DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  No se encontró información del paciente asociado a este DNI en el sistema.
+                </DialogDescription>
+              </DialogHeader>
+              
+              {reservaSinPaciente && (
+                <div className="space-y-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
+                    <h4 className="font-semibold text-red-900">Datos de la Solicitud:</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Código:</span>
+                        <span className="font-medium text-red-700">{reservaSinPaciente.codigo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Paciente:</span>
+                        <span className="font-medium">{reservaSinPaciente.nombres}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Documento:</span>
+                        <span className="font-medium">{reservaSinPaciente.numeroDocumento}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Especialidad:</span>
+                        <span className="font-medium">{reservaSinPaciente.especialidadNombre}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Motivo de Denegación <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      placeholder="Ingrese el motivo por el cual se deniega la solicitud (ej: Paciente no registrado en el sistema)..."
+                      value={motivoDenegacion}
+                      onChange={(e) => setMotivoDenegacion(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                      maxLength={500}
+                    />
+                    <div className="text-xs text-gray-500 text-right">
+                      {motivoDenegacion.length}/500 caracteres
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowPacienteNoEncontradoModal(false)
+                    setReservaSinPaciente(null)
+                    setMotivoDenegacion("")
+                    setSolicitudEnRevision(null)
+                  }}
+                  disabled={isDenegando}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleDenegarSinPaciente}
+                  disabled={!motivoDenegacion.trim() || isDenegando}
+                  variant="destructive"
+                  className="flex-1"
+                >
+                  {isDenegando ? "Denegando..." : "Denegar Solicitud"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal de advertencia de revisión pendiente */}
+          <Dialog open={showRevisionPendienteModal} onOpenChange={setShowRevisionPendienteModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-orange-600">
+                  <AlertCircle className="h-5 w-5" />
+                  Revisión Pendiente
+                </DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  No puedes revisar esta solicitud hasta que no termines la solicitud pendiente.
+                </DialogDescription>
+              </DialogHeader>
+              
+              {solicitudEnRevision && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-orange-900">Solicitud en Revisión:</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Código:</span>
+                      <span className="font-medium text-orange-700">{solicitudEnRevision.codigo}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Paciente:</span>
+                      <span className="font-medium">{solicitudEnRevision.nombres}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Documento:</span>
+                      <span className="font-medium">{solicitudEnRevision.numeroDocumento}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Especialidad:</span>
+                      <span className="font-medium">{solicitudEnRevision.especialidadNombre}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Médico:</span>
+                      <span className="font-medium">{solicitudEnRevision.medicoNombre}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Fecha:</span>
+                      <span className="font-medium">{solicitudEnRevision.fecha} - {solicitudEnRevision.hora}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    setShowRevisionPendienteModal(false)
+                    // Buscar la solicitud en revisión en el filtro
+                    if (solicitudEnRevision) {
+                      setSearchTerm(solicitudEnRevision.codigo)
+                    }
+                  }}
+                  className="w-full"
+                >
+                  Entendido
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </SegurosCitaProvider>
     </TipoCitaProvider>

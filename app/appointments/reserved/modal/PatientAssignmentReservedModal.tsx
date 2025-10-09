@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, X, AlertTriangle, Image, Eye } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle } from "lucide-react"
 import { TipoCitaSelector } from "../../../../components/appointments/selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../../../../components/appointments/selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../../../../components/appointments/selectors/EntidadSisSelector"
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SimpleSISVerification } from "../../../../components/appointments/patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
+import { extractDocumentFromToken } from "@/utils/jwtUtils"
 
 interface Patient {
   HISTORIA: string
@@ -213,6 +214,8 @@ export function PatientAssignmentReservedModal({
     try {
       // Preparar el cuerpo de la solicitud según el formato requerido
       const currentDate = new Date();
+      const usuarioApellido = extractDocumentFromToken();
+      
       const requestBody = {
         fechaOtorga: currentDate.toISOString(),
         tipoPaciente: selectedTipoCita,
@@ -221,7 +224,7 @@ export function PatientAssignmentReservedModal({
         seguro: selectedSeguro,
         estado: '2', // Estado asignado
         horaOtorga: `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`,
-        usuario: localStorage.getItem('username') || 'SISTEMA',
+        usuario: usuarioApellido,
         numRef: referencia || '',
         entidadSis: selectedEntidadSis || ''
       }
@@ -251,7 +254,7 @@ export function PatientAssignmentReservedModal({
       // Notificar al componente padre sobre la asignación exitosa
       const assignmentData = {
         ...requestBody,
-        appointmentId: appointment.id,
+        appointmentId: appointment.citaId,
         success: true,
         responseData
       }
@@ -263,7 +266,7 @@ export function PatientAssignmentReservedModal({
         setShowSuccess(false)
         onClose()
         if (onSuccess) {
-          onSuccess(appointment.id)
+          onSuccess(appointment.citaId)
         }
       }, 2000)
     } catch (error) {
@@ -283,35 +286,22 @@ export function PatientAssignmentReservedModal({
     setShowMotivoModal(true)
   }
 
-  const handleObserveClick = () => {
-    setMotivoAction("OBSERVAR")
-    setShowMotivoModal(true)
-  }
-
   const handleMotivoConfirm = async (motivo: string) => {
     setMotivoLoading(true)
     try {
-      if (motivoAction === "DENEGAR") {
-        await onDeny(motivo)
-        toast({
-          title: "Solicitud Denegada",
-          description: "La solicitud ha sido denegada correctamente",
-        })
-      } else {
-        await onObserve(motivo)
-        toast({
-          title: "Solicitud Observada",
-          description: "La solicitud ha sido marcada como observada",
-        })
-      }
+      await onDeny(motivo)
+      toast({
+        title: "Solicitud Denegada",
+        description: "La solicitud ha sido denegada correctamente",
+      })
       
       setShowMotivoModal(false)
       onClose()
     } catch (error) {
-      console.error(`Error al ${motivoAction.toLowerCase()}:`, error)
+      console.error('Error al denegar:', error)
       toast({
         title: "Error",
-        description: `No se pudo ${motivoAction.toLowerCase()} la solicitud`,
+        description: "No se pudo denegar la solicitud",
         variant: "destructive"
       })
     } finally {
@@ -511,8 +501,8 @@ export function PatientAssignmentReservedModal({
             </div>
           </div>
 
-          {/* Botones de acción - Solo Aprobar, Denegar, Observar */}
-          <div className="flex justify-center gap-3 pt-6">
+          {/* Botones de acción - Solo Aprobar y Denegar */}
+          <div className="flex justify-center gap-4 pt-6 border-t">
             <Button 
               onClick={handleApprove}
               disabled={
@@ -521,26 +511,22 @@ export function PatientAssignmentReservedModal({
                 (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) ||
                 isLoading
               }
-              className="bg-green-600 hover:bg-green-700 min-w-[120px]"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
+              size="lg"
             >
-              {isLoading ? "Aprobando..." : "Aprobar"}
+              <CheckCircle className="h-5 w-5 mr-2" />
+              {isLoading ? "Aprobando..." : "Aprobar Solicitud"}
             </Button>
             
             <Button 
               onClick={handleDenyClick}
               disabled={isLoading}
               variant="destructive"
-              className="min-w-[120px]"
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
+              size="lg"
             >
-              {isLoading ? "Procesando..." : "Denegar"}
-            </Button>
-            
-            <Button 
-              onClick={handleObserveClick}
-              disabled={isLoading}
-              className="bg-yellow-600 hover:bg-yellow-700 min-w-[120px]"
-            >
-              {isLoading ? "Procesando..." : "Observar"}
+              <XCircle className="h-5 w-5 mr-2" />
+              {isLoading ? "Procesando..." : "Denegar Solicitud"}
             </Button>
           </div>
         </DialogContent>

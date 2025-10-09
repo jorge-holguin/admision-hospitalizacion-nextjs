@@ -13,6 +13,7 @@ interface HospitalizationViewModalProps {
   onClose: () => void
   hospitalizationId: string
   mode?: 'view' | 'edit'
+  initialData?: any // Datos iniciales para evitar llamada duplicada a la API
   onSuccess?: (data: any) => void
   onError?: (error: string) => void
   onBack?: () => void
@@ -24,6 +25,7 @@ export function HospitalizationViewModal({
   onClose,
   hospitalizationId,
   mode = 'view',
+  initialData,
   onSuccess,
   onError,
   onBack,
@@ -43,7 +45,7 @@ export function HospitalizationViewModal({
       setError(null)
       console.log('🏥 Cargando datos de hospitalización:', hospitalizationId)
 
-      const response = await fetch(`/api/hospitalizacion/${hospitalizationId}`)
+      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${hospitalizationId}`)
       
       if (!response.ok) {
         throw new Error(`Error al cargar hospitalización: ${response.status}`)
@@ -51,12 +53,31 @@ export function HospitalizationViewModal({
 
       const data = await response.json()
       
-      if (data.success) {
+      console.log('📦 Respuesta RAW de la API:', data);
+      console.log('📦 Campos de acompañante en respuesta RAW:', {
+        ACOMPANANTE_NOMBRE: data.ACOMPANANTE_NOMBRE,
+        ACOMPANANTE_TELEFONO: data.ACOMPANANTE_TELEFONO,
+        ACOMPANANTE_DIRECCION: data.ACOMPANANTE_DIRECCION,
+        ORIGENID: data.ORIGENID
+      });
+      
+      // Verificar el formato de la respuesta
+      if (data.success && data.data) {
+        // Formato con wrapper {success: true, data: {...}}
         setHospitalizationData(data.data)
-        console.log('✅ Datos de hospitalización cargados:', data.data)
+        console.log('✅ Datos de hospitalización cargados (formato success/data):', data.data)
+      } else if (data.error || data.message) {
+        // Formato de error {error: '...', message: '...'}
+        throw new Error(data.error || data.message || 'Error al cargar los datos')
+      } else if (data.IDHOSPITALIZACION) {
+        // Respuesta directa del objeto de hospitalización
+        setHospitalizationData(data)
+        console.log('✅ Datos de hospitalización cargados (formato directo):', data)
       } else {
-        throw new Error(data.message || 'Error al cargar los datos')
-      }
+        // Formato desconocido
+        console.warn('Formato de respuesta desconocido:', data)
+        throw new Error('Formato de respuesta desconocido')
+      } 
     } catch (error: any) {
       console.error('❌ Error al cargar hospitalización:', error)
       setError(error.message || 'Error al cargar los datos de la hospitalización')
@@ -67,10 +88,34 @@ export function HospitalizationViewModal({
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
-    if (isOpen && hospitalizationId) {
+    if (!isOpen) {
+      // Limpiar datos cuando se cierra el modal
+      setHospitalizationData(null)
+      setError(null)
+      return
+    }
+    
+    if (!hospitalizationId) {
+      return
+    }
+    
+    console.log('🔴 HospitalizationViewModal useEffect ejecutado:', {
+      isOpen,
+      hospitalizationId,
+      hasInitialData: !!initialData
+    });
+    
+    // Si ya tenemos initialData, usarlo directamente
+    if (initialData) {
+      console.log('🏥 HospitalizationViewModal: Usando initialData proporcionado')
+      setHospitalizationData(initialData)
+      setLoading(false)
+    } else {
+      // Si no hay initialData, cargar desde la API
+      console.log('🏥 HospitalizationViewModal: Cargando desde API')
       loadHospitalizationData()
     }
-  }, [isOpen, hospitalizationId])
+  }, [isOpen, hospitalizationId]) // ✅ Removido initialData de dependencias
 
   const handleSave = (updatedData: any) => {
     console.log('✅ Hospitalización actualizada:', updatedData)
@@ -123,12 +168,11 @@ export function HospitalizationViewModal({
   if (!isOpen) return null
 
   const isReadOnly = mode === 'view'
-  const title = isReadOnly ? 'Ver Hospitalización' : 'Editar Hospitalización'
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
-        <DialogHeader className="px-6 py-4 border-b bg-gray-50">
+      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 py-4 border-b bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               {onBack && (
@@ -141,9 +185,14 @@ export function HospitalizationViewModal({
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               )}
-              {title}
+              <div className="flex flex-col">
+                <span className="text-blue-600 font-bold text-lg">Hospitalización</span>
+                <span className="text-black font-normal text-sm">
+                  {isReadOnly ? 'Ver Hospitalización' : 'Editar Hospitalización'}
+                </span>
+              </div>
               {hospitalizationData && (
-                <span className="text-sm font-normal text-gray-500">
+                <span className="text-sm font-normal text-gray-500 ml-2">
                   ID: {hospitalizationId}
                 </span>
               )}
@@ -160,7 +209,7 @@ export function HospitalizationViewModal({
               {isReadOnly && onEdit && (
                 <Button
                   onClick={handleEditClick}
-                  className="bg-[#0074ba] hover:bg-[#0067a6] text-white"
+                  className="bg-[#0074ba] hover:bg-[#0067a6] text-white  mr-6"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
@@ -186,13 +235,26 @@ export function HospitalizationViewModal({
             </div>
           ) : (
             hospitalizationData && (
-              <HospitalizationViewRefactored 
-                hospitalizationId={hospitalizationId}
-                initialData={hospitalizationData}
-                readOnly={isReadOnly}
-                onSave={handleSave}
-                onError={handleError}
-              />
+              <>
+                {(() => {
+                  console.log('🔵 Renderizando HospitalizationViewRefactored con hospitalizationData:', {
+                    IDHOSPITALIZACION: hospitalizationData.IDHOSPITALIZACION,
+                    ACOMPANANTE_NOMBRE: hospitalizationData.ACOMPANANTE_NOMBRE,
+                    ACOMPANANTE_TELEFONO: hospitalizationData.ACOMPANANTE_TELEFONO,
+                    ACOMPANANTE_DIRECCION: hospitalizationData.ACOMPANANTE_DIRECCION,
+                    ORIGENID: hospitalizationData.ORIGENID,
+                    fullData: hospitalizationData
+                  });
+                  return null;
+                })()}
+                <HospitalizationViewRefactored 
+                  hospitalizationId={hospitalizationId}
+                  initialData={hospitalizationData}
+                  readOnly={isReadOnly}
+                  onSave={handleSave}
+                  onError={handleError}
+                />
+              </>
             )
           )}
         </div>

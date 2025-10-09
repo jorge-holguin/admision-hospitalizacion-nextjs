@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -6,6 +6,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
 import { Seguro } from '@/services/hospitalizacion/seguroService';
+import { useSeguros } from '@/contexts/SegurosContext';
 
 // Función para obtener el nombre completo del código de financiamiento
 const getFinancingCodeName = (code: string): string => {
@@ -47,43 +48,11 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
   className = ''
 }) => {
   const [open, setOpen] = useState(false);
-  const [seguros, setSeguros] = useState<Seguro[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Crear una referencia para controlar si ya se ha hecho la llamada a la API
-  const fetchedRef = useRef(false);
-
-  useEffect(() => {
-    // Evitar llamadas duplicadas usando una referencia
-    if (fetchedRef.current) return;
-    
-    const fetchSeguros = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/seguros');
-        
-        if (!response.ok) {
-          throw new Error(`Error al cargar seguros: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setSeguros(data);
-        
-        // Marcar que ya se ha hecho la llamada
-        fetchedRef.current = true;
-      } catch (error) {
-        console.error('Error al cargar seguros:', error);
-        setError('Error al cargar seguros');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchSeguros();
-  }, []);
+  
+  // Usar el contexto de seguros en lugar de llamada directa a la API
+  const { seguros, loading } = useSeguros();
+  
+  console.log('🏥 SeguroSelector: Usando contexto, seguros disponibles:', seguros?.length || 0);
 
   // Buscar el seguro seleccionado, considerando diferentes formatos posibles
   const selectedSeguro = seguros.find(seguro => {
@@ -155,8 +124,6 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
                     <Spinner size="sm" />
                     <span className="ml-2">Cargando...</span>
                   </div>
-                ) : error ? (
-                  <div className="text-center p-4 text-red-500">{error}</div>
                 ) : (
                   "No se encontraron resultados"
                 )}

@@ -214,11 +214,18 @@ class HospitalizaService {
    */
   async findById(id: string) {
     try {
-      const hospitalizacion = await prisma.hOSPITALIZA.findUnique({
-        where: {
-          IDHOSPITALIZACION: id
-        }
-      });
+      console.log(`Buscando hospitalización con ID: ${id} usando SQL raw`);
+      
+      // Usar SQL raw en lugar de Prisma ORM para evitar problemas con OFFSET en SQL Server 2008 R2
+      const resultados = await prisma.$queryRaw`
+        SELECT TOP 1 * FROM HOSPITALIZA 
+        WHERE IDHOSPITALIZACION = ${id}
+      `;
+      
+      // Convertir el resultado a un objeto similar al que devolvería findUnique
+      const hospitalizacion = Array.isArray(resultados) && resultados.length > 0 ? resultados[0] : null;
+      
+      console.log(`Hospitalización encontrada: ${hospitalizacion ? 'Sí' : 'No'}`);
       return hospitalizacion;
     } catch (error) {
       console.error('Error al buscar hospitalización:', error);
@@ -231,8 +238,17 @@ class HospitalizaService {
    */
   async findAll() {
     try {
-      const hospitalizaciones = await prisma.hOSPITALIZA.findMany();
-      return hospitalizaciones;
+      console.log('Obteniendo todas las hospitalizaciones usando SQL raw');
+      
+      // Usar SQL raw en lugar de Prisma ORM para evitar problemas con OFFSET en SQL Server 2008 R2
+      // Limitamos a 1000 registros para evitar problemas de memoria
+      const resultados = await prisma.$queryRaw`
+        SELECT TOP 1000 * FROM HOSPITALIZA 
+        ORDER BY IDHOSPITALIZACION DESC
+      `;
+      
+      console.log(`Hospitalizaciones encontradas: ${Array.isArray(resultados) ? resultados.length : 0}`);
+      return resultados;
     } catch (error) {
       console.error('Error al obtener hospitalizaciones:', error);
       throw error;

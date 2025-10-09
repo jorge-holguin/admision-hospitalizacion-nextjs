@@ -8,19 +8,18 @@ import { StepIndicator } from "../register/StepIndicator"
 import { Step1BasicData } from "../register/Step1BasicData"
 import { Step2AdditionalData } from "../register/Step2AdditionalData"
 import { Step3FamilyData } from "../register/Step3FamilyData"
-import { Step4Confirmation } from "../register/Step4Confirmation"
 
 interface Patient {
-  id: string
-  hc: string
-  name: string
-  sex: string
-  birthDate: string
-  address: string
-  dni: string
-  location: string
-  district: string
-  // Datos adicionales
+  id?: string
+  hc?: string
+  name?: string
+  sex?: string
+  birthDate?: string
+  address?: string
+  dni?: string
+  location?: string
+  district?: string
+  // Datos adicionales (camelCase)
   apellidoPaterno?: string
   apellidoMaterno?: string
   nombres?: string
@@ -51,6 +50,29 @@ interface Patient {
   direccionAcompanante?: string
   telefonoAcompanante1?: string
   telefonoAcompanante2?: string
+  // Campos de la API (UPPERCASE)
+  HISTORIA?: string
+  NOMBRES?: string
+  PATERNO?: string
+  MATERNO?: string
+  NOMBRE?: string
+  DOCUMENTO?: string
+  SEXO?: string
+  FECHA_NACIMIENTO?: string
+  EDAD?: string
+  NOMBRE_ESTADO_CIVIL?: string
+  DIRECCION?: string
+  DISTRITO?: string
+  TELEFONO1?: string
+  TELEFONO2?: string
+  NOMBRE_SEGURO?: string
+  DESRELIGION?: string
+  PADRE?: string
+  MADRE?: string
+  Nombre_Localidad?: string
+  Distrito_Dir?: string
+  PACIENTE?: string
+  [key: string]: any
 }
 
 interface PatientEditModalProps {
@@ -75,6 +97,14 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     );
   }
   const [currentStep, setCurrentStep] = useState(1)
+  
+  // Resetear al paso 1 cuando se abre el modal
+  useEffect(() => {
+    if (patient) {
+      setCurrentStep(1)
+    }
+  }, [patient])
+  
   const [formData, setFormData] = useState({
     // Datos básicos
     apellidoPaterno: "",
@@ -113,42 +143,69 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     telefonoAcompanante2: "",
   })
 
-  // Cargar datos del paciente al inicializar
+  // Función para mapear valores de la API a valores de las opciones
+  const mapReligionValue = (value?: string) => {
+    const upperValue = value?.toUpperCase().trim();
+    if (!upperValue) return "";
+    if (upperValue.includes("CATOLICA") || upperValue.includes("CATÓLICA")) return "CATOLICA";
+    if (upperValue.includes("EVANGELICA") || upperValue.includes("EVANGÉLICA")) return "EVANGELICA";
+    if (upperValue.includes("NO ESPECIFICA")) return "NO_ESPECIFICA";
+    return upperValue.replace(/\s+/g, "_");
+  };
+
+  const mapPaisValue = (value?: string) => {
+    const upperValue = value?.toUpperCase().trim();
+    if (!upperValue || upperValue === "PERÚ" || upperValue === "PERU") return "PERU";
+    return upperValue.replace(/\s+/g, "_");
+  };
+
+  const mapDistritoValue = (value?: string) => {
+    const upperValue = value?.toUpperCase().trim();
+    if (!upperValue) return "";
+    return upperValue.replace(/\s+/g, "_");
+  };
+
+  // Cargar datos del paciente al inicializar (mapear desde API)
   useEffect(() => {
     if (patient) {
       setFormData({
-        apellidoPaterno: patient.apellidoPaterno || "",
-        apellidoMaterno: patient.apellidoMaterno || "",
-        nombres: patient.nombres || patient.name || "",
-        fechaNacimiento: patient.fechaNacimiento || patient.birthDate || "",
-        sexo: patient.sexo || patient.sex || "",
-        estadoCivil: patient.estadoCivil || "",
-        lugarNacimiento: patient.lugarNacimiento || "",
-        paisNacimiento: patient.paisNacimiento || "PERÚ",
-        direccion: patient.direccion || patient.address || "",
-        distritoProcedencia: patient.distritoProcedencia || patient.district || "",
+        // Datos Personales
+        apellidoPaterno: patient.PATERNO?.trim() || patient.apellidoPaterno || "",
+        apellidoMaterno: patient.MATERNO?.trim() || patient.apellidoMaterno || "",
+        nombres: patient.NOMBRE?.trim() || patient.nombres || patient.name || "",
+        fechaNacimiento: patient.FECHA_NACIMIENTO || patient.fechaNacimiento || patient.birthDate || "",
+        sexo: patient.SEXO || patient.sexo || patient.sex || "",
+        estadoCivil: patient.ESTADO_CIVIL?.trim() || patient.estadoCivil || "",
+        lugarNacimiento: patient.LUGAR_NACIMIENTO?.trim() || patient.lugarNacimiento || "",
+        paisNacimiento: mapPaisValue(patient.PAIS) || "PERU",
+        direccion: patient.DIRECCION || patient.DIRECCION_RENIEC || patient.direccion || patient.address || "",
+        distritoProcedencia: mapDistritoValue(patient.Distrito_Dir || patient.DISTRITO_RENIEC || patient.distritoProcedencia || patient.district),
         
-        tipoSeguro: patient.tipoSeguro || "",
-        gradoInstruccion: patient.gradoInstruccion || "",
-        ocupacion: patient.ocupacion || "",
-        religion: patient.religion || "",
-        etnia: patient.etnia || "",
-        centroPoblado: patient.centroPoblado || "",
-        telefono1: patient.telefono1 || "",
-        telefono2: patient.telefono2 || "",
-        hijos: patient.hijos || "",
-        observacion: patient.observacion || "",
+        // Datos Adicionales
+        tipoSeguro: patient.SEGURO?.trim() || patient.tipoSeguro || "",
+        gradoInstruccion: patient.GRADO_INSTRUCCION?.trim() || patient.gradoInstruccion || "",
+        ocupacion: patient.OCUPACION?.trim() || patient.ocupacion || "",
+        religion: mapReligionValue(patient.DESRELIGION || patient.religion),
+        etnia: patient.COD_ETNIA?.trim() || patient.etnia || "",
+        centroPoblado: patient.LOCALIDAD?.trim() || patient.Nombre_Localidad || patient.centroPoblado || "",
+        telefono1: patient.TELEFONO1?.trim() || patient.telefono1 || "",
+        telefono2: patient.TELEFONO2?.trim() || patient.telefono2 || "",
+        hijos: String(patient.HIJOS?.s || patient.HIJOS?.d?.[0] || patient.hijos || ""),
+        observacion: patient.EMAIL?.trim() || patient.observacion || "",
         
-        padre: patient.padre || "",
-        madre: patient.madre || "",
-        conyuge: patient.conyuge || "",
-        ocupacionFamiliar: patient.ocupacionFamiliar || "",
-        nombreAcompanante: patient.nombreAcompanante || "",
-        parentesco: patient.parentesco || "",
-        ocupacionAcompanante: patient.ocupacionAcompanante || "",
-        direccionAcompanante: patient.direccionAcompanante || "",
-        telefonoAcompanante1: patient.telefonoAcompanante1 || "",
-        telefonoAcompanante2: patient.telefonoAcompanante2 || "",
+        // Datos Familiares
+        padre: patient.PADRE?.trim() || patient.padre || "",
+        madre: patient.MADRE?.trim() || patient.madre || "",
+        conyuge: patient.CONYUGE_NOMBRE?.trim() || patient.conyuge || "",
+        ocupacionFamiliar: patient.CONYUGE_OCUPACION?.trim() || patient.ocupacionFamiliar || "",
+        
+        // Datos de Acompañante/Responsable
+        nombreAcompanante: patient.RESPONSABLE_NOMBRE?.trim() || patient.nombreAcompanante || "",
+        parentesco: patient.RESPONSABLE_PARENTESCO?.trim() || patient.parentesco || "",
+        ocupacionAcompanante: patient.RESPONSABLE_OCUPACION?.trim() || patient.ocupacionAcompanante || "",
+        direccionAcompanante: patient.RESPONSABLE_DIRECCION?.trim() || patient.direccionAcompanante || "",
+        telefonoAcompanante1: patient.RESPONSABLE_TELEFONO?.trim() || patient.telefonoAcompanante1 || "",
+        telefonoAcompanante2: "", // No existe en la API, campo legacy
       })
     }
   }, [patient])
@@ -158,7 +215,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   }
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < 3) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -191,12 +248,13 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             formData={formData}
             onInputChange={handleInputChange}
             documentType="DNI"
-            documentNumber={patient.dni}
+            documentNumber={patient.DOCUMENTO || patient.dni || ''}
+            patientData={patient}
             reniecData={{
-              dni: patient.dni,
-              apellidoPaterno: patient.apellidoPaterno,
-              apellidoMaterno: patient.apellidoMaterno,
-              nombres: patient.nombres || patient.name,
+              dni: patient.DOCUMENTO || patient.dni || '',
+              apellidoPaterno: patient.PATERNO?.trim() || patient.apellidoPaterno || '',
+              apellidoMaterno: patient.MATERNO?.trim() || patient.apellidoMaterno || '',
+              nombres: patient.NOMBRE?.trim() || patient.nombres || patient.name || '',
             }}
           />
         )
@@ -205,6 +263,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           <Step2AdditionalData
             formData={formData}
             onInputChange={handleInputChange}
+            patientData={patient}
           />
         )
       case 3:
@@ -212,20 +271,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           <Step3FamilyData
             formData={formData}
             onInputChange={handleInputChange}
-          />
-        )
-      case 4:
-        return (
-          <Step4Confirmation
-            formData={formData}
-            documentType="DNI"
-            documentNumber={patient.dni}
-            reniecData={{
-              dni: patient.dni,
-              apellidoPaterno: patient.apellidoPaterno,
-              apellidoMaterno: patient.apellidoMaterno,
-              nombres: patient.nombres || patient.name,
-            }}
+            patientData={patient}
           />
         )
       default:
@@ -236,8 +282,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   return (
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle className="text-xl font-bold text-orange-800">
-          Editar Información del Paciente - H.C. {patient.hc}
+        <DialogTitle className="text-xl font-bold text-blue-800">
+          Editar Información del Paciente - H.C. {patient.HISTORIA || patient.hc || 'N/A'}
         </DialogTitle>
       </DialogHeader>
 
@@ -263,13 +309,13 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             Cancelar
           </Button>
 
-          {currentStep < 4 ? (
-            <Button onClick={handleNext} className="bg-orange-600 hover:bg-orange-700">
+          {currentStep < 3 ? (
+            <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700">
               Siguiente
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
               Guardar Cambios
             </Button>
           )}

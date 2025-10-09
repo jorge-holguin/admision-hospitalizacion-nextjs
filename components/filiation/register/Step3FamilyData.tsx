@@ -13,6 +13,7 @@ import { Check, ChevronsUpDown, Users, Heart } from "lucide-react"
 interface Step3FamilyDataProps {
   formData: any
   onInputChange: (field: string, value: string) => void
+  patientData?: any  // Datos del paciente en modo edición
 }
 
 const occupationOptions = [

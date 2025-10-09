@@ -89,7 +89,7 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
 
       {/* Cuarta fila - Datos del Acompañante */}
         <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
           <div className="space-y-2">
             <Label htmlFor="acompanante">Nombre del Acompañante <span className="text-red-500">*</span></Label>
             <Input
