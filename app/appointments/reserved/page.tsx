@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Eye, Search, RefreshCw, Calendar, User, Clock, FileText, UserCheck, XCircle } from "lucide-react"
+import { ArrowLeft, Eye, Search, RefreshCw, Calendar, User, Clock, FileText, UserCheck, XCircle, RotateCcw } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { PatientAssignmentReservedModal } from "@/app/appointments/reserved/modal/PatientAssignmentReservedModal"
 import { useRouter } from "next/navigation"
@@ -33,10 +33,12 @@ interface ReservaData {
   fecha: string
   hora: string
   correo: string
+  celular?: string
   codigo: string
   estado: string
   citaId?: number
   tipoAtencion?: string | null
+  tipoCita?: string | null
   rutaReferencia?: string
   consultorio?: string | null
 }
@@ -80,7 +82,7 @@ export default function ReservedAppointmentsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingEspecialidades, setLoadingEspecialidades] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedEspecialidad, setSelectedEspecialidad] = useState<string>("0001")
+  const [selectedEspecialidad, setSelectedEspecialidad] = useState<string>("all")
   const [selectedEstado, setSelectedEstado] = useState<string>("all")
   const [selectedReserva, setSelectedReserva] = useState<ReservaData | null>(null)
   const [patientData, setPatientData] = useState<PatientData | null>(null)
@@ -147,14 +149,19 @@ export default function ReservedAppointmentsPage() {
     setLoading(true)
     try {
       // Construir URL con filtros
-      let url = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/listar-paginado?especialidad=${selectedEspecialidad}`
+      let url = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/listar-paginado?`
+      
+      // Agregar filtro de especialidad solo si no es "all"
+      if (selectedEspecialidad && selectedEspecialidad !== 'all') {
+        url += `especialidad=${selectedEspecialidad}&`
+      }
       
       // Agregar filtro de estado si no es "all"
       if (selectedEstado && selectedEstado !== 'all') {
-        url += `&estado=${selectedEstado}`
+        url += `estado=${selectedEstado}&`
       }
       
-      url += `&page=${currentPage}&size=${pageSize}`
+      url += `page=${currentPage}&size=${pageSize}`
       
       console.log('🔍 URL de carga:', url)
       const response = await fetch(url)
@@ -180,16 +187,14 @@ export default function ReservedAppointmentsPage() {
     }
   }
 
-  // Cargar especialidades al montar el componente
+  // Cargar reservas al montar el componente (sin cargar especialidades inicialmente)
   useEffect(() => {
-    loadEspecialidades()
+    loadReservas()
   }, [])
 
   // Cargar reservas cuando cambie la especialidad, estado o página
   useEffect(() => {
-    if (selectedEspecialidad) {
-      loadReservas()
-    }
+    loadReservas()
   }, [selectedEspecialidad, selectedEstado, currentPage])
 
   // Buscar paciente por documento usando API filiacion2
@@ -491,6 +496,52 @@ export default function ReservedAppointmentsPage() {
     })
   }
 
+  // Manejar revertir estado de solicitud
+  const handleRevertir = async (reserva: ReservaData) => {
+    console.log('🔄 Revirtiendo estado de solicitud:', reserva.codigo)
+    
+    try {
+      const usuarioApellido = extractDocumentFromToken()
+      
+      // Revertir al estado PENDIENTE
+      const cambioExitoso = await cambiarEstadoSolicitud(
+        reserva.codigo, 
+        "PENDIENTE",
+        "Revertido desde la tabla de reservas",
+        usuarioApellido
+      )
+      
+      if (cambioExitoso) {
+        toast({
+          title: "Estado Revertido",
+          description: `La solicitud ${reserva.codigo} ha sido revertida a PENDIENTE`,
+        })
+        
+        // Actualizar estado en la lista
+        setReservas(prev => prev.map(r => 
+          r.codigo === reserva.codigo 
+            ? { ...r, estado: "PENDIENTE" }
+            : r
+        ))
+        
+        // Limpiar la solicitud en revisión si es la misma
+        if (solicitudEnRevision?.codigo === reserva.codigo) {
+          setSolicitudEnRevision(null)
+        }
+        
+        // Recargar las reservas para reflejar el cambio
+        loadReservas()
+      }
+    } catch (error) {
+      console.error('❌ Error al revertir estado:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo revertir el estado de la solicitud",
+        variant: "destructive"
+      })
+    }
+  }
+
   // Filtrar reservas por término de búsqueda
   const filteredReservas = reservas.filter(reserva => 
     reserva.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -587,11 +638,18 @@ export default function ReservedAppointmentsPage() {
                         setCurrentPage(0) // Reset página al cambiar especialidad
                       }}
                       disabled={loadingEspecialidades}
+                      onOpenChange={(open) => {
+                        // Cargar especialidades solo cuando se abre el selector
+                        if (open && especialidades.length === 0) {
+                          loadEspecialidades()
+                        }
+                      }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar especialidad..." />
+                        <SelectValue placeholder="Todas las especialidades" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">Todas las especialidades</SelectItem>
                         {especialidades.map((esp) => (
                           <SelectItem key={esp.idEspecialidad} value={esp.idEspecialidad}>
                             {esp.nombre}
@@ -662,8 +720,11 @@ export default function ReservedAppointmentsPage() {
                           <TableHead className="font-semibold">CÓDIGO</TableHead>
                           <TableHead className="font-semibold">CITA_ID</TableHead>
                           <TableHead className="font-semibold">PACIENTE</TableHead>
+                          <TableHead className="font-semibold">CELULAR</TableHead>
                           <TableHead className="font-semibold">ESPECIALIDAD</TableHead>
                           <TableHead className="font-semibold">MÉDICO</TableHead>
+                          <TableHead className="font-semibold">TIPO ATENCIÓN</TableHead>
+                          <TableHead className="font-semibold">TIPO CITA</TableHead>
                           <TableHead className="font-semibold">TURNO</TableHead>
                           <TableHead className="font-semibold">FECHA Y HORA</TableHead>
                           <TableHead className="font-semibold">ESTADO</TableHead>
@@ -688,16 +749,23 @@ export default function ReservedAppointmentsPage() {
                                 </div>
                               </div>
                             </TableCell>
+                            <TableCell className="text-sm">
+                              {reserva.celular || '-'}
+                            </TableCell>
                             <TableCell className="font-medium">
                               {reserva.especialidadNombre}
                             </TableCell>
                             <TableCell>
                               {reserva.medicoNombre}
                             </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                                {formatTurno(reserva.turno)}
-                              </Badge>
+                            <TableCell className="text-sm">
+                              {reserva.tipoAtencion || '-'}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {reserva.tipoCita || '-'}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatTurno(reserva.turno)}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -736,6 +804,21 @@ export default function ReservedAppointmentsPage() {
                                     ? 'Cargando...' 
                                     : 'Revisar'
                                   }
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRevertir(reserva)}
+                                  disabled={
+                                    loadingReservas.has(reserva.codigo) ||
+                                    reserva.estado === "PENDIENTE" ||
+                                    reserva.estado === "ANULADO" ||
+                                    reserva.estado === "ELIMINADO"
+                                  }
+                                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                  Revertir
                                 </Button>
                               </div>
                             </TableCell>

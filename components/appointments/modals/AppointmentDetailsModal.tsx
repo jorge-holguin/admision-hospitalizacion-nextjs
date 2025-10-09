@@ -80,9 +80,9 @@ export function AppointmentDetailsModal({
                 <Stethoscope className="h-4 w-4 text-gray-500" /> MÉDICO
               </Label>
               <p className="text-sm font-medium">
-                {appointment.medicoNombre 
-                  ? `${appointment.medico} - ${appointment.medicoNombre}`
-                  : appointment.medico || '-'
+                {(appointment.medicoNombre || appointment.MEDICO_NOMBRE)
+                  ? `${appointment.medico || appointment.MEDICO} - ${appointment.medicoNombre || appointment.MEDICO_NOMBRE}`
+                  : appointment.medico || appointment.MEDICO || '-'
                 }
               </p>
             </div>
@@ -91,9 +91,9 @@ export function AppointmentDetailsModal({
                 <Building className="h-4 w-4 text-gray-500" /> CONSULTORIO
               </Label>
               <p className="text-sm font-medium">
-                {appointment.consultorioNombre 
-                  ? `${appointment.consultorio} - ${appointment.consultorioNombre}`
-                  : appointment.consultorio
+                {(appointment.consultorioNombre || appointment.CONSULTORIO_NOMBRE)
+                  ? `${appointment.consultorio || appointment.CONSULTORIO} - ${appointment.consultorioNombre || appointment.CONSULTORIO_NOMBRE}`
+                  : appointment.consultorio || appointment.CONSULTORIO || '-'
                 }
               </p>
             </div>
@@ -105,16 +105,18 @@ export function AppointmentDetailsModal({
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <User className="h-4 w-4 text-gray-500" /> PACIENTE
               </Label>
-              <p className="text-sm font-medium">{appointment.paciente} - {appointment.nombre}</p>
+              <p className="text-sm font-medium">
+                {appointment.paciente || appointment.PACIENTE || '-'} - {appointment.nombre || appointment.NOMBRE || '-'}
+              </p>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <Shield className="h-4 w-4 text-gray-500" /> SEGURO
               </Label>
               <p className="text-sm font-medium">
-                {appointment.seguroNombre 
-                  ? `${appointment.seguro} - ${appointment.seguroNombre}`
-                  : appointment.seguro || '-'
+                {(appointment.seguroNombre || appointment.NOMBRE_SEGURO)
+                  ? `${appointment.seguro || appointment.SEGURO} - ${appointment.seguroNombre || appointment.NOMBRE_SEGURO}`
+                  : appointment.seguro || appointment.SEGURO || '-'
                 }
               </p>
             </div>
@@ -138,13 +140,13 @@ export function AppointmentDetailsModal({
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <Hospital className="h-4 w-4 text-gray-500" /> ESTABLECIMIENTO
               </Label>
-              <p className="text-sm font-medium">{appointment.entidadSis || '-'}</p>
+              <p className="text-sm font-medium">{appointment.entidadSis || appointment.ENTIDADSIS || '-'}</p>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <MapPin className="h-4 w-4 text-gray-500" /> ID REFCON
+                <MapPin className="h-4 w-4 text-gray-500" /> NUM REFERENCIA
               </Label>
-              <p className="text-sm font-medium">{appointment.idRefcon || '-'}</p>
+              <p className="text-sm font-medium">{appointment.numRef || appointment.NUMREF || '-'}</p>
             </div>
           </div>
 

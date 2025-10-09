@@ -114,7 +114,10 @@ export function HospitalizationRegistrationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col overflow-hidden p-0">
+      <DialogContent 
+        className="max-w-7xl max-h-[95vh] flex flex-col overflow-hidden p-0"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="px-6 py-4 border-b bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">

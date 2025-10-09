@@ -667,28 +667,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
           description: "Los datos de emergencia se han actualizado correctamente",
         });
         
-        // Verificar si estamos en una página de emergencia antes de redirigir
-        if (typeof window !== 'undefined' && 
-            window.location.pathname.includes('/emergency/view/')) {
-          // Redirigir a la lista de emergencias del paciente
-          if (initialData && initialData.PACIENTE) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Redirigiendo a lista de emergencias del paciente:', initialData.PACIENTE);
-            }
-            router.push(`/emergency/${initialData.PACIENTE}`);
-          } else if (patientData && patientData.PACIENTE) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Redirigiendo a lista de emergencias (usando patientData):', patientData.PACIENTE);
-            }
-            router.push(`/emergency/${patientData.PACIENTE}`);
-          } else {
-            // Si no se encuentra el ID del paciente, volver a la página anterior
-            if (process.env.NODE_ENV === 'development') {
-              console.log('No se encontró ID del paciente, volviendo atrás');
-            }
-            router.back();
-          }
-        }
+        // Ya no necesitamos redirigir porque ahora usamos modales
+        // El modal padre manejará la navegación
       }
     } catch (error: any) {
       const errorMessage = error.message || "Error al guardar los cambios";

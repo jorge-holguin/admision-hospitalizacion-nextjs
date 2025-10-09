@@ -25,7 +25,10 @@ export interface CitaHistorial {
   turno?: string
   observacion?: string
   seguro?: string
+  seguroNombre?: string
   tipoConsulta?: string
+  entidadSis?: string
+  numRef?: string
 }
 
 export interface CitaSearchResult {
@@ -113,14 +116,18 @@ export async function searchCitasByDocumento(
           p.DOCUMENTO,
           c.NOMBRE,
           c.NUMERO,
+          c.ENTIDADSIS,
+          c.NUMREF,
           c.TURNO_CONSULTA,
           c.OBSERVACION,
           c.SEGURO,
+          s.NOMBRE as SEGURO_NOMBRE,
           c.TIPO_CITA
         FROM CITA c
         LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
         LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
         LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
+      LEFT JOIN SEGURO s ON c.SEGURO = s.SEGURO
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
@@ -151,8 +158,11 @@ export async function searchCitasByDocumento(
       documento: cita.DOCUMENTO || undefined,
       nombre: cita.NOMBRE,
       numero: cita.NUMERO,
+      entidadSis: cita.ENTIDADSIS,
+      numRef: cita.NUMREF,
       turno: cita.TURNO_CONSULTA,
       observacion: cita.OBSERVACION || undefined,
+      seguroNombre: cita.SEGURO_NOMBRE || undefined,
       seguro: cita.SEGURO || undefined,
       tipoConsulta: cita.TIPO_CITA || undefined
     }))
@@ -227,14 +237,18 @@ export async function searchCitasByNombres(
           p.DOCUMENTO,
           c.NOMBRE,
           c.NUMERO,
+          c.ENTIDADSIS,
+          c.NUMREF,
           c.TURNO_CONSULTA,
           c.OBSERVACION,
-          c.SEGURO,
-          c.TIPO_CITA
+          c.SEGURO, 
+          c.TIPO_CITA,
+          s.NOMBRE as SEGURO_NOMBRE
         FROM CITA c
         LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
         LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
         LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
+        LEFT JOIN SEGURO s ON c.SEGURO = s.SEGURO
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
@@ -265,8 +279,11 @@ export async function searchCitasByNombres(
       documento: cita.DOCUMENTO || undefined,
       nombre: cita.NOMBRE,
       numero: cita.NUMERO,
+      entidadSis: cita.ENTIDADSIS,
+      numRef: cita.NUMREF,
       turno: cita.TURNO_CONSULTA,
       observacion: cita.OBSERVACION || undefined,
+      seguroNombre: cita.SEGURO_NOMBRE || undefined,
       seguro: cita.SEGURO || undefined,
       tipoConsulta: cita.TIPO_CITA || undefined
     }))

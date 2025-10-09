@@ -133,7 +133,10 @@ export function EmergencyRegistrationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] h-[95vh] p-0 flex flex-col">
+      <DialogContent 
+        className="max-w-7xl max-h-[95vh] h-[95vh] p-0 flex flex-col"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center space-x-2">
             {onBack && (

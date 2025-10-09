@@ -18,6 +18,7 @@ export interface AppointmentRow {
   consultorio: string
   medico: string
   seguro?: string
+  nombre?: string
   paciente?: string
   numero?: string
   fechaProgramada?: string | null
@@ -95,7 +96,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 <TableCell className="font-medium">{turnode(appointment)}</TableCell>
                 <TableCell className="font-medium">{displayConsultorio(appointment)}</TableCell>
                 <TableCell className="text-sm">{displayMedico(appointment)}</TableCell>
-                <TableCell className="text-sm">{appointment.paciente || '-'}</TableCell>
+                <TableCell className="text-sm">{appointment.nombre || appointment.paciente || '-'}</TableCell>
                 <TableCell>
                   <div className="flex space-x-1">
                     <Button

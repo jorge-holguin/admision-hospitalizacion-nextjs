@@ -160,7 +160,10 @@ export function HospitalizationListModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
+       <DialogContent 
+         className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col"
+         onInteractOutside={(e) => e.preventDefault()}
+       >
          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
            <div>
              <DialogTitle className="text-xl font-semibold text-blue-700">

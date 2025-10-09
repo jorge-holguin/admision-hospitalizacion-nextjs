@@ -46,6 +46,11 @@ interface HistoryAppointment {
   paciente: string
   numero?: string
   turno?: string
+  tipoConsulta?: string
+  entidadSis?: string
+  numRef?: string
+  seguro?: string
+  seguroNombre?: string
   [key: string]: any
 }
 
@@ -99,6 +104,20 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     if (turnoUpper === 'T' || turnoUpper === 'TARDE') return 'TARDE'
     if (turnoUpper === 'N' || turnoUpper === 'NOCHE') return 'NOCHE'
     return turno // Devolver original si no coincide
+  }
+
+  const getTipoConsultaNombre = (tipo: string) => {
+    if (!tipo) return '-'
+    const tipoUpper = tipo.toUpperCase().trim()
+    switch (tipoUpper) {
+      case 'A': return 'Cita Adicional'
+      case 'C': return 'Citado'
+      case 'D': return 'Demanda'
+      case 'R': return 'Cita Referencia'
+      case 'I': return 'Interconsulta HOS'
+      case 'N': return 'Interconsulta CON'
+      default: return tipo
+    }
   }
 
   const searchHistory = async (searchAllHistory = false, isManualSearch = false) => {
@@ -533,6 +552,9 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                         <TableHead>Estado</TableHead>
                         <TableHead>Consultorio</TableHead>
                         <TableHead>Médico</TableHead>
+                        <TableHead>Tipo Consulta</TableHead>
+                        <TableHead>Tipo Seguro</TableHead>
+                        <TableHead>Num Referencia</TableHead>
                         <TableHead>Paciente</TableHead>
                         <TableHead>Acciones</TableHead>
                       </TableRow>
@@ -544,7 +566,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             {appointment.id}
                           </TableCell>
                           <TableCell className="font-medium">
-                            {new Date(appointment.fecha).toLocaleDateString('es-ES')}
+                            {appointment.fecha}
                           </TableCell>
                           <TableCell>{appointment.hora}</TableCell>
                           <TableCell>{getEstadoBadge(appointment.estado)}</TableCell>
@@ -553,6 +575,15 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                           </TableCell>
                           <TableCell>
                             {appointment.medicoNombre || appointment.medico}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {getTipoConsultaNombre(appointment.tipoConsulta || '')}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {appointment.seguro + ' - ' + appointment.seguroNombre || '-'}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {appointment.numRef || '-'}
                           </TableCell>
                           <TableCell>{appointment.nombre}</TableCell>
                           <TableCell>

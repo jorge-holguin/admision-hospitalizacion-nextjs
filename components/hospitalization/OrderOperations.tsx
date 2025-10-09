@@ -95,59 +95,26 @@ export function useOrderOperations(props?: OrderOperationsProps) {
     }
   };
 
-  // Método para editar una orden
-  const handleEditOrder = (orderId?: string, patientId?: string) => {
-    if (!orderId || orderId.trim() === '') {
-      toast({
-        title: 'Error',
-        description: 'No se puede editar: ID de orden de hospitalización no válido',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    if (!patientId) {
-      toast({
-        title: 'Error',
-        description: 'No se puede editar: ID de paciente no válido',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // Redireccionar a la vista de detalles en lugar de la página de registro
-    window.location.href = `/hospitalization/view/${patientId}?orderId=${orderId}`;
+  // OBSOLETO: Ahora se usa el sistema de modales
+  // Método para editar una orden existente
+  const handleEditOrder = (orderId: string, patientId: string) => {
+    console.warn('⚠️ handleEditOrder está obsoleto. Usa el sistema de modales de hospitalización.');
+    toast({
+      title: 'Función obsoleta',
+      description: 'Por favor usa el botón de Hospitalización en la tabla de pacientes',
+      variant: 'default'
+    });
   };
 
+  // OBSOLETO: Ahora se usa el sistema de modales
   // Método para crear una nueva orden
   const handleNewOrder = (patientId: string, getPacienteData?: () => Promise<any>) => {
-    if (!patientId) {
-      toast({
-        title: 'Error',
-        description: 'No se puede crear: ID de paciente no válido',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // Si se proporciona una función para obtener datos del paciente, usarla
-    if (getPacienteData) {
-      getPacienteData()
-        .catch(err => {
-          toast({
-            title: 'Advertencia',
-            description: 'No se pudieron cargar los datos del paciente, pero se continuará con la creación',
-            variant: 'default'
-          });
-        })
-        .finally(() => {
-          // Redireccionar a la página de registro con el ID del paciente
-          window.location.href = `/hospitalization/register/${patientId}`;
-        });
-    } else {
-      // Si no hay función para obtener datos, simplemente redireccionar
-      window.location.href = `/hospitalization/register/${patientId}`;
-    }
+    console.warn('⚠️ handleNewOrder está obsoleto. Usa el sistema de modales de hospitalización.');
+    toast({
+      title: 'Función obsoleta',
+      description: 'Por favor usa el botón de Hospitalización en la tabla de pacientes',
+      variant: 'default'
+    });
   };
 
   return {

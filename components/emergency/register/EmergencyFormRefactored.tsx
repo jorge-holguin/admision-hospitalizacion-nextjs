@@ -812,13 +812,6 @@ export function EmergencyFormRefactored({
           description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
           variant: "default"
         });
-        
-        // Redirigir a la lista de emergencias SOLO si no estamos en un modal
-        // Comprobación adicional para asegurar que no redirigimos desde un modal
-        if (window && window.location.pathname.includes('/emergency/register/') || 
-            window.location.pathname.includes('/emergency/view/')) {
-          router.push(`/emergency/${patientId}`);
-        }
       } else {
         // En modo modal, usar callback de éxito
         if (onSuccess) {
@@ -879,19 +872,9 @@ export function EmergencyFormRefactored({
 
   // Manejar cancelación del formulario
   const handleCancel = () => {
-    if (isModal && onBack) {
-      // En modo modal, usar el callback onBack para volver al modal anterior
+    if (onBack) {
+      // Usar el callback onBack para volver al modal anterior o cerrar
       onBack();
-    } else {
-      // Verificar si estamos en una página de emergencia antes de redirigir
-      if (window && (window.location.pathname.includes('/emergency/register/') || 
-          window.location.pathname.includes('/emergency/view/'))) {
-        // En modo página, usar router para navegar
-        router.push(`/emergency/${patientId}`);
-      } else if (onBack) {
-        // Si no estamos en una página de emergencia pero tenemos onBack, usarlo
-        onBack();
-      }
     }
   };
   
