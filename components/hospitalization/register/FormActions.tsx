@@ -167,7 +167,7 @@ export function FormActions({
             {requiresFuaValidation && hasFua && fuaId && (
               <div className="flex items-center space-x-2 mt-4 p-2 bg-green-50 text-green-800 rounded">
                 <CheckCircle2 className="h-4 w-4" />
-                <p>Cuenta SIS válida con FUA activo: <strong>{fuaId}</strong></p>
+                <p>Cuenta SIS válida: <strong>{fuaId}</strong></p>
               </div>
             )}
             

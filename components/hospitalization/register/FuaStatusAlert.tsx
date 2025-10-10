@@ -75,7 +75,7 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     }
 
     validateAccount()
-  }, [patientId, insuranceCode])
+  }, [patientId, insuranceCode, fetchPatientAccountBySeguro])
 
   // Si no se debe mostrar, no renderizar nada
   if (!shouldShow) {

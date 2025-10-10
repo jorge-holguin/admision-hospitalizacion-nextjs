@@ -28,7 +28,7 @@ interface DiagnosticoExtendido extends Diagnostico {
 }
 
 // Base API y endpoints derivados
-const API_BASE = process.env.NEXT_PUBLIC_API_CIEX_URL;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 const ENDPOINTS = {
   CIEX: `${API_BASE}/ciex`,
   DIAGNOSTICOS: `${API_BASE}/diagnosticos`,
@@ -180,10 +180,16 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
 
       let results: Diagnostico[] = [];
 
+      // ✅ Solo cargar si hay una búsqueda específica
+      if (!queryToUse) {
+        setDiagnosticos([]);
+        setAllDiagnosticos([]);
+        setLoading(false);
+        return;
+      }
+
       if (useCiexApi()) {
-        results = queryToUse
-          ? await fetchFromCiexApi(queryToUse)
-          : await fetchFromCiexApi("Z590"); // ejemplo código común
+        results = await fetchFromCiexApi(queryToUse);
       } else {
         results = isSpecificId
           ? await fetchFromDiagnosticosApi(queryToUse, true)

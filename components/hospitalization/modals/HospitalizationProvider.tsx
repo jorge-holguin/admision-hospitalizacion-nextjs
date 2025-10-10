@@ -5,6 +5,7 @@ import { SegurosProvider } from "@/contexts/SegurosContext"
 import { TiposDocumentoProvider } from "@/contexts/TiposDocumentoContext"
 import { ServerDateTimeProvider } from "@/contexts/ServerDateTimeContext"
 import { OrigenHospitalizacionProvider } from "@/contexts/OrigenHospitalizacionContext"
+import { PatientAccountProvider } from "@/contexts/PatientAccountContext"
 
 interface HospitalizationProviderProps {
   children: React.ReactNode
@@ -21,14 +22,16 @@ interface HospitalizationProviderProps {
  */
 export function HospitalizationProvider({ children }: HospitalizationProviderProps) {
   return (
-    <SegurosProvider>
-      <TiposDocumentoProvider>
-        <ServerDateTimeProvider>
-          <OrigenHospitalizacionProvider>
-            {children}
-          </OrigenHospitalizacionProvider>
-        </ServerDateTimeProvider>
-      </TiposDocumentoProvider>
-    </SegurosProvider>
+    <PatientAccountProvider>
+      <SegurosProvider>
+        <TiposDocumentoProvider>
+          <ServerDateTimeProvider>
+            <OrigenHospitalizacionProvider>
+              {children}
+            </OrigenHospitalizacionProvider>
+          </ServerDateTimeProvider>
+        </TiposDocumentoProvider>
+      </SegurosProvider>
+    </PatientAccountProvider>
   )
 }

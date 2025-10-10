@@ -137,8 +137,9 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setLoading(patientId, true);
         setError(patientId, null);
 
-        console.log(`Obteniendo cuenta activa para paciente: ${patientId} con seguro: ${tipoSeguro}`);
-        const response = await fetch(`/api/cuenta/buscar-por-seguro/${patientId}?seguro=${tipoSeguro}`);
+        console.log(`🏥 Validando cuenta para paciente: ${patientId} con seguro: ${tipoSeguro}`);
+        // ✅ Usar endpoint correcto de validación
+        const response = await fetch(`/api/cuenta/validate?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
         
         if (!response.ok) {
           // Si es un 404, no es un error crítico, simplemente no hay cuenta para ese seguro
@@ -147,13 +148,14 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
             return null;
           }
           // Para otros errores, lanzar excepción
-          throw new Error(`Error al obtener cuenta por seguro: ${response.status}`);
+          throw new Error(`Error al validar cuenta: ${response.status}`);
         }
 
         const data = await response.json();
         
-        if (data?.success && data?.cuentaId) {
-          console.log(`Cuenta encontrada para seguro ${tipoSeguro}: ${data.cuentaId}`);
+        // ✅ La API de validate devuelve: { isValid, cuentaId, fuaId, message, tipoValidacion }
+        if (data?.isValid && data?.cuentaId) {
+          console.log(`✅ Cuenta válida encontrada para seguro ${tipoSeguro}: ${data.cuentaId}`);
           const accountInfo: PatientAccountData = {
             cuentaId: data.cuentaId
           };
@@ -162,12 +164,12 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
           setAccountData(patientId, accountInfo);
           return accountInfo;
         } else {
-          console.log(`No se encontró cuenta activa para paciente ${patientId} con seguro ${tipoSeguro}`);
+          console.log(`❌ No se encontró cuenta válida para paciente ${patientId} con seguro ${tipoSeguro}`);
           return null;
         }
       } catch (err: any) {
-        console.error('Error al obtener cuenta del paciente por seguro:', err);
-        setError(patientId, err.message || 'Error al obtener cuenta del paciente por seguro');
+        console.error('Error al validar cuenta del paciente:', err);
+        setError(patientId, err.message || 'Error al validar cuenta del paciente');
         return null;
       } finally {
         setLoading(patientId, false);
