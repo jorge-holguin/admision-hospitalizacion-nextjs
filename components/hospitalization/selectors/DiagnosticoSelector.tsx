@@ -29,8 +29,10 @@ interface DiagnosticoExtendido extends Diagnostico {
 
 // Base API y endpoints derivados
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_CIEX = process.env.NEXT_PUBLIC_API_CIEX_URL;
+
 const ENDPOINTS = {
-  CIEX: `${API_BASE}/ciex`,
+  CIEX: `${API_CIEX}/ciex`, // ✅ Usar API externa de CIEX
   DIAGNOSTICOS: `${API_BASE}/diagnosticos`,
   DIAGNOSTICOS_EMERGENCIA: `${API_BASE}/diagnosticos/emergencia`
 } as const;
