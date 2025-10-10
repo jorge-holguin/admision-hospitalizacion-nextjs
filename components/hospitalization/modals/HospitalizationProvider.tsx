@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { SegurosProvider } from "@/contexts/SegurosContext"
-import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
 import { TiposDocumentoProvider } from "@/contexts/TiposDocumentoContext"
 import { ServerDateTimeProvider } from "@/contexts/ServerDateTimeContext"
 import { OrigenHospitalizacionProvider } from "@/contexts/OrigenHospitalizacionContext"
@@ -14,19 +13,22 @@ interface HospitalizationProviderProps {
 /**
  * Provider unificado que proporciona todos los contextos necesarios para hospitalización
  * Se puede usar tanto en modales como en páginas independientes
+ * 
+ * NOTA: ConsultoriosProvider NO se incluye aquí porque:
+ * - Carga automáticamente consultorios de emergencia (TIPO='E')
+ * - Los modales de hospitalización cargan consultorios de hospitalización (TIPO='H') bajo demanda
+ * - Esto evita llamadas API innecesarias
  */
 export function HospitalizationProvider({ children }: HospitalizationProviderProps) {
   return (
     <SegurosProvider>
-      <ConsultoriosProvider>
-        <TiposDocumentoProvider>
-          <ServerDateTimeProvider>
-            <OrigenHospitalizacionProvider>
-                {children}
-            </OrigenHospitalizacionProvider>
-          </ServerDateTimeProvider>
-        </TiposDocumentoProvider>
-      </ConsultoriosProvider>
+      <TiposDocumentoProvider>
+        <ServerDateTimeProvider>
+          <OrigenHospitalizacionProvider>
+            {children}
+          </OrigenHospitalizacionProvider>
+        </ServerDateTimeProvider>
+      </TiposDocumentoProvider>
     </SegurosProvider>
   )
 }

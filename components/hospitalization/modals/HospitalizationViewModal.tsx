@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ArrowLeft, Edit, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { HospitalizationViewRefactored } from "../view/HospitalizationViewRefactored"
+import { useConsultorios } from "@/contexts/ConsultoriosContext"
 
 interface HospitalizationViewModalProps {
   isOpen: boolean
@@ -35,6 +36,9 @@ export function HospitalizationViewModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+
+  // Contexto de consultorios
+  const { consultoriosHospitalizacion, loadConsultoriosHospitalizacion } = useConsultorios()
 
   // Cargar datos de la hospitalización
   const loadHospitalizationData = async () => {
@@ -85,6 +89,14 @@ export function HospitalizationViewModal({
       setLoading(false)
     }
   }
+
+  // Cargar consultorios de hospitalización cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && consultoriosHospitalizacion.length === 0) {
+      console.log('🏥 Cargando consultorios de hospitalización...')
+      loadConsultoriosHospitalizacion()
+    }
+  }, [isOpen, consultoriosHospitalizacion.length, loadConsultoriosHospitalizacion])
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {

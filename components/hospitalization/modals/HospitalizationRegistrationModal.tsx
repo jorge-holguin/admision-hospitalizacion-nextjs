@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast"
 import { HospitalizationFormRefactored } from "../register/HospitalizationFormRefactored"
 import { PatientInfoCard } from "../PatientInfoCard"
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext"
+import { useConsultorios } from "@/contexts/ConsultoriosContext"
 
 interface HospitalizationRegistrationModalProps {
   isOpen: boolean
@@ -37,6 +38,9 @@ export function HospitalizationRegistrationModal({
   const { getPatientData } = usePatientData()
   const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId)
   
+  // Contexto de consultorios
+  const { consultoriosHospitalizacion, loadConsultoriosHospitalizacion } = useConsultorios()
+  
   // Obtener datos del paciente
   const patientData = getPatientData(patientId)
 
@@ -47,6 +51,14 @@ export function HospitalizationRegistrationModal({
       fetchPatientData()
     }
   }, [isOpen, patientId, patientData, fetchPatientData])
+
+  // Cargar consultorios de hospitalización cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && consultoriosHospitalizacion.length === 0) {
+      console.log('🏥 Cargando consultorios de hospitalización...')
+      loadConsultoriosHospitalizacion()
+    }
+  }, [isOpen, consultoriosHospitalizacion.length, loadConsultoriosHospitalizacion])
 
   // Crear paciente mejorado con datos adicionales
   const enhancedPatient = patientData ? {

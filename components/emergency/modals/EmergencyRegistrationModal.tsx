@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast"
 import { EmergencyFormRefactored } from "../register/EmergencyFormRefactored"
 import { PatientInfoCardEmergency } from "../PatientInfoCardEmergency"
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext"
+import { useConsultorios } from "@/contexts/ConsultoriosContext"
 
 interface EmergencyRegistrationModalProps {
   isOpen?: boolean
@@ -43,7 +44,18 @@ export function EmergencyRegistrationModal({
   const { getPatientData } = usePatientData()
   const { fetchPatientData, isLoading: isLoadingPatientData } = useFetchPatientData(patientId)
   
+  // Contexto de consultorios
+  const { consultorios, loadConsultoriosEmergencia } = useConsultorios()
+  
   const [enhancedPatient, setEnhancedPatient] = useState<any>(null)
+
+  // Cargar consultorios de emergencia cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && consultorios.length === 0) {
+      console.log('🏥 Cargando consultorios de emergencia...')
+      loadConsultoriosEmergencia()
+    }
+  }, [isOpen, consultorios.length, loadConsultoriosEmergencia])
 
   // Cargar datos del paciente desde PatientDataContext
   useEffect(() => {

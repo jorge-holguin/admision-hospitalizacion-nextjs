@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { HospitalizationProvider } from "./HospitalizationProvider"
+import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
 import { HospitalizationMainModal } from './HospitalizationMainModal'
 
 interface HospitalizationModalProviderProps {
@@ -14,6 +15,10 @@ interface HospitalizationModalProviderProps {
 /**
  * Wrapper que proporciona todos los contextos necesarios para los modales de hospitalización
  * Solo carga los contextos cuando el modal está abierto para evitar llamadas API innecesarias
+ * 
+ * NOTA: ConsultoriosProvider se incluye aquí para que esté disponible,
+ * pero los consultorios de hospitalización (TIPO='H') se cargan bajo demanda
+ * en cada modal que los necesite
  */
 export function HospitalizationModalProvider({
   isOpen,
@@ -34,13 +39,15 @@ export function HospitalizationModalProvider({
   }
 
   return (
-    <HospitalizationProvider>
-      <HospitalizationMainModal
-        isOpen={isOpen}
-        onClose={onClose}
-        patientId={patientId}
-        patientName={patientName}
-      />
-    </HospitalizationProvider>
+    <ConsultoriosProvider>
+      <HospitalizationProvider>
+        <HospitalizationMainModal
+          isOpen={isOpen}
+          onClose={onClose}
+          patientId={patientId}
+          patientName={patientName}
+        />
+      </HospitalizationProvider>
+    </ConsultoriosProvider>
   )
 }

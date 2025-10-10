@@ -29,17 +29,13 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   
-  // Usar el contexto de consultorios en lugar de llamada directa a la API
-  const { consultorios, loading } = useConsultorios();
+  // Usar consultorios de HOSPITALIZACIÓN (TIPO='H') en lugar de emergencia
+  const { consultoriosHospitalizacion, loadingHospitalizacion } = useConsultorios();
   
-  console.log('🏥 ConsultorioSelector: Usando contexto, consultorios disponibles:', consultorios?.length || 0);
-
-  const selectedConsultorio = consultorios.find(consultorio => 
-    value === `${consultorio.CONSULTORIO} - ${consultorio.NOMBRE}`
-  );
+  console.log('🏥 ConsultorioSelector (Hospitalización): Consultorios disponibles:', consultoriosHospitalizacion?.length || 0);
 
   const handleSelect = (selectedValue: string) => {
-    const selected = consultorios.find(consultorio => 
+    const selected = consultoriosHospitalizacion.find(consultorio => 
       selectedValue === `${consultorio.CONSULTORIO} - ${consultorio.NOMBRE}`
     );
     onChange(selectedValue, selected);
@@ -70,7 +66,7 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
             <CommandInput placeholder="Buscar consultorio..." />
             <CommandList>
               <CommandEmpty>
-                {loading ? (
+                {loadingHospitalizacion ? (
                   <div className="flex items-center justify-center p-4">
                     <Spinner size="sm" />
                     <span className="ml-2">Cargando...</span>
@@ -80,7 +76,7 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
                 )}
               </CommandEmpty>
               <CommandGroup>
-                {consultorios.map((consultorio) => {
+                {consultoriosHospitalizacion.map((consultorio) => {
                   const consultorioValue = `${consultorio.CONSULTORIO} - ${consultorio.NOMBRE}`;
                   return (
                     <CommandItem

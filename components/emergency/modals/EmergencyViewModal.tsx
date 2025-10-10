@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import EmergencySectionView from '@/components/emergency/view/EmergencySectionView'
 import { resolveStatus } from '@/utils/statusUtils'
 import { toast } from "@/components/ui/use-toast"
+import { useConsultorios } from "@/contexts/ConsultoriosContext"
 
 interface EmergencyViewModalProps {
   isOpen: boolean
@@ -41,6 +42,17 @@ export function EmergencyViewModal({
     isReadOnly: boolean;
     statusText: string;
   }>({ isReadOnly: mode !== 'edit', statusText: 'Cargando...' })
+
+  // Contexto de consultorios
+  const { consultorios, loadConsultoriosEmergencia } = useConsultorios()
+
+  // Cargar consultorios de emergencia cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && consultorios.length === 0) {
+      console.log('🏥 Cargando consultorios de emergencia...')
+      loadConsultoriosEmergencia()
+    }
+  }, [isOpen, consultorios.length, loadConsultoriosEmergencia])
 
   // Fetch emergency data
   useEffect(() => {
