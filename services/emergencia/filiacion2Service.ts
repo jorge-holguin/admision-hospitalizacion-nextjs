@@ -76,6 +76,7 @@ export interface Filiacion {
   LOCALIDAD: string;
   TELEFONO2: string;
   SEGURO: string;
+  Expr2: string;
   // Código de ubigeo del distrito
   COD_DISTRITO: string;
   // Campos adicionales para debugging
@@ -356,11 +357,18 @@ export const filiacionService = {
           }
         );
         
+        // Mapear Expr2 a COD_DISTRITO si existe
+        if (record.Expr2 !== undefined && !record.COD_DISTRITO) {
+          console.log(' Mapeando Expr2 a COD_DISTRITO:', record.Expr2);
+          record.COD_DISTRITO = record.Expr2;
+        }
+        
         // Log específico para el campo COD_DISTRITO (ubigeo)
         if (record.COD_DISTRITO !== undefined) {
           console.log('Valor de COD_DISTRITO (ubigeo):', record.COD_DISTRITO, 'Tipo:', typeof record.COD_DISTRITO);
         } else {
           console.log('Campo COD_DISTRITO (ubigeo) no encontrado en el registro');
+          console.log(' Verificar si existe Expr2:', record.Expr2);
         }
         
         // Log de todos los campos disponibles en el registro

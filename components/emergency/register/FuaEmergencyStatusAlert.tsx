@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { usePatientAccount } from "@/contexts/PatientAccountContext"
+import { useEmergencyAccount } from "@/contexts/EmergencyAccountContext"
 
 interface AccountEmergencyStatusAlertProps {
   patientId: string
@@ -26,8 +26,8 @@ export default function FuaEmergencyStatusAlert({
 
   const requiredSisInsuranceCodes = ["20", "21", "22", "23", "24", "25"]
 
-  // Usar el contexto de cuentas de pacientes
-  const { fetchPatientAccount, isLoading: isLoadingAccountState, errors } = usePatientAccount()
+  // Usar el contexto de cuentas de emergencia
+  const { fetchEmergencyAccount, isLoading: isLoadingAccountState } = useEmergencyAccount()
 
   useEffect(() => {
     // Evitar ejecuciones múltiples
@@ -42,14 +42,14 @@ export default function FuaEmergencyStatusAlert({
     }
 
     // Solo ejecutar la validación de cuenta para seguros SIS (20-25)
-    console.log(`Ejecutando validación de cuenta para seguro SIS: ${code}`)
+    console.log(`🚨 [EMERGENCIA] Ejecutando validación de cuenta para seguro SIS: ${code}`)
     hasExecutedRef.current = true
 
     const checkAccount = async () => {
       try {
         setLoading(true)
-        // Verificar cuenta usando el contexto
-        const accountData = await fetchPatientAccount(patientId)
+        // Verificar cuenta usando el contexto de emergencia con el endpoint buscar-por-seguro
+        const accountData = await fetchEmergencyAccount(patientId, code)
         
         if (!accountData?.cuentaId) {
           setError("No se encontró una cuenta activa para este paciente.")
@@ -60,7 +60,7 @@ export default function FuaEmergencyStatusAlert({
         setAccountId(accountData.cuentaId)
         onValidationChange?.(true)
       } catch (error) {
-        console.error("Error en validación de cuenta:", error)
+        console.error("❌ [EMERGENCIA] Error en validación de cuenta:", error)
         setError("Error al verificar el estado de la cuenta.")
         onValidationChange?.(false)
       } finally {
@@ -69,7 +69,7 @@ export default function FuaEmergencyStatusAlert({
     }
 
     checkAccount()
-  }, [patientId, insuranceCode, fetchPatientAccount]) // Agregado fetchPatientAccount a las dependencias
+  }, [patientId, insuranceCode, fetchEmergencyAccount, onValidationChange])
 
   // Si no aplica validación, no renderizar nada
   if (!requiredSisInsuranceCodes.includes(insuranceCode?.trim() || "")) {

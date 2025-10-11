@@ -5,6 +5,7 @@ import { LoadingProvider } from '@/components/LoadingProvider'
 import { HideDebugger } from '@/components/HideDebugger'
 import { PatientProvider } from '@/contexts/PatientContext'
 import { PatientAccountProvider } from '@/contexts/PatientAccountContext'
+import { EmergencyAccountProvider } from '@/contexts/EmergencyAccountContext'
 import { PatientDataProvider } from '@/contexts/PatientDataContext'
 
 export const metadata: Metadata = {
@@ -25,10 +26,12 @@ export default function RootLayout({
           <LoadingProvider>
             <PatientDataProvider>
               <PatientAccountProvider>
-                <PatientProvider>
-                  <HideDebugger />
-                  {children}
-                </PatientProvider>
+                <EmergencyAccountProvider>
+                  <PatientProvider>
+                    <HideDebugger />
+                    {children}
+                  </PatientProvider>
+                </EmergencyAccountProvider>
               </PatientAccountProvider>
             </PatientDataProvider>
           </LoadingProvider>

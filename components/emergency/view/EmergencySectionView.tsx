@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
-import { usePatientAccount } from "@/contexts/PatientAccountContext";
+import { useEmergencyAccount } from "@/contexts/EmergencyAccountContext";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,8 +53,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   const { getPatientData } = usePatientData();
   const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId);
   
-  // Usar el contexto de cuenta del paciente
-  const { fetchPatientAccountBySeguro } = usePatientAccount();
+  // Usar el contexto de cuenta de emergencia
+  const { fetchEmergencyAccount } = useEmergencyAccount();
 
   // ===== Estados locales =====
   const [isSaving, setIsSaving] = useState(false);
@@ -421,12 +421,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     // Si se cambió el tipo de seguro, buscar cuenta correspondiente usando el contexto
     if (field === 'seguroLiq' && value && initialData?.PACIENTE) {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Cambio de seguro detectado - Paciente: ${initialData.PACIENTE}, Nuevo valor: ${value}`);
+        console.log(`🚨 [EMERGENCIA] Cambio de seguro detectado - Paciente: ${initialData.PACIENTE}, Nuevo valor: ${value}`);
       }
       
       try {
-        // Usar el contexto para buscar la cuenta por tipo de seguro
-        const accountData = await fetchPatientAccountBySeguro(initialData.PACIENTE, value);
+        // Usar el contexto de emergencia para buscar la cuenta por tipo de seguro
+        const accountData = await fetchEmergencyAccount(initialData.PACIENTE, value);
         
         if (accountData && accountData.cuentaId) {
           if (process.env.NODE_ENV === 'development') {

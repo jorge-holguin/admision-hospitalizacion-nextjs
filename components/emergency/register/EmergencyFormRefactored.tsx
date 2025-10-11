@@ -7,7 +7,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import AlertPortal from "@/components/ui/alert-portal"
-import { usePatientAccount } from '@/contexts/PatientAccountContext'
+import { useEmergencyAccount } from '@/contexts/EmergencyAccountContext'
 import { useSeguros } from '@/contexts/SegurosContext'
 import { useMedicos } from '@/contexts/MedicosContext'
 import { useConsultorios } from '@/contexts/ConsultoriosContext'
@@ -465,8 +465,8 @@ export function EmergencyFormRefactored({
   };
 
 
-  // Usar el contexto de cuentas de pacientes
-  const { fetchPatientAccount, fetchPatientAccountBySeguro, isLoading: isLoadingAccountState } = usePatientAccount();
+  // Usar el contexto de cuentas de emergencia
+  const { fetchEmergencyAccount, isLoading: isLoadingAccountState } = useEmergencyAccount();
   // Convertir el estado de carga de objeto a booleano
   const isLoadingAccount = patientId ? isLoadingAccountState[patientId] || false : false;
 
@@ -524,10 +524,12 @@ export function EmergencyFormRefactored({
       }
 
       // Obtener la cuenta activa del paciente si no la tenemos
-      if (!cuentaIdToUse) {
-        const accountData = await fetchPatientAccount(patientId);
+      // Para emergencias, necesitamos el tipo de seguro
+      if (!cuentaIdToUse && formData.seguro) {
+        console.log('🚨 [EMERGENCIA] Obteniendo cuenta con seguro:', formData.seguro);
+        const accountData = await fetchEmergencyAccount(patientId, formData.seguro);
         cuentaIdToUse = accountData?.cuentaId || '';
-        console.log('Cuenta obtenida para el paciente:', cuentaIdToUse);
+        console.log('🚨 [EMERGENCIA] Cuenta obtenida para el paciente:', cuentaIdToUse);
       }
       
       // Obtener datos de filiación del contexto (ya cargados previamente)
@@ -539,6 +541,7 @@ export function EmergencyFormRefactored({
         // Actualizar el formulario con los datos de filiación
         setFormData(prev => {
           console.log('Actualizando formulario con datos de filiación:', filiacionData);
+          console.log('📍 [DEBUG] COD_DISTRITO desde filiación:', filiacionData.COD_DISTRITO);
           return {
             ...prev,
             emergenciaId: emergencyIdToUse,
@@ -649,7 +652,13 @@ export function EmergencyFormRefactored({
         ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100), // Limitar a 100 caracteres
         // Usar el valor de ubigeo (COD_DISTRITO) para el distrito
-        DISTRITO: (filiacionData?.COD_DISTRITO || '').trim().substring(0, 7), // Limitar a 7 caracteres
+        DISTRITO: (() => {
+          // Priorizar COD_DISTRITO sobre distrito
+          const codigoDistrito = filiacionData?.COD_DISTRITO || formData.COD_DISTRITO || '';
+          const distrito = codigoDistrito.trim().substring(0, 7);
+          console.log('📍 [DEBUG SQL] DISTRITO a enviar:', `"${distrito}"`, '| COD_DISTRITO filiacion:', filiacionData?.COD_DISTRITO, '| COD_DISTRITO formData:', formData.COD_DISTRITO);
+          return distrito;
+        })(), // Limitar a 7 caracteres
         TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20), // Limitar a 20 caracteres
         TELEFONO2: (filiacionData?.telefono2 || formData.telefono2 || '').substring(0, 20), // Limitar a 20 caracteres
         ACOMPANANTE: (formData.acompanante || '').substring(0, 100), // Limitar a 100 caracteres
@@ -945,20 +954,8 @@ export function EmergencyFormRefactored({
     setLoading(false);
   }, [emergencyData]);
   
-  // Cargar cuenta del paciente al iniciar
-  useEffect(() => {
-    if (patientId && !cuentaId) {
-      const loadAccount = async () => {
-        const accountData = await fetchPatientAccount(patientId);
-        if (accountData?.cuentaId) {
-          setCuentaId(accountData.cuentaId);
-        } else {
-          setCuentaId(null);
-        }
-      };
-      loadAccount();
-    }
-  }, [patientId, fetchPatientAccount, cuentaId]);
+  // NOTA: La carga de cuenta ahora se maneja en FormHeaderEmergency para evitar duplicados
+  // Este useEffect se ha eliminado para prevenir llamadas duplicadas a la API
 
   return (
     <form id="emergency-form" onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
@@ -1016,6 +1013,7 @@ export function EmergencyFormRefactored({
                 validationErrors={validationErrors}
                 patientId={patientId}
                 onFormChange={handleFormChange}
+                insuranceCode={insuranceCode}
                 cuentaId={cuentaId || formData.cuentaId}
                 loadingCuenta={isLoadingAccount}
               />
@@ -1082,51 +1080,8 @@ export function EmergencyFormRefactored({
                     setInsuranceCode(seguroCode);
                     console.log('Código de seguro actualizado desde selector:', seguroCode);
                     
-                    // Buscar cuenta por tipo de seguro si tenemos un paciente
-                    if (patientId) {
-                      try {
-                        console.log(`=== CAMBIO DE SEGURO DETECTADO EN REGISTRO ===`);
-                        console.log(`Seguro: ${seguroCode}, Paciente: ${patientId}`);
-                        
-                        const accountData = await fetchPatientAccountBySeguro(patientId, seguroCode);
-                        
-                        if (accountData && accountData.cuentaId) {
-                          console.log(`Cuenta encontrada: ${accountData.cuentaId}`);
-                          // Actualizar tanto cuentaId como numeroCuenta en el formulario
-                          setFormData(prev => ({
-                            ...prev,
-                            cuentaId: accountData.cuentaId,
-                            numeroCuenta: accountData.cuentaId,
-                          }));
-                          
-                          toast({
-                            title: 'Cuenta actualizada',
-                            description: `Se encontró y asignó la cuenta ${accountData.cuentaId} para el tipo de seguro seleccionado`,
-                          });
-                        } else {
-                          console.log(`No se encontró cuenta para el seguro ${seguroCode}`);
-                          // Limpiar tanto cuentaId como numeroCuenta si no se encuentra cuenta
-                          setFormData(prev => ({
-                            ...prev,
-                            cuentaId: '',
-                            numeroCuenta: '',
-                          }));
-                          
-                          toast({
-                            title: 'Cuenta no encontrada',
-                            description: `No se encontró una cuenta activa para el tipo de seguro seleccionado. Se creará una nueva cuenta al guardar.`,
-                            variant: 'destructive',
-                          });
-                        }
-                      } catch (error) {
-                        console.error('Error al buscar cuenta por seguro:', error);
-                        toast({
-                          title: 'Error',
-                          description: 'Error al buscar cuenta por tipo de seguro',
-                          variant: 'destructive',
-                        });
-                      }
-                    }
+                    // NOTA: La búsqueda de cuenta ahora se maneja automáticamente en FormHeaderEmergency
+                    // cuando cambia insuranceCode, para evitar llamadas duplicadas a la API
                   }
                 }}
                 onDiagnosticoChange={(value: string, diagnosticoData: any) => {

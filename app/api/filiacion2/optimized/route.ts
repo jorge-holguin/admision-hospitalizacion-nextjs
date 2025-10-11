@@ -54,7 +54,8 @@ export async function GET(
         Nombre_Localidad,
         Distrito_Dir,
         SEGURO,
-        STRING_FOTO
+        STRING_FOTO,
+        Expr2
       FROM V_FILIACION2
       WHERE PACIENTE = ${id}
     `;
@@ -93,7 +94,8 @@ export async function GET(
       descreligion: filiacionData.DESRELIGION,
       localidad: filiacionData.LOCALIDAD,
       nombreLocalidad: filiacionData.Nombre_Localidad,
-      photo: filiacionData.STRING_FOTO
+      photo: filiacionData.STRING_FOTO,
+      COD_DISTRITO: filiacionData.Expr2 ? filiacionData.Expr2.trim() : ''
     };
 
     return NextResponse.json(mappedData);

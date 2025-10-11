@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from "@/components/ui/spinner";
-import { usePatientAccount } from '@/contexts/PatientAccountContext';
+import { useEmergencyAccount } from '@/contexts/EmergencyAccountContext';
 
 interface FormHeaderEmergencyProps {
   fecha: string;
@@ -37,40 +37,77 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
   emergencyCuentaId,
   isViewMode = false
 }) => {
-  // Usar el contexto para obtener datos de la cuenta del paciente
-  const { getAccountData, isLoading } = usePatientAccount();
+  // Usar el contexto de emergencia para obtener datos de la cuenta del paciente
+  const { isLoading, fetchEmergencyAccount } = useEmergencyAccount();
   
   // Estado local para el ID de cuenta a mostrar
   const [displayCuentaId, setDisplayCuentaId] = useState<string>("No disponible");
+  const [isLoadingLocal, setIsLoadingLocal] = useState(false);
   
-  // Actualizar displayCuentaId cuando cambian las props o el contexto
+  // Ref para evitar múltiples llamadas
+  const lastFetchRef = useRef<string>('');
+  const isFetchingRef = useRef(false);
+  
+  // Buscar cuenta cuando cambia el tipo de seguro
   useEffect(() => {
-    // Determinar qué ID de cuenta mostrar con el siguiente orden de prioridad:
-    // 1. cuentaId proporcionado directamente por props (mayor prioridad)
-    // 2. emergencyCuentaId si estamos en modo vista y no hay cuentaId
-    // 3. accountData.cuentaId del contexto
-    // 4. "No disponible" si ninguno está disponible
-    const accountDataFromContext = patientId ? getAccountData(patientId) : null;
+    if (!patientId || !insuranceCode || isViewMode) return;
     
-    let newDisplayCuentaId = "No disponible";
+    // Crear clave única para esta combinación
+    const fetchKey = `${patientId}_${insuranceCode}`;
     
-    if (cuentaId) {
-      // Si hay cuentaId, usarlo (puede ser un número o "No disponible")
-      newDisplayCuentaId = cuentaId;
-    } else if (isViewMode && emergencyCuentaId) {
-      // Si estamos en modo vista y hay emergencyCuentaId, usarlo
-      newDisplayCuentaId = emergencyCuentaId;
-    } else if (accountDataFromContext?.cuentaId) {
-      // Si hay datos del contexto, usarlos
-      newDisplayCuentaId = accountDataFromContext.cuentaId;
+    // Si ya se buscó esta combinación o está en proceso, no hacer nada
+    if (lastFetchRef.current === fetchKey || isFetchingRef.current) {
+      console.log(`⏭️ [FormHeaderEmergency] Saltando búsqueda duplicada para ${fetchKey}`);
+      return;
     }
     
-    console.log(`FormHeaderEmergency: Actualizando displayCuentaId a ${newDisplayCuentaId} (cuentaId: ${cuentaId}, emergencyCuentaId: ${emergencyCuentaId})`); 
-    setDisplayCuentaId(newDisplayCuentaId);
-  }, [cuentaId, emergencyCuentaId, isViewMode, patientId, getAccountData]);
+    const loadAccount = async () => {
+      try {
+        isFetchingRef.current = true;
+        lastFetchRef.current = fetchKey;
+        setIsLoadingLocal(true);
+        console.log(`🚨 [FormHeaderEmergency] Buscando cuenta para paciente ${patientId} con seguro ${insuranceCode}`);
+        
+        const accountData = await fetchEmergencyAccount(patientId, insuranceCode);
+        
+        if (accountData?.cuentaId) {
+          console.log(`✅ [FormHeaderEmergency] Cuenta encontrada: ${accountData.cuentaId}`);
+          setDisplayCuentaId(accountData.cuentaId);
+          
+          // Notificar al formulario padre sobre la cuenta encontrada SOLO UNA VEZ
+          if (onFormChange) {
+            onFormChange('cuentaId', accountData.cuentaId);
+            onFormChange('numeroCuenta', accountData.cuentaId);
+          }
+        } else {
+          console.log(`❌ [FormHeaderEmergency] No se encontró cuenta`);
+          setDisplayCuentaId("No disponible");
+        }
+      } catch (error) {
+        console.error('Error al buscar cuenta:', error);
+        setDisplayCuentaId("No disponible");
+      } finally {
+        setIsLoadingLocal(false);
+        isFetchingRef.current = false;
+      }
+    };
+    
+    loadAccount();
+  }, [patientId, insuranceCode, isViewMode]);
+  
+  // Actualizar displayCuentaId cuando cambian las props directas
+  useEffect(() => {
+    if (cuentaId) {
+      console.log(`🚨 [FormHeaderEmergency] Actualizando con cuentaId desde props: ${cuentaId}`);
+      setDisplayCuentaId(cuentaId);
+    } else if (isViewMode && emergencyCuentaId) {
+      console.log(`🚨 [FormHeaderEmergency] Actualizando con emergencyCuentaId: ${emergencyCuentaId}`);
+      setDisplayCuentaId(emergencyCuentaId);
+    }
+  }, [cuentaId, emergencyCuentaId, isViewMode]);
   
   // Determinar si estamos cargando la cuenta
-  const isLoadingCuentaId = loadingCuenta || (!cuentaId && !emergencyCuentaId && patientId && isLoading[patientId]);
+  const isLoadingCuentaId = loadingCuenta || isLoadingLocal || (!cuentaId && !emergencyCuentaId && patientId && isLoading[patientId]);
   return (
       <div className="mb-6 pt-6">
         <h3 className="text-lg font-semibold mb-4">Información de la Emergencia</h3>

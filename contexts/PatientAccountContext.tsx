@@ -57,7 +57,7 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
     }));
   };
 
-  // Función para obtener la cuenta del paciente
+  // Función para obtener la cuenta del paciente (SOLO PARA HOSPITALIZACIÓN)
   const fetchPatientAccount = useCallback(async (patientId: string): Promise<PatientAccountData | null> => {
     if (!patientId) return null;
     
@@ -80,7 +80,7 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setLoading(patientId, true);
         setError(patientId, null);
 
-        console.log(`Obteniendo cuenta activa para paciente: ${patientId}`);
+        console.log(`🏥 [HOSPITALIZACIÓN] Obteniendo cuenta activa para paciente: ${patientId}`);
         const response = await fetch(`/api/cuenta/${patientId}`);
         
         if (!response.ok) {
@@ -90,7 +90,7 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         const data = await response.json();
         
         if (data?.success && data?.data?.cuentaId) {
-          console.log(`Cuenta encontrada: ${data.data.cuentaId}`);
+          console.log(`✅ [HOSPITALIZACIÓN] Cuenta encontrada: ${data.data.cuentaId}`);
           const accountInfo: PatientAccountData = {
             cuentaId: data.data.cuentaId
           };
@@ -98,12 +98,12 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
           setAccountData(patientId, accountInfo);
           return accountInfo;
         } else {
-          console.log(`No se encontró cuenta activa para paciente ${patientId}`);
+          console.log(`❌ [HOSPITALIZACIÓN] No se encontró cuenta activa para paciente ${patientId}`);
           setAccountData(patientId, null);
           return null;
         }
       } catch (err: any) {
-        console.error('Error al obtener cuenta del paciente:', err);
+        console.error('❌ [HOSPITALIZACIÓN] Error al obtener cuenta del paciente:', err);
         setError(patientId, err.message || 'Error al obtener cuenta del paciente');
         setAccountData(patientId, null);
         return null;
