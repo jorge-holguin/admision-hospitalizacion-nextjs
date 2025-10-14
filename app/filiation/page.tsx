@@ -452,13 +452,13 @@ export default function FiliationPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Búsqueda de Pacientes</span>
-              {/* <Button
+              <Button
                 onClick={handleNewPatientClick}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Nuevo Paciente
-              </Button> */}
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>

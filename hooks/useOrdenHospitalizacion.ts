@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { OrdenHospitalizacion } from '@/services/hospitalizacion/ordenHospitalizacionService';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -56,7 +56,7 @@ export function useOrdenHospitalizacion({
 
     try {
       // Usar la API principal con paginación en lugar de la API específica de paciente
-      const apiUrl = `/api/hospitalization?page=${pagination.page}&pageSize=${pagination.pageSize}&pacienteId=${debouncedPacienteId}`;
+      const apiUrl = `/api/hospitalization/hospitalization-order?page=${pagination.page}&pageSize=${pagination.pageSize}&pacienteId=${debouncedPacienteId}`;
 
       const response = await fetch(apiUrl);
 

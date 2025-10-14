@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -26,6 +26,7 @@ interface HospitalizationViewProps {
   readOnly?: boolean;
   onSave?: (data: any) => void;
   onError?: (error: string) => void;
+  onCancel?: () => void;
 }
 
 export function HospitalizationViewRefactored({ 
@@ -33,7 +34,8 @@ export function HospitalizationViewRefactored({
   initialData, 
   readOnly = false,
   onSave,
-  onError 
+  onError,
+  onCancel
 }: HospitalizationViewProps) {
   const router = useRouter();
   const { patientData, setPatientData } = usePatient();
@@ -389,7 +391,11 @@ export function HospitalizationViewRefactored({
 
   // Función para manejar el botón "Volver"
   const handleGoBack = () => {
-    router.back();
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.back();
+    }
   };
 
   // Mostrar spinner mientras carga

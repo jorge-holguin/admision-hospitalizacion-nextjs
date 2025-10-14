@@ -23,16 +23,21 @@ import {
 
 // Interfaces basadas en la página existente
 interface OrdenHospitalizacion {
-  idHOSPITALIZACION: string
+  idHOSPITALIZACION?: string  // De la vista V_HOSPITALIZA
+  IDHOSPITALIZACION?: string  // De la tabla HOSPITALIZA
   PACIENTE: string
   NOMBRES?: string
-  HISTORIA: string
-  CONSULNOMBRE: string
-  MEDICONOMBRE?: string
-  FECHA1: string
+  HISTORIA?: string
+  CONSULNOMBRE?: string       // De la vista V_HOSPITALIZA
+  CONSULTORIO1?: string       // De la tabla HOSPITALIZA
+  MEDICONOMBRE?: string       // De la vista V_HOSPITALIZA
+  MEDICO1?: string            // De la tabla HOSPITALIZA
+  FECHA1: string | Date       // Puede venir como string o Date
   HORA1: string
-  ORIGENOMBRE: string
-  SEGURONOMBRE: string
+  ORIGENOMBRE?: string        // De la vista V_HOSPITALIZA
+  ORIGEN?: string             // De la tabla HOSPITALIZA
+  SEGURONOMBRE?: string       // De la vista V_HOSPITALIZA
+  SEGURO?: string             // De la tabla HOSPITALIZA
   CUENTAID?: string
   ESTADO: string
   [key: string]: any
@@ -109,6 +114,11 @@ export function HospitalizationListModal({
     }
   }, [isOpen, patientId, setPacienteId, patientData])
 
+  // Función para obtener el ID de hospitalización (soporta ambos formatos)
+  const getHospitalizacionId = (orden: OrdenHospitalizacion): string => {
+    return orden.idHOSPITALIZACION || orden.IDHOSPITALIZACION || ''
+  }
+
   // Función para verificar si una orden es editable
   const isOrdenEditable = (hospitalizacionId: string): boolean => {
     const estado = hospitalizacionesEstado[hospitalizacionId]
@@ -119,12 +129,17 @@ export function HospitalizationListModal({
   const filteredOrdenes = ordenesHospitalizacion.filter(orden => {
     if (!searchTerm) return true
     const searchLower = searchTerm.toLowerCase()
+    const hospitalizacionId = getHospitalizacionId(orden)
     return (
       orden.CONSULNOMBRE?.toLowerCase().includes(searchLower) ||
+      orden.CONSULTORIO1?.toLowerCase().includes(searchLower) ||
       orden.MEDICONOMBRE?.toLowerCase().includes(searchLower) ||
+      orden.MEDICO1?.toLowerCase().includes(searchLower) ||
       orden.ORIGENOMBRE?.toLowerCase().includes(searchLower) ||
+      orden.ORIGEN?.toLowerCase().includes(searchLower) ||
       orden.SEGURONOMBRE?.toLowerCase().includes(searchLower) ||
-      orden.idHOSPITALIZACION?.toLowerCase().includes(searchLower)
+      orden.SEGURO?.toLowerCase().includes(searchLower) ||
+      hospitalizacionId?.toLowerCase().includes(searchLower)
     )
   })
 
@@ -134,13 +149,13 @@ export function HospitalizationListModal({
 
   const handleViewOrder = (hospitalizacionId: string) => {
     // Encontrar los datos de la hospitalización
-    const hospitalizationData = ordenesHospitalizacion.find(orden => orden.idHOSPITALIZACION === hospitalizacionId)
+    const hospitalizationData = ordenesHospitalizacion.find(orden => getHospitalizacionId(orden) === hospitalizacionId)
     onView(hospitalizacionId, hospitalizationData)
   }
 
   const handleEditOrder = (hospitalizacionId: string) => {
     // Encontrar los datos de la hospitalización
-    const hospitalizationData = ordenesHospitalizacion.find(orden => orden.idHOSPITALIZACION === hospitalizacionId)
+    const hospitalizationData = ordenesHospitalizacion.find(orden => getHospitalizacionId(orden) === hospitalizacionId)
     onEdit(hospitalizacionId, hospitalizationData)
   }
 
@@ -246,10 +261,11 @@ export function HospitalizationListModal({
                   <TableBody>
                     {filteredOrdenes.map((orden, index) => {
                       const isDeleted = orden.ESTADO === '0'
+                      const hospitalizacionId = getHospitalizacionId(orden)
                       
                       return (
                         <TableRow
-                          key={orden.idHOSPITALIZACION || `orden-${index}`}
+                          key={hospitalizacionId || `orden-${index}`}
                           className={`transition-colors ${isDeleted ? 'bg-gray-100 opacity-70' : 'hover:bg-blue-50'}`}
                         >
                           <TableCell>
@@ -264,13 +280,13 @@ export function HospitalizationListModal({
                             )}
                           </TableCell>
                           <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-800'}`}>
-                            {orden.idHOSPITALIZACION}
+                            {hospitalizacionId}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {orden.CONSULNOMBRE}
+                            {orden.CONSULNOMBRE || orden.CONSULTORIO1 || 'No especificado'}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {orden.MEDICONOMBRE || 'No especificado'}
+                            {orden.MEDICONOMBRE || orden.MEDICO1 || 'No especificado'}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
                             <div className="flex flex-col">
@@ -279,10 +295,10 @@ export function HospitalizationListModal({
                             </div>
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {orden.ORIGENOMBRE}
+                            {orden.ORIGENOMBRE || orden.ORIGEN || 'No especificado'}
                           </TableCell>
                           <TableCell className={isDeleted ? 'text-gray-500' : ''}>
-                            {orden.SEGURONOMBRE}
+                            {orden.SEGURONOMBRE || orden.SEGURO || 'No especificado'}
                           </TableCell>
                           <TableCell>
                             <span className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-700'}`}>
@@ -296,7 +312,7 @@ export function HospitalizationListModal({
                                 size="sm"
                                 variant="outline"
                                 className="bg-white hover:bg-blue-50 border-blue-200"
-                                onClick={() => handleViewOrder(orden.idHOSPITALIZACION)}
+                                onClick={() => handleViewOrder(hospitalizacionId)}
                                 disabled={isDeleted}
                                 title="Ver hospitalización"
                               >
@@ -307,8 +323,8 @@ export function HospitalizationListModal({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleEditOrder(orden.idHOSPITALIZACION)}
-                                disabled={isDeleted || !isOrdenEditable(orden.idHOSPITALIZACION)}
+                                onClick={() => handleEditOrder(hospitalizacionId)}
+                                disabled={isDeleted || !isOrdenEditable(hospitalizacionId)}
                                 title="Editar hospitalización"
                               >
                                 <Edit className="w-4 h-4" />
@@ -331,21 +347,21 @@ export function HospitalizationListModal({
                                 <DropdownMenuContent align="end" className="w-64 p-2">
                                   <DropdownMenuItem
                                     className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                    onClick={() => handlePrintOrder(orden.idHOSPITALIZACION, 'filiacion')}
+                                    onClick={() => handlePrintOrder(hospitalizacionId, 'filiacion')}
                                   >
                                     <FileText className="w-4 h-4 text-blue-600" />
                                     <span>Hoja Filiación</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                    onClick={() => handlePrintOrder(orden.idHOSPITALIZACION, 'orden-consentimiento')}
+                                    onClick={() => handlePrintOrder(hospitalizacionId, 'orden-consentimiento')}
                                   >
                                     <ClipboardList className="w-4 h-4 text-green-600" />
                                     <span>Orden + Consentimiento</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
-                                    onClick={() => handlePrintOrder(orden.idHOSPITALIZACION, 'consentimiento-docencia')}
+                                    onClick={() => handlePrintOrder(hospitalizacionId, 'consentimiento-docencia')}
                                   >
                                     <GraduationCap className="w-4 h-4 text-amber-600" />
                                     <span>Consentimiento Docencia</span>
@@ -357,12 +373,9 @@ export function HospitalizationListModal({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600 hover:bg-red-50 bg-transparent"
-                                onClick={() => {
-                                  const pacienteName = orden.NOMBRES || patientName || patientId
-                                  handleDeleteOrder(orden.idHOSPITALIZACION, pacienteName)
-                                }}
-                                disabled={isDeleted || !isOrdenEditable(orden.idHOSPITALIZACION)}
+                                className="text-red-600 hover:bg-red-50 border-red-200"
+                                onClick={() => handleDeleteOrder(hospitalizacionId, orden.NOMBRES || 'Sin nombre')}
+                                disabled={isDeleted}
                                 title="Eliminar hospitalización"
                               >
                                 <Trash2 className="w-4 h-4" />

@@ -103,3 +103,111 @@ export async function PUT(
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// PATCH /api/hospitaliza/[id] - Actualizar campos específicos de una hospitalización
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = params.id;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Se requiere el ID de la hospitalización' },
+        { status: 400 }
+      );
+    }
+    
+    // Obtener los datos del cuerpo de la solicitud
+    const body = await request.json();
+    console.log(`Actualizando hospitalización ${id} con datos:`, body);
+    
+    // Verificar si se está actualizando el CUENTAID
+    if (body.CUENTAID) {
+      console.log(`Actualizando CUENTAID a ${body.CUENTAID} para hospitalización ${id}`);
+      
+      // Actualizar el registro usando SQL raw para evitar problemas con SQL Server 2008 R2
+      await prisma.$executeRaw`
+        UPDATE HOSPITALIZA 
+        SET CUENTAID = ${body.CUENTAID}
+        WHERE IDHOSPITALIZACION = ${id}
+      `;
+      
+      // Revalidar la ruta para actualizar la UI
+      revalidatePath('/hospitalization/orders');
+      
+      return NextResponse.json({ 
+        success: true, 
+        message: `CUENTAID actualizado correctamente para hospitalización ${id}` 
+      });
+    }
+    
+    return NextResponse.json(
+      { error: 'No se especificaron campos para actualizar' },
+      { status: 400 }
+    );
+  } catch (error: any) {
+    console.error('Error al actualizar hospitalización:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al actualizar la hospitalización' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/hospitaliza/[id] - Eliminar una hospitalización por ID (eliminación lógica)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Asegurar que params.id está disponible antes de usarlo
+    const { id } = params;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Se requiere el ID de la hospitalización' },
+        { status: 400 }
+      );
+    }
+    
+    // Obtener el motivo de la eliminación del cuerpo de la solicitud (opcional)
+    let motivo: string | undefined;
+    let usuarioBaja: string = 'SISTEMA'; // Valor por defecto
+    
+    try {
+      const body = await request.json();
+      motivo = body.motivo;
+      
+      // Obtener el apellido del usuario desde el cuerpo de la solicitud
+      if (body.usuario) {
+        usuarioBaja = body.usuario;
+      }
+    } catch (e) {
+      // Si no hay cuerpo o no se puede parsear, continuamos con los valores por defecto
+      console.log('No se proporcionó cuerpo en la solicitud o no se pudo parsear');
+    }
+    
+    console.log(`Intentando eliminar lógicamente hospitalización con ID: ${id}`);
+    console.log(`Usuario que realiza la baja: ${usuarioBaja}`);
+    
+    // Realizar la eliminación lógica de la hospitalización
+    const result = await hospitalizaService.logicalDeleteById(id, usuarioBaja, motivo);
+    
+    // Revalidar la ruta para actualizar la UI
+    revalidatePath('/hospitalization/orders');
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Hospitalización marcada como eliminada correctamente', 
+      data: result 
+    }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error al eliminar hospitalización:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al eliminar la hospitalización' },
+      { status: 500 }
+    );
+  }
+}

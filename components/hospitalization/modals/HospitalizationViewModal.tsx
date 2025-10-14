@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -268,6 +268,7 @@ export function HospitalizationViewModal({
                   readOnly={isReadOnly}
                   onSave={handleSave}
                   onError={handleError}
+                  onCancel={handleBack}
                 />
               </>
             )

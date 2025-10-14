@@ -11,7 +11,6 @@ export async function PUT(
     const cuentaId = resolvedParams.accountId;
     
     console.log('📝 API: Actualizando cuenta con ID:', cuentaId);
-    console.log('📝 Params recibidos:', resolvedParams);
     
     if (!cuentaId) {
       return NextResponse.json(

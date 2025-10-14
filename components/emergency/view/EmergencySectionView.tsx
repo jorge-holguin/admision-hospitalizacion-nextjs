@@ -35,6 +35,7 @@ interface EmergencySectionViewProps {
   readOnly: boolean;
   onSave?: (data: any) => void;
   onError?: (error: string) => void;
+  onCancel?: () => void;
 }
 
 export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
@@ -43,6 +44,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   readOnly,
   onSave,
   onError,
+  onCancel,
 }) => {
   const router = useRouter();
   
@@ -419,127 +421,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       });
     }
 
-    // Si se cambió el tipo de seguro, buscar cuenta correspondiente usando el contexto
+    // Si se cambió el tipo de seguro, NO hacer nada aquí
+    // La cuenta se mantendrá y solo se actualizará el tipo de seguro al guardar
     if (field === 'seguroLiq' && value && initialData?.PACIENTE) {
       if (process.env.NODE_ENV === 'development') {
         console.log(`🚨 [EMERGENCIA] Cambio de seguro detectado - Paciente: ${initialData.PACIENTE}, Nuevo valor: ${value}`);
-      }
-      
-      try {
-        // Usar el contexto de emergencia para buscar la cuenta por tipo de seguro
-        const accountData = await fetchEmergencyAccount(initialData.PACIENTE, value);
-        
-        if (accountData && accountData.cuentaId) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`✅ Cuenta encontrada: ${accountData.cuentaId}`);
-          }
-          // Actualizar tanto numeroCuenta como cuentaId en el formulario
-          setFormData((prev: FormDataType) => ({
-            ...prev,
-            numeroCuenta: accountData.cuentaId,
-            cuentaId: accountData.cuentaId,
-          }));
-          
-          toast({
-            title: 'Cuenta actualizada',
-            description: `Se encontró y asignó la cuenta ${accountData.cuentaId} para el tipo de seguro seleccionado`,
-          });
-        } else {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`⚠️ No se encontró cuenta para el seguro ${value}`);
-          }
-          
-          // Si el seguro es PAGANTE, SOAT o OTROS PROGRAMAS, intentar crear/asegurar cuenta
-          const segurosPermitidos = ["0", "00", "02", "17"];
-          if (segurosPermitidos.includes(value.trim())) {
-            try {
-              console.log(`🔄 Intentando asegurar cuenta para emergencia ${emergencyId} con seguro ${value}...`);
-              
-              const primerApellido = typeof window !== 'undefined' ? 
-                (localStorage.getItem('token')?.split('.')[1] ? 
-                  JSON.parse(atob(localStorage.getItem('token')!.split('.')[1])).documento : 'SISTEMA') 
-                : 'SISTEMA';
-              
-              const asegurarResponse = await fetch(`/api/emergency/${emergencyId}/assign-account`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  paciente: initialData.PACIENTE,
-                  seguro: value.trim(),
-                  usuario: primerApellido,
-                  nombre: initialData.NOMBRES || ''
-                })
-              });
-              
-              const asegurarResult = await asegurarResponse.json();
-              console.log('📋 Resultado de asegurar cuenta:', asegurarResult);
-              
-              if (asegurarResult.success && asegurarResult.cuentaId) {
-                console.log(`✅ Cuenta asegurada correctamente: ${asegurarResult.cuentaId}`);
-                
-                // Actualizar el formulario con el nuevo cuentaId
-                setFormData((prev: FormDataType) => ({
-                  ...prev,
-                  numeroCuenta: asegurarResult.cuentaId,
-                  cuentaId: asegurarResult.cuentaId,
-                }));
-                
-                toast({
-                  title: 'Cuenta creada',
-                  description: `Se creó y asignó la cuenta ${asegurarResult.cuentaId} para el tipo de seguro seleccionado`,
-                });
-              } else {
-                console.warn(`⚠️ No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
-                setFormData((prev: FormDataType) => ({
-                  ...prev,
-                  numeroCuenta: 'No disponible',
-                  cuentaId: undefined,
-                }));
-                
-                toast({
-                  title: 'Advertencia',
-                  description: asegurarResult.mensaje || 'No se pudo crear la cuenta',
-                  variant: 'destructive',
-                });
-              }
-            } catch (assignError) {
-              console.error('❌ Error al asegurar cuenta:', assignError);
-              setFormData((prev: FormDataType) => ({
-                ...prev,
-                numeroCuenta: 'No disponible',
-                cuentaId: undefined,
-              }));
-              
-              toast({
-                title: 'Error',
-                description: 'Error al crear la cuenta',
-                variant: 'destructive',
-              });
-            }
-          } else {
-            // Para otros tipos de seguro que no requieren asegurar cuenta
-            setFormData((prev: FormDataType) => ({
-              ...prev,
-              numeroCuenta: 'No disponible',
-              cuentaId: undefined,
-            }));
-            
-            toast({
-              title: 'Cuenta no encontrada',
-              description: `No se encontró una cuenta activa para el tipo de seguro seleccionado.`,
-              variant: 'destructive',
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error al buscar cuenta por seguro:', error);
-        toast({
-          title: 'Error',
-          description: 'Error al buscar cuenta por tipo de seguro',
-          variant: 'destructive',
-        });
+        console.log(`ℹ️ La cuenta ${initialData.CUENTAID} se actualizará con el nuevo seguro al guardar`);
       }
     }
   };
@@ -639,11 +526,10 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         });
       }
       
-      // Si el seguro ha cambiado y tenemos una cuenta válida, actualizar la tabla CUENTA
-      // Para PAGANTE/SOAT, usar la cuenta original del registro si existe
-      const cuentaParaActualizar = formData.numeroCuenta && formData.numeroCuenta !== 'No disponible' 
-        ? formData.numeroCuenta 
-        : initialData?.CUENTAID;
+      // Si el seguro ha cambiado, actualizar la tabla CUENTA
+      // IMPORTANTE: Siempre usar la cuenta original (CUENTAID) del registro
+      // NO crear nuevas cuentas, solo actualizar el tipo de seguro de la cuenta existente
+      const cuentaParaActualizar = initialData?.CUENTAID;
         
       if (seguroHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
         if (process.env.NODE_ENV === 'development') {
@@ -1213,7 +1099,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 {!isDeleted && (
                   <FormActionsEmergency
                     onSave={handleSave}
-                    onCancel={() => router.back()}
+                    onCancel={() => onCancel ? onCancel() : router.back()}
                     submitting={isSaving}
                     isEditable={!readOnly || allowsSpecialEdit()}
                     patientId={initialData?.PACIENTE}

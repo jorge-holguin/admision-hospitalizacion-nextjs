@@ -518,7 +518,7 @@ export function HospitalizationFormRefactored({
               usuario: primerApellido,
               nombre: nombrePaciente
             });
-            const asegurarResponse = await fetch(`/api/hospitaliza/${hospitalizacionId}/assign-account`, {
+            const asegurarResponse = await fetch(`/api/hospitalization/accounts/${hospitalizacionId}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'

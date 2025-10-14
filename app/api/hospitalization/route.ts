@@ -1,123 +1,117 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { ordenHospitalizacionService, OrdenHospitalizacionFilter } from '@/services/hospitalizacion/ordenHospitalizacionService'
+import { NextRequest, NextResponse } from 'next/server';
+import hospitalizaService, { HospitalizaData } from '@/services/hospitalizacion/hospitalizaService';
+import { revalidatePath } from 'next/cache';
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const getNextId = searchParams.get('next-id')
-    
-    // Caso 1: Obtener el siguiente ID de hospitalización
-    if (getNextId === 'true') {
-      console.log('🏥 API: Obteniendo siguiente ID de hospitalización')
-      const nextId = await ordenHospitalizacionService.getNextId()
-      return NextResponse.json({ 
-        success: true,
-        nextId: nextId 
-      })
-    }
-    
-    // Caso 2: Obtener lista de hospitalizaciones con filtros
-    const page = parseInt(searchParams.get('page') || '1')
-    const pageSize = parseInt(searchParams.get('pageSize') || '10')
-    const pacienteId = searchParams.get('pacienteId')
+// GET /api/hospitaliza - Obtener hospitalizaciones o el siguiente ID
 
-    console.log('🏥 API: Obteniendo hospitalizaciones', { page, pageSize, pacienteId })
-
-    // Construir filtros basados en los parámetros de búsqueda
-    const filter: OrdenHospitalizacionFilter = {}
-    
-    if (pacienteId) {
-      filter.pacienteId = pacienteId
-    }
-    
-    console.log('API: Buscando órdenes de hospitalización con filtros:', { filter, page, pageSize })
-    
-    const result = await ordenHospitalizacionService.getPaginatedOrdenHospitalizacion(filter, { page, pageSize })
-    return NextResponse.json(result)
-
-  } catch (error) {
-    console.error('❌ API: Error al obtener hospitalizaciones:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Error interno del servidor',
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      },
-      { status: 500 }
-    )
-  }
-}
-
+// POST /api/hospitaliza - Crear una nueva hospitalización
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json()
-    console.log('🏥 API: Creando/actualizando orden de hospitalización:', data)
-    console.log('🏥 API: Campos recibidos:', Object.keys(data))
+    const data = await request.json();
     
-    // Validar datos requeridos - Aceptar tanto PACIENTE como pacienteId
-    const pacienteId = data.PACIENTE || data.pacienteId
-    if (!pacienteId) {
-      return NextResponse.json({ 
-        error: 'ID de paciente es requerido',
-        received: Object.keys(data)
-      }, { status: 400 })
+    // Validar datos requeridos
+    const baseRequiredFields = [
+      'IDHOSPITALIZACION', 'PACIENTE', 'NOMBRES', 'CONSULTORIO1', 
+      'HORA1', 'FECHA1', 'ORIGEN', 'SEGURO', 'MEDICO1', 
+      'ESTADO', 'USUARIO', 'DIAGNOSTICO', 'EDAD'
+    ];
+    
+    // ORIGENID es requerido solo si ORIGEN no es 'RN'
+    const requiredFields = data.ORIGEN === 'RN' 
+      ? baseRequiredFields 
+      : [...baseRequiredFields, 'ORIGENID'];
+    
+    // Si ORIGEN es 'RN', aseguramos que ORIGENID sea un string vacío
+    if (data.ORIGEN === 'RN') {
+      data.ORIGENID = '';
     }
     
-    // Normalizar el campo PACIENTE si viene como pacienteId
-    if (data.pacienteId && !data.PACIENTE) {
-      data.PACIENTE = data.pacienteId
+    const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null);
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        { error: `Faltan campos requeridos: ${missingFields.join(', ')}` },
+        { status: 400 }
+      );
     }
     
-    let result
-    if (data.IDHOSPITALIZACION || data.id) {
-      // Actualizar orden existente
-      const id = data.IDHOSPITALIZACION || data.id
-      result = await ordenHospitalizacionService.updateOrdenHospitalizacion(id, data)
-    } else {
-      // Crear nueva orden
-      result = await ordenHospitalizacionService.createOrdenHospitalizacion(data)
-    }
+    // Crear la hospitalización
+    const result = await hospitalizaService.create(data as HospitalizaData);
     
-    return NextResponse.json(result)
-  } catch (error) {
-    console.error('❌ Error al guardar orden de hospitalización:', error instanceof Error ? error.message : 'Unknown error')
+    // Retornar en el formato esperado por el frontend
     return NextResponse.json({ 
-      success: false,
-      error: 'Internal Server Error',
-      message: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 })
+      success: true, 
+      data: result 
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error en API de hospitalización:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al crear la hospitalización' },
+      { status: 500 }
+    );
   }
 }
 
+// DELETE /api/hospitaliza/[id] - Eliminar una hospitalización por ID
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const url = new URL(request.url);
+    const id = url.pathname.split('/').pop();
     
     if (!id) {
       return NextResponse.json(
-        { 
-          success: false,
-          error: 'Se requiere el ID de la hospitalización' 
-        },
+        { error: 'Se requiere el ID de la hospitalización' },
         { status: 400 }
-      )
+      );
     }
     
-    console.log(`🗑️ API: Eliminando orden de hospitalización con ID: ${id}`)
+    // Eliminar la hospitalización
+    const result = await hospitalizaService.deleteById(id);
     
-    // Eliminar la hospitalización (eliminación lógica)
-    const result = await ordenHospitalizacionService.deleteById(id)
+    // Revalidar la ruta para actualizar la UI
+    revalidatePath('/hospitalization/orders');
     
-    return NextResponse.json(result, { status: 200 })
-  } catch (error) {
-    console.error('❌ Error al eliminar hospitalización:', error)
+    return NextResponse.json(result, { status: 200 });
+  } catch (error: any) {
+    console.error('Error al eliminar hospitalización:', error);
     return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al eliminar la hospitalización' 
-      },
+      { error: error.message || 'Error al eliminar la hospitalización' },
       { status: 500 }
-    )
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const getNextId = searchParams.get('next-id');
+    
+    // Obtener el siguiente ID de hospitalización
+    if (getNextId === 'true') {
+      const nextId = await hospitalizaService.getNextId();
+      return NextResponse.json(nextId, { status: 200 });
+    }
+    
+    // Obtener una hospitalización específica por ID
+    if (id) {
+      const hospitalizacion = await hospitalizaService.findById(id);
+      if (!hospitalizacion) {
+        return NextResponse.json(
+          { error: 'Hospitalización no encontrada' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(hospitalizacion);
+    }
+    
+    // Obtener todas las hospitalizaciones
+    const hospitalizaciones = await hospitalizaService.findAll();
+    return NextResponse.json(hospitalizaciones);
+  } catch (error: any) {
+    console.error('Error al obtener hospitalizaciones:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al obtener hospitalizaciones' },
+      { status: 500 }
+    );
   }
 }
