@@ -35,7 +35,7 @@ export function TiposDocumentoProvider({ children }: { children: React.ReactNode
       setLoading(true)
       console.log('🔍 Cargando tipos de documento desde contexto...')
       
-      const response = await fetch('/api/tipo-documento')
+      const response = await fetch('/api/utils/document-types')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

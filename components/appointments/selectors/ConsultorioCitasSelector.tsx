@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,7 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
   const load = async (q: string, signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/consultorio?tipo=C&search=${encodeURIComponent(q)}`, { signal })
+      const res = await fetch(`/api/master-tables/consultorios/search?tipo=C&search=${encodeURIComponent(q)}`, { signal })
       if (!res.ok) return
       const data = await res.json()
       setItems(Array.isArray(data?.items) ? data.items : [])

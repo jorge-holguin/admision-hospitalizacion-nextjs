@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 
 export interface Seguro {
   Seguro: string;
@@ -28,8 +28,8 @@ export const useSeguros = (): UseSegurosReturn => {
       setError(null);
 
       const url = searchTerm 
-        ? `/api/seguros?search=${encodeURIComponent(searchTerm)}`
-        : '/api/seguros';
+        ? `/api/utils/insurances?search=${encodeURIComponent(searchTerm)}`
+        : '/api/utils/insurances';
 
       const response = await fetch(url);
       

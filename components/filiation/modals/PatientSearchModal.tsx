@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -29,7 +29,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel 
     try {
       // 1. Primero buscar en la API de filiación
       const filiacionResponse = await fetch(
-        `/api/filiacion2?page=1&pageSize=10&documento=${documentNumber}`
+        `/api/filiation/search?page=1&pageSize=10&documento=${documentNumber}`
       );
       const filiacionData = await filiacionResponse.json();
 

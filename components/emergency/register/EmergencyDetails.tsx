@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 
 interface EmergencyDetailsProps {
   emergencyId?: string | null;
@@ -55,7 +55,7 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
       try {
         setLoading(true);
         
-        const response = await fetch(`/api/emergencia/${emergencyId}`);
+        const response = await fetch(`/api/emergency/${emergencyId}`);
         if (!response.ok) {
           throw new Error('Error al cargar datos de la emergencia');
         }

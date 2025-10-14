@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -109,7 +109,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
         [paramName]: searchTerm.trim()
       })
       
-      const response = await fetch(`/api/filiacion2?${params}`)
+      const response = await fetch(`/api/filiation/search?${params}`)
       if (response.ok) {
         const data = await response.json()
         // Los datos ya vienen en el formato correcto desde el servicio filiacion2Service

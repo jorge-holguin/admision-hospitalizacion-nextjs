@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface Seguro {
   Seguro: string;
@@ -30,7 +30,7 @@ export const SegurosProvider: React.FC<SegurosProviderProps> = ({ children }) =>
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/seguros');
+      const response = await fetch('/api/utils/insurances');
       
       if (!response.ok) {
         throw new Error(`Error al obtener seguros: ${response.status}`);

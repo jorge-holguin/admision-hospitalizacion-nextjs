@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -68,7 +68,7 @@ export function EmergencyViewModal({
           throw new Error('ID de emergencia inválido')
         }
         
-        const response = await fetch(`/api/emergencia/${emergencyId}`)
+        const response = await fetch(`/api/emergency/${emergencyId}`)
         
         // Handle HTTP errors
         if (response.status === 404) {

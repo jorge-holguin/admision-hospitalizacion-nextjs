@@ -84,6 +84,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     hora: string;
     estado: string;
     numeroCuenta: string;
+    cuentaId?: string; // ID de cuenta para actualización
   };
   
   const [formData, setFormData] = useState<FormDataType>({
@@ -430,7 +431,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         
         if (accountData && accountData.cuentaId) {
           if (process.env.NODE_ENV === 'development') {
-            console.log(`Cuenta encontrada: ${accountData.cuentaId}`);
+            console.log(`✅ Cuenta encontrada: ${accountData.cuentaId}`);
           }
           // Actualizar tanto numeroCuenta como cuentaId en el formulario
           setFormData((prev: FormDataType) => ({
@@ -445,19 +446,92 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
           });
         } else {
           if (process.env.NODE_ENV === 'development') {
-            console.log(`No se encontró cuenta para el seguro ${value}`);
+            console.log(`⚠️ No se encontró cuenta para el seguro ${value}`);
           }
-          // Establecer numeroCuenta como 'No disponible' si no se encuentra cuenta
-          setFormData((prev: FormDataType) => ({
-            ...prev,
-            numeroCuenta: 'No disponible',
-          }));
           
-          toast({
-            title: 'Cuenta no encontrada',
-            description: `No se encontró una cuenta activa para el tipo de seguro seleccionado. Será necesario crear una nueva cuenta.`,
-            variant: 'destructive',
-          });
+          // Si el seguro es PAGANTE, SOAT o OTROS PROGRAMAS, intentar crear/asegurar cuenta
+          const segurosPermitidos = ["0", "00", "02", "17"];
+          if (segurosPermitidos.includes(value.trim())) {
+            try {
+              console.log(`🔄 Intentando asegurar cuenta para emergencia ${emergencyId} con seguro ${value}...`);
+              
+              const primerApellido = typeof window !== 'undefined' ? 
+                (localStorage.getItem('token')?.split('.')[1] ? 
+                  JSON.parse(atob(localStorage.getItem('token')!.split('.')[1])).documento : 'SISTEMA') 
+                : 'SISTEMA';
+              
+              const asegurarResponse = await fetch(`/api/emergency/${emergencyId}/assign-account`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  paciente: initialData.PACIENTE,
+                  seguro: value.trim(),
+                  usuario: primerApellido,
+                  nombre: initialData.NOMBRES || ''
+                })
+              });
+              
+              const asegurarResult = await asegurarResponse.json();
+              console.log('📋 Resultado de asegurar cuenta:', asegurarResult);
+              
+              if (asegurarResult.success && asegurarResult.cuentaId) {
+                console.log(`✅ Cuenta asegurada correctamente: ${asegurarResult.cuentaId}`);
+                
+                // Actualizar el formulario con el nuevo cuentaId
+                setFormData((prev: FormDataType) => ({
+                  ...prev,
+                  numeroCuenta: asegurarResult.cuentaId,
+                  cuentaId: asegurarResult.cuentaId,
+                }));
+                
+                toast({
+                  title: 'Cuenta creada',
+                  description: `Se creó y asignó la cuenta ${asegurarResult.cuentaId} para el tipo de seguro seleccionado`,
+                });
+              } else {
+                console.warn(`⚠️ No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
+                setFormData((prev: FormDataType) => ({
+                  ...prev,
+                  numeroCuenta: 'No disponible',
+                  cuentaId: undefined,
+                }));
+                
+                toast({
+                  title: 'Advertencia',
+                  description: asegurarResult.mensaje || 'No se pudo crear la cuenta',
+                  variant: 'destructive',
+                });
+              }
+            } catch (assignError) {
+              console.error('❌ Error al asegurar cuenta:', assignError);
+              setFormData((prev: FormDataType) => ({
+                ...prev,
+                numeroCuenta: 'No disponible',
+                cuentaId: undefined,
+              }));
+              
+              toast({
+                title: 'Error',
+                description: 'Error al crear la cuenta',
+                variant: 'destructive',
+              });
+            }
+          } else {
+            // Para otros tipos de seguro que no requieren asegurar cuenta
+            setFormData((prev: FormDataType) => ({
+              ...prev,
+              numeroCuenta: 'No disponible',
+              cuentaId: undefined,
+            }));
+            
+            toast({
+              title: 'Cuenta no encontrada',
+              description: `No se encontró una cuenta activa para el tipo de seguro seleccionado.`,
+              variant: 'destructive',
+            });
+          }
         }
       } catch (error) {
         console.error('Error al buscar cuenta por seguro:', error);
@@ -577,7 +651,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         }
         
         try {
-          const cuentaResponse = await fetch(`/api/cuenta/update/${cuentaParaActualizar}`, {
+          const cuentaResponse = await fetch(`/api/accounts/update/${cuentaParaActualizar}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -610,7 +684,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         }
       }
       
-      const updateData = {
+      const updateData: any = {
         TIPOATENCION: limitLength(formData.tipoAtencion, 1),          // Char(1)
         MOTIVO_EMERGENCIA: limitLength(formData.motivoEmergencia, 2),  // Char(2)
         CONSULTORIO: limitLength(formData.consultorio, 6),            // Char(6)
@@ -625,6 +699,14 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         FECHA: formattedDate,                                         // DateTime
         HORA: limitLength(formData.hora, 5),                          // Char(5)
       };
+      
+      // Si el seguro ha cambiado y tenemos un nuevo CUENTAID, incluirlo en la actualización
+      if (seguroHaCambiado && formData.cuentaId && formData.cuentaId !== 'No disponible') {
+        updateData.CUENTAID = formData.cuentaId;
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔄 Actualizando CUENTAID en EMERGENCIA: ${formData.cuentaId}`);
+        }
+      }
       
       // Log para verificar que SEGURO = SEGUROLIQ
       if (process.env.NODE_ENV === 'development') {
@@ -641,7 +723,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       }
       
       // Llamar a la API para actualizar
-      const response = await fetch(`/api/emergencia/${emergencyId}`, {
+      const response = await fetch(`/api/emergency/${emergencyId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

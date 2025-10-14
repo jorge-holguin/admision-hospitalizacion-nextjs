@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
@@ -33,7 +33,7 @@ export function SeguroProvider({ children }: SeguroProviderProps) {
     setError(null)
     
     try {
-      const response = await fetch('/api/seguros')
+      const response = await fetch('/api/utils/insurances')
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }

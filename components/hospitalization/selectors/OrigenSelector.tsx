@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -61,11 +61,11 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         queryParams.append('origen', origenFilter);
       }
       
-      let url = '/api/hospitaliza/origen-hospitalizacion';
+      let url = '/api/hospitalization/origins';
       
       // Si hay un ID de paciente, usar el endpoint específico para pacientes
       if (patientId) {
-        url = `/api/hospitaliza/origen-hospitalizacion/paciente/${patientId}`;
+        url = `/api/hospitalization/attentions/${patientId}`;
       }
       
       const response = await fetch(`${url}?${queryParams.toString()}`);
@@ -183,7 +183,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         
         if (seguroCode) {
           // Buscar el nombre del seguro en la API
-          fetch(`/api/seguros?code=${encodeURIComponent(seguroCode)}`)
+          fetch(`/api/utils/insurances?code=${encodeURIComponent(seguroCode)}`)
             .then(response => response.json())
             .then(data => {
               if (data && data.length > 0) {

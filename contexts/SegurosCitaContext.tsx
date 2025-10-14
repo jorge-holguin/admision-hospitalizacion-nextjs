@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Seguro } from '@/services/citas/seguroService'
@@ -35,7 +35,7 @@ export function SegurosCitaProvider({ children, codCita = '1' }: SegurosCitaProv
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/citas/seguros?codCita=${codCita}`)
+      const response = await fetch(`/api/appointments/insurances?codCita=${codCita}`)
       
       if (!response.ok) {
         throw new Error(`Error fetching seguros: ${response.status}`)

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -141,7 +141,7 @@ export function EmergencyListModal({
 
     try {
       setLoading(true)
-      const response = await fetch(`/api/emergencia/patient/${patientId}?page=${page}&pageSize=${pageSize}`)
+      const response = await fetch(`/api/emergency/patient/${patientId}?page=${page}&pageSize=${pageSize}`)
       
       if (response.ok) {
         const data = await response.json()
@@ -187,7 +187,7 @@ export function EmergencyListModal({
 
   const handleDelete = async (emergencyId: string) => {
     try {
-      const response = await fetch(`/api/emergencia/${emergencyId}`, {
+      const response = await fetch(`/api/emergency/${emergencyId}`, {
         method: 'DELETE'
       })
 

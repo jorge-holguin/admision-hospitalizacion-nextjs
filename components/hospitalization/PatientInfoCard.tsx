@@ -80,56 +80,10 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
         return;
       }
 
-      // Si tenemos initialData, usarlos directamente
+      // Si tenemos initialData, aún así cargar los datos completos desde la API de filiación
+      // para tener toda la información del paciente (foto, datos completos, etc.)
       if (initialData) {
-        console.log('🏥 PatientInfoCard: Usando initialData, evitando llamada a API:', initialData);
-        
-        // Intentar obtener datos del contexto para la foto
-        let contextData = getPatientData(patientId);
-        
-        // Si no hay datos en el contexto, cargarlos para obtener la foto
-        if (!contextData) {
-          console.log('🏥 PatientInfoCard: No hay datos en contexto, cargando para obtener foto');
-          await fetchPatientData();
-          contextData = getPatientData(patientId);
-        }
-        
-        const patientDataObj: PatientData = {
-          historyNumber: initialData.HISTORIA?.trim() || '',
-          paternalSurname: '', // No disponible directamente en initialData
-          maternalSurname: '', // No disponible directamente en initialData
-          names: initialData.NOMBRES?.trim() || '',
-          document: initialData.DOCUMENTO || '',
-          documentType: initialData.TIPO_DOCUMENTO || '',
-          sex: initialData.SEXO || '',
-          birthDate: initialData.FECHA_NACIMIENTO || '',
-          age: initialData.EDAD || '',
-          insurance: initialData.SEGURONOMBRE || '',
-          phone: initialData.TELEFONO1 || '',
-          phone2: '',
-          district: initialData.DISTRITO || '',
-          locality: initialData.LOCALIDAD || '',
-          localityDescription: initialData.NOMLOCALIDAD || '',
-          address: initialData.DIRECCION || '',
-          currentDistrict: initialData.DISTRITO || '',
-          religion: initialData.RELIGION || 'NO ESPECIFICA',
-          desc_religion: initialData.RELIGION || 'NO ESPECIFICA',
-          maritalStatus: initialData.ESTADO_CIVIL || '',
-          photo: contextData?.photo || '' // Usar foto del contexto si está disponible
-        };
-
-        // Construir el nombre completo
-        patientDataObj.fullName = initialData.NOMBRES?.trim() || '';
-
-        setPatientData(patientDataObj);
-        setLoading(false);
-        
-        // Llamar al callback si existe
-        if (onDataLoaded) {
-          onDataLoaded(patientDataObj);
-        }
-        
-        return;
+        console.log('🏥 PatientInfoCard: initialData recibido, pero cargando datos completos desde API de filiación');
       }
 
       try {

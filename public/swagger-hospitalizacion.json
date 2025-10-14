@@ -258,7 +258,7 @@
         }
       }
     },
-    "/api/hospitaliza/origen-hospitalizacion/paciente/{pacienteId}": {
+    "/api/hospitalization/attentions/{patientId}": {
       "get": {
         "tags": ["Hospitalización"],
         "summary": "Obtener orígenes de hospitalización de un paciente",

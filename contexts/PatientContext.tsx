@@ -8,6 +8,9 @@ export interface PatientData {
   name: string // Full patient name
   documento?: string // Document number (optional)
   pacienteId?: string // Patient ID (optional)
+  FECHA_NACIMIENTO?: string // Birth date from filiation API (YYYY-MM-DD)
+  fechaNacimiento?: string // Alias for birth date
+  [key: string]: any // Allow additional fields from filiation
 }
 
 // Interface for the context

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 
 interface Medico {
   MEDICO: string
@@ -16,7 +16,7 @@ export function useMedicos() {
         setLoading(true)
         setError(null)
         
-        const response = await fetch('/api/medicos')
+        const response = await fetch('/api/master-tables/medicos/search')
         
         if (!response.ok) {
           throw new Error(`Error fetching medicos: ${response.status}`)

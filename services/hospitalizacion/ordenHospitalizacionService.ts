@@ -378,61 +378,113 @@ export const ordenHospitalizacionService = {
   async createOrdenHospitalizacion(data: any) {
     try {
       console.log('Creando nuevo registro de orden hospitalización:', data);
+      console.log('Campos recibidos:', Object.keys(data));
       
-      // Formatear la fecha y hora para SQL Server
-      const fechaFormateada = data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-      const horaFormateada = data.time || new Date().toTimeString().split(' ')[0];
+      // Construir solo los campos que tienen valor (no null)
+      const campos: string[] = [];
+      const valores: string[] = [];
       
-      // Determinar el valor de ORIGEN basado en procedencia
-      let origenValue = data.hospitalizationOrigin || '';
-      
-      // Si la procedencia es RN, establecer ORIGEN como 'RN'
-      if (data.procedencia === 'RN') {
-        console.log('Procedencia es RN - estableciendo ORIGEN como RN');
-        origenValue = 'RN';
+      // Campos obligatorios
+      if (data.IDHOSPITALIZACION) {
+        campos.push('IDHOSPITALIZACION');
+        valores.push(`'${data.IDHOSPITALIZACION}'`);
+      }
+      if (data.PACIENTE) {
+        campos.push('PACIENTE');
+        valores.push(`'${data.PACIENTE}'`);
+      }
+      if (data.NOMBRES) {
+        campos.push('NOMBRES');
+        valores.push(`'${data.NOMBRES.replace(/'/g, "''")}'`); // Escapar comillas simples
+      }
+      if (data.CONSULTORIO1) {
+        campos.push('CONSULTORIO1');
+        valores.push(`'${data.CONSULTORIO1}'`);
+      }
+      if (data.HORA1) {
+        campos.push('HORA1');
+        valores.push(`'${data.HORA1}'`);
+      }
+      if (data.FECHA1) {
+        campos.push('FECHA1');
+        valores.push(`'${data.FECHA1}'`);
+      }
+      if (data.ORIGEN) {
+        campos.push('ORIGEN');
+        valores.push(`'${data.ORIGEN}'`);
+      }
+      if (data.SEGURO) {
+        campos.push('SEGURO');
+        valores.push(`'${data.SEGURO}'`);
+      }
+      if (data.MEDICO1) {
+        campos.push('MEDICO1');
+        valores.push(`'${String(data.MEDICO1).trim()}'`);
+      }
+      if (data.ESTADO) {
+        campos.push('ESTADO');
+        valores.push(`'${data.ESTADO}'`);
+      }
+      if (data.USUARIO) {
+        campos.push('USUARIO');
+        valores.push(`'${data.USUARIO}'`);
+      }
+      if (data.DIAGNOSTICO) {
+        campos.push('DIAGNOSTICO');
+        valores.push(`'${String(data.DIAGNOSTICO).trim()}'`);
+      }
+      if (data.EDAD) {
+        campos.push('EDAD');
+        valores.push(`'${String(data.EDAD).trim()}'`);
+      }
+      if (data.ORIGENID !== undefined) { // Puede ser string vacío
+        campos.push('ORIGENID');
+        valores.push(`'${data.ORIGENID}'`);
+      }
+      if (data.USUARIO_IMP) {
+        campos.push('USUARIO_IMP');
+        valores.push(`'${data.USUARIO_IMP}'`);
       }
       
-      console.log('Valor de ORIGEN a insertar:', origenValue);
+      // Campos opcionales del acompañante
+      if (data.ACOMPANANTE_NOMBRE) {
+        campos.push('ACOMPANANTE_NOMBRE');
+        valores.push(`'${data.ACOMPANANTE_NOMBRE.replace(/'/g, "''")}'`);
+      }
+      if (data.ACOMPANANTE_TELEFONO) {
+        campos.push('ACOMPANANTE_TELEFONO');
+        valores.push(`'${data.ACOMPANANTE_TELEFONO}'`);
+      }
+      if (data.ACOMPANANTE_DIRECCION) {
+        campos.push('ACOMPANANTE_DIRECCION');
+        valores.push(`'${data.ACOMPANANTE_DIRECCION.replace(/'/g, "''")}'`);
+      }
       
-      // Consulta SQL para insertar un nuevo registro
+      console.log(`Insertando ${campos.length} campos:`, campos);
+      
+      // Construir la consulta SQL dinámica
       const query = `
-        INSERT INTO HOSPITALIZA (
-          PACIENTE, 
-          FECHA1, 
-          HORA1, 
-          ORIGEN, 
-          SEGURO, 
-          MEDICO, 
-          DIAGNOSTICO, 
-          FINANCIAMIENTO, 
-          ESTADO
-        ) VALUES (
-          '${data.pacienteId}', 
-          '${fechaFormateada}', 
-          '${horaFormateada}', 
-          '${origenValue}', 
-          '${data.insurance || ''}', 
-          '${data.authorizingDoctor || ''}', 
-          '${data.diagnosis || ''}', 
-          '${data.financing || ''}', 
-          'A'
-        );
+        INSERT INTO HOSPITALIZA (${campos.join(', ')})
+        VALUES (${valores.join(', ')});
         
         SELECT SCOPE_IDENTITY() AS id;
       `;
       
-      const result = await prisma.$queryRawUnsafe(query);
-      const id = result[0]?.id || null;
+      console.log('Query SQL a ejecutar:', query);
       
-      console.log(`Registro de orden hospitalización creado con ID: ${id}`);
+      const result = await prisma.$queryRawUnsafe(query);
+      const id = result[0]?.id || data.IDHOSPITALIZACION;
+      
+      console.log(`✅ Registro de orden hospitalización creado con ID: ${id}`);
       
       return serializeBigInt({
         success: true,
-        data: { id, ...data },
+        data: { id, IDHOSPITALIZACION: data.IDHOSPITALIZACION },
         message: 'Orden de hospitalización creada exitosamente'
       });
     } catch (error) {
-      console.error('Error en createOrdenHospitalizacion:', error instanceof Error ? error.message : 'Error desconocido');
+      console.error('❌ Error en createOrdenHospitalizacion:', error instanceof Error ? error.message : 'Error desconocido');
+      console.error('Stack trace:', error);
       throw error;
     }
   },
@@ -443,35 +495,169 @@ export const ordenHospitalizacionService = {
   async updateOrdenHospitalizacion(id: string, data: any) {
     try {
       console.log(`Actualizando registro de orden hospitalización con ID ${id}:`, data);
+      console.log('Campos recibidos para actualización:', Object.keys(data));
       
-      // Formatear la fecha y hora para SQL Server
-      const fechaFormateada = data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-      const horaFormateada = data.time || new Date().toTimeString().split(' ')[0];
+      // Construir solo los campos que tienen valor y deben actualizarse
+      const updates: string[] = [];
       
-      // Consulta SQL para actualizar un registro existente
+      // Campos actualizables
+      if (data.NOMBRES) {
+        updates.push(`NOMBRES = '${data.NOMBRES.replace(/'/g, "''")}'`);
+      }
+      if (data.CONSULTORIO1) {
+        updates.push(`CONSULTORIO1 = '${data.CONSULTORIO1}'`);
+      }
+      if (data.HORA1) {
+        updates.push(`HORA1 = '${data.HORA1}'`);
+      }
+      if (data.FECHA1) {
+        updates.push(`FECHA1 = '${data.FECHA1}'`);
+      }
+      if (data.ORIGEN) {
+        updates.push(`ORIGEN = '${data.ORIGEN}'`);
+      }
+      if (data.SEGURO) {
+        updates.push(`SEGURO = '${data.SEGURO}'`);
+      }
+      if (data.MEDICO1) {
+        updates.push(`MEDICO1 = '${data.MEDICO1}'`);
+      }
+      if (data.DIAGNOSTICO) {
+        updates.push(`DIAGNOSTICO = '${data.DIAGNOSTICO}'`);
+      }
+      if (data.EDAD) {
+        updates.push(`EDAD = '${data.EDAD}'`);
+      }
+      if (data.ORIGENID !== undefined) {
+        updates.push(`ORIGENID = '${data.ORIGENID}'`);
+      }
+      if (data.ACOMPANANTE_NOMBRE) {
+        updates.push(`ACOMPANANTE_NOMBRE = '${data.ACOMPANANTE_NOMBRE.replace(/'/g, "''")}'`);
+      }
+      if (data.ACOMPANANTE_TELEFONO) {
+        updates.push(`ACOMPANANTE_TELEFONO = '${data.ACOMPANANTE_TELEFONO}'`);
+      }
+      if (data.ACOMPANANTE_DIRECCION) {
+        updates.push(`ACOMPANANTE_DIRECCION = '${data.ACOMPANANTE_DIRECCION.replace(/'/g, "''")}'`);
+      }
+      
+      if (updates.length === 0) {
+        console.warn('⚠️ No hay campos para actualizar');
+        return serializeBigInt({
+          success: true,
+          data: { id },
+          message: 'No hay cambios para actualizar'
+        });
+      }
+      
+      console.log(`Actualizando ${updates.length} campos:`, updates);
+      
+      // Construir la consulta SQL dinámica
       const query = `
-        UPDATE HOSPITALIZA SET 
-          FECHA1 = '${fechaFormateada}', 
-          HORA1 = '${horaFormateada}', 
-          ORIGEN = '${data.hospitalizationOrigin || ''}', 
-          SEGURO = '${data.insurance || ''}', 
-          MEDICO = '${data.authorizingDoctor || ''}', 
-          DIAGNOSTICO = '${data.diagnosis || ''}', 
-          FINANCIAMIENTO = '${data.financing || ''}'
-        WHERE idHOSPITALIZACION = ${id};
+        UPDATE HOSPITALIZA 
+        SET ${updates.join(', ')}
+        WHERE IDHOSPITALIZACION = '${id}';
       `;
+      
+      console.log('Query SQL a ejecutar:', query);
       
       await prisma.$queryRawUnsafe(query);
       
-      console.log(`Registro de orden hospitalización con ID ${id} actualizado exitosamente`);
+      console.log(`✅ Registro de orden hospitalización con ID ${id} actualizado exitosamente`);
       
       return serializeBigInt({
         success: true,
-        data: { id, ...data },
+        data: { id, IDHOSPITALIZACION: id },
         message: 'Orden de hospitalización actualizada exitosamente'
       });
     } catch (error) {
-      console.error(`Error en updateOrdenHospitalizacion(${id}):`, error instanceof Error ? error.message : 'Error desconocido');
+      console.error(`❌ Error en updateOrdenHospitalizacion(${id}):`, error instanceof Error ? error.message : 'Error desconocido');
+      console.error('Stack trace:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get the next available hospitalization ID
+   */
+  async getNextId(): Promise<string> {
+    try {
+      console.log('🏥 Obteniendo siguiente ID de hospitalización');
+      
+      // Buscar el último registro ordenado por IDHOSPITALIZACION de forma descendente
+      const result = await prisma.$queryRawUnsafe<Array<{ IDHOSPITALIZACION: string }>>(` 
+        SELECT TOP 1 IDHOSPITALIZACION 
+        FROM HOSPITALIZA 
+        ORDER BY LEN(IDHOSPITALIZACION) DESC, IDHOSPITALIZACION DESC
+      `);
+      
+      if (!result || result.length === 0) {
+        console.log('No se encontraron registros de hospitalización, usando ID base');
+        return '25000001';
+      }
+      
+      // Obtener el último ID
+      const lastId = result[0].IDHOSPITALIZACION.trim();
+      console.log('Último ID de hospitalización encontrado:', lastId);
+      
+      // Asegurarse de que es un número y luego incrementarlo
+      const lastIdNumber = parseInt(lastId, 10);
+      if (isNaN(lastIdNumber)) {
+        console.log('El ID no es un número válido, usando ID base');
+        return '25000001';
+      }
+      
+      const nextId = (lastIdNumber + 1).toString();
+      console.log('Siguiente ID de hospitalización generado:', nextId);
+      
+      return nextId;
+    } catch (error) {
+      console.error('Error al obtener el siguiente ID de hospitalización:', error);
+      // Devolver un ID por defecto en caso de error
+      return '25000001';
+    }
+  },
+
+  /**
+   * Delete a hospitalization order by ID (logical deletion - set ESTADO = '0')
+   */
+  async deleteById(id: string) {
+    try {
+      console.log(`🗑️ Eliminando (lógicamente) orden de hospitalización con ID: ${id}`);
+      
+      // Verificar que el ID existe
+      const checkQuery = `
+        SELECT IDHOSPITALIZACION, ESTADO 
+        FROM HOSPITALIZA 
+        WHERE IDHOSPITALIZACION = '${id.trim()}'
+      `;
+      
+      const existing = await prisma.$queryRawUnsafe<Array<{ IDHOSPITALIZACION: string; ESTADO: string }>>(checkQuery);
+      
+      if (!existing || existing.length === 0) {
+        throw new Error(`No se encontró orden de hospitalización con ID: ${id}`);
+      }
+      
+      console.log(`Orden encontrada con ESTADO: ${existing[0].ESTADO}`);
+      
+      // Realizar eliminación lógica (ESTADO = '0')
+      const deleteQuery = `
+        UPDATE HOSPITALIZA 
+        SET ESTADO = '0'
+        WHERE IDHOSPITALIZACION = '${id.trim()}'
+      `;
+      
+      await prisma.$queryRawUnsafe(deleteQuery);
+      
+      console.log(`✅ Orden de hospitalización ${id} eliminada lógicamente (ESTADO = '0')`);
+      
+      return serializeBigInt({
+        success: true,
+        message: 'Orden de hospitalización eliminada exitosamente',
+        data: { id }
+      });
+    } catch (error) {
+      console.error(`❌ Error al eliminar orden de hospitalización ${id}:`, error);
       throw error;
     }
   },

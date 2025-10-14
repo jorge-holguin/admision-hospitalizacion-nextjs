@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useCallback } from 'react'
+﻿import React, { createContext, useState, useContext, useCallback } from 'react'
 
 export type ConsultorioInfo = {
   CONSULTORIO: string
@@ -43,7 +43,7 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
       setLoading(true)
       console.log('🏥 Cargando consultorios de emergencia desde contexto...')
       
-      const response = await fetch('/api/consultorio?tipo=E')
+      const response = await fetch('/api/master-tables/consultorios/search?tipo=E')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -69,7 +69,7 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
       setLoadingHospitalizacion(true)
       console.log('🏥 Cargando consultorios de hospitalización desde contexto...')
       
-      const response = await fetch('/api/consultorio?tipo=H')
+      const response = await fetch('/api/master-tables/consultorios/search?tipo=H')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

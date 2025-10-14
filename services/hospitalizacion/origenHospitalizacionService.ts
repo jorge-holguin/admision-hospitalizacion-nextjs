@@ -24,10 +24,11 @@ export class OrigenHospitalizacionService {
     take?: number
     search?: string
     pacienteId?: string
+    origen?: string
   }) {
     try {
-      const { skip = 0, take = 10, search = '', pacienteId = '' } = params
-      console.log('Buscando orígenes de hospitalización con parámetros:', { skip, take, search })
+      const { skip = 0, take = 10, search = '', pacienteId = '', origen = '' } = params
+      console.log('Buscando orígenes de hospitalización con parámetros:', { skip, take, search, pacienteId, origen })
       
       // Verificar primero si la vista existe
       try {
@@ -44,6 +45,12 @@ export class OrigenHospitalizacionService {
       if (pacienteId) {
         whereClause = `AND PACIENTE = '${pacienteId}'`
         console.log(`Filtrando por paciente ID: ${pacienteId}`)
+      }
+      
+      // Filtrar por origen si se proporciona (EM = Emergencia, CE = Consulta Externa)
+      if (origen) {
+        whereClause += ` AND ORIGEN = '${origen}'`
+        console.log(`Filtrando por origen: ${origen}`)
       }
       
       // Filtrar emergencias con ESTADO='0' (inactivas)
@@ -322,10 +329,11 @@ export class OrigenHospitalizacionService {
   async count(params: {
     search?: string
     pacienteId?: string
+    origen?: string
   }) {
     try {
       console.log('Contando orígenes de hospitalización con parámetros:', params)
-      const { search = '', pacienteId = '' } = params
+      const { search = '', pacienteId = '', origen = '' } = params
       
       // Construir la consulta SQL con búsqueda y filtro de paciente
       let whereClause = ''
@@ -334,6 +342,12 @@ export class OrigenHospitalizacionService {
       if (pacienteId) {
         whereClause = `AND PACIENTE = '${pacienteId}'`
         console.log(`Filtrando conteo por paciente ID: ${pacienteId}`)
+      }
+      
+      // Filtrar por origen si se proporciona
+      if (origen) {
+        whereClause += ` AND ORIGEN = '${origen}'`
+        console.log(`Filtrando conteo por origen: ${origen}`)
       }
       
       // Añadir filtros de búsqueda si se proporciona

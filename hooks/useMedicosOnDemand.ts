@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { Medico } from '@/services/hospitalizacion/medicoService';
 
 interface UseMedicosOnDemandReturn {
@@ -39,7 +39,7 @@ export function useMedicosOnDemand(): UseMedicosOnDemandReturn {
       
       console.log('🏥 useMedicosOnDemand: Cargando médicos desde API');
       
-      let url = '/api/medicos';
+      let url = '/api/master-tables/medicos/search';
       if (currentSearchParams) {
         url += `?${currentSearchParams}`;
       }

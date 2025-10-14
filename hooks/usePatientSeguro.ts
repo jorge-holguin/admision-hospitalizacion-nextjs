@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 
 interface PatientSeguroData {
   seguro: string;
@@ -33,7 +33,7 @@ export const usePatientSeguro = (patientId: string | null): UsePatientSeguroRetu
 
       console.log(`Obteniendo datos de seguro para paciente: ${patientId}`);
       
-      const response = await fetch(`/api/filiacion2/${patientId}`);
+      const response = await fetch(`/api/filiation/search/${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al obtener datos del paciente: ${response.status}`);

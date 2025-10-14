@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react'
+﻿import React, { createContext, useState, useEffect, useContext } from 'react'
 
 export type OrigenHospitalizacion = {
   ORIGEN: string
@@ -36,7 +36,7 @@ export function OrigenHospitalizacionProvider({ children }: { children: React.Re
       setLoading(true)
       console.log('🏥 Cargando orígenes de hospitalización desde contexto...')
       
-      const response = await fetch('/api/origen-hospitalizacion')
+      const response = await fetch('/api/hospitalization/origins')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

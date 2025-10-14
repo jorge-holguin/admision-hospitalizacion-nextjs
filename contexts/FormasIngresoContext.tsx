@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react'
+﻿import React, { createContext, useState, useEffect, useContext } from 'react'
 
 export type FormaIngreso = {
   FORMA_INGRESO: string
@@ -35,7 +35,7 @@ export function FormasIngresoProvider({ children }: { children: React.ReactNode 
       setLoading(true)
       console.log('🚪 Cargando formas de ingreso desde contexto...')
       
-      const response = await fetch('/api/forma-ingreso')
+      const response = await fetch('/api/emergency/admission-types')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

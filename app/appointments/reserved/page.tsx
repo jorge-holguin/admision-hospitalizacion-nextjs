@@ -37,6 +37,7 @@ interface ReservaData {
   codigo: string
   estado: string
   citaId?: number
+  idSolicitudCita?: number
   tipoAtencion?: string | null
   tipoCita?: string | null
   rutaReferencia?: string
@@ -98,6 +99,10 @@ export default function ReservedAppointmentsPage() {
   const [reservaSinPaciente, setReservaSinPaciente] = useState<ReservaData | null>(null)
   const [motivoDenegacion, setMotivoDenegacion] = useState("")
   const [isDenegando, setIsDenegando] = useState(false)
+  const [showRevertirModal, setShowRevertirModal] = useState(false)
+  const [reservaARevertir, setReservaARevertir] = useState<ReservaData | null>(null)
+  const [motivoReversion, setMotivoReversion] = useState("")
+  const [isRevirtiendo, setIsRevirtiendo] = useState(false)
 
   // Función para obtener fechas
   const getDateRange = () => {
@@ -204,7 +209,7 @@ export default function ReservedAppointmentsPage() {
     
     try {
       console.log(`🔍 Buscando paciente con documento: ${documento}`)
-      const response = await fetch(`/api/filiacion2?documento=${documento}`)
+      const response = await fetch(`/api/filiation/search?documento=${documento}`)
       
       if (!response.ok) {
         throw new Error('Error al buscar paciente')
@@ -305,7 +310,7 @@ export default function ReservedAppointmentsPage() {
   }
 
   // Función para cambiar el estado de una solicitud
-  const cambiarEstadoSolicitud = async (codigo: string, nuevoEstado: string, observacion?: string, usuario?: string) => {
+  const cambiarEstadoSolicitud = async (codigo: string, nuevoEstado: string, observacion?: string, usuario?: string, error?: boolean) => {
     try {
       console.log(`🔄 Cambiando estado de solicitud ${codigo} a ${nuevoEstado}`)
       
@@ -320,6 +325,10 @@ export default function ReservedAppointmentsPage() {
       
       if (observacion) {
         body.observacion = observacion
+      }
+      
+      if (error !== undefined) {
+        body.error = error
       }
       
       console.log('📤 Body enviado:', body)
@@ -390,17 +399,18 @@ export default function ReservedAppointmentsPage() {
     const reservaCompleta = {
       ...reserva,
       citaId: solicitudInfo.citaId,
+      idSolicitudCita: solicitudInfo.idSolicitudCita,
       rutaReferencia: solicitudInfo.rutaReferencia,
       consultorio: solicitudInfo.consultorio,
       tipoAtencion: solicitudInfo.tipoAtencion
     }
     setSelectedReserva(reservaCompleta)
-    console.log('📋 Reserva actualizada con citaId:', reservaCompleta.citaId)
+    console.log('📋 Reserva actualizada con citaId:', reservaCompleta.citaId, 'idSolicitudCita:', reservaCompleta.idSolicitudCita)
     
-    // Actualizar la lista de reservas con el citaId
+    // Actualizar la lista de reservas con el citaId e idSolicitudCita
     setReservas(prev => prev.map(r => 
       r.codigo === reserva.codigo 
-        ? { ...r, citaId: solicitudInfo.citaId }
+        ? { ...r, citaId: solicitudInfo.citaId, idSolicitudCita: solicitudInfo.idSolicitudCita }
         : r
     ))
     
@@ -496,38 +506,89 @@ export default function ReservedAppointmentsPage() {
     })
   }
 
-  // Manejar revertir estado de solicitud
-  const handleRevertir = async (reserva: ReservaData) => {
-    console.log('🔄 Revirtiendo estado de solicitud:', reserva.codigo)
+  // Manejar clic en revertir - abre modal de confirmación
+  const handleRevertirClick = (reserva: ReservaData) => {
+    setReservaARevertir(reserva)
+    setMotivoReversion("")
+    setShowRevertirModal(true)
+  }
+
+  // Manejar confirmación de reversión
+  const handleConfirmarReversion = async () => {
+    if (!reservaARevertir || !motivoReversion.trim()) {
+      toast({
+        title: "Campo requerido",
+        description: "Debe ingresar un motivo para revertir",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsRevirtiendo(true)
+    console.log('🔄 Revirtiendo estado de solicitud:', reservaARevertir.codigo)
     
     try {
       const usuarioApellido = extractDocumentFromToken()
       
-      // Revertir al estado PENDIENTE
+      // Determinar si la cita fue asignada (CITADO) o hubo error (DENEGADO)
+      const esEstadoCitado = reservaARevertir.estado === "CITADO"
+      const errorFlag = !esEstadoCitado // error: true si fue denegado, false si fue citado
+      
+      // Si la cita fue asignada (CITADO), primero liberar la cita
+      if (esEstadoCitado && reservaARevertir.citaId) {
+        console.log('🔓 Liberando cita asignada:', reservaARevertir.citaId)
+        try {
+          const liberarResponse = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${reservaARevertir.citaId}/liberar`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'usuario': usuarioApellido
+            }
+          })
+          
+          if (!liberarResponse.ok) {
+            console.warn(`⚠️ Advertencia al liberar cita: ${liberarResponse.status}`)
+            // Continuamos con la reversión aunque falle la liberación
+          } else {
+            console.log('✅ Cita liberada exitosamente')
+          }
+        } catch (liberarError) {
+          console.error('❌ Error al liberar cita:', liberarError)
+          // Continuamos con la reversión aunque falle la liberación
+        }
+      }
+      
+      // Revertir al estado PENDIENTE con el campo error
       const cambioExitoso = await cambiarEstadoSolicitud(
-        reserva.codigo, 
+        reservaARevertir.codigo, 
         "PENDIENTE",
-        "Revertido desde la tabla de reservas",
-        usuarioApellido
+        motivoReversion,
+        usuarioApellido,
+        errorFlag
       )
       
       if (cambioExitoso) {
         toast({
           title: "Estado Revertido",
-          description: `La solicitud ${reserva.codigo} ha sido revertida a PENDIENTE`,
+          description: `La solicitud ${reservaARevertir.codigo} ha sido revertida a PENDIENTE`,
         })
         
         // Actualizar estado en la lista
         setReservas(prev => prev.map(r => 
-          r.codigo === reserva.codigo 
+          r.codigo === reservaARevertir.codigo 
             ? { ...r, estado: "PENDIENTE" }
             : r
         ))
         
         // Limpiar la solicitud en revisión si es la misma
-        if (solicitudEnRevision?.codigo === reserva.codigo) {
+        if (solicitudEnRevision?.codigo === reservaARevertir.codigo) {
           setSolicitudEnRevision(null)
         }
+        
+        // Cerrar modal y limpiar estados
+        setShowRevertirModal(false)
+        setReservaARevertir(null)
+        setMotivoReversion("")
         
         // Recargar las reservas para reflejar el cambio
         loadReservas()
@@ -539,6 +600,8 @@ export default function ReservedAppointmentsPage() {
         description: "No se pudo revertir el estado de la solicitud",
         variant: "destructive"
       })
+    } finally {
+      setIsRevirtiendo(false)
     }
   }
 
@@ -808,12 +871,14 @@ export default function ReservedAppointmentsPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleRevertir(reserva)}
+                                  onClick={() => handleRevertirClick(reserva)}
                                   disabled={
                                     loadingReservas.has(reserva.codigo) ||
                                     reserva.estado === "PENDIENTE" ||
                                     reserva.estado === "ANULADO" ||
-                                    reserva.estado === "ELIMINADO"
+                                    reserva.estado === "ELIMINADO" ||
+                                    reserva.estado === "EN_REVISION" ||
+                                    reserva.estado === "EN REVISION"
                                   }
                                   className="flex items-center gap-2 text-orange-600 hover:text-orange-700"
                                 >
@@ -897,6 +962,7 @@ export default function ReservedAppointmentsPage() {
               appointment={{
                 codigo: selectedReserva.codigo,
                 citaId: selectedReserva.citaId?.toString() || '',
+                idSolicitudCita: selectedReserva.idSolicitudCita,
                 fecha: selectedReserva.fecha,
                 hora: selectedReserva.hora,
                 especialidad: selectedReserva.especialidad,
@@ -1114,6 +1180,98 @@ export default function ReservedAppointmentsPage() {
                   className="w-full"
                 >
                   Entendido
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal de confirmación de reversión */}
+          <Dialog open={showRevertirModal} onOpenChange={(open) => {
+            setShowRevertirModal(open)
+            if (!open) {
+              setReservaARevertir(null)
+              setMotivoReversion("")
+            }
+          }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-orange-600">
+                  <RotateCcw className="h-5 w-5" />
+                  Revertir Solicitud
+                </DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  Esta acción revertirá el estado de la solicitud a PENDIENTE.
+                  {reservaARevertir?.estado === "CITADO" && " La cita asignada será liberada automáticamente."}
+                </DialogDescription>
+              </DialogHeader>
+              
+              {reservaARevertir && (
+                <div className="space-y-4">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
+                    <h4 className="font-semibold text-orange-900">Datos de la Solicitud:</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Código:</span>
+                        <span className="font-medium text-orange-700">{reservaARevertir.codigo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Estado Actual:</span>
+                        <span className="font-medium">{reservaARevertir.estado}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Paciente:</span>
+                        <span className="font-medium">{reservaARevertir.nombres}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Especialidad:</span>
+                        <span className="font-medium">{reservaARevertir.especialidadNombre}</span>
+                      </div>
+                      {reservaARevertir.citaId && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Cita ID:</span>
+                          <span className="font-medium">{reservaARevertir.citaId}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Motivo de Reversión <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      placeholder="Ingrese el motivo por el cual se revierte la solicitud..."
+                      value={motivoReversion}
+                      onChange={(e) => setMotivoReversion(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                      maxLength={500}
+                    />
+                    <div className="text-xs text-gray-500 text-right">
+                      {motivoReversion.length}/500 caracteres
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowRevertirModal(false)
+                    setReservaARevertir(null)
+                    setMotivoReversion("")
+                  }}
+                  disabled={isRevirtiendo}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmarReversion}
+                  disabled={!motivoReversion.trim() || isRevirtiendo}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                >
+                  {isRevirtiendo ? "Revirtiendo..." : "Confirmar Reversión"}
                 </Button>
               </DialogFooter>
             </DialogContent>

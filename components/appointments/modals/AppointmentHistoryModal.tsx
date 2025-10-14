@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -167,10 +167,10 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       // Determine which API to call based on search type
       if (searchType === 'documento') {
         qs.set('documento', searchTerm.trim())
-        apiUrl = `/api/citas/search-by-documento?${qs.toString()}`
+        apiUrl = `/api/appointments/search-by-document?${qs.toString()}`
       } else if (searchType === 'nombres') {
         qs.set('nombres', searchTerm.trim())
-        apiUrl = `/api/citas/search-by-nombres?${qs.toString()}`
+        apiUrl = `/api/appointments/search-by-name?${qs.toString()}`
       }
       
       console.log('Searching with URL:', apiUrl)

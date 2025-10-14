@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter'
 import { printMultiplePdfsViaDirectApi } from '@/utils/pdfUtils'
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
-import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
+// import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService' // Ya no se usa, se calcula desde contexto
 import { usePatient } from '@/contexts/PatientContext'
 import { useServerDateTime } from '@/contexts/ServerDateTimeContext'
 
@@ -237,7 +237,7 @@ export function HospitalizationFormRefactored({
   // Función para obtener el siguiente ID de hospitalización
   const fetchNextHospitalizacionId = async () => {
     try {
-      const response = await fetch('/api/hospitaliza?next-id=true');
+      const response = await fetch('/api/hospitalization?next-id=true');
       if (!response.ok) {
         throw new Error('Error al obtener el siguiente ID de hospitalización');
       }
@@ -329,20 +329,46 @@ export function HospitalizationFormRefactored({
         return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
       };
       
-      // Obtener la edad directamente desde la API de paciente
+      // Obtener la edad actualizada desde la fecha de nacimiento del contexto
       const getEdad = async () => {
-        console.log('Obteniendo edad desde pacienteApiService para paciente:', patientId);
+        console.log('📅 Calculando edad desde fecha de nacimiento del contexto');
         
         try {
-          // Usar el servicio de pacienteApiService para obtener la edad formateada
-          const formattedAge = await pacienteApiService.getFormattedAge(patientId);
+          // Obtener fecha de nacimiento del contexto de paciente (intentar ambos formatos)
+          const fechaNacimiento = patientData?.FECHA_NACIMIENTO || patientData?.fechaNacimiento;
           
-          // El servicio ahora siempre devuelve un valor válido (nunca null)
-          console.log('Edad formateada obtenida:', formattedAge);
-          return formattedAge;
+          if (!fechaNacimiento) {
+            console.warn('⚠️ No se encontró fecha de nacimiento en el contexto');
+            console.warn('⚠️ Datos disponibles en patientData:', Object.keys(patientData || {}));
+            return '000a00m00d';
+          }
+          
+          console.log('📅 Fecha de nacimiento encontrada:', fechaNacimiento);
+          
+          // Llamar a la API para calcular la edad actualizada
+          const response = await fetch('/api/utils/update-age', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ fechaNacimiento })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Error al calcular edad');
+          }
+          
+          const result = await response.json();
+          
+          if (result.success && result.data?.edad) {
+            console.log('✅ Edad calculada:', result.data.edad);
+            console.log(`   ${result.data.years} años, ${result.data.months} meses, ${result.data.days} días`);
+            return result.data.edad;
+          }
+          
+          return '000a00m00d';
         } catch (error) {
-          console.error('Error al obtener la edad desde la API:', error);
-          // En caso de error, devolver un valor por defecto
+          console.error('❌ Error al calcular la edad:', error);
           return '000a00m00d';
         }
       };
@@ -375,6 +401,9 @@ export function HospitalizationFormRefactored({
       // Obtener el primer apellido solo si estamos en el navegador
       const primerApellido = typeof window !== 'undefined' ? extractDocumentFromToken() : 'SUPERVISOR';
       
+      // Obtener datos adicionales del contexto de paciente para completar todos los campos
+      console.log('📋 Datos del paciente desde contexto:', patientData);
+      
       // Preparar datos para enviar al servidor en el formato esperado por la API
       const hospitalData = {
         // Incluir el IDHOSPITALIZACION obtenido del servicio
@@ -383,7 +412,7 @@ export function HospitalizationFormRefactored({
         NOMBRES: truncate(nombreCompleto, 100), // Limitar a 100 caracteres
         CONSULTORIO1: consultorioCode.padEnd(6, ' ').substring(0, 6), // Exactamente 6 caracteres
         HORA1: truncate(formatTime(formData.time), 10), // Formato hh:mm AM/PM
-        FECHA1: truncate(fechaFormateada, 10), // Formato YYYY-MM-DD
+        FECHA1: truncate(fechaFormateada, 10), // Formato YYYYMMDD
         ORIGEN: origenCode, // 'EM' o 'CE' basado en el texto del origen
         SEGURO: truncate(seguroCode, 2),
         MEDICO1: truncate(medicoCode, 3).trim(),
@@ -397,11 +426,13 @@ export function HospitalizationFormRefactored({
         ACOMPANANTE_NOMBRE: truncate(formData.companionName || '', 50),
         ACOMPANANTE_TELEFONO: truncate(formData.companionPhone || '', 15),
         ACOMPANANTE_DIRECCION: truncate(formData.companionAddress || '', 100)
+        // ✅ Solo enviamos los campos con valores reales
+        // Los campos null/vacíos no se envían para evitar sobrescribir valores por defecto de la BD
       };
       
       // Determinar si es creación o actualización
       const method = 'POST';
-      const url = '/api/hospitaliza';
+      const url = '/api/hospitalization';
       
       // Verificar que todos los campos requeridos estén presentes
       if (!hospitalData.NOMBRES || hospitalData.NOMBRES.trim() === '') {
@@ -445,6 +476,20 @@ export function HospitalizationFormRefactored({
         const result = await response.json();
         console.log('Hospitalización creada exitosamente:', result);
         
+        // Verificar que realmente se creó en la BD
+        if (!result.success) {
+          console.error('❌ Error: La API retornó success=false:', result);
+          throw new Error(result.message || result.error || 'Error al crear la hospitalización');
+        }
+        
+        const hospitalizacionId = result.data?.IDHOSPITALIZACION || result.IDHOSPITALIZACION;
+        if (!hospitalizacionId) {
+          console.error('❌ Error: No se obtuvo IDHOSPITALIZACION del resultado:', result);
+          throw new Error('No se pudo obtener el ID de la hospitalización creada');
+        }
+        
+        console.log('✅ Hospitalización guardada en BD con ID:', hospitalizacionId);
+        
         // Mostrar mensaje de éxito
         setSubmitting(false);
         
@@ -452,33 +497,37 @@ export function HospitalizationFormRefactored({
         if (!isModal) {
           toast({
             title: "Hospitalización creada",
-            description: `Se ha creado la hospitalización con ID: ${result.IDHOSPITALIZACION}`,
+            description: `Se ha creado la hospitalización con ID: ${hospitalizacionId}`,
             variant: "default"
           });
         }
         
         // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
         // IMPORTANTE: Esto debe ejecutarse ANTES de llamar a onSuccess o return
-        const seguroCode = result.SEGURO?.trim();
+        const seguroCode = (result.data?.SEGURO || result.SEGURO || hospitalData.SEGURO || '').toString().trim();
+        
+        console.log('🔍 Datos de resultado:', { hospitalizacionId, seguroCode, result });
+        
         if (["0", "02", "17"].includes(seguroCode)) {
           try {
-            console.log(`Asegurando cuenta para hospitalización ${result.IDHOSPITALIZACION.trim()} con seguro ${seguroCode}...`);
+            console.log(`Asegurando cuenta para hospitalización ${hospitalizacionId} con seguro ${seguroCode}...`);
+            const nombrePaciente = (result.data?.NOMBRES || result.NOMBRES || hospitalData.NOMBRES || '').toString().trim();
             console.log('Datos que se envían al endpoint:', {
-              paciente: result.PACIENTE,
+              paciente: result.data?.PACIENTE || result.PACIENTE || patientId,
               seguro: seguroCode,
               usuario: primerApellido,
-              nombre: result.NOMBRES?.trim() || ''
+              nombre: nombrePaciente
             });
-            const asegurarResponse = await fetch(`/api/hospitaliza/${result.IDHOSPITALIZACION.trim()}/asegurar-cuenta`, {
+            const asegurarResponse = await fetch(`/api/hospitaliza/${hospitalizacionId}/assign-account`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                paciente: result.PACIENTE,
+                paciente: result.data?.PACIENTE || result.PACIENTE || patientId,
                 seguro: seguroCode,
                 usuario: primerApellido,
-                nombre: result.NOMBRES?.trim() || ''
+                nombre: nombrePaciente
               })
             });
             
@@ -490,7 +539,7 @@ export function HospitalizationFormRefactored({
               
               // Actualizar el registro de hospitalización con el cuentaId
               try {
-                const updateResponse = await fetch(`/api/hospitaliza/${result.IDHOSPITALIZACION.trim()}`, {
+                const updateResponse = await fetch(`/api/hospitaliza/${hospitalizacionId.trim()}`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json'
@@ -520,7 +569,7 @@ export function HospitalizationFormRefactored({
         }
         
         // Obtener el ID limpio para los PDFs
-        const cleanId = result.IDHOSPITALIZACION.trim();
+        const cleanId = (result.data?.IDHOSPITALIZACION || result.IDHOSPITALIZACION || nextId).toString().trim();
         
         // Obtener el nombre completo del usuario desde el token de autenticación
         const nombreCompleto = user?.nombreCompleto || '';

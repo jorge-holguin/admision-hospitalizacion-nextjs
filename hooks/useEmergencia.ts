@@ -68,12 +68,13 @@ export function useEmergencia({
       // Construir la URL base
       let url: string;
       
-      // Si se proporciona un ID de paciente, obtener solo las emergencias de ese paciente
+      // Si se proporciona un ID de paciente, obtener solo las emergencias
       if (pacienteId) {
-        url = `/api/emergencia/paciente/${pacienteId}?page=${page}&pageSize=${pageSize}`;
+        // Si hay ID de paciente, usar el endpoint específico
+        url = `/api/emergency/paciente/${pacienteId}?page=${page}&pageSize=${pageSize}`;
       } else {
         // Si no hay ID de paciente, obtener todas las emergencias
-        url = `/api/emergencia?page=${page}&pageSize=${pageSize}`;
+        url = `/api/emergency?page=${page}&pageSize=${pageSize}`;
       }
       
       const response = await fetch(url);
@@ -104,7 +105,7 @@ export function useEmergencia({
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/emergencia/crear', {
+      const response = await fetch('/api/emergency/crear', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -140,7 +141,7 @@ export function useEmergencia({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/emergencia/${emergenciaId}`, {
+      const response = await fetch(`/api/emergency/${emergenciaId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -176,7 +177,7 @@ export function useEmergencia({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/emergencia/${emergenciaId}`, {
+      const response = await fetch(`/api/emergency/${emergenciaId}`, {
         method: 'DELETE'
       });
       
@@ -208,7 +209,7 @@ export function useEmergencia({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/emergencia/${emergenciaId}`);
+      const response = await fetch(`/api/emergency/${emergenciaId}`);
       
       if (!response.ok) {
         throw new Error(`Error al obtener emergencia: ${response.status}`);
@@ -236,7 +237,7 @@ export function useEmergencia({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/emergencia/activa/${pacienteId}`);
+      const response = await fetch(`/api/emergency/activa/${pacienteId}`);
       
       if (!response.ok) {
         throw new Error(`Error al verificar emergencias activas: ${response.status}`);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,7 +124,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadEspecialidades = async () => {
     setLoadingEspecialidades(true);
     try {
-      const response = await fetch('/api/especialidad');
+      const response = await fetch('/api/master-tables/specialties');
       const result = await response.json();
       if (result.success) {
         setEspecialidades(result.data);
@@ -139,7 +139,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadConsultorios = async (especialidad: string) => {
     setLoadingConsultorios(true);
     try {
-      const response = await fetch(`/api/consultorio/by-especialidad?especialidad=${especialidad}`);
+      const response = await fetch(`/api/master-tables/consultorios/by-specialty?especialidad=${especialidad}`);
       const result = await response.json();
       if (result.success) {
         setConsultorios(result.data);
@@ -154,7 +154,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadCodigosSugeridos = async (nombreCompleto: string) => {
     setLoadingCodigos(true);
     try {
-      const response = await fetch('/api/medicos/sugerir-codigo', {
+      const response = await fetch('/api/master-tables/medicos/search/sugerir-codigo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

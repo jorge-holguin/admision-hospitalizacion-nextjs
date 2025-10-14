@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -42,7 +42,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       setLoading(true)
       const qs = new URLSearchParams()
       if (q) qs.set("search", q)
-      const res = await fetch(`/api/medicos?${qs.toString()}` , { signal })
+      const res = await fetch(`/api/master-tables/medicos/search?${qs.toString()}` , { signal })
       if (!res.ok) return
       const data = await res.json()
       const list: MedicoItem[] = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []

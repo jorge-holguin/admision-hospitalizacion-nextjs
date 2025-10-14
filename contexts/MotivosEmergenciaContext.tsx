@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react'
+﻿import React, { createContext, useState, useEffect, useContext } from 'react'
 
 export type MotivoEmergencia = {
   MOTIVO_EMERGENCIA: string
@@ -35,7 +35,7 @@ export function MotivosEmergenciaProvider({ children }: { children: React.ReactN
       setLoading(true)
       console.log('🚨 Cargando motivos de emergencia desde contexto...')
       
-      const response = await fetch('/api/motivo-emergencia')
+      const response = await fetch('/api/emergency/reasons')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

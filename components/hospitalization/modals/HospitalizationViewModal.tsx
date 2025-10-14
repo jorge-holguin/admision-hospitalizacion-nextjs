@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -49,7 +49,7 @@ export function HospitalizationViewModal({
       setError(null)
       console.log('🏥 Cargando datos de hospitalización:', hospitalizationId)
 
-      const response = await fetch(`/api/hospitaliza/orden-hospitalizacion/${hospitalizationId}`)
+      const response = await fetch(`/api/hospitalization/${hospitalizationId}`)
       
       if (!response.ok) {
         throw new Error(`Error al cargar hospitalización: ${response.status}`)

@@ -13,7 +13,8 @@ interface PatientData {
   apellidoMaterno: string;
   documento: string;
   tipoDocumento: string;
-  fechaNacimiento: string;
+  fechaNacimiento: string; // Formato: YYYY-MM-DD
+  FECHA_NACIMIENTO?: string; // Alias para compatibilidad con API
   edad: string;
   sexo: string;
   estadoCivil: string;
@@ -171,7 +172,7 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
         setError(currentPatientId, null);
 
         console.log(`Fetching patient data for ID: ${currentPatientId}`);
-        const response = await fetch(`/api/filiacion2/${currentPatientId}`);
+        const response = await fetch(`/api/filiation/${currentPatientId}`);
         
         if (!response.ok) {
           throw new Error(`Error al obtener datos del paciente: ${response.status}`);

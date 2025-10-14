@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 
@@ -81,7 +81,7 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setError(patientId, null);
 
         console.log(`🏥 [HOSPITALIZACIÓN] Obteniendo cuenta activa para paciente: ${patientId}`);
-        const response = await fetch(`/api/cuenta/${patientId}`);
+        const response = await fetch(`/api/accounts/${patientId}`);
         
         if (!response.ok) {
           throw new Error(`Error al obtener cuenta: ${response.status}`);
@@ -139,7 +139,7 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
 
         console.log(`🏥 Validando cuenta para paciente: ${patientId} con seguro: ${tipoSeguro}`);
         // ✅ Usar endpoint correcto de validación
-        const response = await fetch(`/api/cuenta/validate?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
+        const response = await fetch(`/api/accounts/validate?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
         
         if (!response.ok) {
           // Si es un 404, no es un error crítico, simplemente no hay cuenta para ese seguro

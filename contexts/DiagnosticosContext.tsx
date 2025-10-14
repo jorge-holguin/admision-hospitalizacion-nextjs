@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react'
+﻿import React, { createContext, useState, useEffect, useContext } from 'react'
 
 export type Diagnostico = {
   CODIGO: string
@@ -39,8 +39,8 @@ export function DiagnosticosProvider({ children }: { children: React.ReactNode }
       console.log('🩺 Cargando diagnósticos desde contexto...', origen ? `para origen: ${origen}` : '')
       
       const url = origen 
-        ? `/api/diagnosticos?origen=${origen}`
-        : '/api/diagnosticos'
+        ? `/api/hospitalization/diagnostics?origen=${origen}`
+        : '/api/hospitalization/diagnostics'
       
       const response = await fetch(url)
       

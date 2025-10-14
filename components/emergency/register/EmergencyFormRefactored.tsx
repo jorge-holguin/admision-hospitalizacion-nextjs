@@ -473,7 +473,7 @@ export function EmergencyFormRefactored({
   // Función para obtener el siguiente ID de emergencia y orden
   const fetchNextEmergencyIds = async () => {
     try {
-      const response = await fetch('/api/emergencia?next-id=true');
+      const response = await fetch('/api/emergency?next-id=true');
       if (!response.ok) {
         throw new Error('Error al obtener el siguiente ID de emergencia');
       }
@@ -694,7 +694,7 @@ export function EmergencyFormRefactored({
       
       // Determinar si es creación o actualización
       const method = emergencyId ? 'PATCH' : 'POST';
-      const url = emergencyId ? `/api/emergencia/${emergencyId}` : '/api/emergencia';
+      const url = emergencyId ? `/api/emergency/${emergencyId}` : '/api/emergency';
       
       console.log('Enviando datos a la API:', { url, method, emergencyData });
       console.log('Valores finales para la emergencia:', { 
@@ -760,7 +760,7 @@ export function EmergencyFormRefactored({
             nombre: nombreData
           });
           
-          const asegurarResponse = await fetch(`/api/emergencia/${emergencyIdToUse}/asegurar-cuenta`, {
+          const asegurarResponse = await fetch(`/api/emergency/${emergencyIdToUse}/assign-account`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -782,7 +782,7 @@ export function EmergencyFormRefactored({
             // Actualizar el registro de emergencia con el cuentaId si está disponible
             if (asegurarResult.cuentaId) {
               try {
-                const updateResponse = await fetch(`/api/emergencia/${emergencyIdToUse}`, {
+                const updateResponse = await fetch(`/api/emergency/${emergencyIdToUse}`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json'

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { FiliacionFilter } from "@/services/hospitalizacion/filiacionService"
@@ -80,7 +80,7 @@ export function useFiliacion() {
         }
       }
 
-      const response = await fetch(`/api/filiacion2?${params.toString()}`)
+      const response = await fetch(`/api/filiation/search?${params.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
@@ -163,7 +163,7 @@ export function useFiliacion() {
       }
 
       console.log('Fetching count with params:', params.toString())
-      const response = await fetch(`/api/filiacion2/count?${params.toString()}`)
+      const response = await fetch(`/api/filiation/search/count?${params.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))

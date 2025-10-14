@@ -49,6 +49,7 @@ interface Patient {
 interface Appointment {
   codigo: string
   citaId: string
+  idSolicitudCita?: number
   fecha: string
   hora: string
   especialidad: string
@@ -231,11 +232,11 @@ export function PatientAssignmentReservedModal({
       
       console.log('📤 Enviando solicitud de asignación:', requestBody)
       
-      // Construir la URL usando la variable de entorno
+      // 1. Construir la URL usando la variable de entorno para asignar cita
       const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_URL}/${appointment.citaId}/asignar`;
       console.log('🔗 URL de asignación:', apiUrl);
       
-      // Realizar la solicitud PUT
+      // 2. Realizar la solicitud PUT para asignar la cita
       const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
@@ -250,6 +251,29 @@ export function PatientAssignmentReservedModal({
       
       const responseData = await response.json()
       console.log('✅ Asignación exitosa:', responseData)
+      
+      // 3. Llamar a la API de reservas para marcar la solicitud como "CITAR"
+      if (appointment.idSolicitudCita) {
+        const reservasApiUrl = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`;
+        console.log('🔗 URL de reservas (citar):', reservasApiUrl);
+        
+        const reservasResponse = await fetch(reservasApiUrl, {
+          method: 'PUT',
+          headers: {
+            'accept': '*/*'
+          }
+        })
+        
+        if (!reservasResponse.ok) {
+          console.warn(`⚠️ Advertencia al actualizar solicitud de reserva: ${reservasResponse.status} ${reservasResponse.statusText}`)
+          // No lanzamos error aquí porque la cita ya fue asignada exitosamente
+        } else {
+          const reservasData = await reservasResponse.json()
+          console.log('✅ Solicitud de reserva actualizada a CITAR:', reservasData)
+        }
+      } else {
+        console.warn('⚠️ No se encontró idSolicitudCita, no se puede actualizar el estado de la reserva')
+      }
       
       // Notificar al componente padre sobre la asignación exitosa
       const assignmentData = {

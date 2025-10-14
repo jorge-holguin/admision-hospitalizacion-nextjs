@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Check, ChevronsUpDown, Search } from 'lucide-react'
@@ -73,7 +73,7 @@ export function EntidadSisSelector({
   const loadEntidadesIniciales = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/citas/entidad-sis?limit=20')
+      const response = await fetch('/api/appointments/sis-entities?limit=20')
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
@@ -96,7 +96,7 @@ export function EntidadSisSelector({
 
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/citas/entidad-sis?search=${encodeURIComponent(searchTerm)}`)
+      const response = await fetch(`/api/appointments/sis-entities?search=${encodeURIComponent(searchTerm)}`)
       if (response.ok) {
         const data = await response.json()
         if (data.success) {

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
@@ -32,7 +32,7 @@ export function TipoCitaProvider({ children }: TipoCitaProviderProps) {
     setError(null)
     
     try {
-      const response = await fetch('/api/tipo-cita')
+      const response = await fetch('/api/appointments/types')
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }

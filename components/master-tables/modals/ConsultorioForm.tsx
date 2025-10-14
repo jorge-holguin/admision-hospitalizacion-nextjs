@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,7 +76,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     const loadData = async () => {
       try {
         // Cargar especialidades
-        const espResponse = await fetch('/api/especialidad');
+        const espResponse = await fetch('/api/master-tables/specialties');
         if (espResponse.ok) {
           const espData = await espResponse.json();
           // Asegurarse de que especialidades sea siempre un array
@@ -85,7 +85,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
         }
 
         // Cargar tipos (Tabla T)
-        const tipoResponse = await fetch('/api/tipo');
+        const tipoResponse = await fetch('/api/master-tables/consultorio-types');
         if (tipoResponse.ok) {
           const tipoData = await tipoResponse.json();
           // Asegurarse de que tipos sea siempre un array
@@ -139,7 +139,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     
     setCheckingCodigo(true);
     try {
-      const response = await fetch(`/api/consultorio/check-codigo?codigo=${codigo}`);
+      const response = await fetch(`/api/master-tables/consultorios/search/check-codigo?codigo=${codigo}`);
       if (response.ok) {
         const data = await response.json();
         setCodigoExists(data.exists);

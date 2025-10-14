@@ -33,8 +33,8 @@ const API_CIEX = process.env.NEXT_PUBLIC_API_CIEX_URL;
 
 const ENDPOINTS = {
   CIEX: `${API_CIEX}/ciex`, // ✅ Usar API externa de CIEX
-  DIAGNOSTICOS: `${API_BASE}/diagnosticos`,
-  DIAGNOSTICOS_EMERGENCIA: `${API_BASE}/diagnosticos/emergencia`
+  DIAGNOSTICOS: `${API_BASE}/hospitalization/diagnostics`,
+  DIAGNOSTICOS_EMERGENCIA: `${API_BASE}/hospitalization/diagnostics`
 } as const;
 
 // Tipos de origen de hospitalización

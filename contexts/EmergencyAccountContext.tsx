@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 
@@ -60,7 +60,7 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
   };
 
   // Función para obtener la cuenta del paciente para EMERGENCIAS
-  // Usa el endpoint: /api/cuenta/buscar-por-seguro/[pacienteId]?seguro=X
+  // Usa el endpoint: /api/accounts/search-by-insurance/[pacienteId]?seguro=X
   const fetchEmergencyAccount = useCallback(async (patientId: string, tipoSeguro: string): Promise<EmergencyAccountData | null> => {
     if (!patientId || !tipoSeguro) return null;
     
@@ -86,9 +86,9 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
         setError(patientId, null);
 
         console.log(`🚨 [EMERGENCIA] Obteniendo cuenta para paciente: ${patientId} con seguro: ${tipoSeguro}`);
-        console.log(`🚨 [EMERGENCIA] Endpoint: /api/cuenta/buscar-por-seguro/${patientId}?seguro=${tipoSeguro}`);
+        console.log(`🚨 [EMERGENCIA] Endpoint: /api/accounts/search-by-insurance/${patientId}?seguro=${tipoSeguro}`);
         
-        const response = await fetch(`/api/cuenta/buscar-por-seguro/${patientId}?seguro=${tipoSeguro}`);
+        const response = await fetch(`/api/accounts/search-by-insurance/${patientId}?seguro=${tipoSeguro}`);
         
         if (!response.ok) {
           if (response.status === 404) {

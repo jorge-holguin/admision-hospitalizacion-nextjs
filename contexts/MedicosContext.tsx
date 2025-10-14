@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+﻿import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 
 // Definición de tipos
 export type MedicoInfo = {
@@ -55,11 +55,11 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
       const codigosParam = codigosFaltantes.join(',');
       
       // Intentar primero con la ruta relativa
-      let response = await fetch(`/api/medicos?codigos=${codigosParam}`);
+      let response = await fetch(`/api/master-tables/medicos/search?codigos=${codigosParam}`);
       
       // Si falla, intentar con la URL completa
       if (!response.ok) {
-        response = await fetch(`http://192.168.0.21:9011/api/medicos?codigos=${codigosParam}`);
+        response = await fetch(`http://192.168.0.21:9011/api/master-tables/medicos/search?codigos=${codigosParam}`);
       }
       
       if (response.ok) {
