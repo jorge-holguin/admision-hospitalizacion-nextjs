@@ -158,8 +158,6 @@ function MotivoModal({ isOpen, onClose, onConfirm, title, action, isLoading }: M
   )
 }
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL
-
 export function PatientAssignmentReservedModal({ 
   isOpen, 
   onClose, 
@@ -233,7 +231,7 @@ export function PatientAssignmentReservedModal({
       console.log('📤 Enviando solicitud de asignación:', requestBody)
       
       // 1. Construir la URL usando la variable de entorno para asignar cita
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_URL}/${appointment.citaId}/asignar`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${appointment.citaId}/asignar`;
       console.log('🔗 URL de asignación:', apiUrl);
       
       // 2. Realizar la solicitud PUT para asignar la cita

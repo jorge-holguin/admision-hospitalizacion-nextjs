@@ -57,20 +57,32 @@ export function getAuthToken(): string | null {
 }
 
 /**
- * Sets the authentication token in localStorage
+ * Sets the authentication token in localStorage and cookies
  */
 export function setAuthToken(token: string): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('authToken', token);
+    
+    // También guardar en cookies para que el middleware pueda acceder
+    // Calcular la fecha de expiración del token
+    const decoded = decodeToken(token);
+    const expirationDate = decoded?.exp 
+      ? new Date(decoded.exp * 1000) 
+      : new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas por defecto
+    
+    document.cookie = `authToken=${token}; path=/; expires=${expirationDate.toUTCString()}; SameSite=Lax`;
   }
 }
 
 /**
- * Removes the authentication token from localStorage
+ * Removes the authentication token from localStorage and cookies
  */
 export function removeAuthToken(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('authToken');
+    
+    // También eliminar la cookie
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
   }
 }
 

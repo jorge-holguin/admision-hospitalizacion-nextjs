@@ -976,6 +976,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 onFormChange={handleFormChange}
                 validationErrors={validationErrors}
                 disabled={!isFieldEnabled('patientSection')}
+                readOnly={readOnly}
               />
               
               {/* Datos de la Emergencia - Custom dropdowns for view mode */}
@@ -1096,7 +1097,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                 </div>
                 
                 {/* Form Actions - Botones de guardar y cancelar */}
-                {!isDeleted && (
+                {/* Solo mostrar botones si NO está en modo readOnly completo */}
+                {!isDeleted && !readOnly && (
                   <FormActionsEmergency
                     onSave={handleSave}
                     onCancel={() => onCancel ? onCancel() : router.back()}

@@ -66,9 +66,12 @@ export function HospitalizationRegistrationModal({
     pacienteId: patientId,
     name: patientData.name || `${patientData.nombres || ''} ${patientData.apellidos || ''}`.trim(),
     documento: patientData.documento || patientData.numeroDocumento || '',
-    age: patientData.age || patientData.edad || '',
+    age: patientData.age || patientData.edad || patientData.EDAD || '',
+    EDAD: patientData.EDAD || patientData.edad || '', // Asegurar campo EDAD en mayúsculas
     sex: patientData.sex || patientData.sexo || '',
-    birthDate: patientData.birthDate || patientData.fechaNacimiento || '',
+    birthDate: patientData.birthDate || patientData.fechaNacimiento || patientData.FECHA_NACIMIENTO || '',
+    FECHA_NACIMIENTO: patientData.FECHA_NACIMIENTO || patientData.fechaNacimiento || '', // Asegurar campo FECHA_NACIMIENTO en mayúsculas
+    fechaNacimiento: patientData.fechaNacimiento || patientData.FECHA_NACIMIENTO || '', // Asegurar alias minúscula
     maritalStatus: patientData.maritalStatus || patientData.estadoCivil || '',
     address: patientData.address || patientData.direccion || '',
     phone: patientData.phone || patientData.telefono || ''

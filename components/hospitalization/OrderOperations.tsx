@@ -52,7 +52,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
       }
       
       // Llamar a la API DELETE para eliminar lógicamente la hospitalización
-      const response = await fetch(`/api/hospitaliza/${deleteItemId}`, {
+      const response = await fetch(`/api/hospitalization/${deleteItemId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'

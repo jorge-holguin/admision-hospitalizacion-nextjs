@@ -34,6 +34,7 @@ import {
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 // Import all components from the appointments module
 import {
@@ -127,7 +128,7 @@ import {
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
-        const url = `${process.env.NEXT_PUBLIC_API_CITAS_URL}/buscar?${qs.toString()}`
+        const url = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/buscar?${qs.toString()}`
         const res = await fetch(url)
         if (!res.ok) {
           return
@@ -158,6 +159,8 @@ import {
           codigoPaciente: String(it.paciente ?? it.PACIENTE ?? "").trim(),
           numero: String(it.numero ?? it.NUMERO ?? ""),
           usuario: String(it.usuario ?? it.USUARIO ?? ""),
+          userLiberacion: it.userLiberacion ?? it.USER_LIBERACION ?? null,
+          userEliminacion: it.userEliminacion ?? it.USER_ELIMINACION ?? null,
           fechaProgramada: String(it.fechaProgramacion ?? it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
           fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
           fechaOtorgada: String(it.fechaOtorgada ?? it.FECHA_OTORGADA ?? ""),
@@ -193,7 +196,7 @@ import {
         return
       }
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${encodeURIComponent(id)}`)
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${encodeURIComponent(id)}`)
         if (!res.ok) {
           // Si no encuentra la cita, mostrar lista vacía en lugar de aplicar filtros
           console.log(`❌ No se encontró la cita con ID: ${id}`)
@@ -231,6 +234,8 @@ import {
           numRef: String(it.numRef ?? it.NUMREF ?? ""),
           entidadSis: String(it.entidadSis ?? it.ENTIDADSIS ?? ""),
           usuario: String(it.usuario ?? it.USUARIO ?? ""),
+          userLiberacion: it.userLiberacion ?? it.USER_LIBERACION ?? null,
+          userEliminacion: it.userEliminacion ?? it.USER_ELIMINACION ?? null,
           fechaProgramada: String(it.fechaProgramada ?? it.FECHA_PROGRAMADA ?? it.FECHAPROGRAMADA ?? ""),
           fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
         }))
@@ -308,7 +313,7 @@ import {
         const usuario = extractDocumentFromToken()
         
         // Llamar al endpoint para liberar la cita
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${citaId}/liberar`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}/liberar`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -368,9 +373,10 @@ import {
   }, [isInitialLoad, searchQuery, filters, pageParam, sizeParam])
 
     return (
-      <TipoCitaProvider>
-        <SegurosCitaProvider>
-          <div className="flex flex-col min-h-screen bg-gray-50">
+      <ProtectedRoute>
+        <TipoCitaProvider>
+          <SegurosCitaProvider>
+            <div className="flex flex-col min-h-screen bg-gray-50">
             {/* Navbar fijo arriba */}
             <Navbar />
     
@@ -804,5 +810,6 @@ import {
           </div>
         </SegurosCitaProvider>
       </TipoCitaProvider>
+      </ProtectedRoute>
   )
 }

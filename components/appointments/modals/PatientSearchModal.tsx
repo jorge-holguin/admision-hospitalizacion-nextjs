@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, User } from "lucide-react"
+import { Search, User, UserPlus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { PatientSearchModal as FiliationPatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
+import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
 
 interface Patient {
   // Campos que vienen del servicio filiacion2Service
@@ -26,14 +28,21 @@ interface PatientSearchModalProps {
   isOpen: boolean
   onClose: () => void
   onPatientSelect: (patient: Patient, searchType: 'document' | 'name') => void
+  onPatientCreated?: () => void // Callback cuando se crea un nuevo paciente
 }
 
-export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: PatientSearchModalProps) {
+export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatientCreated }: PatientSearchModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [searchType, setSearchType] = useState("documento")
   const [patients, setPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  
+  // Estados para el modal de filiación
+  const [showFiliationSearch, setShowFiliationSearch] = useState(false)
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false)
+  const [reniecData, setReniecData] = useState<any>(null)
+  const [prefilledDocument, setPrefilledDocument] = useState("")
   
   // Función para formatear fechas en formato YYYY-MM-DD a DD/MM/YYYY
   const formatDate = (dateString: string): string => {
@@ -137,6 +146,44 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
     setHasSearched(false)
   }
 
+  const handleCreateNewPatient = () => {
+    // Si buscó por documento, precargar el número
+    if (searchType === 'documento' && searchTerm.trim()) {
+      setPrefilledDocument(searchTerm.trim())
+    } else {
+      setPrefilledDocument("")
+    }
+    setShowFiliationSearch(true)
+  }
+
+  const handleFiliationSearchComplete = (reniecData: any) => {
+    setReniecData(reniecData)
+    setShowFiliationSearch(false)
+    setShowRegistrationModal(true)
+  }
+
+  const handleFiliationPatientFound = (patientData: any) => {
+    // Si encuentra el paciente en filiación, cerrar todo y refrescar
+    setShowFiliationSearch(false)
+    onPatientCreated?.() // Notificar que se debe refrescar la búsqueda
+    onClose()
+  }
+
+  const handleRegistrationSuccess = () => {
+    setShowRegistrationModal(false)
+    setReniecData(null)
+    setPrefilledDocument("")
+    onPatientCreated?.() // Notificar que se creó un paciente
+    onClose()
+  }
+
+  const handleCancelFiliation = () => {
+    setShowFiliationSearch(false)
+    setShowRegistrationModal(false)
+    setReniecData(null)
+    setPrefilledDocument("")
+  }
+
   useEffect(() => {
     if (!isOpen) {
       resetSearch()
@@ -204,7 +251,14 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
               {patients.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <User className="mx-auto h-12 w-12 mb-3 opacity-50" />
-                  <p>No se encontraron pacientes con los criterios de búsqueda</p>
+                  <p className="mb-4">No se encontraron pacientes con los criterios de búsqueda</p>
+                  <Button
+                    onClick={handleCreateNewPatient}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Crear Nueva Historia Clínica
+                  </Button>
                 </div>
               ) : (
                 <div className="border rounded-lg overflow-hidden">
@@ -259,6 +313,31 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect }: Patient
           </div>
         </div>
       </DialogContent>
+
+      {/* Modal de búsqueda de filiación (para seleccionar tipo de documento y buscar RENIEC) */}
+      {showFiliationSearch && (
+        <Dialog open={showFiliationSearch} onOpenChange={() => setShowFiliationSearch(false)}>
+          <FiliationPatientSearchModal
+            onSearchComplete={handleFiliationSearchComplete}
+            onPatientFound={handleFiliationPatientFound}
+            onCancel={handleCancelFiliation}
+            prefilledDocument={prefilledDocument}
+          />
+        </Dialog>
+      )}
+
+      {/* Modal de registro de paciente */}
+      {showRegistrationModal && (
+        <Dialog open={showRegistrationModal} onOpenChange={() => setShowRegistrationModal(false)}>
+          <PatientRegistrationModal
+            reniecData={reniecData}
+            documentType="D"
+            documentNumber={prefilledDocument}
+            onCancel={handleCancelFiliation}
+            onSuccess={handleRegistrationSuccess}
+          />
+        </Dialog>
+      )}
     </Dialog>
   )
 }

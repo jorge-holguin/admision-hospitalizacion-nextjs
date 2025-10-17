@@ -1,0 +1,9 @@
+export { DistritoSelector } from './DistritoSelector'
+export { GradoInstruccionSelector } from './GradoInstruccionSelector'
+export { OcupacionSelector } from './OcupacionSelector'
+export { UbigeoSelector } from './UbigeoSelector'
+export { ReligionSelector } from './ReligionSelector'
+export { PaisSelector } from './PaisSelector'
+export { EtniaSelector } from './EtniaSelector'
+export { EstadoCivilSelector } from './EstadoCivilSelector'
+export { LocalidadSelector } from './LocalidadSelector';

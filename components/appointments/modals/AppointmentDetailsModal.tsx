@@ -150,13 +150,31 @@ export function AppointmentDetailsModal({
             </div>
           </div>
 
-          {/* Usuario */}
-          <div className="border-t pt-4">
-            <p className="text-xs text-gray-500">
-              Último usuario: ({appointment.usuario})
-            </p>
+          {/* Usuario - Condicional según estado */}
+          <div className="border-t pt-4 bg-gray-50 rounded-md p-4">
+            {appointment.estado == '0' ? (
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-red-600" />
+                <p className="text-base font-medium text-gray-700">
+                  Usuario que anuló la cita: <span className="text-red-600 font-semibold">({appointment.userEliminacion?.trim() || '-'})</span>
+                </p>
+              </div>
+            ) : appointment.estado == '1' ? (
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-orange-600" />
+                <p className="text-base font-medium text-gray-700">
+                  Usuario que liberó la cita: <span className="text-orange-600 font-semibold">({appointment.userLiberacion?.trim() || '-'})</span>
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-blue-600" />
+                <p className="text-base font-medium text-gray-700">
+                  Usuario que asignó la cita: <span className="text-blue-600 font-semibold">({appointment.usuario?.trim() || '-'})</span>
+                </p>
+              </div>
+            )}
           </div>
-
           {/* Botones */}
           <div className="flex justify-end">
             <Button variant="outline" onClick={onClose}>

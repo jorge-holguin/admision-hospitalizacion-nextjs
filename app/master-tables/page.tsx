@@ -13,6 +13,7 @@ import { MedicoForm } from "@/components/master-tables/modals/MedicoForm"
 import { ConsultorioForm } from "@/components/master-tables/modals/ConsultorioForm"
 import { LocalidadForm } from "@/components/master-tables/modals/LocalidadForm"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function MasterTablesPage() {
   const [activeTab, setActiveTab] = useState("medicos")
@@ -82,9 +83,10 @@ export default function MasterTablesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="TABLAS MAESTRAS" showBackButton={false} />
-      <Toaster />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="TABLAS MAESTRAS" showBackButton={false} />
+        <Toaster />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
@@ -165,5 +167,6 @@ export default function MasterTablesPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
   )
 }

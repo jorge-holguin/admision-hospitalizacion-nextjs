@@ -16,6 +16,7 @@ interface PatientData {
   fechaNacimiento: string; // Formato: YYYY-MM-DD
   FECHA_NACIMIENTO?: string; // Alias para compatibilidad con API
   edad: string;
+  EDAD?: string; // Alias para compatibilidad con API
   sexo: string;
   estadoCivil: string;
   direccion: string;
@@ -191,7 +192,9 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
             documento: data.data.DOCUMENTO || '',
             tipoDocumento: data.data.TIPO_DOCUMENTO || '',
             fechaNacimiento: data.data.FECHA_NACIMIENTO || '',
+            FECHA_NACIMIENTO: data.data.FECHA_NACIMIENTO || '', // Mantener mayúsculas para compatibilidad
             edad: data.data.EDAD || '',
+            EDAD: data.data.EDAD || '', // Mantener mayúsculas para compatibilidad
             sexo: data.data.SEXO || '',
             estadoCivil: data.data.ESTADO_CIVIL || '',
             direccion: data.data.DIRECCION || '',

@@ -1,0 +1,7 @@
+export { ReligionProvider, useReligion } from './ReligionContext'
+export { EtniaProvider, useEtnia } from './EtniaContext'
+export { OcupacionProvider, useOcupacion } from './OcupacionContext'
+export { EstadoCivilProvider, useEstadoCivil } from './EstadoCivilContext'
+export { GradoInstruccionProvider, useGradoInstruccion } from './GradoInstruccionContext'
+export { PaisProvider, usePais } from './PaisContext'
+export { FiliationProvider } from './FiliationProvider'

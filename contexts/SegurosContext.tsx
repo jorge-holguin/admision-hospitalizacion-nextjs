@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface Seguro {
   Seguro: string;
@@ -30,14 +30,15 @@ export const SegurosProvider: React.FC<SegurosProviderProps> = ({ children }) =>
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/utils/insurances');
+      const response = await fetch('/api/appointments/insurances?codCita=1');
       
       if (!response.ok) {
         throw new Error(`Error al obtener seguros: ${response.status}`);
       }
 
-      const data = await response.json();
-      setSeguros(data || []);
+      const result = await response.json();
+      // La API de appointments devuelve { success: true, data: [...] }
+      setSeguros(result.success ? result.data : []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       console.error('Error al obtener seguros:', errorMessage);

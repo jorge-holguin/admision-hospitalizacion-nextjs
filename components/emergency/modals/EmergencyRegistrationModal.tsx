@@ -37,9 +37,6 @@ export function EmergencyRegistrationModal({
   const [showSuccess, setShowSuccess] = useState(false)
   const [currentEmergencyId, setCurrentEmergencyId] = useState<string>(emergencyId || "")
 
-  // Get API base URL from environment
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL || 'http://localhost:8080/api'
-
   // Usar el contexto de datos del paciente
   const { getPatientData } = usePatientData()
   const { fetchPatientData, isLoading: isLoadingPatientData } = useFetchPatientData(patientId)

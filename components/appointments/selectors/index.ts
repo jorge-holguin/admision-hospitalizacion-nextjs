@@ -1,8 +1,10 @@
 export { ConsultorioCitasSelector } from './ConsultorioCitasSelector';
-export { MedicoSelector } from './MedicoSelector';
-export { EstadoSelector, ESTADO_OPTIONS } from './EstadoSelector';
-export { TipoCitaSelector } from './TipoCitaSelector';
-export { TipoSeguroSelector } from './TipoSeguroSelector';
-export { TipoSeguroCitaSelector } from './TipoSeguroCitaSelector';
 export { EntidadSisSelector } from './EntidadSisSelector';
+export { EstadoSelector, ESTADO_OPTIONS } from './EstadoSelector';
+export type { EstadoOption } from './EstadoSelector';
+export { MedicoSelector } from './MedicoSelector';
+export { TipoCitaSelector } from './TipoCitaSelector';
+export { TipoSeguroCitaSelector } from './TipoSeguroCitaSelector';
+export { TipoSeguroSelector } from './TipoSeguroSelector';
 export { TurnoSelector } from './TurnoSelector';
+export { TipoDocumentoSelector } from './TipoDocumentoSelector';

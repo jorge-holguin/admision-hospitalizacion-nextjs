@@ -14,7 +14,7 @@ export const pacienteApiService = {
       console.log(`Obteniendo datos del paciente con ID: ${id} desde la API`);
       
       // Construir la URL de la API (usando rutas relativas)
-      const apiUrl = `/api/paciente/${id}`;
+      const apiUrl = `/api/filiation/${id}`;
       console.log(`URL de la API: ${apiUrl}`);
       
       // Realizar la petición a la API

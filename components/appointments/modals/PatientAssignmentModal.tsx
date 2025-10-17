@@ -15,6 +15,7 @@ import { useSegurosCita } from "@/contexts/SegurosCitaContext"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
+import { toast } from "@/components/ui/use-toast"
 
 interface Patient {
   HISTORIA: string
@@ -76,7 +77,7 @@ interface PatientAssignmentModalProps {
   searchType?: 'document' | 'name'
 }
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
 
 export function PatientAssignmentModal({ 
   isOpen, 
@@ -140,7 +141,7 @@ export function PatientAssignmentModal({
     setIsLoadingPatientData(true)
     try {
       console.log('🔍 Cargando datos adicionales para paciente ID:', pacienteId)
-      const response = await fetch(`${apiBaseUrl}/paciente-foto/${pacienteId}`)
+      const response = await fetch(`${apiBaseUrl}/cita/paciente-foto/${pacienteId}`)
       
       if (response.ok) {
         const additionalData = await response.json()
@@ -199,7 +200,7 @@ export function PatientAssignmentModal({
       console.log('📤 Enviando solicitud de asignación:', requestBody)
       
       // Construir la URL usando la variable de entorno
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_URL}/${appointment.id}/asignar`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${appointment.id}/asignar`;
       console.log('🔗 URL de asignación:', apiUrl);
       
       // Realizar la solicitud PUT
@@ -211,11 +212,24 @@ export function PatientAssignmentModal({
         body: JSON.stringify(requestBody)
       })
       
+      const responseData = await response.json()
+      
+      // Verificar si hay un error de cita reservada
       if (!response.ok) {
+        // Verificar si el mensaje de error indica que la cita tiene una solicitud pendiente
+        if (responseData.message && responseData.message.includes('solicitud pendiente')) {
+          toast({
+            title: "Cita Reservada",
+            description: responseData.message,
+            variant: "destructive"
+          })
+          setIsLoading(false)
+          return
+        }
+        
         throw new Error(`Error al asignar paciente: ${response.status} ${response.statusText}`)
       }
       
-      const responseData = await response.json()
       console.log('✅ Asignación exitosa:', responseData)
       
       // Mostrar mensaje de éxito

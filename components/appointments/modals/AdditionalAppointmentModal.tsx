@@ -53,7 +53,7 @@ export function AdditionalAppointmentModal({
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
 
   // Get API base URL from environment
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_URL || 'http://localhost:8080/api'
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
 
   const loadEnhancedPatientData = async (pacienteId: string) => {
     if (!pacienteId) return

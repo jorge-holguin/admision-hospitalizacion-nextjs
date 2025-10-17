@@ -1,17 +1,18 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Check, ChevronsUpDown, FileText } from "lucide-react"
-import { SearchableSelect, OptionItem } from "@/components/ui/SearchableSelect"
-import { religionOptions, etniaOptions, centroPobladoOptions } from "@/lib/constants/filiation-options"
+import { FileText } from "lucide-react"
+import { SeguroSelector } from "@/components/hospitalization/selectors/SeguroSelector"
+import { 
+  GradoInstruccionSelector, 
+  OcupacionSelector, 
+  ReligionSelector, 
+  EtniaSelector, 
+  LocalidadSelector 
+} from "@/components/filiation/selectors"
 
 interface Step2AdditionalDataProps {
   formData: any
@@ -19,77 +20,7 @@ interface Step2AdditionalDataProps {
   patientData?: any  // Datos del paciente en modo edición
 }
 
-const occupationOptions = [
-  "ESTUDIANTE",
-  "EMPLEADO",
-  "OBRERO",
-  "COMERCIANTE",
-  "PROFESIONAL",
-  "TECNICO",
-  "AGRICULTOR",
-  "GANADERO",
-  "PESCADOR",
-  "ARTESANO",
-  "CONDUCTOR",
-  "DOMESTICA",
-  "JUBILADO",
-  "DESEMPLEADO",
-  "OTROS",
-]
-
 export function Step2AdditionalData({ formData, onInputChange, patientData }: Step2AdditionalDataProps) {
-  const [openOccupation, setOpenOccupation] = useState(false)
-  const [religionSearch, setReligionSearch] = useState("")
-  const [etniaSearch, setEtniaSearch] = useState("")
-  const [centroPobladoSearch, setCentroPobladoSearch] = useState("")
-
-  // Convertir opciones al formato OptionItem
-  const religionOptionsFormatted: OptionItem[] = religionOptions.map(opt => ({
-    value: opt.value,
-    display: opt.label,
-    data: opt
-  }))
-
-  const etniaOptionsFormatted: OptionItem[] = etniaOptions.map(opt => ({
-    value: opt.value,
-    display: opt.label,
-    data: opt
-  }))
-
-  const centroPobladoOptionsFormatted: OptionItem[] = centroPobladoOptions.map(opt => ({
-    value: opt.value,
-    display: opt.label,
-    data: opt
-  }))
-
-  // Filtrar opciones basado en búsqueda
-  const filteredReligionOptions = religionOptionsFormatted.filter(opt =>
-    opt.display.toLowerCase().includes(religionSearch.toLowerCase())
-  )
-
-  const filteredEtniaOptions = etniaOptionsFormatted.filter(opt =>
-    opt.display.toLowerCase().includes(etniaSearch.toLowerCase())
-  )
-
-  const filteredCentroPobladoOptions = centroPobladoOptionsFormatted.filter(opt =>
-    opt.display.toLowerCase().includes(centroPobladoSearch.toLowerCase())
-  )
-
-  // Obtener el display actual
-  const getReligionDisplay = () => {
-    const option = religionOptionsFormatted.find(opt => opt.value === formData.religion)
-    return option?.display || ""
-  }
-
-  const getEtniaDisplay = () => {
-    const option = etniaOptionsFormatted.find(opt => opt.value === formData.etnia)
-    return option?.display || ""
-  }
-
-  const getCentroPobladoDisplay = () => {
-    const option = centroPobladoOptionsFormatted.find(opt => opt.value === formData.centroPoblado)
-    return option?.display || ""
-  }
 
   return (
     <Card>
@@ -105,123 +36,55 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="tipoSeguro">Tipo de Seguro</Label>
-            <Select value={formData.tipoSeguro} onValueChange={(value) => onInputChange("tipoSeguro", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar seguro" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SIS">SIS</SelectItem>
-                <SelectItem value="ESSALUD">ESSALUD</SelectItem>
-                <SelectItem value="PARTICULAR">PARTICULAR</SelectItem>
-                <SelectItem value="OTRO">OTRO</SelectItem>
-              </SelectContent>
-            </Select>
+            <SeguroSelector
+              value={formData.tipoSeguro}
+              onChange={(value) => onInputChange("tipoSeguro", value)}
+            />
           </div>
 
           <div>
             <Label htmlFor="gradoInstruccion">Grado de Instrucción</Label>
-            <Select
+            <GradoInstruccionSelector
               value={formData.gradoInstruccion}
-              onValueChange={(value) => onInputChange("gradoInstruccion", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PRIMARIA">Primaria</SelectItem>
-                <SelectItem value="SECUNDARIA">Secundaria</SelectItem>
-                <SelectItem value="SUPERIOR">Superior</SelectItem>
-                <SelectItem value="NINGUNO">Ninguno</SelectItem>
-              </SelectContent>
-            </Select>
+              onChange={(value, reniec) => {
+                onInputChange("gradoInstruccion", value)
+                if (reniec) onInputChange("gradoInstruccionReniec", reniec)
+              }}
+            />
           </div>
 
           <div>
             <Label htmlFor="ocupacion">Ocupación</Label>
-            <Popover open={openOccupation} onOpenChange={setOpenOccupation}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openOccupation}
-                  className="w-full justify-between bg-transparent"
-                >
-                  {formData.ocupacion || "Seleccionar ocupación..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
-                  <CommandInput placeholder="Buscar ocupación..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                    <CommandGroup>
-                      {occupationOptions.map((option) => (
-                        <CommandItem
-                          key={option}
-                          value={option}
-                          onSelect={() => {
-                            onInputChange("ocupacion", option)
-                            setOpenOccupation(false)
-                          }}
-                        >
-                          <Check
-                            className={
-                              formData.ocupacion === option ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"
-                            }
-                          />
-                          {option}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <OcupacionSelector
+              value={formData.ocupacion}
+              onChange={(value) => onInputChange("ocupacion", value)}
+            />
           </div>
         </div>
 
-        {/* Religión - Etnia - Centro poblado */}
+        {/* Religión - Etnia - Centro poblado (Localidad) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <SearchableSelect
-            label="Religión"
-            value={getReligionDisplay()}
-            options={filteredReligionOptions}
-            search={religionSearch}
-            onSearchChange={setReligionSearch}
-            onSelect={(option) => {
-              onInputChange("religion", option.value)
-              setReligionSearch("")
-            }}
-            selectName="religion"
-            placeholder="Seleccionar religión..."
-          />
-          <SearchableSelect
-            label="Etnia"
-            value={getEtniaDisplay()}
-            options={filteredEtniaOptions}
-            search={etniaSearch}
-            onSearchChange={setEtniaSearch}
-            onSelect={(option) => {
-              onInputChange("etnia", option.value)
-              setEtniaSearch("")
-            }}
-            selectName="etnia"
-            placeholder="Seleccionar etnia..."
-          />
-          <SearchableSelect
-            label="Centro Poblado"
-            value={getCentroPobladoDisplay()}
-            options={filteredCentroPobladoOptions}
-            search={centroPobladoSearch}
-            onSearchChange={setCentroPobladoSearch}
-            onSelect={(option) => {
-              onInputChange("centroPoblado", option.value)
-              setCentroPobladoSearch("")
-            }}
-            selectName="centroPoblado"
-            placeholder="Seleccionar centro poblado..."
-          />
+          <div>
+            <Label htmlFor="religion">Religión</Label>
+            <ReligionSelector
+              value={formData.religion}
+              onChange={(value) => onInputChange("religion", value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="etnia">Etnia</Label>
+            <EtniaSelector
+              value={formData.etnia}
+              onChange={(value) => onInputChange("etnia", value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="centroPoblado">Centro Poblado</Label>
+            <LocalidadSelector
+              value={formData.centroPoblado}
+              onChange={(value) => onInputChange("centroPoblado", value)}
+            />
+          </div>
         </div>
 
         {/* Teléfonos e hijos */}
@@ -256,15 +119,28 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
           </div>
         </div>
 
-        {/* Observación */}
-        <div>
-          <Label htmlFor="observacion">Observación</Label>
-          <Textarea
-            id="observacion"
-            rows={3}
-            value={formData.observacion}
-            onChange={(e) => onInputChange("observacion", e.target.value)}
-          />
+        {/* Correo Electrónico y Observación */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="correoElectronico">Correo Electrónico</Label>
+            <Input
+              id="correoElectronico"
+              type="email"
+              placeholder="ejemplo@correo.com"
+              value={formData.correoElectronico}
+              onChange={(e) => onInputChange("correoElectronico", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="observacion">Observación</Label>
+            <Textarea
+              id="observacion"
+              rows={2}
+              value={formData.observacion}
+              onChange={(e) => onInputChange("observacion", e.target.value)}
+              className="resize-none"
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

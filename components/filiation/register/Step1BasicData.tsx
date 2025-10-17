@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,8 +14,9 @@ import {
   Hash, 
   Home 
 } from "lucide-react"
-import { SearchableSelect, OptionItem } from "@/components/ui/SearchableSelect"
-import { paisOptions, departamentoOptions, distritoLimaOptions } from "@/lib/constants/filiation-options"
+import ImageWithLoader from "@/components/ui/ImageWithLoader"
+import { useTiposDocumento } from "@/contexts/TiposDocumentoContext"
+import { UbigeoSelector, EstadoCivilSelector, PaisSelector } from "@/components/filiation/selectors"
 
 interface Step1BasicDataProps {
   formData: any
@@ -25,6 +25,8 @@ interface Step1BasicDataProps {
   documentNumber: string
   reniecData?: any
   patientData?: any  // Datos del paciente en modo edición
+  onDocumentTypeChange?: (type: string) => void
+  onDocumentNumberChange?: (number: string) => void
 }
 
 export function Step1BasicData({ 
@@ -33,59 +35,53 @@ export function Step1BasicData({
   documentType, 
   documentNumber, 
   reniecData,
-  patientData
+  patientData,
+  onDocumentTypeChange,
+  onDocumentNumberChange
 }: Step1BasicDataProps) {
-  const [paisSearch, setPaisSearch] = useState("")
-  const [departamentoSearch, setDepartamentoSearch] = useState("")
-  const [distritoSearch, setDistritoSearch] = useState("")
-
-  // Convertir opciones al formato OptionItem
-  const paisOptionsFormatted: OptionItem[] = paisOptions.map(opt => ({
-    value: opt.value,
-    display: opt.label,
-    data: opt
-  }))
-
-  const departamentoOptionsFormatted: OptionItem[] = departamentoOptions.map(opt => ({
-    value: opt.value,
-    display: opt.label,
-    data: opt
-  }))
-
-  const distritoOptionsFormatted: OptionItem[] = distritoLimaOptions.map(opt => ({
-    value: opt.value,
-    display: opt.label,
-    data: opt
-  }))
-
-  // Filtrar opciones basado en búsqueda
-  const filteredPaisOptions = paisOptionsFormatted.filter(opt =>
-    opt.display.toLowerCase().includes(paisSearch.toLowerCase())
-  )
-
-  const filteredDepartamentoOptions = departamentoOptionsFormatted.filter(opt =>
-    opt.display.toLowerCase().includes(departamentoSearch.toLowerCase())
-  )
-
-  const filteredDistritoOptions = distritoOptionsFormatted.filter(opt =>
-    opt.display.toLowerCase().includes(distritoSearch.toLowerCase())
-  )
-
-  // Obtener el display actual
-  const getPaisDisplay = () => {
-    const option = paisOptionsFormatted.find(opt => opt.value === formData.paisNacimiento)
-    return option?.display || ""
+  console.log('📋 Step1BasicData recibido:')
+  console.log('   - documentType:', documentType)
+  console.log('   - documentNumber:', documentNumber)
+  console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
+  
+  // Obtener nombre completo del tipo de documento
+  const { getTipoDocumentoNombre } = useTiposDocumento()
+  
+  // Mapeo de fallback para tipos de documento comunes
+  const documentTypeMap: Record<string, string> = {
+    'D': 'DNI',
+    'CE': 'CARNET DE EXTRANJERÍA',
+    'PP': 'PASAPORTE',
+    '0': '*NINGUNO',
+    'DNI': 'DNI' // Por si viene ya como "DNI"
   }
-
-  const getDepartamentoDisplay = () => {
-    const option = departamentoOptionsFormatted.find(opt => opt.value === formData.lugarNacimiento)
-    return option?.display || ""
+  
+  // Limpiar el tipo de documento (quitar espacios)
+  const cleanDocType = documentType?.trim() || ''
+  
+  // Intentar obtener el nombre del tipo de documento
+  let documentTypeDisplay = '-'
+  
+  // 1. Intentar desde el contexto con el valor original
+  if (documentType) {
+    documentTypeDisplay = getTipoDocumentoNombre(documentType)
   }
-
-  const getDistritoDisplay = () => {
-    const option = distritoOptionsFormatted.find(opt => opt.value === formData.distritoProcedencia)
-    return option?.display || ""
+  
+  // 2. Si no se encontró, intentar con el valor limpio
+  if (documentTypeDisplay === documentType || documentTypeDisplay === '-') {
+    documentTypeDisplay = getTipoDocumentoNombre(cleanDocType)
   }
+  
+  // 3. Si aún no se encontró, usar el mapeo local
+  if (documentTypeDisplay === documentType || documentTypeDisplay === cleanDocType || documentTypeDisplay === '-') {
+    documentTypeDisplay = documentTypeMap[cleanDocType] || cleanDocType || '-'
+  }
+  
+  console.log('📋 Tipo de documento:', {
+    original: documentType,
+    cleaned: cleanDocType,
+    display: documentTypeDisplay
+  })
   // Generar datos automáticos
   const currentDate = new Date()
   const currentDateTime = currentDate.toLocaleString("es-PE", {
@@ -105,16 +101,40 @@ export function Step1BasicData({
       .padStart(4, "0")}`
   }
 
+  // Calcular edad en formato 000a00m00d
   const calculateAge = (birthDate: string) => {
     if (!birthDate) return ""
-    const birth = new Date(birthDate)
-    const today = new Date()
-    let age = today.getFullYear() - birth.getFullYear()
-    const monthDiff = today.getMonth() - birth.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--
+    
+    try {
+      const birth = new Date(birthDate)
+      const today = new Date()
+      
+      let years = today.getFullYear() - birth.getFullYear()
+      let months = today.getMonth() - birth.getMonth()
+      let days = today.getDate() - birth.getDate()
+      
+      // Ajustar si los días son negativos
+      if (days < 0) {
+        months--
+        const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+        days = prevMonth.getDate() + days
+      }
+      
+      // Ajustar si los meses son negativos
+      if (months < 0) {
+        years--
+        months = 12 + months
+      }
+      
+      // Formato: "029a08m01d" con padding de ceros
+      const yearsStr = years.toString().padStart(3, '0')
+      const monthsStr = months.toString().padStart(2, '0')
+      const daysStr = days.toString().padStart(2, '0')
+      
+      return `${yearsStr}a${monthsStr}m${daysStr}d`
+    } catch (error) {
+      return ""
     }
-    return age.toString()
   }
 
   return (
@@ -132,10 +152,20 @@ export function Step1BasicData({
             {/* Foto del Paciente */}
             <div className="flex flex-col items-center space-y-2">
               <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
-                {patientData?.STRING_FOTO ? (
-                  <img 
-                    src={`data:image/jpeg;base64,${patientData.STRING_FOTO}`} 
+                {reniecData?.photoReniec ? (
+                  <ImageWithLoader
+                    src={`data:image/jpeg;base64,${reniecData.photoReniec}`}
+                    alt="Foto RENIEC"
+                    width={128}
+                    height={192}
+                    className="w-full h-full object-cover"
+                  />
+                ) : patientData?.STRING_FOTO ? (
+                  <ImageWithLoader
+                    src={`data:image/jpeg;base64,${patientData.STRING_FOTO}`}
                     alt="Foto del paciente"
+                    width={128}
+                    height={192}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -154,7 +184,7 @@ export function Step1BasicData({
                 </Label>
                 <Input 
                   id="hc" 
-                  value={patientData?.HISTORIA?.trim() || "Se genera automáticamente"} 
+                  value={reniecData?.historyNumber || patientData?.HISTORIA?.trim() || documentNumber || "Se genera automáticamente"} 
                   disabled 
                   className="bg-gray-50 text-gray-600" 
                 />
@@ -164,19 +194,41 @@ export function Step1BasicData({
                   <CreditCard className="w-4 h-4 mr-1" />
                   Tipo de Documento
                 </Label>
-                <Input id="tipoDocumento" value={documentType} disabled className="bg-gray-50 text-gray-600" />
+                {reniecData ? (
+                  <Input id="tipoDocumento" value={documentTypeDisplay} disabled className="bg-gray-50 text-gray-600 uppercase" />
+                ) : (
+                  <Select value={documentType} onValueChange={onDocumentTypeChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="D">DNI</SelectItem>
+                      <SelectItem value="CE">CARNET DE EXTRANJERÍA</SelectItem>
+                      <SelectItem value="PP">PASAPORTE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div>
                 <Label htmlFor="dni" className="flex items-center text-sm font-medium text-gray-700">
                   <Hash className="w-4 h-4 mr-1" />
                   N° Documento
                 </Label>
-                <Input
-                  id="dni"
-                  value={reniecData?.dni || documentNumber}
-                  disabled
-                  className="bg-gray-50 text-gray-600"
-                />
+                {reniecData ? (
+                  <Input
+                    id="dni"
+                    value={reniecData?.dni || documentNumber}
+                    disabled
+                    className="bg-gray-50 text-gray-600"
+                  />
+                ) : (
+                  <Input
+                    id="dni"
+                    value={documentNumber}
+                    onChange={(e) => onDocumentNumberChange?.(e.target.value)}
+                    placeholder="Ingrese número de documento"
+                  />
+                )}
               </div>
               <div>
                 <Label htmlFor="edad" className="flex items-center text-sm font-medium text-gray-700">
@@ -185,16 +237,12 @@ export function Step1BasicData({
                 </Label>
                 <Input
                   id="edad"
-                  value={
-                    formData.fechaNacimiento
-                      ? `${calculateAge(formData.fechaNacimiento)} años` 
-                      : "Se calcula automáticamente"
-                  }
+                  value={reniecData?.age || (formData.fechaNacimiento ? calculateAge(formData.fechaNacimiento) : "Se calcula automáticamente")}
                   disabled
                   className="bg-gray-50 text-gray-600"
                 />
               </div>
-              <div>
+      {/*         <div>
                 <Label htmlFor="codigoPaciente" className="flex items-center text-sm font-medium text-gray-700">
                   <Hash className="w-4 h-4 mr-1" />
                   Código de Paciente
@@ -205,7 +253,7 @@ export function Step1BasicData({
                   disabled
                   className="bg-gray-50 text-gray-600"
                 />
-              </div>
+              </div> */}
               <div>
                 <Label htmlFor="fechaApertura" className="flex items-center text-sm font-medium text-gray-700">
                   <Clock className="w-4 h-4 mr-1" />
@@ -241,27 +289,33 @@ export function Step1BasicData({
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
         <Label htmlFor="apellidoPaterno">Apellido Paterno</Label>
-        <Input
-          id="apellidoPaterno"
-          value={formData.apellidoPaterno}
-          onChange={(e) => onInputChange("apellidoPaterno", e.target.value)}
-        />
+                <Input
+                  id="apellidoPaterno"
+                  value={reniecData?.apellidoPaterno || formData.apellidoPaterno || patientData?.PATERNO || ""}
+                  onChange={(e) => onInputChange("apellidoPaterno", e.target.value.toUpperCase())}
+                  className="uppercase"
+                  required
+                />
       </div>
       <div>
         <Label htmlFor="apellidoMaterno">Apellido Materno</Label>
-        <Input
-          id="apellidoMaterno"
-          value={formData.apellidoMaterno}
-          onChange={(e) => onInputChange("apellidoMaterno", e.target.value)}
-        />
+                <Input
+                  id="apellidoMaterno"
+                  value={reniecData?.apellidoMaterno || formData.apellidoMaterno || patientData?.MATERNO || ""}
+                  onChange={(e) => onInputChange("apellidoMaterno", e.target.value.toUpperCase())}
+                  className="uppercase"
+                  required
+                />
       </div>
       <div>
         <Label htmlFor="nombres">Nombres</Label>
-        <Input
-          id="nombres"
-          value={formData.nombres}
-          onChange={(e) => onInputChange("nombres", e.target.value)}
-        />
+                <Input
+                  id="nombres"
+                  value={reniecData?.nombres || formData.nombres || patientData?.NOMBRES || ""}
+                  onChange={(e) => onInputChange("nombres", e.target.value.toUpperCase())}
+                  className="uppercase"
+                  required
+                />
       </div>
     </div>
 
@@ -290,74 +344,64 @@ export function Step1BasicData({
       </div>
       <div>
         <Label htmlFor="estadoCivil">Estado Civil</Label>
-        <Select value={formData.estadoCivil} onValueChange={(value) => onInputChange("estadoCivil", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Seleccionar" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="S">Soltero(a)</SelectItem>
-            <SelectItem value="C">Casado(a)</SelectItem>
-            <SelectItem value="V">Viudo(a)</SelectItem>
-            <SelectItem value="D">Divorciado(a)</SelectItem>
-          </SelectContent>
-        </Select>
+        <EstadoCivilSelector
+          value={formData.estadoCivil}
+          onChange={(value, reniec) => {
+            onInputChange("estadoCivil", value)
+            if (reniec) onInputChange("estadoCivilReniec", reniec)
+          }}
+        />
       </div>
     </div>
 
     {/* País y Lugar de Nacimiento */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <SearchableSelect
-        label="País de Nacimiento"
-        value={getPaisDisplay()}
-        options={filteredPaisOptions}
-        search={paisSearch}
-        onSearchChange={setPaisSearch}
-        onSelect={(option) => {
-          onInputChange("paisNacimiento", option.value)
-          setPaisSearch("")
-        }}
-        selectName="paisNacimiento"
-        placeholder="Seleccionar país..."
-      />
-      <SearchableSelect
-        label="Lugar Nacimiento (Departamento)"
-        value={getDepartamentoDisplay()}
-        options={filteredDepartamentoOptions}
-        search={departamentoSearch}
-        onSearchChange={setDepartamentoSearch}
-        onSelect={(option) => {
-          onInputChange("lugarNacimiento", option.value)
-          setDepartamentoSearch("")
-        }}
-        selectName="lugarNacimiento"
-        placeholder="Seleccionar departamento..."
-      />
+      <div>
+        <Label htmlFor="paisNacimiento">País de Nacimiento</Label>
+        <PaisSelector
+          value={formData.paisNacimiento}
+          onChange={(value) => onInputChange("paisNacimiento", value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="lugarNacimiento">Lugar de Nacimiento (Distrito)</Label>
+        <UbigeoSelector
+          value={formData.lugarNacimiento}
+          onChange={(value, ubigeoreniec) => {
+            onInputChange("lugarNacimiento", value)
+            if (ubigeoreniec) onInputChange("lugarNacimientoReniec", ubigeoreniec)
+          }}
+          placeholder="Buscar distrito de nacimiento..."
+          ubigeoReniecInitial={reniecData?.ubigeoReniecNacimiento}
+        />
+      </div>
     </div>
 
     {/* Dirección y Distrito */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <Label htmlFor="direccion">Dirección</Label>
-        <Input
-          id="direccion"
-          placeholder="Dirección completa del paciente"
-          value={formData.direccion}
-          onChange={(e) => onInputChange("direccion", e.target.value)}
+              <Input
+                id="direccion"
+                placeholder="Ingrese dirección completa"
+                value={reniecData?.address || formData.direccion || patientData?.DIRECCION || ""}
+                onChange={(e) => onInputChange("direccion", e.target.value.toUpperCase())}
+                className="uppercase"
+              />
+      </div>
+      <div>
+        <Label htmlFor="distritoProcedencia">Distrito de Procedencia</Label>
+        <UbigeoSelector
+          value={formData.distritoProcedencia}
+          onChange={(value, ubigeoreniec) => {
+            console.log(`📍 UbigeoSelector onChange - distrito:`, value, `ubigeoreniec:`, ubigeoreniec)
+            onInputChange("distritoProcedencia", value)
+            if (ubigeoreniec) onInputChange("ubigeoReniec", ubigeoreniec)
+          }}
+          placeholder="Buscar distrito de procedencia..."
+          ubigeoReniecInitial={reniecData?.ubigeoReniecProcedencia}
         />
       </div>
-      <SearchableSelect
-        label="Distrito de Procedencia"
-        value={getDistritoDisplay()}
-        options={filteredDistritoOptions}
-        search={distritoSearch}
-        onSearchChange={setDistritoSearch}
-        onSelect={(option) => {
-          onInputChange("distritoProcedencia", option.value)
-          setDistritoSearch("")
-        }}
-        selectName="distritoProcedencia"
-        placeholder="Seleccionar distrito..."
-      />
     </div>
   </CardContent>
 </Card>

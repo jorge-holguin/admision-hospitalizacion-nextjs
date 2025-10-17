@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -21,25 +22,39 @@ interface Patient {
   nombres?: string
   fechaNacimiento?: string
   sexo?: string
-  estadoCivil?: string
+  estadoCivil?: string | { estadoCivil: string; nombre: string }
   paisNacimiento?: string
-  lugarNacimiento?: string
+  pais?: string
+  lugarNacimiento?: string | { ubigeo: string; distrito: string; provincia: string; departamento: string }
   direccion?: string
+  direccionReniec?: string
   distritoProcedencia?: string
+  distrito?: string | { ubigeo: string; distrito: string; provincia: string; departamento: string }
   tipoSeguro?: string
-  gradoInstruccion?: string
-  ocupacion?: string
+  tipoDocumento?: string | { tipoDocumento: string; nombre: string }
+  seguro?: { seguro: string; nombre: string }
+  localidad?: string
+  stringFoto?: string
+  fechaApertura?: string
+  horaApertura?: string
+  gradoInstruccion?: string | { gradoInstruccion: string; nombre: string }
+  ocupacion?: string | { ocupacion: string; nombre: string }
   religion?: string
   etnia?: string
+  codEtnia?: { codEtnia: string; etPueInd: string; lengua: string }
+  conyugeOcupacion?: string | { ocupacion: string; nombre: string }
+  conyugeNombre?: string
+  email?: string
   centroPoblado?: string
   telefono1?: string
   telefono2?: string
-  hijos?: string
+  hijos?: string | number
   observacion?: string
   padre?: string
   madre?: string
   conyuge?: string
   ocupacionFamiliar?: string
+  correo?: string
   nombreAcompanante?: string
   parentesco?: string
   ocupacionAcompanante?: string
@@ -78,6 +93,31 @@ interface PatientViewModalProps {
 }
 
 export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalProps) {
+  const [localidadNombre, setLocalidadNombre] = useState<string>('')
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+
+  // Cargar nombre de localidad desde API
+  useEffect(() => {
+    const loadLocalidadNombre = async () => {
+      if (!patient) return
+      
+      const localidadCode = patient.localidad?.trim() || patient.LOCALIDAD?.trim()
+      if (!localidadCode) return
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/maestro/localidad/${encodeURIComponent(localidadCode)}`)
+        if (response.ok) {
+          const data = await response.json()
+          setLocalidadNombre(data.nombre || '')
+        }
+      } catch (error) {
+        console.error('Error al cargar localidad:', error)
+      }
+    }
+
+    loadLocalidadNombre()
+  }, [patient, API_BASE_URL])
+
   // Si patient es null o undefined, mostrar mensaje o retornar null
   if (!patient) {
     return (
@@ -98,13 +138,17 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     ...patient,
     // Información del Sistema
     hc: patient.HISTORIA?.trim() || patient.hc || '',
-    tipoDocumento: patient.NOMBRE_DOCUMENTO || 'DNI',
+    tipoDocumento: typeof patient.tipoDocumento === 'object' ? patient.tipoDocumento?.nombre : patient.NOMBRE_DOCUMENTO || 'DNI',
     dni: patient.DOCUMENTO || patient.dni || '',
     edad: patient.EDAD || '',
     codigoPaciente: patient.PACIENTE || patient.id || '',
-    fechaApertura: patient.FECHA_APERTURA || '',
-    horaApertura: patient.HORA_APERTURA || '',
-    photo: patient.STRING_FOTO || patient.photo || '',
+    // Fecha y Hora de Apertura: formatear la fecha completa
+    fechaApertura: patient.fechaApertura ? new Date(patient.fechaApertura).toLocaleString('es-PE', { 
+      year: 'numeric', month: '2-digit', day: '2-digit', 
+      hour: '2-digit', minute: '2-digit', second: '2-digit' 
+    }) : patient.FECHA_APERTURA || '',
+    horaApertura: patient.horaApertura || patient.HORA_APERTURA || '',
+    photo: patient.stringFoto || patient.STRING_FOTO || patient.photo || '',
     
     // Datos Personales
     apellidoPaterno: patient.PATERNO?.trim() || patient.apellidoPaterno || '',
@@ -112,33 +156,43 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     nombres: patient.NOMBRE?.trim() || patient.nombres || '',
     fechaNacimiento: patient.FECHA_NACIMIENTO || patient.birthDate || '',
     sexo: patient.SEXO || patient.sex || '',
-    estadoCivil: patient.NOMBRE_ESTADO_CIVIL || patient.estadoCivil || '',
-    codigoEstadoCivil: patient.ESTADO_CIVIL || '',
-    paisNacimiento: patient.PAIS || '',
-    lugarNacimiento: patient.LUGAR_NACIMIENTO || '',
-    distrito: patient.DISTRITO || patient.district || '',
-    direccion: patient.DIRECCION || patient.DIRECCION_RENIEC || patient.address || '',
-    distritoProcedencia: patient.Distrito_Dir || patient.DISTRITO_RENIEC || patient.distritoProcedencia || '',
+    estadoCivil: typeof patient.estadoCivil === 'object' ? patient.estadoCivil?.nombre : patient.NOMBRE_ESTADO_CIVIL || patient.estadoCivil || '',
+    codigoEstadoCivil: typeof patient.estadoCivil === 'object' ? patient.estadoCivil?.estadoCivil : patient.ESTADO_CIVIL || '',
+    // País: mapear código a nombre
+    paisNacimiento: patient.pais === '146' ? 'PERÚ' : patient.PAIS || 'PERÚ',
+    // Lugar de Nacimiento: extraer distrito del objeto
+    lugarNacimiento: typeof patient.lugarNacimiento === 'object' ? patient.lugarNacimiento?.distrito : patient.LUGAR_NACIMIENTO || '',
+    distrito: typeof patient.distrito === 'object' ? patient.distrito?.distrito : patient.DISTRITO || patient.district || '',
+    direccion: patient.direccionReniec || patient.DIRECCION || patient.DIRECCION_RENIEC || patient.address || '',
+    distritoProcedencia: typeof patient.distrito === 'object' ? patient.distrito?.distrito : patient.Distrito_Dir || patient.DISTRITO_RENIEC || patient.distritoProcedencia || '',
     
     // Datos Adicionales
-    tipoSeguro: patient.NOMBRE_SEGURO || patient.tipoSeguro || '',
-    codigoSeguro: patient.SEGURO || '',
-    gradoInstruccion: patient.GRADO_INSTRUCCION || '',
-    ocupacion: patient.OCUPACION || '',
+    // Tipo de Seguro: mostrar código - nombre
+    tipoSeguro: typeof patient.seguro === 'object' 
+      ? `${patient.seguro?.seguro?.trim()} - ${patient.seguro?.nombre}` 
+      : patient.NOMBRE_SEGURO || patient.tipoSeguro || '',
+    codigoSeguro: typeof patient.seguro === 'object' ? patient.seguro?.seguro : patient.SEGURO || '',
+    gradoInstruccion: typeof patient.gradoInstruccion === 'object' ? patient.gradoInstruccion?.nombre : patient.gradoInstruccion || patient.GRADO_INSTRUCCION || '',
+    ocupacion: typeof patient.ocupacion === 'object' ? patient.ocupacion?.nombre : patient.ocupacion || patient.OCUPACION || '',
     religion: patient.DESRELIGION || patient.religion || '',
     codigoReligion: patient.RELIGION || '',
-    etnia: patient.COD_ETNIA || '',
-    centroPoblado: patient.LOCALIDAD || patient.Nombre_Localidad || '',
+    // Etnia: mostrar solo etPueInd (nombre del pueblo indígena)
+    etnia: typeof patient.codEtnia === 'object' ? patient.codEtnia?.etPueInd : patient.codEtnia || '',
+    // Centro Poblado: mostrar código - nombre (nombre se carga desde API)
+    centroPoblado: localidadNombre 
+      ? `${(patient.localidad || patient.LOCALIDAD)?.trim()} - ${localidadNombre}`
+      : patient.LOCALIDAD || patient.Nombre_Localidad || '',
     telefono1: patient.TELEFONO1?.trim() || '',
     telefono2: patient.TELEFONO2?.trim() || '',
-    hijos: patient.HIJOS?.s || patient.HIJOS?.d?.[0] || 0,
-    observacion: patient.EMAIL || '',
+    hijos: patient.hijos || patient.HIJOS?.s || patient.HIJOS?.d?.[0] || 0,
+    observacion: patient.email || patient.EMAIL || '',
+    correo: patient.correo || '',
     
     // Datos Familiares
-    padre: patient.PADRE || '',
-    madre: patient.MADRE || '',
-    conyuge: patient.CONYUGE_NOMBRE || '',
-    ocupacionFamiliar: patient.CONYUGE_OCUPACION || '',
+    padre: patient.padre || patient.PADRE || '',
+    madre: patient.madre || patient.MADRE || '',
+    conyuge: patient.conyugeNombre || patient.CONYUGE_NOMBRE || '',
+    ocupacionFamiliar: typeof patient.conyugeOcupacion === 'object' ? patient.conyugeOcupacion?.nombre : patient.conyugeOcupacion || patient.CONYUGE_OCUPACION || '',
     
     // Datos de Acompañante/Responsable
     nombreAcompanante: patient.RESPONSABLE_NOMBRE || '',
@@ -196,7 +250,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 <p className="text-xs text-gray-500 text-center max-w-32">Foto RENIEC</p>
               </div>
 
-              {/* Datos del sistema */}
+              {/* Datos del sistema - 2 filas x 3 columnas */}
               <div className="flex-1 grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">N° Historia Clínica</p>
@@ -220,7 +274,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Fecha y Hora de Apertura</p>
-                  <p className="font-medium">{mappedPatient.horaApertura || 'N/A'}</p>
+                  <p className="font-medium">{mappedPatient.fechaApertura || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -309,10 +363,6 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                   <p className="text-sm font-medium text-gray-600">Distrito de Procedencia</p>
                   <p className="font-medium">{mappedPatient.distritoProcedencia || mappedPatient.district}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Localidad</p>
-                  <p className="font-medium">{mappedPatient.location || "N/A"}</p>
-                </div>
               </div>
             </div>
           </CardContent>
@@ -362,7 +412,11 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">N° de Hijos</p>
-                <p className="font-medium">{mappedPatient.hijos || "N/A"}</p>
+                <p className="font-medium">{mappedPatient.hijos || "0"}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Correo Electrónico</p>
+                <p className="font-medium">{mappedPatient.correo || "N/A"}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-sm font-medium text-gray-600">Observaciones</p>
@@ -395,7 +449,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 <p className="font-medium">{mappedPatient.conyuge || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Ocupación Familiar</p>
+                <p className="text-sm font-medium text-gray-600">Ocupación Conyuge</p>
                 <p className="font-medium">{mappedPatient.ocupacionFamiliar || "N/A"}</p>
               </div>
             </div>
@@ -403,7 +457,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         </Card>
 
         {/* Datos de Acompañante */}
-        <Card>
+     {/*    <Card>
           <CardHeader>
             <CardTitle className="text-lg text-blue-700 flex items-center">
               <Heart className="w-5 h-5 mr-2" />
@@ -436,7 +490,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
       {/* Footer con acciones */}
       <div className="flex justify-between items-center pt-6 border-t">
@@ -449,9 +503,9 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
           <Button variant="outline" onClick={onClose}>
             Cerrar
           </Button>
-          <Button onClick={onEdit} className="bg-orange-600 hover:bg-orange-700">
+          {/* <Button onClick={onEdit} className="bg-orange-600 hover:bg-orange-700">
             Editar Información
-          </Button>
+          </Button> */}
         </div>
       </div>
     </DialogContent>

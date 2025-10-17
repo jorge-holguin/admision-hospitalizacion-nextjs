@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ordenHospitalizacionService } from '@/services/hospitalizacion/ordenHospitalizacionService'
+import hospitalizaService from '@/services/hospitalizacion/hospitalizaService'
 import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
 
 export async function GET(
   req: NextRequest,
@@ -104,7 +106,6 @@ export async function PUT(
   }
 }
 
-// PATCH /api/hospitaliza/[id] - Actualizar campos específicos de una hospitalización
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -156,7 +157,6 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/hospitaliza/[id] - Eliminar una hospitalización por ID (eliminación lógica)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }

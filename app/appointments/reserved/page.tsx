@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +18,9 @@ import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertCircle } from "lucide-react"
+import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
+import { PatientNotFoundModal } from "@/components/appointments/modals/PatientNotFoundModal"
+import { useReniec } from "@/hooks/useReniec"
 
 // Interfaces
 interface ReservaData {
@@ -103,6 +105,10 @@ export default function ReservedAppointmentsPage() {
   const [reservaARevertir, setReservaARevertir] = useState<ReservaData | null>(null)
   const [motivoReversion, setMotivoReversion] = useState("")
   const [isRevirtiendo, setIsRevirtiendo] = useState(false)
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false)
+  const [reniecData, setReniecData] = useState<any>(null)
+  const [isLoadingReniec, setIsLoadingReniec] = useState(false)
+  const { consultarReniec } = useReniec()
 
   // Función para obtener fechas
   const getDateRange = () => {
@@ -481,6 +487,63 @@ export default function ReservedAppointmentsPage() {
     }
   }
 
+  // Manejar creación de historia clínica
+  const handleCrearHistoriaClinica = async () => {
+    if (!reservaSinPaciente) return
+
+    setIsLoadingReniec(true)
+    try {
+      // Si el tipo de documento es DNI, consultar RENIEC
+      if (reservaSinPaciente.tipoDocumento?.trim() === 'D' && reservaSinPaciente.numeroDocumento.length === 8) {
+        console.log('🌐 Consultando RENIEC para DNI:', reservaSinPaciente.numeroDocumento)
+        
+        const result = await consultarReniec(reservaSinPaciente.numeroDocumento)
+        
+        if (result.success && result.data) {
+          console.log('✅ Datos obtenidos de RENIEC')
+          setReniecData(result.data)
+        } else {
+          console.warn('⚠️ No se encontraron datos en RENIEC, se llenará manualmente')
+          setReniecData(null)
+        }
+      } else {
+        console.log('ℹ️ No es DNI o no tiene 8 dígitos, se llenará manualmente')
+        setReniecData(null)
+      }
+
+      // Cerrar modal de advertencia y abrir modal de registro
+      setShowPacienteNoEncontradoModal(false)
+      setShowRegistrationModal(true)
+    } catch (error) {
+      console.error('❌ Error al consultar RENIEC:', error)
+      toast({
+        title: "Error",
+        description: "Error al consultar RENIEC. Se llenará manualmente.",
+        variant: "destructive"
+      })
+      setReniecData(null)
+      setShowPacienteNoEncontradoModal(false)
+      setShowRegistrationModal(true)
+    } finally {
+      setIsLoadingReniec(false)
+    }
+  }
+
+  // Manejar éxito al crear historia clínica
+  const handleRegistrationSuccess = () => {
+    toast({
+      title: "Historia Clínica Creada",
+      description: "La historia clínica se creó exitosamente. Ahora puede continuar con la cita.",
+    })
+    setShowRegistrationModal(false)
+    setReniecData(null)
+    
+    // Recargar la información del paciente
+    if (reservaSinPaciente) {
+      searchPatientByDocument(reservaSinPaciente.numeroDocumento, reservaSinPaciente.codigo)
+    }
+  }
+
   // Manejar denegar desde la tabla
   const handleDenegarDesdeTabla = async (reserva: ReservaData) => {
     const cambioExitoso = await cambiarEstadoSolicitud(reserva.codigo, "DENEGADO")
@@ -538,7 +601,7 @@ export default function ReservedAppointmentsPage() {
       if (esEstadoCitado && reservaARevertir.citaId) {
         console.log('🔓 Liberando cita asignada:', reservaARevertir.citaId)
         try {
-          const liberarResponse = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_URL}/${reservaARevertir.citaId}/liberar`, {
+          const liberarResponse = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${reservaARevertir.citaId}/liberar`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -1040,87 +1103,24 @@ export default function ReservedAppointmentsPage() {
             if (!open) {
               setReservaSinPaciente(null)
               setMotivoDenegacion("")
-              // Limpiar la solicitud en revisión si se cierra sin denegar
               setSolicitudEnRevision(null)
             }
           }}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-red-600">
-                  <AlertCircle className="h-5 w-5" />
-                  Paciente No Encontrado
-                </DialogTitle>
-                <DialogDescription className="text-base pt-2">
-                  No se encontró información del paciente asociado a este DNI en el sistema.
-                </DialogDescription>
-              </DialogHeader>
-              
-              {reservaSinPaciente && (
-                <div className="space-y-4">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
-                    <h4 className="font-semibold text-red-900">Datos de la Solicitud:</h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Código:</span>
-                        <span className="font-medium text-red-700">{reservaSinPaciente.codigo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Paciente:</span>
-                        <span className="font-medium">{reservaSinPaciente.nombres}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Documento:</span>
-                        <span className="font-medium">{reservaSinPaciente.numeroDocumento}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Especialidad:</span>
-                        <span className="font-medium">{reservaSinPaciente.especialidadNombre}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Motivo de Denegación <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      placeholder="Ingrese el motivo por el cual se deniega la solicitud (ej: Paciente no registrado en el sistema)..."
-                      value={motivoDenegacion}
-                      onChange={(e) => setMotivoDenegacion(e.target.value)}
-                      className="min-h-[100px] resize-none"
-                      maxLength={500}
-                    />
-                    <div className="text-xs text-gray-500 text-right">
-                      {motivoDenegacion.length}/500 caracteres
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <DialogFooter className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowPacienteNoEncontradoModal(false)
-                    setReservaSinPaciente(null)
-                    setMotivoDenegacion("")
-                    setSolicitudEnRevision(null)
-                  }}
-                  disabled={isDenegando}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleDenegarSinPaciente}
-                  disabled={!motivoDenegacion.trim() || isDenegando}
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  {isDenegando ? "Denegando..." : "Denegar Solicitud"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
+            <PatientNotFoundModal
+              reserva={reservaSinPaciente}
+              motivoDenegacion={motivoDenegacion}
+              onMotivoDenegacionChange={setMotivoDenegacion}
+              onCrearHistoriaClinica={handleCrearHistoriaClinica}
+              onDenegar={handleDenegarSinPaciente}
+              onCancel={() => {
+                setShowPacienteNoEncontradoModal(false)
+                setReservaSinPaciente(null)
+                setMotivoDenegacion("")
+                setSolicitudEnRevision(null)
+              }}
+              isLoadingReniec={isLoadingReniec}
+              isDenegando={isDenegando}
+            />
           </Dialog>
 
           {/* Modal de advertencia de revisión pendiente */}
@@ -1276,6 +1276,23 @@ export default function ReservedAppointmentsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Modal de Registro de Paciente */}
+          {showRegistrationModal && reservaSinPaciente && (
+            <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
+              <PatientRegistrationModal
+                reniecData={reniecData}
+                documentType={reservaSinPaciente.tipoDocumento}
+                documentNumber={reservaSinPaciente.numeroDocumento}
+                onCancel={() => {
+                  setShowRegistrationModal(false)
+                  setReniecData(null)
+                  setShowPacienteNoEncontradoModal(true)
+                }}
+                onSuccess={handleRegistrationSuccess}
+              />
+            </Dialog>
+          )}
         </div>
       </SegurosCitaProvider>
     </TipoCitaProvider>

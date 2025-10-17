@@ -23,6 +23,8 @@ export interface AppointmentRow {
   numero?: string
   fechaProgramada?: string | null
   usuario?: string
+  userLiberacion?: string | null
+  userEliminacion?: string | null
   fechaPago?: string | null
   pagoId?: string | null
   PAGOID?: string | null

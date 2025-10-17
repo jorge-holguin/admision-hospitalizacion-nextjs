@@ -19,6 +19,9 @@ import { SISVerification, SISVerificationResult } from "@/components/dashboard/S
 import { usePatient } from "@/contexts/PatientContext"
 import { EmergencyModalProvider } from "@/components/emergency/modals/EmergencyModalProvider"
 import { HospitalizationModalProvider } from "@/components/hospitalization/modals/HospitalizationModalProvider"
+import ProtectedRoute from "@/components/ProtectedRoute"
+import { SegurosProvider } from "@/contexts/SegurosContext"
+import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 
 // Filiation components
 import { PatientSearchBar } from "@/components/filiation/PatientSearchBar"
@@ -70,8 +73,10 @@ export default function FiliationPage() {
   const [isPatientEditModalOpen, setIsPatientEditModalOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<any>(null)
   const [reniecData, setReniecData] = useState<any>(null)
+  const [sisData, setSisData] = useState<any>(null)
   const [documentType, setDocumentType] = useState("DNI")
   const [documentNumber, setDocumentNumber] = useState("")
+  const [isLoadingPatientHistory, setIsLoadingPatientHistory] = useState(false)
   
   // Aplicar debounce al término de búsqueda con retardo variable basado en el tipo de búsqueda
   const debounceDelay = searchType === "nombres" ? 1000 : 500; // Retardo más largo para la búsqueda por nombre
@@ -171,12 +176,13 @@ export default function FiliationPage() {
     });
   };
 
-  // Cuando no se encuentra y se obtienen datos de RENIEC
-  const handlePatientSearchComplete = async (searchData: any) => {
-    // Paciente no existe en filiación, proceder con registro usando datos de RENIEC
-    setReniecData(searchData);
-    setDocumentType("DNI");
-    setDocumentNumber(searchData.dni);
+  // Cuando no se encuentra y se obtienen datos de RENIEC (o null para llenado manual)
+  const handleSearchComplete = (reniecSearchData: any, sisSearchData: any) => {
+    console.log('📥 handleSearchComplete recibió:', { reniecSearchData, sisSearchData });
+    setReniecData(reniecSearchData);
+    setSisData(sisSearchData);
+    setDocumentType(reniecSearchData?.documentType || "DNI");
+    setDocumentNumber(reniecSearchData?.document || "");
     setIsPatientRegistrationModalOpen(true);
     setIsPatientSearchModalOpen(false);
   }
@@ -210,6 +216,7 @@ export default function FiliationPage() {
   const handleRegistrationSuccess = () => {
     setIsPatientRegistrationModalOpen(false)
     setReniecData(null)
+    setSisData(null)
     toast({
       title: "Paciente registrado",
       description: "La historia clínica ha sido creada exitosamente.",
@@ -253,15 +260,76 @@ export default function FiliationPage() {
     }));
   };
 
+  // Función para cargar datos completos de historia clínica
+  const fetchPatientHistoryData = async (patientId: string) => {
+    try {
+      console.log(`🔍 Cargando datos completos de historia clínica para paciente: ${patientId}`);
+      setIsLoadingPatientHistory(true);
+      
+      const response = await fetch(`http://192.168.0.252:9011/api/historia-clinica/pacientes/${patientId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Error al obtener historia clínica: ${response.status}`);
+      }
+      
+      const historyData = await response.json();
+      console.log('📋 Datos de historia clínica obtenidos:', historyData);
+      
+      // Aplanar objetos anidados para evitar errores de React
+      const flattenedData = { ...historyData };
+      
+      // Si hay objetos anidados, extraer solo los valores primitivos o códigos
+      Object.keys(flattenedData).forEach(key => {
+        if (flattenedData[key] && typeof flattenedData[key] === 'object' && !Array.isArray(flattenedData[key])) {
+          // Si es un objeto con propiedades, intentar extraer el código o nombre
+          const obj = flattenedData[key];
+          if (obj.codigo !== undefined) {
+            flattenedData[key] = obj.codigo;
+          } else if (obj.nombre !== undefined) {
+            flattenedData[key] = obj.nombre;
+          } else {
+            // Si no tiene codigo ni nombre, convertir a string
+            flattenedData[key] = JSON.stringify(obj);
+          }
+        }
+      });
+      
+      console.log('📋 Datos aplanados:', flattenedData);
+      return flattenedData;
+    } catch (error) {
+      console.error('❌ Error al cargar historia clínica:', error);
+      toast({
+        title: "Advertencia",
+        description: "No se pudieron cargar algunos datos adicionales del paciente.",
+        variant: "default"
+      });
+      return null;
+    } finally {
+      setIsLoadingPatientHistory(false);
+    }
+  };
+
   // Función para editar paciente
-  const handleEditPatient = (patient: any) => {
-    setSelectedPatient(patient);
+  const handleEditPatient = async (patient: any) => {
+    // Cargar datos completos de historia clínica
+    const historyData = await fetchPatientHistoryData(patient.PACIENTE);
+    
+    // Combinar datos del paciente con datos de historia clínica
+    const completePatientData = historyData ? { ...patient, ...historyData } : patient;
+    
+    setSelectedPatient(completePatientData);
     setIsPatientEditModalOpen(true);
   };
 
   // Función para ver registro del paciente
-  const handleViewPatient = (patient: any) => {
-    setSelectedPatient(patient);
+  const handleViewPatient = async (patient: any) => {
+    // Cargar datos completos de historia clínica
+    const historyData = await fetchPatientHistoryData(patient.PACIENTE);
+    
+    // Combinar datos del paciente con datos de historia clínica
+    const completePatientData = historyData ? { ...patient, ...historyData } : patient;
+    
+    setSelectedPatient(completePatientData);
     setIsPatientViewModalOpen(true);
   };
 
@@ -395,7 +463,7 @@ export default function FiliationPage() {
           />
           
           {/* Menú desplegable para acciones secundarias */}
-        {/*   <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <MoreVertical className="h-4 w-4" />
@@ -406,28 +474,29 @@ export default function FiliationPage() {
                 <Eye className="mr-2 h-4 w-4" />
                 Ver Registro
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
+              {/* <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem 
+              </DropdownMenuItem> */}
+              {/* <DropdownMenuItem 
                 onClick={() => handleDeletePatient(patient)}
                 className="text-red-600"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Anular
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuContent>
-          </DropdownMenu> */}
+          </DropdownMenu>
         </div>
       ),
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
-      <Toaster />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
+        <Toaster />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
@@ -570,6 +639,26 @@ export default function FiliationPage() {
                       : "Ingrese al menos 8 dígitos del DNI"}
                 </p>
               </div>
+            ) : patients.length === 0 ? (
+              <div className="p-8 text-center">
+                <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium text-gray-700 mb-2">No se encontraron resultados</p>
+                <p className="text-sm text-gray-500 mb-6">
+                  No se encontró ningún paciente con {searchType === "nombres" ? "el nombre" : searchType === "historia" ? "la historia clínica" : "el documento"} "{searchTerm}"
+                </p>
+                {searchType === "documento" && (
+                  <Button
+                    onClick={() => {
+                      setDocumentNumber(searchTerm);
+                      setIsPatientSearchModalOpen(true);
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Crear Nueva Historia Clínica
+                  </Button>
+                )}
+              </div>
             ) : (
               <>
                 <div className="mb-4 text-sm text-muted-foreground">
@@ -628,43 +717,60 @@ export default function FiliationPage() {
         patientName={selectedPatientForHospitalization?.NOMBRES || ''}
       />
 
-      {/* Modales de Filiación */}
-      <Dialog open={isPatientSearchModalOpen} onOpenChange={setIsPatientSearchModalOpen}>
-        <PatientSearchModal 
-          onSearchComplete={handlePatientSearchComplete}
-          onPatientFound={handlePatientFound}
-          onCancel={() => setIsPatientSearchModalOpen(false)}
-        />
-      </Dialog>
+      {/* Modales de Filiación - Envueltos en providers solo cuando están abiertos */}
+      {(isPatientSearchModalOpen || isPatientRegistrationModalOpen || isPatientViewModalOpen || isPatientEditModalOpen) && (
+        <SegurosProvider>
+          <FiliationProvider>
+            {isPatientSearchModalOpen && (
+              <Dialog open={isPatientSearchModalOpen} onOpenChange={setIsPatientSearchModalOpen}>
+                <PatientSearchModal 
+                  onSearchComplete={handleSearchComplete}
+                  onPatientFound={handlePatientFound}
+                  onCancel={() => setIsPatientSearchModalOpen(false)}
+                  prefilledDocument={documentNumber}
+                />
+              </Dialog>
+            )}
 
-      <Dialog open={isPatientRegistrationModalOpen} onOpenChange={setIsPatientRegistrationModalOpen}>
-        <PatientRegistrationModal
-          reniecData={reniecData}
-          documentType={documentType}
-          documentNumber={documentNumber}
-          onCancel={() => setIsPatientRegistrationModalOpen(false)}
-          onSuccess={handleRegistrationSuccess}
-        />
-      </Dialog>
+            {isPatientRegistrationModalOpen && (
+              <Dialog open={isPatientRegistrationModalOpen} onOpenChange={setIsPatientRegistrationModalOpen}>
+                <PatientRegistrationModal
+                  reniecData={reniecData}
+                  sisData={sisData}
+                  documentType={documentType}
+                  documentNumber={documentNumber}
+                  onCancel={() => setIsPatientRegistrationModalOpen(false)}
+                  onSuccess={handleRegistrationSuccess}
+                />
+              </Dialog>
+            )}
 
-      <Dialog open={isPatientViewModalOpen && selectedPatient !== null} onOpenChange={setIsPatientViewModalOpen}>
-        <PatientViewModal
-          patient={selectedPatient}
-          onClose={() => setIsPatientViewModalOpen(false)}
-          onEdit={() => {
-            setIsPatientViewModalOpen(false);
-            setIsPatientEditModalOpen(true);
-          }}
-        />
-      </Dialog>
+            {isPatientViewModalOpen && selectedPatient && (
+              <Dialog open={isPatientViewModalOpen} onOpenChange={setIsPatientViewModalOpen}>
+                <PatientViewModal
+                  patient={selectedPatient}
+                  onClose={() => setIsPatientViewModalOpen(false)}
+                  onEdit={() => {
+                    setIsPatientViewModalOpen(false);
+                    setIsPatientEditModalOpen(true);
+                  }}
+                />
+              </Dialog>
+            )}
 
-      <Dialog open={isPatientEditModalOpen && selectedPatient !== null} onOpenChange={setIsPatientEditModalOpen}>
-        <PatientEditModal
-          patient={selectedPatient}
-          onCancel={() => setIsPatientEditModalOpen(false)}
-          onSuccess={handleEditSuccess}
-        />
-      </Dialog>
-    </div>
+            {isPatientEditModalOpen && selectedPatient && (
+              <Dialog open={isPatientEditModalOpen} onOpenChange={setIsPatientEditModalOpen}>
+                <PatientEditModal
+                  patient={selectedPatient}
+                  onCancel={() => setIsPatientEditModalOpen(false)}
+                  onSuccess={handleEditSuccess}
+                />
+              </Dialog>
+            )}
+          </FiliationProvider>
+        </SegurosProvider>
+      )}
+      </div>
+    </ProtectedRoute>
   )
 }

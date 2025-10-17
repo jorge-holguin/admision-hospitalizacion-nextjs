@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { useDocumentPrinter } from '@/components/hospitalization/DocumentPrinter'
 import { printMultiplePdfsViaDirectApi } from '@/utils/pdfUtils'
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
-// import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService' // Ya no se usa, se calcula desde contexto
+import { pacienteApiService } from '@/services/hospitalizacion/pacienteApiService'
 import { usePatient } from '@/contexts/PatientContext'
 import { useServerDateTime } from '@/contexts/ServerDateTimeContext'
 
@@ -329,51 +329,28 @@ export function HospitalizationFormRefactored({
         return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
       };
       
-      // Obtener la edad actualizada desde la fecha de nacimiento del contexto
+      // Obtener la edad directamente desde la API de paciente
       const getEdad = async () => {
-        console.log('📅 Calculando edad desde fecha de nacimiento del contexto');
+        console.log('Obteniendo edad desde pacienteApiService para paciente:', patientId);
         
         try {
-          // Obtener fecha de nacimiento del contexto de paciente (intentar ambos formatos)
-          const fechaNacimiento = patientData?.FECHA_NACIMIENTO || patientData?.fechaNacimiento;
+          // Usar el servicio de pacienteApiService para obtener la edad formateada
+          const formattedAge = await pacienteApiService.getFormattedAge(patientId);
           
-          if (!fechaNacimiento) {
-            console.warn('⚠️ No se encontró fecha de nacimiento en el contexto');
-            console.warn('⚠️ Datos disponibles en patientData:', Object.keys(patientData || {}));
-            return '000a00m00d';
-          }
-          
-          console.log('📅 Fecha de nacimiento encontrada:', fechaNacimiento);
-          
-          // Llamar a la API para calcular la edad actualizada
-          const response = await fetch('/api/utils/update-age', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ fechaNacimiento })
-          });
-          
-          if (!response.ok) {
-            throw new Error('Error al calcular edad');
-          }
-          
-          const result = await response.json();
-          
-          if (result.success && result.data?.edad) {
-            console.log('✅ Edad calculada:', result.data.edad);
-            console.log(`   ${result.data.years} años, ${result.data.months} meses, ${result.data.days} días`);
-            return result.data.edad;
-          }
-          
-          return '000a00m00d';
+          // El servicio ahora siempre devuelve un valor válido (nunca null)
+          console.log('Edad formateada obtenida:', formattedAge);
+          return formattedAge;
         } catch (error) {
-          console.error('❌ Error al calcular la edad:', error);
+          console.error('Error al obtener la edad desde la API:', error);
+          // En caso de error, devolver un valor por defecto
           return '000a00m00d';
         }
       };
       
       const edadCalculada = await getEdad();
+      console.log('🎯 ===== EDAD CALCULADA FINAL =====');
+      console.log('🎯 Edad que se usará:', edadCalculada);
+      console.log('🎯 ================================');
       
       // Asegurar que el nombre completo esté correctamente formateado
       // Usar los datos del formulario directamente
@@ -445,11 +422,12 @@ export function HospitalizationFormRefactored({
         return;
       }
       
-      console.log('Enviando datos a la API:', { 
-        url,
-        method,
-        hospitalData
-      });
+      console.log('🚀 ===== ENVIANDO DATOS A LA API =====');
+      console.log('🚀 URL:', url);
+      console.log('🚀 Método:', method);
+      console.log('🚀 EDAD que se enviará:', hospitalData.EDAD);
+      console.log('🚀 Datos completos:', hospitalData);
+      console.log('🚀 ====================================');
       
       try {
         const response = await fetch(url, {
@@ -518,7 +496,7 @@ export function HospitalizationFormRefactored({
               usuario: primerApellido,
               nombre: nombrePaciente
             });
-            const asegurarResponse = await fetch(`/api/hospitalization/accounts/${hospitalizacionId}`, {
+            const asegurarResponse = await fetch(`/api/hospitalization/accounts/${hospitalizacionId.trim()}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -539,7 +517,7 @@ export function HospitalizationFormRefactored({
               
               // Actualizar el registro de hospitalización con el cuentaId
               try {
-                const updateResponse = await fetch(`/api/hospitaliza/${hospitalizacionId.trim()}`, {
+                const updateResponse = await fetch(`/api/hospitalization/${hospitalizacionId.trim()}`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json'
