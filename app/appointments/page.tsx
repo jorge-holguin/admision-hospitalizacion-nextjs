@@ -35,6 +35,7 @@ import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import RoleBasedRoute from "@/components/RoleBasedRoute"
 
 // Import all components from the appointments module
 import {
@@ -374,8 +375,12 @@ import {
 
     return (
       <ProtectedRoute>
-        <TipoCitaProvider>
-          <SegurosCitaProvider>
+        <RoleBasedRoute 
+          allowedRoles={['CALL CENTER', 'DEVOPS']}
+          moduleName="Módulo de Citas"
+        >
+          <TipoCitaProvider>
+            <SegurosCitaProvider>
             <div className="flex flex-col min-h-screen bg-gray-50">
             {/* Navbar fijo arriba */}
             <Navbar />
@@ -810,6 +815,7 @@ import {
           </div>
         </SegurosCitaProvider>
       </TipoCitaProvider>
+      </RoleBasedRoute>
       </ProtectedRoute>
   )
 }

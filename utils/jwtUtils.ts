@@ -68,3 +68,72 @@ export const extractDocumentFromToken = (): string => {
     return '';
   }
 };
+
+/**
+ * Extracts the job position (puesto) from the JWT token
+ * @returns The job position or null if extraction fails
+ */
+export const extractPuestoFromToken = (): string | null => {
+  try {
+    // Obtener el token del localStorage
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      console.warn('No se encontró authToken en localStorage');
+      return null;
+    }
+    
+    // Decodificar el token (solo la parte del payload)
+    const tokenParts = authToken.split('.');
+    if (tokenParts.length !== 3) {
+      console.warn('Token JWT no tiene el formato correcto');
+      return null;
+    }
+    
+    // Decodificar la parte del payload (segunda parte)
+    const payload = JSON.parse(atob(tokenParts[1]));
+    
+    // Extraer el campo 'puesto'
+    const puesto = payload.puesto;
+    if (!puesto) {
+      console.warn('No se encontró el campo "puesto" en el token');
+      return null;
+    }
+    
+    return puesto;
+  } catch (error) {
+    console.error('Error al extraer el puesto del token:', error);
+    return null;
+  }
+};
+
+/**
+ * Verifica si el usuario tiene acceso al módulo de CITAS
+ * Puestos autorizados: CALL CENTER, DEVOPS
+ */
+export const hasAccessToCitas = (): boolean => {
+  const puesto = extractPuestoFromToken();
+  if (!puesto) return false;
+  
+  const puestosAutorizados = ['CALL CENTER', 'DEVOPS'];
+  return puestosAutorizados.includes(puesto.toUpperCase());
+};
+
+/**
+ * Verifica si el usuario tiene acceso al módulo de TABLAS MAESTRAS
+ * Puestos autorizados: DEVOPS, ESTADISTICA
+ */
+export const hasAccessToTablasMaestras = (): boolean => {
+  const puesto = extractPuestoFromToken();
+  if (!puesto) return false;
+  
+  const puestosAutorizados = ['DEVOPS', 'ESTADISTICA'];
+  return puestosAutorizados.includes(puesto.toUpperCase());
+};
+
+/**
+ * Verifica si el usuario tiene acceso al módulo de HOSPITALIZACIÓN/EMERGENCIA
+ * Por defecto todos tienen acceso a este módulo
+ */
+export const hasAccessToHospitalizacion = (): boolean => {
+  return true; // Acceso para todos
+};

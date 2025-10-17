@@ -44,8 +44,23 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     console.error('Error en API de hospitalización:', error);
+    
+    // Extraer mensaje de error personalizado
+    let errorMessage = error.message || 'Error al crear la hospitalización';
+    
+    // Si el error contiene información de Prisma, intentar extraer el mensaje real
+    if (errorMessage.includes('Invalid `prisma.$executeRaw()` invocation')) {
+      // Detectar error de trigger de emergencia no cerrada
+      if (errorMessage.includes('3616') || errorMessage.includes('desencadenador')) {
+        errorMessage = 'La atención de Emergencia aún no ha sido cerrada (estado = \'3\'). Solicitar al médico cerrar o dar de alta la atención.';
+      }
+    }
+    
     return NextResponse.json(
-      { error: error.message || 'Error al crear la hospitalización' },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     );
   }

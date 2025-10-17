@@ -18,6 +18,7 @@ import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import RoleBasedRoute from "@/components/RoleBasedRoute"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertCircle } from "lucide-react"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
@@ -717,9 +718,13 @@ export default function ReservedAppointmentsPage() {
   const totalPages = Math.ceil(totalElements / pageSize)
 
   return (
-    <TipoCitaProvider>
-      <SegurosCitaProvider>
-        <div className="min-h-screen bg-gray-50">
+    <RoleBasedRoute 
+      allowedRoles={['CALL CENTER', 'DEVOPS']}
+      moduleName="Módulo de Citas Reservadas"
+    >
+      <TipoCitaProvider>
+        <SegurosCitaProvider>
+          <div className="min-h-screen bg-gray-50">
           <Navbar />
           
           <main className="container mx-auto px-6 py-8">
@@ -1334,8 +1339,9 @@ export default function ReservedAppointmentsPage() {
               </Dialog>
             </FiliationProvider>
           )}
-        </div>
-      </SegurosCitaProvider>
-    </TipoCitaProvider>
+          </div>
+        </SegurosCitaProvider>
+      </TipoCitaProvider>
+    </RoleBasedRoute>
   )
 }

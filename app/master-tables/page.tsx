@@ -14,6 +14,7 @@ import { ConsultorioForm } from "@/components/master-tables/modals/ConsultorioFo
 import { LocalidadForm } from "@/components/master-tables/modals/LocalidadForm"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import RoleBasedRoute from "@/components/RoleBasedRoute"
 
 export default function MasterTablesPage() {
   const [activeTab, setActiveTab] = useState("medicos")
@@ -84,7 +85,11 @@ export default function MasterTablesPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <RoleBasedRoute 
+        allowedRoles={['DEVOPS', 'ESTADISTICA']}
+        moduleName="Módulo de Tablas Maestras"
+      >
+        <div className="min-h-screen bg-gray-50">
         <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="TABLAS MAESTRAS" showBackButton={false} />
         <Toaster />
 
@@ -166,7 +171,8 @@ export default function MasterTablesPage() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+      </RoleBasedRoute>
     </ProtectedRoute>
   )
 }

@@ -203,8 +203,19 @@ class HospitalizaService {
       console.log('Registro encontrado:', result ? 'Sí' : 'No');
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear hospitalización:', error);
+      
+      // Detectar error de trigger de emergencia no cerrada
+      if (error.message && error.message.includes('3616')) {
+        throw new Error('La atención de Emergencia aún no ha sido cerrada (estado = \'3\'). Solicitar al médico cerrar o dar de alta la atención.');
+      }
+      
+      // Detectar otros errores de trigger
+      if (error.message && error.message.includes('desencadenador')) {
+        throw new Error('La atención de Emergencia aún no ha sido cerrada (estado = \'3\'). Solicitar al médico cerrar o dar de alta la atención.');
+      }
+      
       throw error;
     }
   }
