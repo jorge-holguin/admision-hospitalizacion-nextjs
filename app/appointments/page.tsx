@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
-import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken, extractPuestoFromToken } from "@/utils/jwtUtils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -73,6 +74,7 @@ import {
     const [searchConsultorios, setSearchConsultorios] = useState("")
     const [searchMedicos, setSearchMedicos] = useState("")
     const [searchQuery, setSearchQuery] = useState("")
+    const [showSearchById, setShowSearchById] = useState(false)
     const [openMedico, setOpenMedico] = useState(false)
     const [openConsultorio, setOpenConsultorio] = useState(false)
     const [openEstado, setOpenEstado] = useState(false)
@@ -94,6 +96,10 @@ import {
     const [sizeParam, setSizeParam] = useState<number>(10)
     const [totalCount, setTotalCount] = useState<number>(0)
     const [lastRemote, setLastRemote] = useState<boolean>(false)
+
+    // Verificar permisos para Ver Reservas (solo DEVOPS y ANALISTA)
+    const userPuesto = extractPuestoFromToken()
+    const canAccessReservas = userPuesto && ['DEVOPS', 'ANALISTA', 'DESARROLLADOR','CALL CENTER'].includes(userPuesto.toUpperCase())
 
     const getEstadoBadge = (estado: number) => {
       const estadoInfo = ESTADO_OPTIONS.find((opt) => opt.value === estado.toString())
@@ -376,7 +382,7 @@ import {
     return (
       <ProtectedRoute>
         <RoleBasedRoute 
-          allowedRoles={['CALL CENTER', 'DEVOPS' , 'ANALISTA']}
+          allowedRoles={['CALL CENTER', 'DEVOPS' , 'ANALISTA', 'DESARROLLADOR', 'ADMISIONISTA']}
           moduleName="Módulo de Citas"
         >
           <TipoCitaProvider>
@@ -422,16 +428,19 @@ import {
                     Historial
                   </Button>
                   
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="font-semibold border-orange-300 text-orange-700 hover:bg-orange-50"
-                    onClick={() => window.location.href = '/appointments/reserved'}
-                    title="Ver bandeja de solicitudes de reservas"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Ver Reservas
-                  </Button>
+                  {/* Botón Ver Reservas - Solo para DEVOPS y ANALISTA */}
+                  {canAccessReservas && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="font-semibold border-orange-300 text-orange-700 hover:bg-orange-50"
+                      onClick={() => window.location.href = '/appointments/reserved'}
+                      title="Ver bandeja de solicitudes de reservas"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Ver Reservas
+                    </Button>
+                  )}
                   
                  {/*  <Button
                     variant="default"
@@ -508,6 +517,8 @@ import {
                             })
                             setPageParam(1)
                             setSelectedTime("")
+                            setSearchQuery("") // Limpiar campo de búsqueda
+                            setShowSearchById(false) // Ocultar campo de búsqueda
                             searchAppointmentsByParams()
                           }}
                           className="font-medium"
@@ -523,35 +534,60 @@ import {
                         {/* Primera fila: Filtros de turno y búsqueda */}
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                           <ShiftFilter onShiftChange={handleShiftChange} className="flex-shrink-0" />
-                          {/* Buscador por ID */}
-                          <div className="flex items-center w-full sm:w-auto">
-                            <Search className="h-4 w-4 mr-2 text-gray-500" />
-                            <Input
-                              placeholder="ID de cita..."
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  searchAppointmentById(searchQuery)
+                          
+                          {/* Checkbox para habilitar búsqueda por ID */}
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="searchById"
+                              checked={showSearchById}
+                              onCheckedChange={(checked) => {
+                                setShowSearchById(checked as boolean)
+                                if (!checked) {
+                                  setSearchQuery("") // Limpiar al desmarcar
                                 }
                               }}
-                              className="w-full sm:w-[300px]"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
                             />
+                            <label
+                              htmlFor="searchById"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              Buscar por ID de cita
+                            </label>
                           </div>
-                          <Button
-                            onClick={() => {
-                              if (searchQuery.trim()) {
-                                searchAppointmentById(searchQuery)
-                              } else {
-                                searchAppointmentsByParams()
-                              }
-                            }}
-                            className="font-medium w-full sm:w-auto"
-                          >
-                            Buscar
-                          </Button>
+
+                          {/* Buscador por ID - Solo visible si el checkbox está marcado */}
+                          {showSearchById && (
+                            <>
+                              <div className="flex items-center w-full sm:w-auto">
+                                <Search className="h-4 w-4 mr-2 text-gray-500" />
+                                <Input
+                                  placeholder="ID de cita..."
+                                  value={searchQuery}
+                                  onChange={(e) => setSearchQuery(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      searchAppointmentById(searchQuery)
+                                    }
+                                  }}
+                                  className="w-full sm:w-[300px]"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                />
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  if (searchQuery.trim()) {
+                                    searchAppointmentById(searchQuery)
+                                  } else {
+                                    searchAppointmentsByParams()
+                                  }
+                                }}
+                                className="font-medium w-full sm:w-auto"
+                              >
+                                Buscar
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
     
