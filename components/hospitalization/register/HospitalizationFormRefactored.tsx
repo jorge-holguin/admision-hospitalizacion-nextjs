@@ -447,8 +447,14 @@ export function HospitalizationFormRefactored({
         // Procesar la respuesta
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('Error en la respuesta de la API:', errorData);
-          throw new Error(errorData.error || 'Error al crear la hospitalización');
+          console.error('❌ Error en la respuesta de la API:', errorData);
+          
+          // Detener el spinner inmediatamente
+          setSubmitting(false);
+          
+          // Lanzar error con mensaje personalizado
+          const errorMsg = errorData.error || 'Error al crear la hospitalización';
+          throw new Error(errorMsg);
         }
         
         const result = await response.json();

@@ -9,6 +9,7 @@ import { HospitalizationFormRefactored } from "../register/HospitalizationFormRe
 import { PatientInfoCard } from "../PatientInfoCard"
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
+import { ErrorAlert } from "@/components/ui/error-alert"
 
 interface HospitalizationRegistrationModalProps {
   isOpen: boolean
@@ -33,6 +34,8 @@ export function HospitalizationRegistrationModal({
 }: HospitalizationRegistrationModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [showErrorAlert, setShowErrorAlert] = useState(false)
   
   // Contexto de datos del paciente
   const { getPatientData } = usePatientData()
@@ -105,6 +108,11 @@ export function HospitalizationRegistrationModal({
   const handleError = (error: string) => {
     console.error('❌ Error al guardar hospitalización:', error)
     
+    // Mostrar alerta grande y visible
+    setErrorMessage(error || "Error al guardar la hospitalización")
+    setShowErrorAlert(true)
+    
+    // También mostrar toast como respaldo
     toast({
       title: "Error",
       description: error || "Error al guardar la hospitalización",
@@ -115,6 +123,11 @@ export function HospitalizationRegistrationModal({
     if (onError) {
       onError(error)
     }
+  }
+
+  const handleCloseErrorAlert = () => {
+    setShowErrorAlert(false)
+    setErrorMessage(null)
   }
 
   const handleBack = () => {
@@ -185,6 +198,14 @@ export function HospitalizationRegistrationModal({
         {/* Container para alertas */}
         <div id="alertas-container" className="fixed top-4 right-4 z-50 space-y-2" />
       </DialogContent>
+
+      {/* Alerta de error grande y visible */}
+      <ErrorAlert
+        show={showErrorAlert}
+        title="Error al Guardar Hospitalización"
+        message={errorMessage || "Ha ocurrido un error al guardar la hospitalización"}
+        onClose={handleCloseErrorAlert}
+      />
     </Dialog>
   )
 }

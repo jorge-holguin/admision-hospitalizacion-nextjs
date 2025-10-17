@@ -376,7 +376,7 @@ import {
     return (
       <ProtectedRoute>
         <RoleBasedRoute 
-          allowedRoles={['CALL CENTER', 'DEVOPS']}
+          allowedRoles={['CALL CENTER', 'DEVOPS' , 'ANALISTA']}
           moduleName="Módulo de Citas"
         >
           <TipoCitaProvider>

@@ -114,7 +114,7 @@ export const hasAccessToCitas = (): boolean => {
   const puesto = extractPuestoFromToken();
   if (!puesto) return false;
   
-  const puestosAutorizados = ['CALL CENTER', 'DEVOPS'];
+  const puestosAutorizados = ['CALL CENTER', 'DEVOPS' , 'ANALISTA'];
   return puestosAutorizados.includes(puesto.toUpperCase());
 };
 
@@ -126,7 +126,7 @@ export const hasAccessToTablasMaestras = (): boolean => {
   const puesto = extractPuestoFromToken();
   if (!puesto) return false;
   
-  const puestosAutorizados = ['DEVOPS', 'ESTADISTICA'];
+  const puestosAutorizados = ['DEVOPS' , 'ANALISTA', 'ESTADISTICA'];
   return puestosAutorizados.includes(puesto.toUpperCase());
 };
 

@@ -86,7 +86,7 @@ export default function MasterTablesPage() {
   return (
     <ProtectedRoute>
       <RoleBasedRoute 
-        allowedRoles={['DEVOPS', 'ESTADISTICA']}
+        allowedRoles={['DEVOPS' , 'ANALISTA', 'ESTADISTICA']}
         moduleName="Módulo de Tablas Maestras"
       >
         <div className="min-h-screen bg-gray-50">
