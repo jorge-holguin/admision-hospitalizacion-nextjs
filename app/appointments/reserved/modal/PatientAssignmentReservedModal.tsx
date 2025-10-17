@@ -186,6 +186,10 @@ export function PatientAssignmentReservedModal({
   const [showMotivoModal, setShowMotivoModal] = useState(false)
   const [motivoAction, setMotivoAction] = useState<"DENEGAR" | "OBSERVAR">("DENEGAR")
   const [motivoLoading, setMotivoLoading] = useState(false)
+  
+  // Estados para modal de error
+  const [showErrorDialog, setShowErrorDialog] = useState(false)
+  const [errorDialogData, setErrorDialogData] = useState<{title: string, message: string, type: 'warning' | 'error'}>({title: '', message: '', type: 'error'})
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -243,11 +247,35 @@ export function PatientAssignmentReservedModal({
         body: JSON.stringify(requestBody)
       })
       
+      const responseData = await response.json()
+      
       if (!response.ok) {
-        throw new Error(`Error al asignar paciente: ${response.status} ${response.statusText}`)
+        // Manejar errores específicos
+        if (response.status === 409 && responseData.message) {
+          // Error de conflicto - Mostrar dialog grande y visible
+          const isYaAsignada = responseData.message.includes('ya fue asignada') || responseData.message.includes('ya asignada')
+          const isSolicitudPendiente = responseData.message.includes('solicitud pendiente')
+          
+          setErrorDialogData({
+            title: isYaAsignada ? '⚠️ Cita Ya Asignada' : isSolicitudPendiente ? '⚠️ Cita Reservada' : '⚠️ Conflicto',
+            message: responseData.message,
+            type: 'warning'
+          })
+          setShowErrorDialog(true)
+          return
+        }
+        
+        // Otros errores
+        const errorMessage = responseData.message || `Error al asignar paciente: ${response.status} ${response.statusText}`
+        setErrorDialogData({
+          title: '❌ Error en la Asignación',
+          message: errorMessage,
+          type: 'error'
+        })
+        setShowErrorDialog(true)
+        return
       }
       
-      const responseData = await response.json()
       console.log('✅ Asignación exitosa:', responseData)
       
       // 3. Llamar a la API de reservas para marcar la solicitud como "CITAR"
@@ -283,19 +311,30 @@ export function PatientAssignmentReservedModal({
 
       await onApprove(assignmentData)
       
+      // Mostrar modal de éxito primero
       setShowSuccess(true)
+      
+      // Mostrar toast de éxito
+      toast({
+        title: "¡Asignación Exitosa!",
+        description: `La cita ha sido asignada correctamente al paciente ${patient.NOMBRES}`,
+        className: "bg-green-50 border-green-200 text-green-800",
+        duration: 5000
+      })
+      
+      // Cerrar después de 3 segundos
       setTimeout(() => {
         setShowSuccess(false)
         onClose()
         if (onSuccess) {
           onSuccess(appointment.citaId)
         }
-      }, 2000)
-    } catch (error) {
+      }, 3000)
+    } catch (error: any) {
       console.error('Error al aprobar:', error)
       toast({
         title: "Error",
-        description: "No se pudo aprobar la solicitud",
+        description: error.message || "No se pudo aprobar la solicitud. Intente nuevamente.",
         variant: "destructive"
       })
     } finally {
@@ -312,19 +351,29 @@ export function PatientAssignmentReservedModal({
     setMotivoLoading(true)
     try {
       await onDeny(motivo)
+      
+      // Cerrar modal de motivo
+      setShowMotivoModal(false)
+      
+      // Mostrar toast de éxito con mayor duración
       toast({
-        title: "Solicitud Denegada",
+        title: "✅ Solicitud Denegada",
         description: "La solicitud ha sido denegada correctamente",
+        className: "bg-orange-50 border-orange-200 text-orange-800",
+        duration: 5000
       })
       
-      setShowMotivoModal(false)
-      onClose()
+      // Esperar un momento antes de cerrar para que se vea el toast
+      setTimeout(() => {
+        onClose()
+      }, 1500)
     } catch (error) {
       console.error('Error al denegar:', error)
       toast({
         title: "Error",
         description: "No se pudo denegar la solicitud",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 5000
       })
     } finally {
       setMotivoLoading(false)
@@ -563,6 +612,37 @@ export function PatientAssignmentReservedModal({
         action={motivoAction}
         isLoading={motivoLoading}
       />
+      
+      {/* Dialog de Error/Advertencia */}
+      <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={`flex items-center gap-2 text-xl ${errorDialogData.type === 'warning' ? 'text-orange-600' : 'text-red-600'}`}>
+              {errorDialogData.type === 'warning' ? (
+                <AlertTriangle className="h-6 w-6" />
+              ) : (
+                <XCircle className="h-6 w-6" />
+              )}
+              {errorDialogData.title}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className={`p-6 rounded-lg ${errorDialogData.type === 'warning' ? 'bg-orange-50 border border-orange-200' : 'bg-red-50 border border-red-200'}`}>
+            <p className={`text-base ${errorDialogData.type === 'warning' ? 'text-orange-800' : 'text-red-800'}`}>
+              {errorDialogData.message}
+            </p>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button 
+              onClick={() => setShowErrorDialog(false)}
+              className={errorDialogData.type === 'warning' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              Entendido
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

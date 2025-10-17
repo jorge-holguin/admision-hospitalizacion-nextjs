@@ -248,7 +248,13 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
                 )}
               </div>
 
-              {patients.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="mx-auto h-12 w-12 mb-3 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="mb-4">Buscando pacientes...</p>
+                  <p className="text-sm text-gray-400">Por favor espere mientras se realiza la búsqueda</p>
+                </div>
+              ) : patients.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <User className="mx-auto h-12 w-12 mb-3 opacity-50" />
                   <p className="mb-4">No se encontraron pacientes con los criterios de búsqueda</p>

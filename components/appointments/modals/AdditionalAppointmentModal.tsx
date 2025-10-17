@@ -225,12 +225,37 @@ export function AdditionalAppointmentModal({
         body: JSON.stringify(requestBody)
       })
       
-      if (!response.ok) {
-        throw new Error(`Error en la API: ${response.status}`)
+      // Intentar parsear la respuesta
+      let responseData
+      try {
+        responseData = await response.json()
+      } catch (e) {
+        responseData = await response.text()
       }
       
-      const result = await response.text() || await response.json()
-      console.log('✅ Respuesta de la API:', result)
+      if (!response.ok) {
+        // Manejar errores específicos
+        if (response.status === 409 && responseData.message) {
+          // Error de conflicto - Cita con solicitud pendiente
+          toast({
+            title: "Cita No Disponible",
+            description: responseData.message,
+            variant: "destructive"
+          })
+          return
+        }
+        
+        // Otros errores
+        const errorMessage = responseData.message || `Error al crear la cita: ${response.status}`
+        toast({
+          title: "Error al Crear Cita",
+          description: errorMessage,
+          variant: "destructive"
+        })
+        return
+      }
+      
+      console.log('✅ Respuesta de la API:', responseData)
       
       // Show success
       const mockId = `CITA-${Date.now()}`
@@ -238,16 +263,16 @@ export function AdditionalAppointmentModal({
       setShowSuccess(true)
       
       toast({
-        title: "¡Éxito!",
-        description: "Cita adicional creada exitosamente",
-        variant: "default"
+        title: "¡Cita Creada Exitosamente!",
+        description: `La cita adicional ha sido asignada correctamente al paciente ${patient.NOMBRES || patient.NOMBRE}`,
+        className: "bg-green-50 border-green-200 text-green-800"
       })
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error creating additional appointment:', error)
       toast({
         title: "Error",
-        description: "Hubo un error al crear la cita adicional. Intente nuevamente.",
+        description: error.message || "Hubo un error al crear la cita adicional. Intente nuevamente.",
         variant: "destructive"
       })
     } finally {

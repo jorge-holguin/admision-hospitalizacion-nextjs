@@ -395,7 +395,7 @@ import {
                 </Button>
                 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
+                {/*   <Button
                     variant="outline"
                     size="lg"
                     className="font-semibold border-blue-300 text-blue-700 hover:bg-blue-50"
@@ -404,7 +404,7 @@ import {
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Reasignar Médico
-                  </Button>
+                  </Button> */}
                   
                   <Button
                     variant="outline"
@@ -428,7 +428,7 @@ import {
                     Ver Reservas
                   </Button>
                   
-                  <Button
+                 {/*  <Button
                     variant="default"
                     size="lg"
                     className="font-semibold bg-green-600 hover:bg-green-700 text-white"
@@ -436,7 +436,7 @@ import {
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Cita Adicional
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">

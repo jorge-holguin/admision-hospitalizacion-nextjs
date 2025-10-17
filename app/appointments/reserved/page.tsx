@@ -16,12 +16,13 @@ import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
+import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertCircle } from "lucide-react"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
+import { PatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientNotFoundModal } from "@/components/appointments/modals/PatientNotFoundModal"
-import { useReniec } from "@/hooks/useReniec"
 
 // Interfaces
 interface ReservaData {
@@ -106,10 +107,10 @@ export default function ReservedAppointmentsPage() {
   const [reservaARevertir, setReservaARevertir] = useState<ReservaData | null>(null)
   const [motivoReversion, setMotivoReversion] = useState("")
   const [isRevirtiendo, setIsRevirtiendo] = useState(false)
+  const [showSearchModal, setShowSearchModal] = useState(false)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [reniecData, setReniecData] = useState<any>(null)
-  const [isLoadingReniec, setIsLoadingReniec] = useState(false)
-  const { consultarReniec } = useReniec()
+  const [sisData, setSisData] = useState<any>(null)
 
   // Función para obtener fechas
   const getDateRange = () => {
@@ -488,45 +489,43 @@ export default function ReservedAppointmentsPage() {
     }
   }
 
-  // Manejar creación de historia clínica
-  const handleCrearHistoriaClinica = async () => {
+  // Manejar creación de historia clínica - Abrir modal de búsqueda
+  const handleCrearHistoriaClinica = () => {
     if (!reservaSinPaciente) return
+    
+    console.log('🔍 Abriendo modal de búsqueda para crear historia clínica')
+    console.log('   - Tipo documento:', reservaSinPaciente.tipoDocumento)
+    console.log('   - Número documento:', reservaSinPaciente.numeroDocumento)
+    
+    // Cerrar modal de advertencia y abrir modal de búsqueda
+    setShowPacienteNoEncontradoModal(false)
+    setShowSearchModal(true)
+  }
 
-    setIsLoadingReniec(true)
-    try {
-      // Si el tipo de documento es DNI, consultar RENIEC
-      if (reservaSinPaciente.tipoDocumento?.trim() === 'D' && reservaSinPaciente.numeroDocumento.length === 8) {
-        console.log('🌐 Consultando RENIEC para DNI:', reservaSinPaciente.numeroDocumento)
-        
-        const result = await consultarReniec(reservaSinPaciente.numeroDocumento)
-        
-        if (result.success && result.data) {
-          console.log('✅ Datos obtenidos de RENIEC')
-          setReniecData(result.data)
-        } else {
-          console.warn('⚠️ No se encontraron datos en RENIEC, se llenará manualmente')
-          setReniecData(null)
-        }
-      } else {
-        console.log('ℹ️ No es DNI o no tiene 8 dígitos, se llenará manualmente')
-        setReniecData(null)
-      }
+  // Manejar cuando PatientSearchModal encuentra o no encuentra datos
+  const handleSearchComplete = (reniecData: any, sisData: any) => {
+    console.log('✅ Búsqueda completada, abriendo modal de registro')
+    console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
+    console.log('   - sisData:', sisData ? 'Presente' : 'Ausente')
+    
+    setReniecData(reniecData)
+    setSisData(sisData)
+    setShowSearchModal(false)
+    setShowRegistrationModal(true)
+  }
 
-      // Cerrar modal de advertencia y abrir modal de registro
-      setShowPacienteNoEncontradoModal(false)
-      setShowRegistrationModal(true)
-    } catch (error) {
-      console.error('❌ Error al consultar RENIEC:', error)
-      toast({
-        title: "Error",
-        description: "Error al consultar RENIEC. Se llenará manualmente.",
-        variant: "destructive"
-      })
-      setReniecData(null)
-      setShowPacienteNoEncontradoModal(false)
-      setShowRegistrationModal(true)
-    } finally {
-      setIsLoadingReniec(false)
+  // Manejar cuando se encuentra un paciente existente
+  const handlePatientFound = (patientData: any) => {
+    console.log('👤 Paciente encontrado en BD local:', patientData.HISTORIA)
+    toast({
+      title: "Paciente Encontrado",
+      description: `El paciente ${patientData.NOMBRES} ya está registrado con HC: ${patientData.HISTORIA}`,
+    })
+    setShowSearchModal(false)
+    
+    // Recargar la información del paciente
+    if (reservaSinPaciente) {
+      searchPatientByDocument(reservaSinPaciente.numeroDocumento, reservaSinPaciente.codigo)
     }
   }
 
@@ -538,11 +537,19 @@ export default function ReservedAppointmentsPage() {
     })
     setShowRegistrationModal(false)
     setReniecData(null)
+    setSisData(null)
     
     // Recargar la información del paciente
     if (reservaSinPaciente) {
       searchPatientByDocument(reservaSinPaciente.numeroDocumento, reservaSinPaciente.codigo)
     }
+  }
+
+  // Manejar cancelación del modal de búsqueda
+  const handleSearchCancel = () => {
+    console.log('❌ Búsqueda cancelada, volviendo al modal de advertencia')
+    setShowSearchModal(false)
+    setShowPacienteNoEncontradoModal(true)
   }
 
   // Manejar denegar desde la tabla
@@ -749,9 +756,25 @@ export default function ReservedAppointmentsPage() {
             {/* Filtros y búsqueda */}
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  Filtros y Búsqueda
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Search className="h-5 w-5" />
+                    Filtros y Búsqueda
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setSelectedEspecialidad("all")
+                      setSelectedEstado("all")
+                      setCurrentPage(0)
+                    }}
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Limpiar Filtros
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1119,7 +1142,6 @@ export default function ReservedAppointmentsPage() {
                 setMotivoDenegacion("")
                 setSolicitudEnRevision(null)
               }}
-              isLoadingReniec={isLoadingReniec}
               isDenegando={isDenegando}
             />
           </Dialog>
@@ -1278,21 +1300,39 @@ export default function ReservedAppointmentsPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Modal de Registro de Paciente */}
+          {/* Modal de Búsqueda de Paciente - Solo carga contextos cuando se abre */}
+          {showSearchModal && reservaSinPaciente && (
+            <FiliationProvider>
+              <Dialog open={showSearchModal} onOpenChange={setShowSearchModal}>
+                <PatientSearchModal
+                  prefilledDocument={reservaSinPaciente.numeroDocumento}
+                  onSearchComplete={handleSearchComplete}
+                  onPatientFound={handlePatientFound}
+                  onCancel={handleSearchCancel}
+                />
+              </Dialog>
+            </FiliationProvider>
+          )}
+
+          {/* Modal de Registro de Paciente - Solo carga contextos cuando se abre */}
           {showRegistrationModal && reservaSinPaciente && (
-            <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
-              <PatientRegistrationModal
-                reniecData={reniecData}
-                documentType={reservaSinPaciente.tipoDocumento}
-                documentNumber={reservaSinPaciente.numeroDocumento}
-                onCancel={() => {
-                  setShowRegistrationModal(false)
-                  setReniecData(null)
-                  setShowPacienteNoEncontradoModal(true)
-                }}
-                onSuccess={handleRegistrationSuccess}
-              />
-            </Dialog>
+            <FiliationProvider>
+              <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
+                <PatientRegistrationModal
+                  reniecData={reniecData}
+                  sisData={sisData}
+                  documentType={reservaSinPaciente.tipoDocumento}
+                  documentNumber={reservaSinPaciente.numeroDocumento}
+                  onCancel={() => {
+                    setShowRegistrationModal(false)
+                    setReniecData(null)
+                    setSisData(null)
+                    setShowPacienteNoEncontradoModal(true)
+                  }}
+                  onSuccess={handleRegistrationSuccess}
+                />
+              </Dialog>
+            </FiliationProvider>
           )}
         </div>
       </SegurosCitaProvider>

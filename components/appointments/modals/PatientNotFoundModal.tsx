@@ -20,7 +20,7 @@ interface PatientNotFoundModalProps {
   onCrearHistoriaClinica: () => void
   onDenegar: () => void
   onCancel: () => void
-  isLoadingReniec: boolean
+  isLoadingReniec?: boolean
   isDenegando: boolean
 }
 
@@ -31,7 +31,7 @@ export function PatientNotFoundModal({
   onCrearHistoriaClinica,
   onDenegar,
   onCancel,
-  isLoadingReniec,
+  isLoadingReniec = false,
   isDenegando
 }: PatientNotFoundModalProps) {
   return (

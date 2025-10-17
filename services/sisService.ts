@@ -83,45 +83,68 @@ export async function consultarSIS(documentNumber: string): Promise<{
   try {
     console.log(`🏥 Consultando SIS para documento: ${documentNumber}`)
     
-    // Usar POST con la estructura correcta requerida por la API
-    const response = await fetch(`${SIS_API_URL}/sis/validar`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        intOpcion: "1",
-        strTipoDocumento: "1",
-        strNroDocumento: documentNumber,
-        strTipoFormato: "2",
-        strNroContrato: documentNumber
+    // Crear un AbortController para el timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos
+    
+    try {
+      // Usar POST con la estructura correcta requerida por la API
+      const response = await fetch(`${SIS_API_URL}/sis/validar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          intOpcion: "1",
+          strTipoDocumento: "1",
+          strNroDocumento: documentNumber,
+          strTipoFormato: "2",
+          strNroContrato: documentNumber
+        }),
+        signal: controller.signal
       })
-    })
-
-    if (!response.ok) {
-      throw new Error(`Error en la API del SIS: ${response.status}`)
-    }
-
-    const data: SISValidationResponse = await response.json()
-
-    // Verificar si la respuesta fue exitosa
-    if (data.idError === '0' && data.resultado === 'DATOS EXITOSOS') {
-      console.log(`✅ Datos del SIS obtenidos exitosamente`)
-      console.log(`📋 Tipo de seguro SIS: ${data.tipoSeguro} - ${data.descTipoSeguro}`)
-      console.log(`👤 Paciente: ${data.nombres} ${data.apePaterno} ${data.apeMaterno}`)
-      console.log(`📅 Estado: ${data.estado}`)
       
-      return {
-        success: true,
-        data
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Error en la API del SIS: ${response.status}`)
       }
-    } else {
-      console.warn(`⚠️ SIS no encontró datos: ${data.resultado}`)
-      return {
-        success: false,
-        data: null,
-        error: data.resultado
+
+      const data: SISValidationResponse = await response.json()
+
+      // Verificar si la respuesta fue exitosa
+      if (data.idError === '0' && data.resultado === 'DATOS EXITOSOS') {
+        console.log(`✅ Datos del SIS obtenidos exitosamente`)
+        console.log(`📋 Tipo de seguro SIS: ${data.tipoSeguro} - ${data.descTipoSeguro}`)
+        console.log(`👤 Paciente: ${data.nombres} ${data.apePaterno} ${data.apeMaterno}`)
+        console.log(`📅 Estado: ${data.estado}`)
+        
+        return {
+          success: true,
+          data
+        }
+      } else {
+        console.warn(`⚠️ SIS no encontró datos: ${data.resultado}`)
+        return {
+          success: false,
+          data: null,
+          error: data.resultado
+        }
       }
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      
+      // Verificar si fue un timeout
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.error('⏱️ Timeout al consultar SIS (5 segundos)')
+        return {
+          success: false,
+          data: null,
+          error: 'El servicio de verificación SIS no responde'
+        }
+      }
+      
+      throw fetchError
     }
   } catch (error) {
     console.error('❌ Error al consultar SIS:', error)

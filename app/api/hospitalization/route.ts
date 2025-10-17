@@ -51,7 +51,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/hospitaliza/[id] - Eliminar una hospitalización por ID
 export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);

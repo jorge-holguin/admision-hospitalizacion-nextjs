@@ -214,23 +214,37 @@ export function PatientAssignmentModal({
       
       const responseData = await response.json()
       
-      // Verificar si hay un error de cita reservada
+      // Verificar si hay un error
       if (!response.ok) {
-        // Verificar si el mensaje de error indica que la cita tiene una solicitud pendiente
-        if (responseData.message && responseData.message.includes('solicitud pendiente')) {
+        // Manejar errores específicos
+        if (response.status === 409 && responseData.message) {
+          // Error de conflicto - Cita con solicitud pendiente
           toast({
-            title: "Cita Reservada",
+            title: "Cita No Disponible",
             description: responseData.message,
             variant: "destructive"
           })
-          setIsLoading(false)
           return
         }
         
-        throw new Error(`Error al asignar paciente: ${response.status} ${response.statusText}`)
+        // Otros errores
+        const errorMessage = responseData.message || `Error al asignar paciente: ${response.status} ${response.statusText}`
+        toast({
+          title: "Error en la Asignación",
+          description: errorMessage,
+          variant: "destructive"
+        })
+        return
       }
       
       console.log('✅ Asignación exitosa:', responseData)
+      
+      // Mostrar toast de éxito
+      toast({
+        title: "¡Asignación Exitosa!",
+        description: `La cita ha sido asignada correctamente al paciente ${patient?.NOMBRES || patient?.NOMBRE || ''}`,
+        className: "bg-green-50 border-green-200 text-green-800"
+      })
       
       // Mostrar mensaje de éxito
       setAssignedCitaId(appointment.id)
@@ -254,8 +268,13 @@ export function PatientAssignmentModal({
           onSuccess(appointment.id)
         }
       }, 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error al asignar paciente:', error)
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo asignar el paciente. Intente nuevamente.",
+        variant: "destructive"
+      })
     } finally {
       setIsLoading(false)
     }

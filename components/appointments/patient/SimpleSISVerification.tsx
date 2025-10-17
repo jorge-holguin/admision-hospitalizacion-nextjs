@@ -47,54 +47,91 @@ export function SimpleSISVerification({
     setVerificationResult(null);
 
     try {
-      const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          intOpcion: "1",
-          strTipoDocumento: "1",
-          strNroDocumento: documento,
-          strTipoFormato: "2",
-          strNroContrato: documento
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en la consulta: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const resultado = data.resultado;
+      // Crear un AbortController para el timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
       
-      const result = {
-        isSuccess: resultado === "DATOS EXITOSOS",
-        eess: data.eess,
-        descEESS: data.descEESS
-      };
-      
-      setVerificationResult(result);
-
-      // Notificar al componente padre
-      if (onVerificationComplete) {
-        onVerificationComplete(result);
-      }
-
-      // Mostrar toast con el resultado simplificado
-      if (resultado === "DATOS EXITOSOS") {
-        toast({
-          title: "SIS Activo",
-          description: "Verificación exitosa",
-          variant: "default",
-          className: "bg-green-50 border-green-200 text-green-800"
+      try {
+        const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            intOpcion: "1",
+            strTipoDocumento: "1",
+            strNroDocumento: documento,
+            strTipoFormato: "2",
+            strNroContrato: documento
+          }),
+          signal: controller.signal
         });
-      } else {
-        toast({
-          title: "SIS No Activo",
-          description: "No se encontró afiliación SIS para el DNI consultado",
-          variant: "destructive"
-        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Error en la consulta: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const resultado = data.resultado;
+        
+        const result = {
+          isSuccess: resultado === "DATOS EXITOSOS",
+          eess: data.eess,
+          descEESS: data.descEESS
+        };
+        
+        setVerificationResult(result);
+
+        // Notificar al componente padre
+        if (onVerificationComplete) {
+          onVerificationComplete(result);
+        }
+
+        // Mostrar toast con el resultado simplificado
+        if (resultado === "DATOS EXITOSOS") {
+          toast({
+            title: "SIS Activo",
+            description: "Verificación exitosa",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800"
+          });
+        } else {
+          toast({
+            title: "SIS No Activo",
+            description: "No se encontró afiliación SIS para el DNI consultado",
+            variant: "destructive"
+          });
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Verificar si fue un timeout
+        if (fetchError.name === 'AbortError') {
+          console.error('⏱️ Timeout al consultar SIS (5 segundos)');
+          
+          const result = {
+            isSuccess: false,
+            isServerError: true
+          };
+          
+          setVerificationResult(result);
+          
+          if (onVerificationComplete) {
+            onVerificationComplete(result);
+          }
+          
+          toast({
+            title: "Error",
+            description: "El servicio de verificación SIS no responde",
+            variant: "destructive"
+          });
+          
+          return;
+        }
+        
+        throw fetchError;
       }
     } catch (error: any) {
       console.error('Error al verificar SIS:', error);

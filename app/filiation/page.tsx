@@ -639,6 +639,14 @@ export default function FiliationPage() {
                       : "Ingrese al menos 8 dígitos del DNI"}
                 </p>
               </div>
+            ) : isLoading ? (
+              <div className="p-8 text-center">
+                <Loader2 className="w-16 h-16 mx-auto mb-4 text-blue-500 animate-spin" />
+                <p className="text-lg font-medium text-gray-700 mb-2">Buscando pacientes...</p>
+                <p className="text-sm text-gray-500">
+                  Por favor espere mientras se realiza la búsqueda
+                </p>
+              </div>
             ) : patients.length === 0 ? (
               <div className="p-8 text-center">
                 <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />

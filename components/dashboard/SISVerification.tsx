@@ -76,19 +76,27 @@ export function SISVerification({
     });
 
     try {
-      const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          intOpcion: "1",
-          strTipoDocumento: "1",
-          strNroDocumento: documento,
-          strTipoFormato: "2",
-          strNroContrato: documento
-        })
-      });
+      // Crear un AbortController para el timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
+      
+      try {
+        const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            intOpcion: "1",
+            strTipoDocumento: "1",
+            strNroDocumento: documento,
+            strTipoFormato: "2",
+            strNroContrato: documento
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Error en la consulta: ${response.status}`);
@@ -148,6 +156,42 @@ export function SISVerification({
           description: "No se encontró afiliación SIS para el DNI consultado",
           variant: "destructive"
         });
+      }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Verificar si fue un timeout
+        if (fetchError.name === 'AbortError') {
+          console.error('⏱️ Timeout al consultar SIS (5 segundos)');
+          
+          const errorState = {
+            isLoading: false,
+            patientId: patientId,
+            result: "El servicio de verificación SIS no responde",
+            isSuccess: false,
+            isServerError: true
+          };
+          
+          setVerificationState(errorState);
+          
+          if (onVerificationComplete) {
+            onVerificationComplete({
+              patientId: patientId,
+              result: "El servicio de verificación SIS no responde",
+              isSuccess: false
+            });
+          }
+          
+          toast({
+            title: "Error",
+            description: "El servicio de verificación SIS no responde",
+            variant: "destructive"
+          });
+          
+          return;
+        }
+        
+        throw fetchError;
       }
     } catch (error: any) {
       console.error('Error al verificar SIS:', error);

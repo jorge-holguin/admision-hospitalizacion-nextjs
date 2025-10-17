@@ -110,7 +110,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                     >
                       <Unlock className="w-4 h-4" />
                     </Button>
-                    <Button
+                    {/* <Button
                       size="sm"
                       variant="outline"
                       onClick={() => onAction("reschedule", appointment)}
@@ -118,7 +118,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       disabled={Number(appointment.estado) !== 3 || !(appointment.pagoId || appointment.PAGOID || (appointment as any).pagoId || (appointment as any).PAGOID)}
                     >
                       <CalendarClock className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                     <Button
                       size="sm"
                       variant="outline"
