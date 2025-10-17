@@ -81,6 +81,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
             <TableRow className="bg-gray-50">
               <TableHead className="font-semibold">Estado</TableHead>
               <TableHead className="font-semibold">ID</TableHead>
+              <TableHead className="font-semibold">Orden</TableHead>
               <TableHead className="font-semibold">Hora</TableHead>
               <TableHead className="font-semibold">Turno</TableHead>
               <TableHead className="font-semibold">Consultorio</TableHead>
@@ -94,6 +95,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
               <TableRow key={appointment.id} className="hover:bg-blue-50 transition-colors">
                 <TableCell>{getEstadoBadge(appointment.estado)}</TableCell>
                 <TableCell className="font-medium">{appointment.id}</TableCell>
+                <TableCell className="font-medium">{appointment.numero || '-'}</TableCell>
                 <TableCell className="font-medium">{appointment.hora}</TableCell>
                 <TableCell className="font-medium">{turnode(appointment)}</TableCell>
                 <TableCell className="font-medium">{displayConsultorio(appointment)}</TableCell>
@@ -157,6 +159,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <div><span className="text-gray-600">ID:</span> <span className="font-medium">{appointment.id}</span></div>
+                <div><span className="text-gray-600">Orden:</span> <span className="font-medium">{appointment.numero || '-'}</span></div>
                 <div><span className="text-gray-600">Turno:</span> <span className="font-medium">{turnode(appointment)}</span></div>
               </div>
               <div className="flex items-center gap-4 text-sm">

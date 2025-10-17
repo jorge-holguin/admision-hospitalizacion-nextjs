@@ -64,7 +64,7 @@ import {
     const [filteredAppointments, setFilteredAppointments] = useState(emptyAppointments)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [filters, setFilters] = useState({
-      estado: "all",
+      estado: "1", // Estado por defecto: NO OTORGADO
       consultorio: "all",
       medico: "all",
       turno: "ALL",
