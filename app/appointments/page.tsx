@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken, extractPuestoFromToken } from "@/utils/jwtUtils"
+import { availableDatesService } from "@/services/appointments/availableDatesService"
+import { startOfMonth, endOfMonth, format } from "date-fns"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -93,7 +95,7 @@ import {
 
     // Parámetros de paginación para búsqueda remota
     const [pageParam, setPageParam] = useState<number>(0)
-    const [sizeParam, setSizeParam] = useState<number>(10)
+    const [sizeParam, setSizeParam] = useState<number>(50) // Por defecto 50 items
     const [totalCount, setTotalCount] = useState<number>(0)
     const [lastRemote, setLastRemote] = useState<boolean>(false)
 
@@ -101,10 +103,106 @@ import {
     const userPuesto = extractPuestoFromToken()
     const canAccessReservas = userPuesto && ['DEVOPS', 'ANALISTA', 'DESARROLLADOR','CALL CENTER'].includes(userPuesto.toUpperCase())
 
+    // Estados para fechas disponibles en el calendario
+    const [datesWithAppointments, setDatesWithAppointments] = useState<Date[]>([])
+    const [selectedConsultorioData, setSelectedConsultorioData] = useState<any>(null)
+    const [loadingDates, setLoadingDates] = useState(false)
+    const [showPastAppointments, setShowPastAppointments] = useState(false)
+
     const getEstadoBadge = (estado: number) => {
       const estadoInfo = ESTADO_OPTIONS.find((opt) => opt.value === estado.toString())
       return <Badge className={`${estadoInfo?.color} text-white font-medium`}>{estadoInfo?.label}</Badge>
     }
+
+    // Función para cargar fechas disponibles basándose en consultorio y turno
+    const loadAvailableDates = useCallback(async (currentMonth: Date) => {
+      // Solo cargar si hay un consultorio seleccionado (que tenga especialidad)
+      if (filters.consultorio === 'all' || !selectedConsultorioData?.ESPECIALIDAD) {
+        setDatesWithAppointments([])
+        return
+      }
+
+      try {
+        setLoadingDates(true)
+        
+        // Calcular fechas
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        const monthStart = startOfMonth(currentMonth)
+        const monthEnd = endOfMonth(currentMonth)
+        
+        // ✅ NO llamar al servicio si el mes es anterior al mes actual (a menos que checkbox esté marcado)
+        const currentMonthStart = startOfMonth(today)
+        const isCurrentOrFutureMonth = monthStart >= currentMonthStart
+        
+        if (!isCurrentOrFutureMonth && !showPastAppointments) {
+          console.log('⏸️ Mes pasado detectado - No se cargan fechas disponibles')
+          setDatesWithAppointments([])
+          setLoadingDates(false)
+          return
+        }
+        
+        // Determinar fecha de inicio según el mes
+        let startDate: Date
+        
+        if (monthStart.getTime() === currentMonthStart.getTime()) {
+          // ✅ Mes actual: Iniciar desde HOY (a menos que checkbox esté marcado)
+          startDate = showPastAppointments ? monthStart : today
+        } else if (monthStart > currentMonthStart) {
+          // ✅ Mes futuro: Iniciar desde el día 1 del mes
+          startDate = monthStart
+        } else {
+          // ✅ Mes pasado (solo si checkbox está marcado): Desde inicio del mes
+          startDate = monthStart
+        }
+        
+        const fechaInicio = format(startDate, 'yyyy-MM-dd')
+        const fechaFin = format(monthEnd, 'yyyy-MM-dd')
+        const idEspecialidad = selectedConsultorioData.ESPECIALIDAD.trim()
+        
+        console.log(`📅 Consultando fechas: ${fechaInicio} a ${fechaFin}`)
+
+        let availableDates: any[] = []
+
+        // Llamar al API según el turno seleccionado
+        if (filters.turno === 'ALL') {
+          // Si es "TODOS", llamar a ambos turnos
+          availableDates = await availableDatesService.fetchAvailableDatesAllShifts(
+            fechaInicio,
+            fechaFin,
+            idEspecialidad
+          )
+        } else {
+          // Si es Mañana o Tarde, llamar al turno específico
+          const turnoConsulta = filters.turno === 'MAÑANA' ? 'M' : 'T'
+          availableDates = await availableDatesService.fetchAvailableDates({
+            fechaInicio,
+            fechaFin,
+            turnoConsulta,
+            idEspecialidad,
+          })
+        }
+
+        // Convertir las fechas a objetos Date únicos, filtrando por consultorio seleccionado
+        const consultorioCode = filters.consultorio !== 'all' ? filters.consultorio : undefined
+        const uniqueDates = availableDatesService.getUniqueDates(availableDates, consultorioCode)
+        setDatesWithAppointments(uniqueDates)
+
+        console.log(`✅ ${uniqueDates.length} días con citas disponibles para consultorio ${consultorioCode || 'todos'}`)
+        console.log(`   Rango consultado: ${fechaInicio} a ${fechaFin}`)
+      } catch (error) {
+        console.error('Error al cargar fechas disponibles:', error)
+        setDatesWithAppointments([])
+      } finally {
+        setLoadingDates(false)
+      }
+    }, [filters.consultorio, filters.turno, selectedConsultorioData, showPastAppointments])
+
+    // Effect para cargar fechas cuando cambia consultorio, turno, mes o checkbox de citas pasadas
+    useEffect(() => {
+      loadAvailableDates(selectedDate)
+    }, [filters.consultorio, filters.turno, selectedDate, showPastAppointments, loadAvailableDates])
 
     // Buscar citas por parámetros (usa la fecha seleccionada en el calendario como desde/hasta)
     const searchAppointmentsByParams = useCallback(async (dateOverride?: Date) => {
@@ -176,7 +274,21 @@ import {
           entidadSis: String(it.entidadSis ?? it.ENTIDAD_SIS ?? it.ENTIDADSIS ?? ""),
           idRefcon: it.idRefcon ?? it.ID_REFCON ?? it.IDREFCON ?? null,
         }))
-        setFilteredAppointments(mapped)
+        
+        // Ordenar por hora de forma ascendente (cronológico)
+        const sorted = mapped.sort((a, b) => {
+          // Convertir hora a formato comparable (HH:MM -> minutos desde medianoche)
+          const timeToMinutes = (time: string) => {
+            const [hours, minutes] = time.split(':').map(Number)
+            return (hours || 0) * 60 + (minutes || 0)
+          }
+          
+          const timeA = timeToMinutes(a.hora || '00:00')
+          const timeB = timeToMinutes(b.hora || '00:00')
+          return timeA - timeB // Orden cronológico: 08:00, 08:30, 09:00...
+        })
+        
+        setFilteredAppointments(sorted)
         const total = (typeof data?.total === 'number') ? data.total
           : (typeof data?.totalElements === 'number') ? data.totalElements
           : (typeof data?.totalItems === 'number') ? data.totalItems
@@ -261,7 +373,7 @@ import {
       if (date) {
         setSelectedDate(date)
         setSelectedTime("") // Reset selected time when date changes
-        setPageParam(1) // Reset to first page
+        setPageParam(0) // Reset to page 0 (backend usa base 0)
         // Automatically search API when date is selected
         await searchAppointmentsByParams(date)
       }
@@ -458,9 +570,24 @@ import {
                 <div className="xl:col-span-1 space-y-6">
                   <Card className="shadow-lg border-0">
                     <CardHeader className="bg-blue-50 border-b">
-                      <CardTitle className="text-lg text-blue-800 font-semibold">
-                        Calendario de Citas
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg text-blue-800 font-semibold">
+                          Calendario de Citas
+                        </CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="showPastAppointments"
+                            checked={showPastAppointments}
+                            onCheckedChange={(checked) => setShowPastAppointments(checked as boolean)}
+                          />
+                          <label
+                            htmlFor="showPastAppointments"
+                            className="text-sm font-medium text-gray-700 cursor-pointer"
+                          >
+                            Ver citas pasadas
+                          </label>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent className="p-0">
                       <div className="flex h-[400px]">
@@ -469,9 +596,30 @@ import {
                             selectedDate={selectedDate}
                             onDateSelect={handleDateSelect}
                             className="h-full border-0 rounded-none"
+                            datesWithAppointments={datesWithAppointments}
+                            disablePastDates={!showPastAppointments}
                           />
                         </div>
                       </div>
+                      {/* Leyenda del calendario */}
+                      {filters.consultorio !== 'all' && selectedConsultorioData?.ESPECIALIDAD && (
+                        <div className="p-4 border-t bg-gray-50">
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                              <span className="text-gray-700">Días con citas disponibles</span>
+                            </div>
+                            {loadingDates && (
+                              <span className="text-gray-500 text-xs ml-2">Cargando...</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {datesWithAppointments.length > 0 
+                              ? `${datesWithAppointments.length} día(s) disponible(s)` 
+                              : 'No hay citas disponibles este mes'}
+                          </p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                   <Card className="shadow-lg border-0">
@@ -515,7 +663,7 @@ import {
                               medico: "all",
                               turno: "ALL",
                             })
-                            setPageParam(1)
+                            setPageParam(0) // Reset to page 0 (backend usa base 0)
                             setSelectedTime("")
                             setSearchQuery("") // Limpiar campo de búsqueda
                             setShowSearchById(false) // Ocultar campo de búsqueda
@@ -611,6 +759,9 @@ import {
                             setFilters({ ...filters, consultorio: val })
                             setPageParam(0) // Reset to page 0 when filter changes
                           }}
+                          onConsultorioDataChange={(data) => {
+                            setSelectedConsultorioData(data)
+                          }}
                           className="space-y-2"
                         />
     
@@ -642,17 +793,46 @@ import {
                       })()}
     
                       {/* Paginación */}
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="text-sm text-gray-600">
-                          Mostrando{" "}
-                          {Math.min(
-                            pageParam * sizeParam + 1,
-                            Math.max(totalCount, 0)
-                          )}
-                          -
-                          {Math.min(pageParam * sizeParam, totalCount)} de{" "}
-                          {totalCount}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+                        {/* Información y selector de tamaño */}
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm text-gray-600">
+                            Mostrando{" "}
+                            {Math.min(
+                              pageParam * sizeParam + 1,
+                              Math.max(totalCount, 0)
+                            )}
+                            {" "}-{" "}
+                            {Math.min((pageParam + 1) * sizeParam, totalCount)} de{" "}
+                            {totalCount}
+                          </div>
+                          
+                          {/* Selector de tamaño de página */}
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm text-gray-600 whitespace-nowrap">
+                              Items por página:
+                            </Label>
+                            <Select
+                              value={String(sizeParam)}
+                              onValueChange={(value) => {
+                                setSizeParam(Number(value))
+                                setPageParam(0) // Reset a página 0 al cambiar tamaño
+                              }}
+                            >
+                              <SelectTrigger className="w-[70px] h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="10">10</SelectItem>
+                                <SelectItem value="25">25</SelectItem>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
+                        
+                        {/* Controles de paginación */}
                         <Pagination>
                           <PaginationContent>
                             <PaginationItem>
@@ -670,7 +850,7 @@ import {
                             </PaginationItem>
                             <PaginationItem>
                               <PaginationLink href="#" isActive>
-                                {pageParam}
+                                {pageParam + 1}
                               </PaginationLink>
                             </PaginationItem>
                             <PaginationItem>

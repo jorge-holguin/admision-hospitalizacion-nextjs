@@ -1,19 +1,27 @@
 "use client"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
-import { es } from "date-fns/locale"
+import { es } from "date-fns/locale/es"
 
 interface AppointmentCalendarProps {
   selectedDate: Date | undefined
   onDateSelect: (date: Date | undefined) => void
   className?: string
+  datesWithAppointments?: Date[]  // Fechas que tienen citas disponibles
+  disablePastDates?: boolean  // Deshabilitar días pasados
 }
 
 export function AppointmentCalendar({ 
   selectedDate, 
   onDateSelect, 
-  className = "" 
+  className = "",
+  datesWithAppointments = [],
+  disablePastDates = false
 }: AppointmentCalendarProps) {
+  
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   return (
     <Card className={`${className}`}>
       <CardContent className="p-0">
@@ -23,6 +31,13 @@ export function AppointmentCalendar({
           onSelect={onDateSelect}
           locale={es}
           className="w-full"
+          disabled={disablePastDates ? (date) => date < today : undefined}
+          modifiers={{
+            hasAppointments: datesWithAppointments,
+          }}
+          modifiersClassNames={{
+            hasAppointments: "bg-green-100 text-green-800 font-semibold hover:bg-green-200",
+          }}
           classNames={{
             months: "flex flex-col space-y-4 w-full",
             month: "space-y-4 w-full",

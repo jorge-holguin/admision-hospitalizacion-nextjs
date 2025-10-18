@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 export interface Medico {
   MEDICO: string;
   NOMBRE: string;
+  ACTIVO?: string;
 }
 
 export const medicoService = {
@@ -24,7 +25,7 @@ export const medicoService = {
       
       // Usar Prisma.sql para construir la consulta segura
       const query = `
-        SELECT MEDICO, NOMBRE 
+        SELECT MEDICO, NOMBRE, ACTIVO 
         FROM MEDICO 
         WHERE MEDICO IN (${placeholders})
         AND ACTIVO = '1' 
@@ -46,7 +47,7 @@ export const medicoService = {
     try {
       // Usar consulta SQL nativa para compatibilidad con SQL Server 2008
       const medicos = await prisma.$queryRaw<Medico[]>`
-        SELECT MEDICO, NOMBRE 
+        SELECT MEDICO, NOMBRE, ACTIVO 
         FROM MEDICO 
         WHERE ACTIVO = '1' 
         ORDER BY NOMBRE
@@ -66,7 +67,7 @@ export const medicoService = {
     try {
       // Usar consulta SQL nativa para compatibilidad con SQL Server 2008
       const medicos = await prisma.$queryRaw<Medico[]>`
-        SELECT DISTINCT m.MEDICO, m.NOMBRE 
+        SELECT DISTINCT m.MEDICO, m.NOMBRE, m.ACTIVO 
         FROM MEDICO m
         INNER JOIN CONSULTORIO_MEDICO cm ON m.MEDICO = cm.MEDICO
         WHERE cm.CONSULTORIO = ${consultorioId}
@@ -91,7 +92,7 @@ export const medicoService = {
       // Usar el límite proporcionado o 50 por defecto
       // Construir la consulta SQL directamente para evitar problemas con parámetros
       const query = `
-        SELECT TOP ${limit} MEDICO, NOMBRE 
+        SELECT TOP ${limit} MEDICO, NOMBRE, ACTIVO 
         FROM MEDICO 
         WHERE (MEDICO LIKE '%${searchTerm}%' OR NOMBRE LIKE '%${searchTerm}%')
         AND ACTIVO = '1'

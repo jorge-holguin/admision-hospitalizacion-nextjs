@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 export interface ConsultorioEmergencia {
   CONSULTORIO: string;
   NOMBRE: string;
+  ESPECIALIDAD?: string;
+  ACTIVO?: string;
 }
 
 export interface ConsultorioEmergenciaFilters {
@@ -105,7 +107,7 @@ export class ConsultorioEmergenciaService {
           AND (NOMBRE LIKE ${`%${search}%`} OR CONSULTORIO LIKE ${`%${search}%`})
         `;
         consultorios = await prisma.$queryRaw`
-          SELECT CONSULTORIO, NOMBRE 
+          SELECT CONSULTORIO, NOMBRE, ESPECIALIDAD, ACTIVO 
           FROM CONSULTORIO 
           WHERE TIPO = 'C' 
           AND (NOMBRE LIKE ${`%${search}%`} OR CONSULTORIO LIKE ${`%${search}%`})
@@ -119,7 +121,7 @@ export class ConsultorioEmergenciaService {
           WHERE TIPO = 'C'
         `;
         consultorios = await prisma.$queryRaw`
-          SELECT CONSULTORIO, NOMBRE 
+          SELECT CONSULTORIO, NOMBRE, ESPECIALIDAD, ACTIVO 
           FROM CONSULTORIO 
           WHERE TIPO = 'C' 
           ORDER BY NOMBRE 
@@ -150,7 +152,7 @@ export class ConsultorioEmergenciaService {
       let consultorios;
       if (search) {
         consultorios = await prisma.$queryRaw`
-          SELECT CONSULTORIO, NOMBRE 
+          SELECT CONSULTORIO, NOMBRE, ESPECIALIDAD, ACTIVO 
           FROM CONSULTORIO 
           WHERE TIPO = 'C' 
           AND (NOMBRE LIKE ${`%${search}%`} OR CONSULTORIO LIKE ${`%${search}%`})
@@ -158,7 +160,7 @@ export class ConsultorioEmergenciaService {
         `;
       } else {
         consultorios = await prisma.$queryRaw`
-          SELECT CONSULTORIO, NOMBRE 
+          SELECT CONSULTORIO, NOMBRE, ESPECIALIDAD, ACTIVO 
           FROM CONSULTORIO 
           WHERE TIPO = 'C' 
           ORDER BY NOMBRE
@@ -177,7 +179,7 @@ export class ConsultorioEmergenciaService {
   async getConsultorioCitasById(id: string): Promise<ConsultorioEmergencia | null> {
     try {
       const consultorio = await prisma.$queryRaw`
-        SELECT CONSULTORIO, NOMBRE
+        SELECT CONSULTORIO, NOMBRE, ESPECIALIDAD, ACTIVO
         FROM CONSULTORIO
         WHERE CONSULTORIO = ${id} AND TIPO = 'C'
       `;

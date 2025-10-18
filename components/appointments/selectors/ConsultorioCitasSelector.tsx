@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -10,16 +10,19 @@ import { ChevronsUpDown, Check } from "lucide-react"
 interface ConsultorioItem {
   CONSULTORIO: string
   NOMBRE: string
+  ESPECIALIDAD?: string
+  ACTIVO?: string
 }
 
 interface ConsultorioCitasSelectorProps {
   label?: string
   value: string | "all"
   onChange: (value: string | "all") => void
+  onConsultorioDataChange?: (data: ConsultorioItem | null) => void  // Nuevo callback para pasar datos completos
   className?: string
 }
 
-export function ConsultorioCitasSelector({ label = "Consultorio", value, onChange, className = "" }: ConsultorioCitasSelectorProps) {
+export function ConsultorioCitasSelector({ label = "Consultorio", value, onChange, onConsultorioDataChange, className = "" }: ConsultorioCitasSelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [items, setItems] = useState<ConsultorioItem[]>([])
@@ -84,6 +87,7 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
                   value="all"
                   onSelect={() => {
                     onChange("all")
+                    onConsultorioDataChange?.(null)  // Limpiar datos cuando se selecciona "Todos"
                     setOpen(false)
                   }}
                 >
@@ -98,6 +102,7 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
                     value={`${c.CONSULTORIO} ${c.NOMBRE}`}
                     onSelect={() => {
                       onChange(c.CONSULTORIO) // Enviar el código en lugar del nombre
+                      onConsultorioDataChange?.(c)  // Pasar el objeto completo con ESPECIALIDAD
                       setOpen(false)
                     }}
                   >

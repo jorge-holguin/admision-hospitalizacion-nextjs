@@ -1,0 +1,107 @@
+export interface AvailableDate {
+  fecha: string;  // "2025-10-17 00:00:00.0"
+  consultorio: string;
+}
+
+export interface FetchAvailableDatesParams {
+  fechaInicio: string;  // "2025-10-17"
+  fechaFin: string;      // "2025-10-31"
+  turnoConsulta: 'M' | 'T';  // M = Mañana, T = Tarde
+  idEspecialidad: string;    // "0019"
+}
+
+/**
+ * Servicio para obtener las fechas con citas disponibles desde la API externa
+ */
+export const availableDatesService = {
+  /**
+   * Obtiene las fechas con citas disponibles para una especialidad y turno
+   */
+  async fetchAvailableDates(params: FetchAvailableDatesParams): Promise<AvailableDate[]> {
+    try {
+      const { fechaInicio, fechaFin, turnoConsulta, idEspecialidad } = params;
+      const url = `http://192.168.0.17:9011/api/cita/fechas-consultorios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&turnoConsulta=${turnoConsulta}&idEspecialidad=${idEspecialidad}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error('Error al obtener fechas disponibles:', response.statusText);
+        return [];
+      }
+      
+      const data: AvailableDate[] = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en fetchAvailableDates:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene fechas disponibles para ambos turnos (Mañana y Tarde)
+   */
+  async fetchAvailableDatesAllShifts(
+    fechaInicio: string,
+    fechaFin: string,
+    idEspecialidad: string
+  ): Promise<AvailableDate[]> {
+    try {
+      // Llamar a ambos turnos en paralelo
+      const [morning, afternoon] = await Promise.all([
+        this.fetchAvailableDates({
+          fechaInicio,
+          fechaFin,
+          turnoConsulta: 'M',
+          idEspecialidad,
+        }),
+        this.fetchAvailableDates({
+          fechaInicio,
+          fechaFin,
+          turnoConsulta: 'T',
+          idEspecialidad,
+        }),
+      ]);
+
+      // Combinar ambos resultados
+      return [...morning, ...afternoon];
+    } catch (error) {
+      console.error('Error en fetchAvailableDatesAllShifts:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Convierte una fecha string a objeto Date
+   */
+  parseDateString(dateString: string): Date {
+    // dateString viene como "2025-10-17 00:00:00.0"
+    const [datePart] = dateString.split(' ');
+    const [year, month, day] = datePart.split('-');
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  },
+
+  /**
+   * Obtiene fechas únicas (sin duplicados)
+   * @param dates Array de fechas disponibles
+   * @param consultorioFilter Código del consultorio para filtrar (opcional)
+   */
+  getUniqueDates(dates: AvailableDate[], consultorioFilter?: string): Date[] {
+    const uniqueDateStrings = new Set<string>();
+    const uniqueDates: Date[] = [];
+
+    dates.forEach(item => {
+      // Si hay filtro de consultorio, solo incluir fechas de ese consultorio
+      if (consultorioFilter && item.consultorio.trim() !== consultorioFilter.trim()) {
+        return; // Skip esta fecha
+      }
+
+      const [datePart] = item.fecha.split(' ');
+      if (!uniqueDateStrings.has(datePart)) {
+        uniqueDateStrings.add(datePart);
+        uniqueDates.push(this.parseDateString(item.fecha));
+      }
+    });
+
+    return uniqueDates;
+  },
+};
