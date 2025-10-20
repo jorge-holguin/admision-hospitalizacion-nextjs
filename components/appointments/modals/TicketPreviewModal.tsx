@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Printer, Calendar, Clock, User, Stethoscope, Building2, CreditCard, FileText, Copy } from "lucide-react"
@@ -35,6 +35,14 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
   const [isPrinting, setIsPrinting] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
 
+  // Resetear estados cuando el modal se cierra
+  useEffect(() => {
+    if (!isOpen) {
+      setIsPrinting(false)
+      setIsCopying(false)
+    }
+  }, [isOpen])
+
   const handlePrintToThermal = async () => {
     if (!ticketData) return
     
@@ -62,6 +70,9 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
         description: "El ticket se está imprimiendo en la impresora térmica",
         className: "bg-green-50 border-green-200 text-green-800"
       })
+      
+      // Resetear estado antes de cerrar
+      setIsPrinting(false)
       
       setTimeout(() => {
         onClose()
