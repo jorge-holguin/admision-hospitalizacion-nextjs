@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from 'react'
-import { Check, ChevronsUpDown, Search } from 'lucide-react'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -39,6 +39,7 @@ export function EntidadSisSelector({
   const [isLoading, setIsLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
+  const [hasManualChange, setHasManualChange] = useState(false)
 
   useEffect(() => {
     loadEntidadesIniciales()
@@ -53,8 +54,8 @@ export function EntidadSisSelector({
 
   // Efecto para manejar el establecimiento SIS
   useEffect(() => {
-    if (sisEstablecimiento && sisEstablecimiento.codigo) {
-      // Actualizar el valor con el código del establecimiento SIS
+    if (sisEstablecimiento && sisEstablecimiento.codigo && !hasManualChange) {
+      // Solo actualizar automáticamente si el usuario NO ha hecho cambios manuales
       onChange(sisEstablecimiento.codigo)
       
       // Si no existe en los items, agregarlo temporalmente
@@ -68,7 +69,7 @@ export function EntidadSisSelector({
         ])
       }
     }
-  }, [sisEstablecimiento, onChange])
+  }, [sisEstablecimiento, onChange, hasManualChange, items])
 
   const loadEntidadesIniciales = async () => {
     try {
@@ -171,6 +172,7 @@ export function EntidadSisSelector({
                         value={displayText}
                         onSelect={() => {
                           onChange(entidad.ENTIDADSIS)
+                          setHasManualChange(true) // Marcar que hubo cambio manual
                           setOpen(false)
                         }}
                       >

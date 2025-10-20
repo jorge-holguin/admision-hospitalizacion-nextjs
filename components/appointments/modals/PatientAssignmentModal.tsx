@@ -478,6 +478,7 @@ export function PatientAssignmentModal({
                 {isSisSeguro() && (
                   <>
                     <EntidadSisSelector
+                      key={sisVerificationResult?.eess || 'entidad-sis-selector'} // Reset cuando cambia verificación SIS
                       value={selectedEntidadSis}
                       onChange={setSelectedEntidadSis}
                       required={true}
