@@ -17,7 +17,8 @@ import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
-import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
+import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 
 interface AdditionalAppointmentModalProps {
   isOpen: boolean
@@ -257,8 +258,11 @@ export function AdditionalAppointmentModal({
       
       console.log('✅ Respuesta de la API:', responseData)
       
+      // Extraer el ID de la cita creada de la respuesta
+      const citaId = responseData.citaId || responseData.id || responseData.data?.citaId || null
+      
       // Show success
-      const mockId = `CITA-${Date.now()}`
+      const mockId = citaId || `CITA-${Date.now()}`
       setAppointmentId(mockId)
       setShowSuccess(true)
       
@@ -267,6 +271,15 @@ export function AdditionalAppointmentModal({
         description: `La cita adicional ha sido asignada correctamente al paciente ${patient.NOMBRES || patient.NOMBRE}`,
         className: "bg-green-50 border-green-200 text-green-800"
       })
+      
+      // Imprimir la cita automáticamente si tenemos el ID
+      if (citaId) {
+        try {
+          await imprimirCitaAsignada(citaId)
+        } catch (printError) {
+          console.error('Error al imprimir cita:', printError)
+        }
+      }
       
     } catch (error: any) {
       console.error('❌ Error creating additional appointment:', error)
@@ -277,6 +290,54 @@ export function AdditionalAppointmentModal({
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const imprimirCitaAsignada = async (citaId: string) => {
+    try {
+      console.log('🖨️ Obteniendo datos de la cita para imprimir:', citaId)
+      
+      // Obtener datos completos de la cita
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      
+      if (!response.ok) {
+        throw new Error('No se pudo obtener los datos de la cita')
+      }
+      
+      const citaData = await response.json()
+      console.log('📋 Datos de cita recibidos para impresión:', citaData)
+      
+      // Obtener el operador desde el JWT
+      const operador = extractNombreCompletoFromToken() || 'OPERADOR'
+      
+      // Formatear turno
+      const turnoConsulta = citaData.turnoConsulta || ''
+      const turnoFormateado = turnoConsulta.trim().toUpperCase() === 'M' ? 'Mañana' : 
+                              turnoConsulta.trim().toUpperCase() === 'T' ? 'Tarde' : turnoConsulta
+      
+      // Construir el DTO para impresión con fechas formateadas
+      const citaDto: CitaDto = {
+        numero: citaData.citaId || citaId,
+        numeroAtencion: citaData.numero || '',
+        paciente: citaData.nombre || '',
+        consultorio: citaData.consultorioNombre || '',
+        medico: citaData.medicoNombre || '',
+        diaAtencion: formatDateToDDMMYYYY(citaData.fecha || new Date().toISOString()),
+        turno: turnoFormateado,
+        hora: citaData.hora || '',
+        historiaClinica: citaData.historia ? String(citaData.historia).trim() : null,
+        emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
+        operador: operador,
+        seguro: citaData.seguroNombre || 'PAGANTE'
+      }
+      
+      console.log('🖨️ Enviando cita a imprimir:', citaDto)
+      await imprimirCita(citaDto)
+      
+      console.log('✅ Cita enviada a imprimir correctamente')
+    } catch (error) {
+      console.error('❌ Error al imprimir cita:', error)
+      // No mostrar error al usuario ya que la creación fue exitosa
     }
   }
 

@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
-import { extractDocumentFromToken, extractPuestoFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken, extractPuestoFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
-import { startOfMonth, endOfMonth, format } from "date-fns"
+import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
+import { TicketPreviewModal, type TicketData } from "@/components/appointments/modals/TicketPreviewModal"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -57,6 +58,7 @@ import {
   RescheduleAppointmentModal,
   AppointmentHistoryModal
 } from "@/components/appointments"
+import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
 
   // Lista vacía para almacenar citas
   const emptyAppointments: any[] = []
@@ -92,6 +94,10 @@ import {
     const [showAdditionalPatientSearchModal, setShowAdditionalPatientSearchModal] = useState(false)
     const [selectedPatientForAdditional, setSelectedPatientForAdditional] = useState<any>(null)
     const [showHistoryModal, setShowHistoryModal] = useState(false)
+    const [showPrintingModal, setShowPrintingModal] = useState(false)
+  const [showTicketPreview, setShowTicketPreview] = useState(false)
+  const [ticketData, setTicketData] = useState<TicketData | null>(null)
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     // Parámetros de paginación para búsqueda remota
     const [pageParam, setPageParam] = useState<number>(0)
@@ -206,6 +212,7 @@ import {
 
     // Buscar citas por parámetros (usa la fecha seleccionada en el calendario como desde/hasta)
     const searchAppointmentsByParams = useCallback(async (dateOverride?: Date) => {
+      setIsRefreshing(true)
       try {
         const qs = new URLSearchParams()
         const targetDate = dateOverride || selectedDate
@@ -263,6 +270,7 @@ import {
           paciente: String(it.nombre ?? it.NOMBRE ?? it.paciente ?? it.PACIENTE ?? "").replace(/^\d+\s*/, "").trim(),
           codigoPaciente: String(it.paciente ?? it.PACIENTE ?? "").trim(),
           numero: String(it.numero ?? it.NUMERO ?? ""),
+          historia: it.historia ? String(it.historia).trim() : null,
           usuario: String(it.usuario ?? it.USUARIO ?? ""),
           userLiberacion: it.userLiberacion ?? it.USER_LIBERACION ?? null,
           userEliminacion: it.userEliminacion ?? it.USER_ELIMINACION ?? null,
@@ -298,6 +306,8 @@ import {
         setLastRemote(true)
       } catch (e) {
         // noop silencioso
+      } finally {
+        setIsRefreshing(false)
       }
     }, [selectedDate, filters, pageParam, sizeParam])
 
@@ -314,6 +324,7 @@ import {
         applyFilters()
         return
       }
+      setIsRefreshing(true)
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${encodeURIComponent(id)}`)
         if (!res.ok) {
@@ -350,6 +361,7 @@ import {
           paciente: String(it.paciente ?? it.PACIENTE ?? ""),
           nombre: String(it.nombre ?? it.NOMBRE ?? ""),
           numero: String(it.numero ?? it.NUMERO ?? ""),
+          historia: it.historia ? String(it.historia).trim() : null,
           numRef: String(it.numRef ?? it.NUMREF ?? ""),
           entidadSis: String(it.entidadSis ?? it.ENTIDADSIS ?? ""),
           usuario: String(it.usuario ?? it.USUARIO ?? ""),
@@ -366,6 +378,8 @@ import {
         console.log(`❌ Error al buscar la cita con ID: ${id}`, e)
         setFilteredAppointments([])
         setTotalCount(0)
+      } finally {
+        setIsRefreshing(false)
       }
     }
 
@@ -413,6 +427,51 @@ import {
           console.log('🔄 Abriendo modal de reasignación con appointment:', appointment)
           setShowReassignModal(true)
           break
+        case "print":
+          handlePrintAppointment(appointment)
+          break
+      }
+    }
+    
+    // Función para imprimir una cita - Abre modal de previsualización
+    const handlePrintAppointment = async (appointment: any) => {
+      try {
+        // Obtener el nombre completo del operador desde el JWT
+        const operador = extractNombreCompletoFromToken() || 'OPERADOR'
+        
+        // Formatear turno: M -> Mañana, T -> Tarde
+        const turnoConsulta = appointment.turnoConsulta || appointment.turno || ''
+        const turnoFormateado = turnoConsulta.trim().toUpperCase() === 'M' ? 'Mañana' : 
+                                turnoConsulta.trim().toUpperCase() === 'T' ? 'Tarde' : turnoConsulta
+        
+        // Construir los datos del ticket
+        const ticket: TicketData = {
+          numero: appointment.id || '',
+          numeroAtencion: appointment.numero || '',
+          paciente: appointment.nombre || appointment.paciente || '',
+          consultorio: appointment.consultorioNombre || '',
+          medico: appointment.medicoNombre || '',
+          diaAtencion: formatDateToDDMMYYYY(appointment.fecha || new Date().toISOString()),
+          turno: turnoFormateado,
+          hora: appointment.hora || '',
+          historiaClinica: appointment.historia || '',
+          emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
+          operador: operador,
+          seguro: appointment.seguroNombre || 'PAGANTE'
+        }
+        
+        console.log('📋 Abriendo previsualización de ticket:', ticket)
+        
+        // Abrir modal de previsualización
+        setTicketData(ticket)
+        setShowTicketPreview(true)
+      } catch (error) {
+        console.error('❌ Error al preparar ticket:', error)
+        toast({
+          title: "Error",
+          description: "No se pudo preparar el ticket. Intente nuevamente.",
+          variant: "destructive"
+        })
       }
     }
     
@@ -653,27 +712,40 @@ import {
                             </span>
                           )}
                         </CardTitle>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setFilters({
-                              estado: "all",
-                              consultorio: "all",
-                              medico: "all",
-                              turno: "ALL",
-                            })
-                            setPageParam(0) // Reset to page 0 (backend usa base 0)
-                            setSelectedTime("")
-                            setSearchQuery("") // Limpiar campo de búsqueda
-                            setShowSearchById(false) // Ocultar campo de búsqueda
-                            searchAppointmentsByParams()
-                          }}
-                          className="font-medium"
-                        >
-                          <Filter className="w-4 h-4 mr-2" />
-                          Limpiar Filtros
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setFilters({
+                                estado: "all",
+                                consultorio: "all",
+                                medico: "all",
+                                turno: "ALL",
+                              })
+                              setPageParam(0) // Reset to page 0 (backend usa base 0)
+                              setSelectedTime("")
+                              setSearchQuery("") // Limpiar campo de búsqueda
+                              setShowSearchById(false) // Ocultar campo de búsqueda
+                              searchAppointmentsByParams()
+                            }}
+                            className="font-medium"
+                          >
+                            <Filter className="w-4 h-4 mr-2" />
+                            Limpiar Filtros
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              searchAppointmentsByParams()
+                            }}
+                            disabled={isRefreshing}
+                            className="font-medium"
+                          >
+                            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            Actualizar
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
@@ -777,20 +849,23 @@ import {
                       </div>
     
                       {/* Tabla de citas */}
-                      {(() => {
-                        const start = pageParam * sizeParam
-                        const end = start + sizeParam
-                        const pageItems = lastRemote
-                          ? filteredAppointments
-                          : filteredAppointments.slice(start, end)
-                        return (
-                          <AppointmentsTable
-                            appointments={pageItems as any}
-                            getEstadoBadge={getEstadoBadge}
-                            onAction={handleAction}
-                          />
-                        )
-                      })()}
+                      {/* Wrapper con animación de transición */}
+                      <div className={`transition-opacity duration-300 ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
+                        {(() => {
+                          const start = pageParam * sizeParam
+                          const end = start + sizeParam
+                          const pageItems = lastRemote
+                            ? filteredAppointments
+                            : filteredAppointments.slice(start, end)
+                          return (
+                            <AppointmentsTable
+                              appointments={pageItems as any}
+                              getEstadoBadge={getEstadoBadge}
+                              onAction={handleAction}
+                            />
+                          )
+                        })()}
+                      </div>
     
                       {/* Paginación */}
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
@@ -1027,6 +1102,22 @@ import {
             <AppointmentHistoryModal
               isOpen={showHistoryModal}
               onClose={() => setShowHistoryModal(false)}
+            />
+
+            {/* Printing Modal */}
+            <PrintingModal
+              isOpen={showPrintingModal}
+              onClose={() => setShowPrintingModal(false)}
+            />
+
+            {/* Ticket Preview Modal */}
+            <TicketPreviewModal
+              isOpen={showTicketPreview}
+              onClose={() => {
+                setShowTicketPreview(false)
+                setTicketData(null)
+              }}
+              ticketData={ticketData}
             />
           </div>
         </SegurosCitaProvider>

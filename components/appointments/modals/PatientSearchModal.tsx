@@ -11,6 +11,7 @@ import { Search, User, UserPlus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PatientSearchModal as FiliationPatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
+import { EstadoCivilProvider } from "@/contexts/filiation/EstadoCivilContext"
 
 interface Patient {
   // Campos que vienen del servicio filiacion2Service
@@ -335,13 +336,15 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
       {/* Modal de registro de paciente */}
       {showRegistrationModal && (
         <Dialog open={showRegistrationModal} onOpenChange={() => setShowRegistrationModal(false)}>
-          <PatientRegistrationModal
-            reniecData={reniecData}
-            documentType="D"
-            documentNumber={prefilledDocument}
-            onCancel={handleCancelFiliation}
-            onSuccess={handleRegistrationSuccess}
-          />
+          <EstadoCivilProvider>
+            <PatientRegistrationModal
+              reniecData={reniecData}
+              documentType="D"
+              documentNumber={prefilledDocument}
+              onCancel={handleCancelFiliation}
+              onSuccess={handleRegistrationSuccess}
+            />
+          </EstadoCivilProvider>
         </Dialog>
       )}
     </Dialog>

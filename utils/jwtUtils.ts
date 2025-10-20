@@ -70,6 +70,43 @@ export const extractDocumentFromToken = (): string => {
 };
 
 /**
+ * Extracts the full name (nombreCompleto) from the JWT token
+ * @returns The full name or an empty string if extraction fails
+ */
+export const extractNombreCompletoFromToken = (): string => {
+  try {
+    // Obtener el token del localStorage
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      console.warn('No se encontró authToken en localStorage');
+      return '';
+    }
+    
+    // Decodificar el token (solo la parte del payload)
+    const tokenParts = authToken.split('.');
+    if (tokenParts.length !== 3) {
+      console.warn('Token JWT no tiene el formato correcto');
+      return '';
+    }
+    
+    // Decodificar la parte del payload (segunda parte)
+    const payload = JSON.parse(atob(tokenParts[1]));
+    
+    // Extraer el campo 'nombreCompleto'
+    const nombreCompleto = payload.nombreCompleto;
+    if (!nombreCompleto) {
+      console.warn('No se encontró el campo "nombreCompleto" en el token');
+      return '';
+    }
+    
+    return nombreCompleto;
+  } catch (error) {
+    console.error('Error al extraer el nombre completo del token:', error);
+    return '';
+  }
+};
+
+/**
  * Extracts the job position (puesto) from the JWT token
  * @returns The job position or null if extraction fails
  */

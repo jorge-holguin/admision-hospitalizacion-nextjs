@@ -3,7 +3,7 @@
 import React, { useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Unlock, CalendarClock, UserPlus, Eye, RefreshCw } from "lucide-react"
+import { Unlock, CalendarClock, UserPlus, Eye, RefreshCw, Printer } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useMedicos } from "@/contexts/MedicosContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
@@ -34,7 +34,7 @@ export interface AppointmentRow {
 interface AppointmentsTableProps {
   appointments: AppointmentRow[]
   getEstadoBadge: (estado: number) => React.ReactNode
-  onAction: (action: "release" | "reschedule" | "assign" | "details" | "reassign", appointment: AppointmentRow) => void
+  onAction: (action: "release" | "reschedule" | "assign" | "details" | "reassign" | "print", appointment: AppointmentRow) => void
 }
 
 export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: AppointmentsTableProps) {
@@ -138,6 +138,15 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onAction("print", appointment)}
+                      title="Imprimir"
+                      disabled={Number(appointment.estado) !== 2}
+                    >
+                      <Printer className="w-4 h-4" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -202,6 +211,15 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                   Asignar
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => onAction("details", appointment)} className="text-xs">Ver más</Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => onAction("print", appointment)} 
+                  className="text-xs"
+                  disabled={Number(appointment.estado) !== 2}
+                >
+                  Imprimir
+                </Button>
               </div>
             </div>
           </Card>

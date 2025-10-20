@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../patient/PatientInfoCardAppointment"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer } from "lucide-react"
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
+import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
+import { extractNombreCompletoFromToken, extractDocumentFromToken } from "@/utils/jwtUtils"
 
 interface Patient {
   HISTORIA: string
@@ -99,7 +101,9 @@ export function PatientAssignmentModal({
   const [referencia, setReferencia] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [assignedCitaId, setAssignedCitaId] = useState("")
+  const [assignedCitaId, setAssignedCitaId] = useState<string | null>(null)
+  const [showPrintConfirmation, setShowPrintConfirmation] = useState(false)
+  const [pendingPrintCitaId, setPendingPrintCitaId] = useState<string | null>(null)
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
   const [enhancedPatient, setEnhancedPatient] = useState<Patient | null>(null)
   const [isLoadingPatientData, setIsLoadingPatientData] = useState(false)
@@ -174,6 +178,56 @@ export function PatientAssignmentModal({
     }
   }
 
+  const imprimirCitaAsignada = async (citaId: string) => {
+    try {
+      console.log('🖨️ Obteniendo datos de la cita para imprimir:', citaId)
+      
+      // Obtener datos completos de la cita
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      
+      if (!response.ok) {
+        throw new Error('No se pudo obtener los datos de la cita')
+      }
+      
+      const citaData = await response.json()
+      console.log('📋 Datos de cita recibidos para impresión:', citaData)
+      
+      // Obtener el DNI del usuario desde el JWT
+      const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
+      // Obtener el operador desde el JWT
+      const operador = extractNombreCompletoFromToken() || 'OPERADOR'
+      
+      // Formatear turno
+      const turnoConsulta = citaData.turnoConsulta || ''
+      const turnoFormateado = turnoConsulta.trim().toUpperCase() === 'M' ? 'Mañana' : 
+                              turnoConsulta.trim().toUpperCase() === 'T' ? 'Tarde' : turnoConsulta
+      
+      // Construir el DTO para impresión con fechas formateadas
+      const citaDto: CitaDto = {
+        numero: citaData.citaId || citaId,
+        numeroAtencion: citaData.numero || '',
+        paciente: citaData.nombre || '',
+        consultorio: citaData.consultorioNombre || '',
+        medico: citaData.medicoNombre || '',
+        diaAtencion: formatDateToDDMMYYYY(citaData.fecha || new Date().toISOString()),
+        turno: turnoFormateado,
+        hora: citaData.hora || '',
+        historiaClinica: citaData.historia ? String(citaData.historia).trim() : null,
+        emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
+        operador: operador,
+        seguro: citaData.seguroNombre || 'PAGANTE'
+      }
+      
+      console.log('🖨️ Enviando cita a imprimir:', citaDto)
+      await imprimirCita(citaDto)
+      
+      console.log('✅ Cita enviada a imprimir correctamente')
+    } catch (error) {
+      console.error('❌ Error al imprimir cita:', error)
+      // No mostrar error al usuario ya que la asignación fue exitosa
+    }
+  }
+
   const handleAssign = async () => {
     if (!selectedTipoCita || !selectedSeguro || !appointment?.id) {
       return
@@ -182,6 +236,9 @@ export function PatientAssignmentModal({
     setIsLoading(true)
     
     try {
+      // Obtener el DNI del usuario desde el JWT
+      const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
+      
       // Preparar el cuerpo de la solicitud según el formato requerido
       const currentDate = new Date();
       const requestBody = {
@@ -192,7 +249,7 @@ export function PatientAssignmentModal({
         seguro: selectedSeguro,
         estado: '2', // Estado asignado
         horaOtorga: `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`,
-        usuario: localStorage.getItem('username') || 'SISTEMA',
+        usuario: usuarioDni,
         numRef: referencia || '',
         entidadSis: selectedEntidadSis || ''
       }
@@ -260,14 +317,9 @@ export function PatientAssignmentModal({
       
       await onAssign(assignmentData)
       
-      // Esperar 3 segundos antes de redirigir
-      setTimeout(() => {
-        setShowSuccess(false)
-        onClose()
-        if (onSuccess) {
-          onSuccess(appointment.id)
-        }
-      }, 3000)
+      // Preguntar si desea imprimir el ticket
+      setPendingPrintCitaId(appointment.id)
+      setShowPrintConfirmation(true)
     } catch (error: any) {
       console.error('❌ Error al asignar paciente:', error)
       toast({
@@ -526,6 +578,67 @@ export function PatientAssignmentModal({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Diálogo de confirmación de impresión */}
+      <Dialog open={showPrintConfirmation} onOpenChange={setShowPrintConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5 text-blue-600" />
+              Imprimir Ticket de Cita
+            </DialogTitle>
+            <DialogDescription>
+              La cita ha sido asignada exitosamente. ¿Desea imprimir el ticket de la cita?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setShowPrintConfirmation(false)
+                setShowSuccess(false)
+                onClose()
+                if (onSuccess && pendingPrintCitaId) {
+                  onSuccess(pendingPrintCitaId)
+                }
+              }}
+            >
+              No, gracias
+            </Button>
+            <Button
+              onClick={async () => {
+                setShowPrintConfirmation(false)
+                if (pendingPrintCitaId) {
+                  try {
+                    await imprimirCitaAsignada(pendingPrintCitaId)
+                    toast({
+                      title: "Impresión enviada",
+                      description: "El ticket de la cita se está imprimiendo",
+                      className: "bg-green-50 border-green-200 text-green-800"
+                    })
+                  } catch (printError) {
+                    console.error('Error al imprimir cita:', printError)
+                    toast({
+                      title: "Error al imprimir",
+                      description: "No se pudo imprimir el ticket. Intente nuevamente desde la lista de citas.",
+                      variant: "destructive"
+                    })
+                  }
+                }
+                setShowSuccess(false)
+                onClose()
+                if (onSuccess && pendingPrintCitaId) {
+                  onSuccess(pendingPrintCitaId)
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Sí, imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

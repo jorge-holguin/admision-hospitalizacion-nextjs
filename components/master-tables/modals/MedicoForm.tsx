@@ -154,7 +154,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadCodigosSugeridos = async (nombreCompleto: string) => {
     setLoadingCodigos(true);
     try {
-      const response = await fetch('/api/master-tables/medicos/search/sugerir-codigo', {
+      const response = await fetch('/api/master-tables/medicos/suggest-code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
