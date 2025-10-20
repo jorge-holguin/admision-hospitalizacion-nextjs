@@ -12,6 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import { PatientSearchModal as FiliationPatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
 import { EstadoCivilProvider } from "@/contexts/filiation/EstadoCivilContext"
+import { PaisProvider } from "@/contexts/filiation/PaisContext"
+import { EtniaProvider } from "@/contexts/filiation/EtniaContext"
+import { ReligionProvider } from "@/contexts/filiation/ReligionContext"
+import { OcupacionProvider } from "@/contexts/filiation/OcupacionContext"
+import { GradoInstruccionProvider } from "@/contexts/filiation/GradoInstruccionContext"
 
 interface Patient {
   // Campos que vienen del servicio filiacion2Service
@@ -337,13 +342,23 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
       {showRegistrationModal && (
         <Dialog open={showRegistrationModal} onOpenChange={() => setShowRegistrationModal(false)}>
           <EstadoCivilProvider>
-            <PatientRegistrationModal
-              reniecData={reniecData}
-              documentType="D"
-              documentNumber={prefilledDocument}
-              onCancel={handleCancelFiliation}
-              onSuccess={handleRegistrationSuccess}
-            />
+            <PaisProvider>
+              <EtniaProvider>
+                <ReligionProvider>
+                  <OcupacionProvider>
+                    <GradoInstruccionProvider>
+                      <PatientRegistrationModal
+                        reniecData={reniecData}
+                        documentType="D"
+                        documentNumber={prefilledDocument}
+                        onCancel={handleCancelFiliation}
+                        onSuccess={handleRegistrationSuccess}
+                      />
+                    </GradoInstruccionProvider>
+                  </OcupacionProvider>
+                </ReligionProvider>
+              </EtniaProvider>
+            </PaisProvider>
           </EstadoCivilProvider>
         </Dialog>
       )}
