@@ -14,6 +14,7 @@ import { useTipoCita } from "@/contexts/TipoCitaContext"
 import { useSegurosCita } from "@/contexts/SegurosCitaContext"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
@@ -107,6 +108,11 @@ export function PatientAssignmentModal({
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
   const [enhancedPatient, setEnhancedPatient] = useState<Patient | null>(null)
   const [isLoadingPatientData, setIsLoadingPatientData] = useState(false)
+  
+  // Estados para el AlertDialog de error
+  const [showErrorDialog, setShowErrorDialog] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string>('')
+  const [errorTitle, setErrorTitle] = useState<string>('Error')
 
   // Console.log para rastrear datos del appointment cuando se abre el modal
   useEffect(() => {
@@ -276,21 +282,17 @@ export function PatientAssignmentModal({
         // Manejar errores específicos
         if (response.status === 409 && responseData.message) {
           // Error de conflicto - Cita con solicitud pendiente
-          toast({
-            title: "Cita No Disponible",
-            description: responseData.message,
-            variant: "destructive"
-          })
+          setErrorTitle("⚠️ Cita No Disponible")
+          setErrorMessage(responseData.message)
+          setShowErrorDialog(true)
           return
         }
         
         // Otros errores
-        const errorMessage = responseData.message || `Error al asignar paciente: ${response.status} ${response.statusText}`
-        toast({
-          title: "Error en la Asignación",
-          description: errorMessage,
-          variant: "destructive"
-        })
+        const errorMsg = responseData.message || `Error al asignar paciente: ${response.status} ${response.statusText}`
+        setErrorTitle("Error en la Asignación")
+        setErrorMessage(errorMsg)
+        setShowErrorDialog(true)
         return
       }
       
@@ -367,6 +369,7 @@ export function PatientAssignmentModal({
   }
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" aria-describedby="patient-assignment-description">
         <DialogHeader>
@@ -640,5 +643,28 @@ export function PatientAssignmentModal({
         </DialogContent>
       </Dialog>
     </Dialog>
+
+    {/* AlertDialog para mostrar errores de manera prominente */}
+    <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            {errorTitle}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-gray-700 whitespace-pre-line">
+            {errorMessage}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction 
+            onClick={() => setShowErrorDialog(false)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Entendido
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

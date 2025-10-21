@@ -97,52 +97,59 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
       const src = document.getElementById('ticket-cita')
       if (!src) throw new Error('No se encontró el elemento del ticket')
 
-      // 1) Clonar el ticket fuera de pantalla y eliminar límites/overflow
-      const cloneWrapper = document.createElement('div')
-      cloneWrapper.style.position = 'fixed'
-      cloneWrapper.style.left = '-10000px'
-      cloneWrapper.style.top = '0'
-      cloneWrapper.style.zIndex = '-1'
+      // 1) Esperar un momento para asegurar que todo esté renderizado
+      await new Promise(resolve => setTimeout(resolve, 100))
 
-      const clone = src.cloneNode(true) as HTMLElement
-      // quitar límites del clon
-      clone.style.maxHeight = 'none'
-      clone.style.overflow = 'visible'
-      clone.style.height = 'auto'
-      clone.style.backgroundColor = '#ffffff' // fondo blanco sólido
+      // 2) Convertir imágenes de Next.js a base64 para evitar problemas de CORS
+      const images = Array.from(src.getElementsByTagName('img'))
+      const imagePromises = images.map(async (img) => {
+        try {
+          // Si la imagen ya está cargada y es del mismo origen, convertir a base64
+          if (img.complete && img.naturalHeight > 0) {
+            const canvas = document.createElement('canvas')
+            canvas.width = img.naturalWidth
+            canvas.height = img.naturalHeight
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              ctx.drawImage(img, 0, 0)
+              try {
+                const dataUrl = canvas.toDataURL('image/png')
+                img.setAttribute('data-original-src', img.src)
+                img.src = dataUrl
+              } catch (e) {
+                console.warn('No se pudo convertir imagen a base64:', e)
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error procesando imagen:', e)
+        }
+      })
+      await Promise.all(imagePromises)
 
-      // En caso de tailwind utilitario en el clon:
-      clone.classList.remove('max-h-[calc(95vh-120px)]', 'overflow-y-auto')
-
-      // Para que el ancho coincida con el real del ticket
-      // (si quieres forzarlo, puedes setear un width fijo en px acorde a tu diseño)
-      clone.style.width = `${src.scrollWidth}px`
-
-      cloneWrapper.appendChild(clone)
-      document.body.appendChild(cloneWrapper)
-
-      // 2) Asegurar carga de imágenes dentro del clon
-      await Promise.all(
-        Array.from(clone.getElementsByTagName('img')).map(img => {
-          if (img.complete) return Promise.resolve()
-          return new Promise<void>((res) => {
-            img.onload = () => res()
-            img.onerror = () => res()
-          })
-        })
-      )
-
-      // 3) Capturar el clon completo sin recortes
-      const scale = Math.min(2, window.devicePixelRatio || 1)
-      const canvas = await html2canvas(clone, {
+      // 3) Capturar directamente el elemento original (no clonar)
+      const scale = 2
+      const canvas = await html2canvas(src, {
         scale,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
-        windowWidth: clone.scrollWidth,
-        windowHeight: clone.scrollHeight,
-        logging: false
+        windowWidth: src.scrollWidth,
+        windowHeight: src.scrollHeight,
+        logging: false,
+        removeContainer: false,
+        imageTimeout: 0
+      })
+
+      // Restaurar imágenes originales
+      images.forEach(img => {
+        const originalSrc = img.getAttribute('data-original-src')
+        if (originalSrc) {
+          img.src = originalSrc
+          img.removeAttribute('data-original-src')
+        }
       })
 
       // 4) Copiar PNG al portapapeles
@@ -167,11 +174,6 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
         variant: "destructive"
       })
     } finally {
-      // 5) Limpieza del clon
-      const ghost = Array.from(document.body.children).find(
-        el => el instanceof HTMLDivElement && el.style.left === '-10000px'
-      )
-      if (ghost && ghost.parentElement) ghost.parentElement.removeChild(ghost)
       setIsCopying(false)
     }
   }
