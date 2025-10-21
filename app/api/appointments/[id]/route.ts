@@ -24,8 +24,9 @@ export async function PATCH(
     }
 
     const fechaPago = new Date(body.FECHA_PAGO || body.fechaPago)
+    const estado = body.ESTADO || '3' // Por defecto '3' = Pagado
 
-    await updateFechaPago(id, fechaPago)
+    await updateFechaPago(id, fechaPago, estado)
 
     return NextResponse.json({
       success: true,

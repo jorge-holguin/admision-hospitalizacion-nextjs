@@ -302,22 +302,23 @@ export async function searchCitasByNombres(
 }
 
 /**
- * Actualiza la FECHA_PAGO de una cita
+ * Actualiza la FECHA_PAGO y ESTADO de una cita
  */
 export async function updateFechaPago(
   citaId: string,
-  fechaPago: Date
+  fechaPago: Date,
+  estado: string = '3'
 ): Promise<void> {
   try {
     await prisma.$executeRaw`
       UPDATE CITA 
-      SET FECHA_PAGO = ${fechaPago}
+      SET FECHA_PAGO = ${fechaPago}, ESTADO = ${estado}
       WHERE CITA_ID = ${citaId}
     `
 
-    console.log(`✅ FECHA_PAGO actualizada para cita ${citaId}`)
+    console.log(`✅ FECHA_PAGO y ESTADO='${estado}' actualizados para cita ${citaId}`)
   } catch (error) {
-    console.error('Error al actualizar FECHA_PAGO:', error)
-    throw new Error('Error al actualizar fecha de pago de la cita')
+    console.error('Error al actualizar FECHA_PAGO y ESTADO:', error)
+    throw new Error('Error al actualizar fecha de pago y estado de la cita')
   }
 }

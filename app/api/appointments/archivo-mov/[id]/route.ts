@@ -63,11 +63,13 @@ export async function PATCH(
 
     // Determinar qué tipo de actualización realizar
     if (body.FECHA_PAGO !== undefined) {
-      // Actualizar fecha de pago
+      // Actualizar fecha de pago y estado
       const fechaPago = body.FECHA_PAGO ? new Date(body.FECHA_PAGO) : new Date()
+      const estado = body.ESTADO || '3' // Por defecto '3' = Pagado
       resultado = await archivoMovService.updateFechaPago({
         ID_CITA: id,
-        FECHA_PAGO: fechaPago
+        FECHA_PAGO: fechaPago,
+        ESTADO: estado
       })
     } else if (body.ESTADO !== undefined) {
       // Actualizar estado

@@ -25,11 +25,12 @@ export interface CreateArchivoMovParams {
 }
 
 /**
- * Interface para actualizar FECHA_PAGO
+ * Interface para actualizar FECHA_PAGO y ESTADO
  */
 export interface UpdateFechaPagoParams {
   ID_CITA: string
   FECHA_PAGO: string | Date
+  ESTADO: string  // '3' = Pagado
 }
 
 /**
@@ -91,11 +92,11 @@ export const archivoMovService = {
   },
 
   /**
-   * Actualiza la FECHA_PAGO de un registro existente
+   * Actualiza la FECHA_PAGO y ESTADO de un registro existente
    */
   async updateFechaPago(params: UpdateFechaPagoParams): Promise<any> {
     try {
-      console.log('💰 Actualizando FECHA_PAGO para ID_CITA:', params.ID_CITA)
+      console.log('💰 Actualizando FECHA_PAGO y ESTADO para ID_CITA:', params.ID_CITA)
 
       // Convertir fecha si viene como string
       let fechaPago = params.FECHA_PAGO
@@ -103,19 +104,16 @@ export const archivoMovService = {
         fechaPago = new Date(fechaPago)
       }
 
-      const updated = await prisma.aRCHIVO_MOV.update({
-        where: {
-          ID_CITA: params.ID_CITA
-        },
-        data: {
-          FECHA_PAGO: fechaPago
-        }
-      })
+      await prisma.$executeRaw`
+        UPDATE ARCHIVO_MOV
+        SET FECHA_PAGO = ${fechaPago}, ESTADO = ${params.ESTADO}
+        WHERE ID_CITA = ${params.ID_CITA}
+      `
 
-      console.log('✅ FECHA_PAGO actualizada exitosamente')
-      return updated
+      console.log(`✅ FECHA_PAGO y ESTADO='${params.ESTADO}' actualizados exitosamente`)
+      return { ID_CITA: params.ID_CITA }
     } catch (error) {
-      console.error('❌ Error al actualizar FECHA_PAGO:', error)
+      console.error('❌ Error al actualizar FECHA_PAGO y ESTADO:', error)
       throw error
     }
   },
