@@ -40,6 +40,7 @@ import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import RoleBasedRoute from "@/components/RoleBasedRoute"
+import { format, startOfMonth, endOfMonth } from "date-fns"
 
 // Import all components from the appointments module
 import {
@@ -124,9 +125,17 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
     const loadAvailableDates = useCallback(async (currentMonth: Date) => {
       // Solo cargar si hay un consultorio seleccionado (que tenga especialidad)
       if (filters.consultorio === 'all' || !selectedConsultorioData?.ESPECIALIDAD) {
+        console.log('⏸️ No se cargan fechas: consultorio =', filters.consultorio, 'especialidad =', selectedConsultorioData?.ESPECIALIDAD)
         setDatesWithAppointments([])
         return
       }
+      
+      console.log('🔄 Cargando fechas disponibles para:', {
+        consultorio: filters.consultorio,
+        especialidad: selectedConsultorioData.ESPECIALIDAD,
+        turno: filters.turno,
+        mes: format(currentMonth, 'yyyy-MM')
+      })
 
       try {
         setLoadingDates(true)

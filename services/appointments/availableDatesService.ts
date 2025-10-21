@@ -20,19 +20,23 @@ export const availableDatesService = {
   async fetchAvailableDates(params: FetchAvailableDatesParams): Promise<AvailableDate[]> {
     try {
       const { fechaInicio, fechaFin, turnoConsulta, idEspecialidad } = params;
-      const url = `http://192.168.0.17:9011/api/cita/fechas-consultorios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&turnoConsulta=${turnoConsulta}&idEspecialidad=${idEspecialidad}`;
+      const baseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL;
+      const url = `${baseUrl}/cita/fechas-consultorios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&turnoConsulta=${turnoConsulta}&idEspecialidad=${idEspecialidad}`;
+      
+      console.log(`🔍 Consultando fechas disponibles: ${url}`);
       
       const response = await fetch(url);
       
       if (!response.ok) {
-        console.error('Error al obtener fechas disponibles:', response.statusText);
+        console.error('❌ Error al obtener fechas disponibles:', response.status, response.statusText);
         return [];
       }
       
       const data: AvailableDate[] = await response.json();
+      console.log(`✅ Fechas obtenidas: ${data.length} registros para turno ${turnoConsulta}`);
       return data;
     } catch (error) {
-      console.error('Error en fetchAvailableDates:', error);
+      console.error('❌ Error en fetchAvailableDates:', error);
       return [];
     }
   },
