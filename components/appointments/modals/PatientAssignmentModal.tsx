@@ -19,6 +19,7 @@ import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { extractNombreCompletoFromToken, extractDocumentFromToken } from "@/utils/jwtUtils"
+import { convertTo12HourFormat } from "@/utils/timeUtils"
 
 interface Patient {
   HISTORIA: string
@@ -297,6 +298,91 @@ export function PatientAssignmentModal({
       }
       
       console.log('✅ Asignación exitosa:', responseData)
+      
+      // ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' =====
+      const seguroTrimmed = selectedSeguro.trim()
+      if (seguroTrimmed === '05' || seguroTrimmed === '13') {
+        console.log(`💰 Seguro ${seguroTrimmed} detectado - Procesando FECHA_PAGO y ARCHIVO_MOV...`)
+        
+        try {
+          // 1. Actualizar FECHA_PAGO de la cita
+          console.log('📅 Paso 1: Actualizando FECHA_PAGO...')
+          const fechaActual = new Date()
+          const updateFechaPagoResponse = await fetch(`/api/appointments/${appointment.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              FECHA_PAGO: fechaActual.toISOString(),
+              USUARIOR: usuarioDni
+            })
+          })
+          
+          if (!updateFechaPagoResponse.ok) {
+            console.warn('⚠️ No se pudo actualizar FECHA_PAGO:', updateFechaPagoResponse.status)
+          } else {
+            console.log('✅ FECHA_PAGO actualizada')
+          }
+          
+          // 2. Consultar datos completos de la cita desde la API
+          console.log('🔍 Paso 2: Consultando datos completos de la cita...')
+          const citaResponse = await fetch(`${apiBaseUrl}/cita/${appointment.id}`)
+          
+          if (!citaResponse.ok) {
+            throw new Error(`Error al consultar cita: ${citaResponse.status}`)
+          }
+          
+          const citaData = await citaResponse.json()
+          console.log('📄 Datos de cita obtenidos:', citaData)
+          
+          // 3. Crear registro en ARCHIVO_MOV
+          console.log('📝 Paso 3: Creando registro en ARCHIVO_MOV...')
+          
+          const archivoMovData = {
+            ID_CITA: citaData.citaId || appointment.id,
+            PACIENTE: citaData.paciente || patient?.PACIENTE || '',
+            HISTORIA: (citaData.historia || patient?.HISTORIA || '').trim(),
+            NOMBRES: (citaData.nombre || patient?.NOMBRES || '').trim(),
+            FECHA: citaData.fecha ? new Date(citaData.fecha) : fechaActual,
+            HORA: citaData.hora ? convertTo12HourFormat(citaData.hora) : convertTo12HourFormat(currentDate.toTimeString().substring(0, 5)),
+            ORIGEN: 'CE',
+            CONSULTORIO: (citaData.consultorio || appointment.consultorio || '').padEnd(6, ' '),
+            TURNO: (citaData.turnoConsulta || 'M').padEnd(2, ' '),
+            MOTIVO: '01',
+            ESTADO: '1',
+            SEGURO: (citaData.seguro || selectedSeguro).padEnd(3, ' '),
+            MEDICO: citaData.medico || appointment.medico || '',
+            NUMERO: citaData.numero || '01',
+            FECHA_PAGO: fechaActual,
+            TIPO_CITA: citaData.tipoCita || 'C',
+            EST_PAC: '1',
+            TIPO_PACIENTE: citaData.tipoPaciente || 'C',
+         }
+          
+          console.log('📤 Datos para ARCHIVO_MOV:', archivoMovData)
+          
+          const archivoMovResponse = await fetch('/api/appointments/archivo-mov', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(archivoMovData)
+          })
+          
+          if (!archivoMovResponse.ok) {
+            const errorData = await archivoMovResponse.json()
+            // Si ya existe (409), solo advertir, no fallar
+            if (archivoMovResponse.status === 409) {
+              console.warn('⚠️ ARCHIVO_MOV ya existe para esta cita')
+            } else {
+              console.error('❌ Error al crear ARCHIVO_MOV:', errorData)
+            }
+          } else {
+            console.log('✅ ARCHIVO_MOV creado exitosamente')
+          }
+        } catch (archivoMovError) {
+          console.error('❌ Error en proceso de ARCHIVO_MOV:', archivoMovError)
+          // No bloqueamos el flujo principal, solo logueamos el error
+        }
+      }
+      // ===== FIN LÓGICA ESPECIAL =====
       
       // Mostrar toast de éxito
       toast({
