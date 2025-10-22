@@ -7,7 +7,8 @@ interface AppointmentCalendarProps {
   selectedDate: Date | undefined
   onDateSelect: (date: Date | undefined) => void
   className?: string
-  datesWithAppointments?: Date[]  // Fechas que tienen citas disponibles
+  datesWithAppointments?: Date[]  // Fechas que tienen citas disponibles (verdes)
+  datesWithoutAvailability?: Date[]  // ✅ Fechas sin citas disponibles (rojas)
   disablePastDates?: boolean  // Deshabilitar días pasados
 }
 
@@ -16,6 +17,7 @@ export function AppointmentCalendar({
   onDateSelect, 
   className = "",
   datesWithAppointments = [],
+  datesWithoutAvailability = [],
   disablePastDates = false
 }: AppointmentCalendarProps) {
   
@@ -34,9 +36,11 @@ export function AppointmentCalendar({
           disabled={disablePastDates ? (date) => date < today : undefined}
           modifiers={{
             hasAppointments: datesWithAppointments,
+            noAvailability: datesWithoutAvailability,
           }}
           modifiersClassNames={{
             hasAppointments: "bg-green-100 text-green-800 font-semibold hover:bg-green-200",
+            noAvailability: "bg-red-100 text-red-800 font-semibold hover:bg-red-200",
           }}
           classNames={{
             months: "flex flex-col space-y-4 w-full",

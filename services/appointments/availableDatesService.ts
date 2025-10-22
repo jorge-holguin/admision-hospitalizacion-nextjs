@@ -1,6 +1,7 @@
 export interface AvailableDate {
   fecha: string;  // "2025-10-17 00:00:00.0"
   consultorio: string;
+  totalDisponibles?: number;  // ✅ Total de citas disponibles (0 = sin citas disponibles)
 }
 
 export interface FetchAvailableDatesParams {
@@ -90,7 +91,7 @@ export const availableDatesService = {
   },
 
   /**
-   * Obtiene fechas únicas (sin duplicados)
+   * Obtiene fechas únicas (sin duplicados) con información de disponibilidad
    * @param dates Array de fechas disponibles
    * @param consultorioFilter Código del consultorio para filtrar (opcional)
    */
@@ -112,5 +113,46 @@ export const availableDatesService = {
     });
 
     return uniqueDates;
+  },
+
+  /**
+   * ✅ Obtiene fechas con información de disponibilidad (verdes y rojas)
+   * @param dates Array de fechas disponibles
+   * @param consultorioFilter Código del consultorio para filtrar (opcional)
+   */
+  getDatesWithAvailability(dates: AvailableDate[], consultorioFilter?: string): { 
+    available: Date[], 
+    unavailable: Date[] 
+  } {
+    const availableDates: Date[] = [];
+    const unavailableDates: Date[] = [];
+    const processedDates = new Set<string>();
+
+    dates.forEach(item => {
+      // Si hay filtro de consultorio, solo incluir fechas de ese consultorio
+      if (consultorioFilter && item.consultorio.trim() !== consultorioFilter.trim()) {
+        return;
+      }
+
+      const [datePart] = item.fecha.split(' ');
+      
+      // Evitar duplicados
+      if (processedDates.has(datePart)) {
+        return;
+      }
+      processedDates.add(datePart);
+
+      const date = this.parseDateString(item.fecha);
+      
+      // ✅ Si totalDisponibles es 0, es fecha sin citas (roja)
+      if (item.totalDisponibles === 0) {
+        unavailableDates.push(date);
+      } else {
+        // Si tiene disponibles o no viene el campo, es fecha con citas (verde)
+        availableDates.push(date);
+      }
+    });
+
+    return { available: availableDates, unavailable: unavailableDates };
   },
 };

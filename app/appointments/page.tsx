@@ -120,6 +120,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
 
     // Estados para fechas disponibles en el calendario
     const [datesWithAppointments, setDatesWithAppointments] = useState<Date[]>([])
+    const [datesWithoutAvailability, setDatesWithoutAvailability] = useState<Date[]>([]) // ✅ Fechas sin citas disponibles (rojas)
     const [selectedConsultorioData, setSelectedConsultorioData] = useState<any>(null)
     const [loadingDates, setLoadingDates] = useState(false)
     const [showPastAppointments, setShowPastAppointments] = useState(false)
@@ -135,6 +136,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
       if (filters.consultorio === 'all' || !selectedConsultorioData?.ESPECIALIDAD) {
         console.log('⏸️ No se cargan fechas: consultorio =', filters.consultorio, 'especialidad =', selectedConsultorioData?.ESPECIALIDAD)
         setDatesWithAppointments([])
+        setDatesWithoutAvailability([])
         return
       }
       
@@ -208,12 +210,12 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           })
         }
 
-        // Convertir las fechas a objetos Date únicos, filtrando por consultorio seleccionado
+        // ✅ Convertir las fechas separando disponibles (verdes) y no disponibles (rojas)
         const consultorioCode = filters.consultorio !== 'all' ? filters.consultorio : undefined
-        const uniqueDates = availableDatesService.getUniqueDates(availableDates, consultorioCode)
-        setDatesWithAppointments(uniqueDates)
-
-        console.log(`✅ ${uniqueDates.length} días con citas disponibles para consultorio ${consultorioCode || 'todos'}`)
+        const { available, unavailable } = availableDatesService.getDatesWithAvailability(availableDates, consultorioCode)
+        setDatesWithAppointments(available)
+        setDatesWithoutAvailability(unavailable)
+        console.log(`✅ Fechas cargadas: ${available.length} disponibles (verde), ${unavailable.length} sin disponibilidad (rojo)`)
         console.log(`   Rango consultado: ${fechaInicio} a ${fechaFin}`)
       } catch (error) {
         console.error('Error al cargar fechas disponibles:', error)
@@ -711,6 +713,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                             onDateSelect={handleDateSelect}
                             className="h-full border-0 rounded-none"
                             datesWithAppointments={datesWithAppointments}
+                            datesWithoutAvailability={datesWithoutAvailability}
                             disablePastDates={!showPastAppointments}
                           />
                         </div>
@@ -718,20 +721,26 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                       {/* Leyenda del calendario */}
                       {filters.consultorio !== 'all' && selectedConsultorioData?.ESPECIALIDAD && (
                         <div className="p-4 border-t bg-gray-50">
-                          <div className="flex items-center gap-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                              <span className="text-gray-700">Días con citas disponibles</span>
+                          <div className="flex flex-col gap-2 text-sm">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                                <span className="text-gray-700">Citas disponibles</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+                                <span className="text-gray-700">Sin citas disponibles</span>
+                              </div>
+                              {loadingDates && (
+                                <span className="text-gray-500 text-xs ml-2">Cargando...</span>
+                              )}
                             </div>
-                            {loadingDates && (
-                              <span className="text-gray-500 text-xs ml-2">Cargando...</span>
-                            )}
+                            <p className="text-xs text-gray-500">
+                              {datesWithAppointments.length > 0 || datesWithoutAvailability.length > 0
+                                ? `${datesWithAppointments.length} día(s) con citas, ${datesWithoutAvailability.length} día(s) sin citas` 
+                                : 'No hay programación este mes'}
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {datesWithAppointments.length > 0 
-                              ? `${datesWithAppointments.length} día(s) disponible(s)` 
-                              : 'No hay citas disponibles este mes'}
-                          </p>
                         </div>
                       )}
                     </CardContent>
@@ -887,10 +896,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                           label="Consultorio"
                           value={filters.consultorio}
                           onChange={(val: string | "all") => {
-                            setFilters({ ...filters, consultorio: val })
-                            setPageParam(0) // Reset to page 0 when filter changes
+                            // ✅ Al seleccionar consultorio, resetear médico
+                            setFilters({ ...filters, consultorio: val, medico: val !== 'all' ? 'all' : filters.medico })
+                            setPageParam(0)
                           }}
-                          onConsultorioDataChange={(data) => {
+                          onConsultorioDataChange={(data: any) => {
                             setSelectedConsultorioData(data)
                           }}
                           className="space-y-2"
@@ -900,8 +910,9 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                           label="Médico"
                           value={filters.medico}
                           onChange={(val: string | "all") => {
-                            setFilters({ ...filters, medico: val })
-                            setPageParam(0) // Reset to page 0 when filter changes
+                            // ✅ Al seleccionar médico, resetear consultorio
+                            setFilters({ ...filters, medico: val, consultorio: val !== 'all' ? 'all' : filters.consultorio })
+                            setPageParam(0)
                           }}
                           especialidad={selectedConsultorioData?.ESPECIALIDAD?.trim() || null}
                           className="mt-1"
