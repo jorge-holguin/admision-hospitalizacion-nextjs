@@ -106,13 +106,32 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   const [isLoadingReniec, setIsLoadingReniec] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [reniecData, setReniecData] = useState<any>(null)
+  const [reniecPhotoHex, setReniecPhotoHex] = useState<string | null>(null) // ✅ Foto en hexadecimal de RENIEC
+  const [reniecButtonUsed, setReniecButtonUsed] = useState(false) // ✅ Bloquear botón después de usar
   const { consultarReniec } = useReniec()
   
   // Resetear al paso 1 cuando se abre el modal
   useEffect(() => {
     if (patient) {
       setCurrentStep(1)
+      setReniecButtonUsed(false) // Resetear estado del botón
+      setReniecPhotoHex(null) // Limpiar foto anterior
     }
+  }, [patient])
+  
+  // ✅ Consultar RENIEC automáticamente si STRING_FOTO es null y tiene DNI
+  useEffect(() => {
+    const autoConsultReniec = async () => {
+      if (patient && !patient.STRING_FOTO && patient.TIPO_DOCUMENTO?.trim() === 'D') {
+        const dni = patient.DOCUMENTO || patient.dni || patient.documento;
+        if (dni && !reniecButtonUsed) {
+          console.log('📸 STRING_FOTO es null, consultando RENIEC automáticamente...');
+          await handleUpdateFromReniec();
+        }
+      }
+    };
+    
+    autoConsultReniec();
   }, [patient])
   
   const [formData, setFormData] = useState({
@@ -329,6 +348,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (result.success && result.data) {
         setReniecData(result.data);
         
+        // ✅ Guardar foto en hexadecimal si existe (viene como photoReniec desde el mapper)
+        if (result.data.photoReniec) {
+          setReniecPhotoHex(result.data.photoReniec);
+          console.log('📸 Foto RENIEC guardada (hexadecimal):', result.data.photoReniec.substring(0, 50) + '...');
+        }
+        
+        // ✅ Bloquear botón después de consultar
+        setReniecButtonUsed(true);
+        
         console.log('✅ Datos de RENIEC obtenidos:', result.data);
         console.log('📋 Datos mapeados completos:', result.data);
         
@@ -425,6 +453,33 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.fechaNacimiento) {
         updateData.fechaNacimiento = convertToLocalDateTime(formData.fechaNacimiento)
         console.log('📅 Fecha convertida:', formData.fechaNacimiento, '→', updateData.fechaNacimiento)
+        
+        // ✅ Calcular edad en formato '000a00m00d' (campo obligatorio)
+        const birthDate = new Date(formData.fechaNacimiento)
+        const today = new Date()
+        
+        // Calcular años
+        let years = today.getFullYear() - birthDate.getFullYear()
+        let months = today.getMonth() - birthDate.getMonth()
+        let days = today.getDate() - birthDate.getDate()
+        
+        // Ajustar si los días son negativos
+        if (days < 0) {
+          months--
+          const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+          days += lastMonth.getDate()
+        }
+        
+        // Ajustar si los meses son negativos
+        if (months < 0) {
+          years--
+          months += 12
+        }
+        
+        // Formatear como '000a00m00d'
+        const edadFormatted = `${String(years).padStart(3, '0')}a${String(months).padStart(2, '0')}m${String(days).padStart(2, '0')}d`
+        updateData.edad = edadFormatted
+        console.log('🎂 Edad calculada:', updateData.edad, `(${years} años, ${months} meses, ${days} días)`)
       }
       if (formData.sexo) updateData.sexo = formData.sexo
       if (formData.estadoCivil?.trim()) updateData.estadoCivil = formData.estadoCivil.trim()
@@ -480,6 +535,12 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.madre?.trim()) updateData.madre = formData.madre.trim()
       if (formData.conyuge?.trim()) updateData.conyugeNombre = formData.conyuge.trim()
       if (formData.ocupacionFamiliar?.trim()) updateData.conyugeOcupacion = formData.ocupacionFamiliar.trim()
+      
+      // ✅ Enviar foto RENIEC en hexadecimal si existe
+      if (reniecPhotoHex) {
+        updateData.stringFoto = reniecPhotoHex
+        console.log('📸 Enviando foto RENIEC (hexadecimal):', reniecPhotoHex.substring(0, 50) + '...')
+      }
 
       console.log('Actualizando paciente:', pacienteId)
       console.log('Datos a enviar (solo campos editados):', updateData)
@@ -549,14 +610,19 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
               <div className="flex justify-center mt-4">
                 <Button 
                   onClick={handleUpdateFromReniec}
-                  disabled={isLoadingReniec}
+                  disabled={isLoadingReniec || reniecButtonUsed}
                   variant="outline"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoadingReniec ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Consultando RENIEC...
+                    </>
+                  ) : reniecButtonUsed ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Datos Actualizados desde RENIEC
                     </>
                   ) : (
                     <>

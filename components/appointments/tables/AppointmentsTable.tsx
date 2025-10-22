@@ -7,6 +7,7 @@ import { Unlock, CalendarClock, UserPlus, Eye, RefreshCw, Printer } from "lucide
 import { Card } from "@/components/ui/card"
 import { useMedicos } from "@/contexts/MedicosContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
+import { extractPuestoFromToken } from "@/utils/jwtUtils"
 
 export interface AppointmentRow {
   id: string
@@ -40,6 +41,10 @@ interface AppointmentsTableProps {
 export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: AppointmentsTableProps) {
   const { getMedicoInfo, loadMedicosByCodigos } = useMedicos()
   const { getConsultorioNombre } = useConsultorios()
+
+  // ✅ Verificar si el usuario es DEVOPS (puede asignar citas en fechas pasadas)
+  const userPuesto = extractPuestoFromToken()
+  const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
 
   const displayMedico = (row: AppointmentRow) => {
     // Use the medicoNombre field directly from the API response
@@ -134,9 +139,10 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       onClick={() => onAction("assign", appointment)}
                       title="Asignar"
                       disabled={
-                        // Bloquear si no es estado 1 (no otorgada) o si es fecha pasada
+                        // Bloquear si no es estado 1 (no otorgada)
                         Number(appointment.estado) !== 1 ||
-                        (appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                        // ✅ DEVOPS puede asignar en fechas pasadas, otros usuarios no
+                        (!isDevOps && appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
                       }
                     >
                       <UserPlus className="w-4 h-4" />
@@ -223,9 +229,10 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                   onClick={() => onAction("assign", appointment)} 
                   className="text-xs"
                   disabled={
-                    // Bloquear si no es estado 1 (no otorgada) o si es fecha pasada
+                    // Bloquear si no es estado 1 (no otorgada)
                     Number(appointment.estado) !== 1 ||
-                    (appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                    // ✅ DEVOPS puede asignar en fechas pasadas, otros usuarios no
+                    (!isDevOps && appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
                   }
                 >
                   Asignar

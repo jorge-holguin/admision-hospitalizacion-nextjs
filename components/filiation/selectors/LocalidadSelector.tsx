@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
@@ -31,8 +31,33 @@ export function LocalidadSelector({
   const [search, setSearch] = useState("")
   const [localidades, setLocalidades] = useState<Localidad[]>([])
   const [loading, setLoading] = useState(false)
+  const [selectedLocalidadData, setSelectedLocalidadData] = useState<Localidad | null>(null)
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+
+  // ✅ Cargar datos de la localidad seleccionada para mostrar "código - nombre"
+  useEffect(() => {
+    const loadSelectedLocalidadData = async () => {
+      if (value && value.trim()) {
+        try {
+          console.log(`🔍 Cargando datos de la localidad seleccionada: ${value.trim()}`)
+          const response = await fetch(
+            `${API_BASE_URL}/maestro/localidad/${value.trim()}`
+          )
+          
+          if (response.ok) {
+            const data: Localidad = await response.json()
+            console.log(`✅ Datos de la localidad cargados:`, data)
+            setSelectedLocalidadData(data)
+          }
+        } catch (error) {
+          console.error('❌ Error al cargar datos de la localidad:', error)
+        }
+      }
+    }
+    
+    loadSelectedLocalidadData()
+  }, [value, API_BASE_URL])
 
   const searchLocalidades = async (filtro: string) => {
     if (!filtro || filtro.length < 2) {
@@ -62,9 +87,12 @@ export function LocalidadSelector({
     searchLocalidades(searchValue)
   }
 
+  // ✅ Mostrar "código - nombre" usando datos cargados o de la búsqueda
   const selectedLocalidad = localidades.find(l => l.localidad === value)
   const displayValue = selectedLocalidad 
-    ? `(${selectedLocalidad.localidad}) - ${selectedLocalidad.nombre}`
+    ? `${selectedLocalidad.localidad} - ${selectedLocalidad.nombre}`
+    : selectedLocalidadData
+    ? `${selectedLocalidadData.localidad} - ${selectedLocalidadData.nombre}`
     : value || placeholder
 
   return (
@@ -94,7 +122,7 @@ export function LocalidadSelector({
             </CommandEmpty>
             <CommandGroup>
               {localidades.map((localidad) => {
-                const displayText = `(${localidad.localidad}) - ${localidad.nombre}`
+                const displayText = `${localidad.localidad} - ${localidad.nombre}`
                 return (
                   <CommandItem
                     key={localidad.localidad}
@@ -102,6 +130,7 @@ export function LocalidadSelector({
                     onSelect={() => {
                       onChange(localidad.localidad)
                       setOpen(false)
+                      setSearch("")
                     }}
                   >
                     <Check

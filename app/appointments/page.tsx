@@ -188,14 +188,15 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
 
         let availableDates: any[] = []
 
-        // Llamar al API según el turno seleccionado
+        // ✅ Llamar al API según el turno seleccionado
         if (filters.turno === 'ALL') {
-          // Si es "TODOS", llamar a ambos turnos
-          availableDates = await availableDatesService.fetchAvailableDatesAllShifts(
+          // ✅ Si es "TODOS", llamar sin turnoConsulta (obtiene ambos turnos en una sola llamada)
+          availableDates = await availableDatesService.fetchAvailableDates({
             fechaInicio,
             fechaFin,
-            idEspecialidad
-          )
+            idEspecialidad,
+            // turnoConsulta no se incluye, así el backend devuelve ambos turnos
+          })
         } else {
           // Si es Mañana o Tarde, llamar al turno específico
           const turnoConsulta = filters.turno === 'MAÑANA' ? 'M' : 'T'

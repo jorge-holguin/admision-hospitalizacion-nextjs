@@ -15,6 +15,14 @@ interface PaisSelectorProps {
   disabled?: boolean
 }
 
+interface Pais {
+  pais: string
+  nombre: string
+  activo: number
+  codigo: string
+  cdc: string
+}
+
 export function PaisSelector({
   value,
   onChange,
@@ -23,30 +31,48 @@ export function PaisSelector({
 }: PaisSelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const [initialLoaded, setInitialLoaded] = useState(false)
+  const [selectedPaisData, setSelectedPaisData] = useState<Pais | null>(null)
   
   // Usar contexto para búsqueda dinámica
   const { paises, loading, searchPaises } = usePais()
 
-  // Cargar país inicial si hay un value (ej: "146" de RENIEC)
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+
+  // ✅ Cargar datos del país seleccionado para mostrar "código - nombre"
   useEffect(() => {
-    if (value && !initialLoaded && paises.length === 0) {
-      // Si el valor es "146", buscar "PERU"
-      if (value === "146") {
-        searchPaises("PERU")
+    const loadSelectedPaisData = async () => {
+      if (value?.trim()) {
+        try {
+          console.log(`🔍 Cargando datos del país seleccionado: ${value.trim()}`)
+          const response = await fetch(
+            `${API_BASE_URL}/maestro/pais/${value.trim()}`
+          )
+          
+          if (response.ok) {
+            const data: Pais = await response.json()
+            console.log(`✅ Datos del país cargados:`, data)
+            setSelectedPaisData(data)
+          }
+        } catch (error) {
+          console.error('❌ Error al cargar datos del país:', error)
+        }
       }
-      setInitialLoaded(true)
     }
-  }, [value, initialLoaded, paises.length])
+    
+    loadSelectedPaisData()
+  }, [value, API_BASE_URL])
 
   const handleSearchChange = (searchValue: string) => {
     setSearch(searchValue)
     searchPaises(searchValue)
   }
 
+  // ✅ Mostrar "código - nombre" usando datos cargados o de la búsqueda
   const selectedPais = (paises || []).find(p => p?.pais === value)
   const displayValue = selectedPais 
-    ? `(${selectedPais.pais}) - ${selectedPais.nombre}`
+    ? `${selectedPais.pais} - ${selectedPais.nombre}`
+    : selectedPaisData
+    ? `${selectedPaisData.pais} - ${selectedPaisData.nombre}`
     : value || placeholder
 
   return (
@@ -76,7 +102,7 @@ export function PaisSelector({
             </CommandEmpty>
             <CommandGroup>
               {paises.map((pais) => {
-                const displayText = `(${pais.pais}) - ${pais.nombre}`
+                const displayText = `${pais.pais} - ${pais.nombre}`
                 return (
                   <CommandItem
                     key={pais.pais}
@@ -84,6 +110,7 @@ export function PaisSelector({
                     onSelect={() => {
                       onChange(pais.pais)
                       setOpen(false)
+                      setSearch("")
                     }}
                   >
                     <Check

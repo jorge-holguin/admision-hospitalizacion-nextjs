@@ -6,7 +6,7 @@ export interface AvailableDate {
 export interface FetchAvailableDatesParams {
   fechaInicio: string;  // "2025-10-17"
   fechaFin: string;      // "2025-10-31"
-  turnoConsulta: 'M' | 'T';  // M = Mañana, T = Tarde
+  turnoConsulta?: 'M' | 'T';  // M = Mañana, T = Tarde, opcional para obtener ambos
   idEspecialidad: string;    // "0019"
 }
 
@@ -21,7 +21,12 @@ export const availableDatesService = {
     try {
       const { fechaInicio, fechaFin, turnoConsulta, idEspecialidad } = params;
       const baseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL;
-      const url = `${baseUrl}/cita/fechas-consultorios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&turnoConsulta=${turnoConsulta}&idEspecialidad=${idEspecialidad}`;
+      
+      // ✅ Si turnoConsulta no está definido, no incluirlo en la URL (obtiene ambos turnos)
+      let url = `${baseUrl}/cita/fechas-consultorios-solicitud?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&idEspecialidad=${idEspecialidad}`;
+      if (turnoConsulta) {
+        url += `&turnoConsulta=${turnoConsulta}`;
+      }
       
       console.log(`🔍 Consultando fechas disponibles: ${url}`);
       
@@ -33,7 +38,7 @@ export const availableDatesService = {
       }
       
       const data: AvailableDate[] = await response.json();
-      console.log(`✅ Fechas obtenidas: ${data.length} registros para turno ${turnoConsulta}`);
+      console.log(`✅ Fechas obtenidas: ${data.length} registros${turnoConsulta ? ` para turno ${turnoConsulta}` : ' (todos los turnos)'}`);
       return data;
     } catch (error) {
       console.error('❌ Error en fetchAvailableDates:', error);
