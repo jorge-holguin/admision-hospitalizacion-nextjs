@@ -33,7 +33,9 @@ import {
   Filter,
   ChevronsUpDown, 
   X,
-  FileText
+  FileText,
+  CheckCircle,
+  XCircle
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
@@ -89,6 +91,10 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
     const [selectedPatient, setSelectedPatient] = useState<any>(null)
     const [showRescheduleModal, setShowRescheduleModal] = useState(false)
     const [showReleaseModal, setShowReleaseModal] = useState(false)
+    const [showReleaseSuccessDialog, setShowReleaseSuccessDialog] = useState(false)
+    const [showReleaseErrorDialog, setShowReleaseErrorDialog] = useState(false)
+    const [releaseErrorMessage, setReleaseErrorMessage] = useState('')
+    const [releasedCitaId, setReleasedCitaId] = useState<string | null>(null)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
     const [showReassignModal, setShowReassignModal] = useState(false)
     const [showAdditionalAppointmentModal, setShowAdditionalAppointmentModal] = useState(false)
@@ -414,7 +420,9 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         consultorio: appointment.consultorio,
         consultorioNombre: appointment.consultorioNombre,
         medico: appointment.medico,
-        medicoNombre: appointment.medicoNombre
+        medicoNombre: appointment.medicoNombre,
+        estado: appointment.estado,
+        seguro: appointment.seguro
       })
       
       setSelectedAppointment(appointment)
@@ -427,6 +435,16 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           setShowRescheduleModal(true)
           break
         case "release":
+          // Validar que solo se pueda liberar citas con estado '3' y seguros '05' o '13'
+          const seguro = appointment.seguro?.trim()
+          const estado = String(appointment.estado)
+          
+          if (estado === '3' && (seguro !== '05' && seguro !== '13')) {
+            setReleaseErrorMessage('Solo puedes liberar citas pagadas (estado 3) con seguro "05 - Crédito Paciente" o "13 - Programas"')
+            setShowReleaseErrorDialog(true)
+            return
+          }
+          
           setShowReleaseModal(true)
           break
         case "details":
@@ -508,29 +526,52 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           }
         })
         
-        if (!response.ok) {
-          throw new Error(`Error al liberar la cita: ${response.status}`)
+        // El backend puede devolver texto plano o JSON
+        let responseData: any
+        const contentType = response.headers.get('content-type')
+        
+        if (contentType && contentType.includes('application/json')) {
+          responseData = await response.json()
+        } else {
+          // Si es texto plano (200 OK con mensaje de éxito)
+          const textResponse = await response.text()
+          responseData = { message: textResponse }
         }
         
-        // Cerrar el modal
+        if (!response.ok) {
+          // Manejar errores específicos del backend
+          if (response.status === 409) {
+            setReleaseErrorMessage(responseData.message || 'No puedes liberar esta cita')
+            setShowReleaseModal(false)
+            setShowReleaseErrorDialog(true)
+            return
+          }
+          
+          throw new Error(responseData.message || `Error al liberar la cita: ${response.status}`)
+        }
+        
+        // Cerrar el modal de confirmación
         setShowReleaseModal(false)
         
-        // Mostrar mensaje de éxito
-        toast({
-          title: "Éxito",
-          description: "Cita liberada correctamente",
-          variant: "default"
-        })
+        // Guardar ID de cita liberada y mostrar dialog de éxito
+        setReleasedCitaId(citaId)
+        setShowReleaseSuccessDialog(true)
         
-        // Actualizar la lista de citas
-        searchAppointmentsByParams()
-      } catch (error) {
+        // Actualizar inmediatamente la lista de citas para reflejar el cambio
+        await searchAppointmentsByParams()
+        
+        // Luego buscar específicamente la cita liberada para mostrarla
+        setTimeout(async () => {
+          setShowSearchById(true)
+          setSearchQuery(citaId)
+          await searchAppointmentsByParams()
+        }, 500)
+        
+      } catch (error: any) {
         console.error('Error al liberar la cita:', error)
-        toast({
-          title: "Error",
-          description: "No se pudo liberar la cita. Intente nuevamente.",
-          variant: "destructive"
-        })
+        setShowReleaseModal(false)
+        setReleaseErrorMessage(error.message || 'No se pudo liberar la cita. Intente nuevamente.')
+        setShowReleaseErrorDialog(true)
       }
     }
     
@@ -1054,6 +1095,72 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                       disabled={!selectedAppointment?.id}
                     >
                       Liberar Cita
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Release Success Dialog */}
+            <Dialog open={showReleaseSuccessDialog} onOpenChange={setShowReleaseSuccessDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-green-700 font-semibold">
+                    <CheckCircle className="w-6 h-6" />
+                    ¡Cita Liberada Exitosamente!
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-gray-700 mb-2">
+                      La cita <strong className="text-green-700">{releasedCitaId}</strong> ha sido liberada correctamente.
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      La cita ya está disponible para ser asignada a otros pacientes.
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={() => setShowReleaseSuccessDialog(false)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Entendido
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Release Error Dialog */}
+            <Dialog open={showReleaseErrorDialog} onOpenChange={setShowReleaseErrorDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-red-700 font-semibold">
+                    <XCircle className="w-6 h-6" />
+                    No se puede Liberar la Cita
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-gray-700">
+                      {releaseErrorMessage}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 font-medium">
+                      ℹ️ Recuerda:
+                    </p>
+                    <ul className="text-sm text-gray-700 mt-2 space-y-1 ml-4 list-disc">
+                      <li>Solo puedes liberar citas en estado <strong>3 (Pagado/Con FUA)</strong></li>
+                      <li>El seguro debe ser <strong>05 (Crédito Paciente)</strong> o <strong>13 (Programas)</strong></li>
+                    </ul>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={() => setShowReleaseErrorDialog(false)}
+                      variant="outline"
+                    >
+                      Cerrar
                     </Button>
                   </div>
                 </div>

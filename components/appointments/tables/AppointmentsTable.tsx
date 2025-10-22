@@ -108,7 +108,14 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("release", appointment)}
                       title="Liberar"
-                      disabled={Number(appointment.estado) !== 2}
+                      disabled={
+                        // Permitir liberar si:
+                        // 1. Estado 2 (reservado) - cualquier seguro
+                        // 2. Estado 3 (pagado) - solo seguros '05' o '13'
+                        !(Number(appointment.estado) === 2 || 
+                          (Number(appointment.estado) === 3 && 
+                           (appointment.seguro?.trim() === '05' || appointment.seguro?.trim() === '13')))
+                      }
                     >
                       <Unlock className="w-4 h-4" />
                     </Button>
@@ -143,7 +150,12 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("print", appointment)}
                       title="Imprimir"
-                      disabled={Number(appointment.estado) !== 2}
+                      disabled={
+                        // Habilitar impresión para estados 2, 3 y 4
+                        !(Number(appointment.estado) === 2 || 
+                          Number(appointment.estado) === 3 || 
+                          Number(appointment.estado) === 4)
+                      }
                     >
                       <Printer className="w-4 h-4" />
                     </Button>
@@ -216,7 +228,12 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                   variant="outline" 
                   onClick={() => onAction("print", appointment)} 
                   className="text-xs"
-                  disabled={Number(appointment.estado) !== 2}
+                  disabled={
+                    // Habilitar impresión para estados 2, 3 y 4
+                    !(Number(appointment.estado) === 2 || 
+                      Number(appointment.estado) === 3 || 
+                      Number(appointment.estado) === 4)
+                  }
                 >
                   Imprimir
                 </Button>

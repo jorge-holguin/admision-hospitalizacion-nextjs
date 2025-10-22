@@ -299,7 +299,7 @@ export function PatientAssignmentModal({
       
       console.log('✅ Asignación exitosa:', responseData)
       
-      // ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' =====
+      /* ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' (COMENTADA - Ahora se maneja en backend) =====
       const seguroTrimmed = selectedSeguro.trim()
       if (seguroTrimmed === '05' || seguroTrimmed === '13') {
         console.log(`💰 Seguro ${seguroTrimmed} detectado - Procesando FECHA_PAGO y ARCHIVO_MOV...`)
@@ -382,7 +382,7 @@ export function PatientAssignmentModal({
           // No bloqueamos el flujo principal, solo logueamos el error
         }
       }
-      // ===== FIN LÓGICA ESPECIAL =====
+      ===== FIN LÓGICA ESPECIAL ===== */
       
       // Mostrar toast de éxito
       toast({
