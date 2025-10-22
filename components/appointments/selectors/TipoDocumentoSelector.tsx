@@ -32,7 +32,7 @@ export function TipoDocumentoSelector({
   const loadTiposDocumento = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://192.168.0.252:9011/api/maestro/tipoDocumento')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BACKEND_URL}/maestro/tipoDocumento`)
       if (!response.ok) {
         throw new Error('Error al cargar tipos de documento')
       }

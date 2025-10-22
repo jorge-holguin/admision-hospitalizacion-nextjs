@@ -40,6 +40,8 @@ import {
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
+import { SegurosProvider } from "@/contexts/SegurosContext"
+import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import RoleBasedRoute from "@/components/RoleBasedRoute"
 import { format, startOfMonth, endOfMonth } from "date-fns"
@@ -606,11 +608,13 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           allowedRoles={['CALL CENTER', 'DEVOPS' , 'ANALISTA', 'DESARROLLADOR', 'ADMISIONISTA']}
           moduleName="Módulo de Citas"
         >
-          <TipoCitaProvider>
-            <SegurosCitaProvider>
-            <div className="flex flex-col min-h-screen bg-gray-50">
-            {/* Navbar fijo arriba */}
-            <Navbar />
+          <SegurosProvider>
+            <FiliationProvider>
+              <TipoCitaProvider>
+                <SegurosCitaProvider>
+                <div className="flex flex-col min-h-screen bg-gray-50">
+                {/* Navbar fijo arriba */}
+                <Navbar />
     
             {/* Main Content */}
             <main className="container mx-auto px-6 py-8">
@@ -1236,9 +1240,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               ticketData={ticketData}
             />
           </div>
-        </SegurosCitaProvider>
-      </TipoCitaProvider>
-      </RoleBasedRoute>
+                </SegurosCitaProvider>
+              </TipoCitaProvider>
+            </FiliationProvider>
+          </SegurosProvider>
+        </RoleBasedRoute>
       </ProtectedRoute>
   )
 }
