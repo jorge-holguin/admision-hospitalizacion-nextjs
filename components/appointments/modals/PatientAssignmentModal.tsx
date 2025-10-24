@@ -114,6 +114,9 @@ export function PatientAssignmentModal({
   const [showErrorDialog, setShowErrorDialog] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [errorTitle, setErrorTitle] = useState<string>('Error')
+  
+  // Estado para el dialog de confirmación de asignación
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   // Console.log para rastrear datos del appointment cuando se abre el modal
   useEffect(() => {
@@ -250,7 +253,8 @@ export function PatientAssignmentModal({
       const currentDate = new Date();
       const requestBody = {
         fechaOtorga: currentDate.toISOString(),
-        tipoPaciente: selectedTipoCita,
+        tipoCita: selectedTipoCita,
+        tipoPaciente: 'C',
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
@@ -457,7 +461,11 @@ export function PatientAssignmentModal({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" aria-describedby="patient-assignment-description">
+      <DialogContent 
+        className="max-w-6xl max-h-[90vh] overflow-y-auto" 
+        aria-describedby="patient-assignment-description"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <div className="flex items-center gap-3">
             {onBack && (
@@ -654,7 +662,7 @@ export function PatientAssignmentModal({
             Cancelar
           </Button>
           <Button 
-            onClick={handleAssign}
+            onClick={() => setShowConfirmDialog(true)}
             disabled={
               !selectedTipoCita || 
               !selectedSeguro || 
@@ -663,14 +671,14 @@ export function PatientAssignmentModal({
             }
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {isLoading ? "Asignando..." : "Confirmar Asignación"}
+            Confirmar Asignación
           </Button>
         </div>
       </DialogContent>
 
       {/* Diálogo de confirmación de impresión */}
       <Dialog open={showPrintConfirmation} onOpenChange={setShowPrintConfirmation}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5 text-blue-600" />
@@ -728,6 +736,69 @@ export function PatientAssignmentModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </Dialog>
+
+    {/* Dialog de confirmación de asignación */}
+    <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-blue-700">
+            <CheckCircle className="h-5 w-5" />
+            Confirmar Asignación de Cita
+          </DialogTitle>
+          <DialogDescription>
+            Por favor, verifique que los datos sean correctos antes de confirmar.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          {/* Datos del Paciente */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-900 mb-2">Paciente</h4>
+            <div className="space-y-1 text-sm">
+              <p><span className="font-medium">Nombre:</span> {enhancedPatient?.NOMBRES || patient?.NOMBRES}</p>
+              <p><span className="font-medium">Documento:</span> {patient?.DOCUMENTO}</p>
+              <p><span className="font-medium">Historia Clínica:</span> {patient?.HISTORIA}</p>
+            </div>
+          </div>
+
+          {/* Datos de la Cita */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h4 className="font-semibold text-green-900 mb-2">Detalles de la Cita</h4>
+            <div className="space-y-1 text-sm">
+              <p><span className="font-medium">Fecha:</span> {appointment?.fecha}</p>
+              <p><span className="font-medium">Hora:</span> {appointment?.hora}</p>
+              <p><span className="font-medium">Médico:</span> {appointment?.medicoNombre || 'No especificado'}</p>
+              <p><span className="font-medium">Consultorio:</span> {appointment?.consultorioNombre || appointment?.consultorio}</p>
+              <p><span className="font-medium">Tipo de Cita:</span> {tiposCita.find(t => t.Tipo_cita === selectedTipoCita)?.Nombre}</p>
+              <p><span className="font-medium">Seguro:</span> {seguros.find(s => s.Seguro === selectedSeguro)?.Nombre}</p>
+              {isSisSeguro() && selectedEntidadSis && (
+                <p><span className="font-medium">Entidad SIS:</span> {selectedEntidadSis}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowConfirmDialog(false)}
+            disabled={isLoading}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={async () => {
+              setShowConfirmDialog(false)
+              await handleAssign()
+            }}
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isLoading ? "Asignando..." : "Sí, Confirmar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     {/* AlertDialog para mostrar errores de manera prominente */}

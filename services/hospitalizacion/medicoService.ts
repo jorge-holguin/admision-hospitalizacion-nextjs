@@ -4,6 +4,7 @@ export interface Medico {
   MEDICO: string;
   NOMBRE: string;
   ACTIVO?: string;
+  ESPECIALIDAD?: string;
 }
 
 export const medicoService = {
@@ -25,7 +26,7 @@ export const medicoService = {
       
       // Usar Prisma.sql para construir la consulta segura
       const query = `
-        SELECT MEDICO, NOMBRE, ACTIVO 
+        SELECT MEDICO, NOMBRE, ACTIVO, ESPECIALIDAD 
         FROM MEDICO 
         WHERE MEDICO IN (${placeholders})
         AND ACTIVO = '1' 
@@ -47,7 +48,7 @@ export const medicoService = {
     try {
       // Usar consulta SQL nativa para compatibilidad con SQL Server 2008
       const medicos = await prisma.$queryRaw<Medico[]>`
-        SELECT MEDICO, NOMBRE, ACTIVO 
+        SELECT MEDICO, NOMBRE, ACTIVO, ESPECIALIDAD 
         FROM MEDICO 
         WHERE ACTIVO = '1' 
         ORDER BY NOMBRE
@@ -83,6 +84,36 @@ export const medicoService = {
   },
 
   /**
+   * Busca médicos por especialidad
+   * @param especialidad Código de especialidad
+   * @param searchTerm Término de búsqueda opcional
+   * @param limit Límite de resultados (por defecto 50)
+   */
+  async findByEspecialidad(especialidad: string, searchTerm: string = '', limit: number = 50): Promise<Medico[]> {
+    try {
+      const searchCondition = searchTerm 
+        ? `AND (m.MEDICO LIKE '%${searchTerm}%' OR m.NOMBRE LIKE '%${searchTerm}%')`
+        : '';
+      
+      const query = `
+        SELECT TOP ${limit} MEDICO, NOMBRE, ACTIVO, ESPECIALIDAD 
+        FROM MEDICO 
+        WHERE ESPECIALIDAD = '${especialidad.trim()}'
+        AND ACTIVO = '1'
+        ${searchCondition}
+        ORDER BY NOMBRE
+      `;
+      
+      const medicos = await prisma.$queryRawUnsafe(query) as Medico[];
+      
+      return medicos;
+    } catch (error) {
+      console.error('Error al buscar médicos por especialidad:', error);
+      throw new Error('Error al buscar médicos por especialidad');
+    }
+  },
+
+  /**
    * Busca médicos por nombre o código
    * @param searchTerm Término de búsqueda
    * @param limit Límite de resultados (por defecto 50)
@@ -92,7 +123,7 @@ export const medicoService = {
       // Usar el límite proporcionado o 50 por defecto
       // Construir la consulta SQL directamente para evitar problemas con parámetros
       const query = `
-        SELECT TOP ${limit} MEDICO, NOMBRE, ACTIVO 
+        SELECT TOP ${limit} MEDICO, NOMBRE, ACTIVO, ESPECIALIDAD 
         FROM MEDICO 
         WHERE (MEDICO LIKE '%${searchTerm}%' OR NOMBRE LIKE '%${searchTerm}%')
         AND ACTIVO = '1'

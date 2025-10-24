@@ -51,7 +51,7 @@ export default function Dashboard() {
         <main className="container mx-auto px-6 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Sistema de Admisión para Hospitalización Web
+            Módulos de trabajo del Sistema de Admisión Web
           </h2>
           <p className="text-gray-600">
             Seleccione el módulo al que desea acceder

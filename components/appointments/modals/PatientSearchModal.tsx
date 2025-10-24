@@ -206,7 +206,14 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         <div className="space-y-4">
           {/* Search Section */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Buscar Paciente</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Buscar Paciente</Label>
+              {hasSearched && (
+                <Button variant="outline" size="sm" onClick={resetSearch}>
+                  Nueva búsqueda
+                </Button>
+              )}
+            </div>
             
             <div className="flex gap-3">
               <Select value={searchType} onValueChange={setSearchType}>
@@ -243,16 +250,9 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
           {/* Results Section */}
           {hasSearched && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold">
-                  Resultados de búsqueda ({patients.length} encontrados)
-                </Label>
-                {patients.length > 0 && (
-                  <Button variant="outline" size="sm" onClick={resetSearch}>
-                    Nueva búsqueda
-                  </Button>
-                )}
-              </div>
+              <Label className="text-sm font-semibold">
+                Resultados de búsqueda ({patients.length} encontrados)
+              </Label>
 
               {isLoading ? (
                 <div className="text-center py-8 text-gray-500">

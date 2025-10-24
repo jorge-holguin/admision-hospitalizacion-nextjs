@@ -90,7 +90,7 @@ export default function MasterTablesPage() {
         moduleName="Módulo de Tablas Maestras"
       >
         <div className="min-h-screen bg-gray-50">
-        <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="TABLAS MAESTRAS" showBackButton={false} />
+        <Navbar title="Sistema de Admisión Web" subtitle="TABLAS MAESTRAS" showBackButton={false} />
         <Toaster />
 
       {/* Main Content */}

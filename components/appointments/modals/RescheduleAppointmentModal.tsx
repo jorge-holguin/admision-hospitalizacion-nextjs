@@ -119,7 +119,7 @@ export function RescheduleAppointmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-blue-800 flex items-center">
             <CalendarClock className="mr-2 h-5 w-5" />

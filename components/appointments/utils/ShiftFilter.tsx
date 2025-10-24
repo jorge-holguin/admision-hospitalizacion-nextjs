@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 
 interface ShiftFilterProps {
   onShiftChange: (shift: 'MAÑANA' | 'TARDE' | 'ALL') => void;
+  selectedShift?: 'MAÑANA' | 'TARDE' | 'ALL';
   className?: string;
 }
 
-export function ShiftFilter({ onShiftChange, className = '' }: ShiftFilterProps) {
+export function ShiftFilter({ onShiftChange, selectedShift: externalSelectedShift, className = '' }: ShiftFilterProps) {
   const [selectedShift, setSelectedShift] = useState<'MAÑANA' | 'TARDE' | 'ALL'>('ALL');
+  
+  // Sincronizar con el estado externo si se proporciona
+  useEffect(() => {
+    if (externalSelectedShift !== undefined) {
+      setSelectedShift(externalSelectedShift);
+    }
+  }, [externalSelectedShift]);
 
   const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
     setSelectedShift(shift);

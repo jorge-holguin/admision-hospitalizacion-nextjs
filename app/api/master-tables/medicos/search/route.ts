@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const codigos = searchParams.get('codigos');
     const limit = searchParams.get('limit');
+    const especialidad = searchParams.get('especialidad');
     
     let medicos;
     
@@ -23,7 +24,11 @@ export async function GET(request: NextRequest) {
     // Si se proporciona un consultorio, buscar médicos de ese consultorio
     else if (consultorio) {
       medicos = await medicoService.findByConsultorio(consultorio);
-    } 
+    }
+    // Si se proporciona una especialidad, buscar médicos de esa especialidad
+    else if (especialidad) {
+      medicos = await medicoService.findByEspecialidad(especialidad, search || '');
+    }
     // Si se proporciona un término de búsqueda, buscar médicos que coincidan
     else if (search) {
       medicos = await medicoService.search(search);

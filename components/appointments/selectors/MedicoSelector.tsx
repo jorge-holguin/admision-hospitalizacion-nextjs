@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ interface MedicoItem {
   NOMBRES?: string
   APATERNO?: string
   AMATERNO?: string
+  ESPECIALIDAD?: string
 }
 
 interface MedicoSelectorProps {
@@ -22,6 +23,7 @@ interface MedicoSelectorProps {
   className?: string
   // consultorio is intentionally ignored to keep this selector independent
   consultorio?: string | "all"
+  especialidad?: string | null  // Filtrar médicos por especialidad del consultorio
 }
 
 function buildNombre(m: MedicoItem): string {
@@ -31,7 +33,7 @@ function buildNombre(m: MedicoItem): string {
   return m.MEDICO ?? ""
 }
 
-export function MedicoSelector({ label = "Médico", value, onChange, className = "", consultorio = "all" }: MedicoSelectorProps) {
+export function MedicoSelector({ label = "Médico", value, onChange, className = "", consultorio = "all", especialidad }: MedicoSelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [items, setItems] = useState<MedicoItem[]>([])
@@ -42,6 +44,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       setLoading(true)
       const qs = new URLSearchParams()
       if (q) qs.set("search", q)
+      if (especialidad) qs.set("especialidad", especialidad)  // Filtrar por especialidad si existe
       const res = await fetch(`/api/master-tables/medicos/search?${qs.toString()}` , { signal })
       if (!res.ok) return
       const data = await res.json()
@@ -60,7 +63,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       clearTimeout(t)
       ctrl.abort()
     }
-  }, [open, search])
+  }, [open, search, especialidad])  // Recargar cuando cambie especialidad
 
   // No carga inicial para evitar duplicados causados por StrictMode; se carga al abrir
 

@@ -113,3 +113,36 @@ export function convertTo12HourFormat(timeString: string): string {
   console.error('Formato de hora inválido para conversión a 12h:', timeString);
   return '';
 }
+
+/**
+ * Convierte una fecha YYYY-MM-DD al formato LocalDateTime ISO que acepta el backend
+ * @param dateString Fecha en formato YYYY-MM-DD (ej: "1994-05-11")
+ * @returns Fecha en formato ISO con hora (ej: "1994-05-11T00:00:00.000Z")
+ */
+export function convertToLocalDateTime(dateString: string): string {
+  if (!dateString) return '';
+  
+  // Limpiar espacios en blanco
+  dateString = dateString.trim();
+  
+  // Si ya tiene formato ISO completo, devolverlo
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(dateString)) {
+    return dateString;
+  }
+  
+  // Si es formato YYYY-MM-DD, agregar hora medianoche
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return `${dateString}T00:00:00.000Z`;
+  }
+  
+  // Si es formato DD/MM/YYYY, convertir primero
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+    const converted = convertDateFormat(dateString);
+    if (converted) {
+      return `${converted}T00:00:00.000Z`;
+    }
+  }
+  
+  console.error('Formato de fecha inválido para LocalDateTime:', dateString);
+  return '';
+}

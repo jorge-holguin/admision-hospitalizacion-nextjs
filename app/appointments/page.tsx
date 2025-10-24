@@ -807,7 +807,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                       <div className="space-y-4 mb-6">
                         {/* Primera fila: Filtros de turno y búsqueda */}
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                          <ShiftFilter onShiftChange={handleShiftChange} className="flex-shrink-0" />
+                          <ShiftFilter 
+                            onShiftChange={handleShiftChange} 
+                            selectedShift={filters.turno as 'MAÑANA' | 'TARDE' | 'ALL'}
+                            className="flex-shrink-0" 
+                          />
                           
                           {/* Checkbox para habilitar búsqueda por ID */}
                           <div className="flex items-center space-x-2">
@@ -898,6 +902,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                             setFilters({ ...filters, medico: val })
                             setPageParam(0) // Reset to page 0 when filter changes
                           }}
+                          especialidad={selectedConsultorioData?.ESPECIALIDAD?.trim() || null}
                           className="mt-1"
                         />
                       </div>
@@ -1058,6 +1063,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               }}
               onSuccess={(citaId) => {
                 // Buscar automáticamente la cita asignada
+                setShowSearchById(true)  // Marcar checkbox visualmente
                 setSearchQuery(citaId)
                 searchAppointmentById(citaId)
               }}

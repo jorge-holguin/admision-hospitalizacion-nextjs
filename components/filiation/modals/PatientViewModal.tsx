@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { User, FileText, Calendar, Home, Phone, Users, Heart } from "lucide-react"
+import { User, FileText, Calendar, Home, Phone, Users, Heart, Printer } from "lucide-react"
+import { useDocumentPrinter } from "@/components/hospitalization/DocumentPrinter"
 
 interface Patient {
   id?: string
@@ -95,6 +96,7 @@ interface PatientViewModalProps {
 export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalProps) {
   const [localidadNombre, setLocalidadNombre] = useState<string>('')
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const { printHospitalizationDocument } = useDocumentPrinter()
 
   // Cargar nombre de localidad desde API
   useEffect(() => {
@@ -177,7 +179,21 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     religion: patient.DESRELIGION || patient.religion || '',
     codigoReligion: patient.RELIGION || '',
     // Etnia: mostrar solo etPueInd (nombre del pueblo indígena)
-    etnia: typeof patient.codEtnia === 'object' ? patient.codEtnia?.etPueInd : patient.codEtnia || '',
+    etnia: (() => {
+      if (typeof patient.codEtnia === 'object' && patient.codEtnia?.etPueInd) {
+        return patient.codEtnia.etPueInd;
+      }
+      // Si es un string JSON, parsearlo
+      if (typeof patient.codEtnia === 'string') {
+        try {
+          const parsed = JSON.parse(patient.codEtnia);
+          return parsed.etPueInd || patient.codEtnia;
+        } catch {
+          return patient.codEtnia;
+        }
+      }
+      return '';
+    })(),
     // Centro Poblado: mostrar código - nombre (nombre se carga desde API)
     centroPoblado: localidadNombre 
       ? `${(patient.localidad || patient.LOCALIDAD)?.trim()} - ${localidadNombre}`
@@ -500,6 +516,19 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
           </p>
         </div>
         <div className="flex space-x-3">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              const pacienteId = patient.PACIENTE || patient.paciente || patient.id;
+              if (pacienteId) {
+                printHospitalizationDocument(pacienteId.toString().trim(), 'filiacion');
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            Imprimir Hoja de Filiación
+          </Button>
           <Button variant="outline" onClick={onClose}>
             Cerrar
           </Button>

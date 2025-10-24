@@ -133,7 +133,11 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       variant="outline"
                       onClick={() => onAction("assign", appointment)}
                       title="Asignar"
-                      disabled={Number(appointment.estado) !== 1}
+                      disabled={
+                        // Bloquear si no es estado 1 (no otorgada) o si es fecha pasada
+                        Number(appointment.estado) !== 1 ||
+                        (appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                      }
                     >
                       <UserPlus className="w-4 h-4" />
                     </Button>
@@ -218,7 +222,11 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                   variant="outline" 
                   onClick={() => onAction("assign", appointment)} 
                   className="text-xs"
-                  disabled={Number(appointment.estado) !== 1}
+                  disabled={
+                    // Bloquear si no es estado 1 (no otorgada) o si es fecha pasada
+                    Number(appointment.estado) !== 1 ||
+                    (appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                  }
                 >
                   Asignar
                 </Button>

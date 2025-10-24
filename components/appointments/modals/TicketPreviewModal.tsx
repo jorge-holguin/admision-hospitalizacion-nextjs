@@ -180,7 +180,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-full max-h-[95vh] p-0 gap-0 bg-white overflow-hidden">
+      <DialogContent className="max-w-2xl w-full max-h-[95vh] p-0 gap-0 bg-white overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
         {/* Header oculto para accesibilidad */}
         <DialogHeader className="sr-only">
           <DialogTitle>Ticket de Cita Médica</DialogTitle>
@@ -302,7 +302,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg mb-3">
               <p className="text-xs font-bold text-yellow-900 mb-1">⚠️ IMPORTANTE</p>
               <p className="text-xs text-yellow-800 leading-relaxed">
-                Presentarse <span className="font-bold">15 minutos antes</span>. Traer DNI y carnet del seguro.
+                Presentarse <span className="font-bold">30 minutos antes</span>. Traer DNI.
               </p>
             </div>
 

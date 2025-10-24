@@ -277,3 +277,34 @@ export function getClientIP(request: Request): string {
   // Fallback a localhost si no se puede determinar
   return '127.0.0.1';
 }
+
+/**
+ * Consulta el UBIGEO correcto usando el código RENIEC
+ * @param codigoReniec Código RENIEC de 6 dígitos (ej: "140133")
+ * @returns UBIGEO correcto o undefined si no se encuentra
+ */
+export async function getUbigeoByReniecCode(codigoReniec: string): Promise<string | undefined> {
+  try {
+    if (!codigoReniec || codigoReniec.length !== 6) {
+      console.warn(`⚠️ Código RENIEC inválido: ${codigoReniec}`);
+      return undefined;
+    }
+
+    console.log(`🔍 Consultando UBIGEO para código RENIEC: ${codigoReniec}`);
+    
+    const response = await fetch(`/api/ubigeo/by-reniec/${codigoReniec}`);
+    
+    if (!response.ok) {
+      console.warn(`⚠️ No se encontró UBIGEO para código RENIEC: ${codigoReniec}`);
+      return undefined;
+    }
+
+    const data = await response.json();
+    console.log(`✅ UBIGEO encontrado: ${data.ubigeo} para RENIEC: ${codigoReniec}`);
+    
+    return data.ubigeo;
+  } catch (error) {
+    console.error(`❌ Error al consultar UBIGEO para código RENIEC ${codigoReniec}:`, error);
+    return undefined;
+  }
+}

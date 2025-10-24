@@ -278,18 +278,27 @@ export default function FiliationPage() {
       // Aplanar objetos anidados para evitar errores de React
       const flattenedData = { ...historyData };
       
-      // Si hay objetos anidados, extraer solo los valores primitivos o códigos
+      // ✅ IMPORTANTE: Mantener objetos completos para campos específicos
+      // NO aplanar estos campos porque necesitamos el objeto completo para extraer códigos
+      const camposConObjeto = ['gradoInstruccion', 'ocupacion', 'codEtnia', 'distrito', 'lugarNacimiento', 'conyugeOcupacion', 'estadoCivil', 'seguro'];
+      
       Object.keys(flattenedData).forEach(key => {
         if (flattenedData[key] && typeof flattenedData[key] === 'object' && !Array.isArray(flattenedData[key])) {
-          // Si es un objeto con propiedades, intentar extraer el código o nombre
-          const obj = flattenedData[key];
-          if (obj.codigo !== undefined) {
-            flattenedData[key] = obj.codigo;
-          } else if (obj.nombre !== undefined) {
-            flattenedData[key] = obj.nombre;
+          // Si es un campo que necesita mantener el objeto completo, no aplanarlo
+          if (camposConObjeto.includes(key)) {
+            console.log(`🔧 Manteniendo objeto completo para ${key}:`, flattenedData[key]);
+            // No hacer nada, mantener el objeto
           } else {
-            // Si no tiene codigo ni nombre, convertir a string
-            flattenedData[key] = JSON.stringify(obj);
+            // Para otros campos, intentar extraer el código o nombre
+            const obj = flattenedData[key];
+            if (obj.codigo !== undefined) {
+              flattenedData[key] = obj.codigo;
+            } else if (obj.nombre !== undefined) {
+              flattenedData[key] = obj.nombre;
+            } else {
+              // Si no tiene codigo ni nombre, convertir a string
+              flattenedData[key] = JSON.stringify(obj);
+            }
           }
         }
       });
@@ -474,17 +483,17 @@ export default function FiliationPage() {
                 <Eye className="mr-2 h-4 w-4" />
                 Ver Registro
               </DropdownMenuItem>
-              {/* <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
+              {<DropdownMenuItem onClick={() => handleEditPatient(patient)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
-              </DropdownMenuItem> */}
-              {/* <DropdownMenuItem 
+              </DropdownMenuItem>}
+              {<DropdownMenuItem 
                 onClick={() => handleDeletePatient(patient)}
                 className="text-red-600"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Anular
-              </DropdownMenuItem> */}
+              </DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -495,7 +504,7 @@ export default function FiliationPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navbar title="Sistema de Integral de Admisión Hospitalaria" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
+        <Navbar title="Sistema de Admisión Web" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
         <Toaster />
 
       {/* Main Content */}

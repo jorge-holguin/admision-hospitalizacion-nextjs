@@ -15,8 +15,8 @@ interface NavbarProps {
 }
 
 export function Navbar({ 
-  title = "Sistema de Integral de Admisión Hospitalaria", 
-  subtitle = "HOSPITALIZACIÓN", 
+  title = "Sistema de Admisión Web", 
+  subtitle = "HOSPITAL JOSÉ AGURTO TELLO DE CHOSICA - HJATCH", 
   showBackButton = false,
   backUrl = "/"
 }: NavbarProps) {

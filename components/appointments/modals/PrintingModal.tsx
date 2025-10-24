@@ -40,7 +40,7 @@ export function PrintingModal({ isOpen, onClose }: PrintingModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <div className="flex flex-col items-center justify-center py-8 space-y-6">
           {!showSuccess ? (
             <>

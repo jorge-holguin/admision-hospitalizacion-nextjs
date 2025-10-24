@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -66,6 +66,22 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   // Search filters
   const [searchType, setSearchType] = useState<string>("documento")
   const [searchTerm, setSearchTerm] = useState<string>("")
+  
+  // Limpiar filtros cuando se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      setSearchTerm("")
+      setAppointments([])
+      setHasSearched(false)
+      setError(null)
+      setCurrentPage(0)
+      // Resetear fecha a 1 año atrás
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+      setFechaDesde(oneYearAgo)
+      setFechaHasta(new Date())
+    }
+  }, [isOpen])
 
   // Quick filters
   const [estadoFilter, setEstadoFilter] = useState<string>("all")
@@ -253,7 +269,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-purple-800 flex items-center">
               <History className="mr-2 h-5 w-5" />
