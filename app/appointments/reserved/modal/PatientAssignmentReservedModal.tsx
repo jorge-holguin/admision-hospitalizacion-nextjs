@@ -224,7 +224,7 @@ export function PatientAssignmentReservedModal({
       
       const requestBody = {
         fechaOtorga: currentDate.toISOString(),
-        tipoCita: selectedTipoCita
+        tipoCita: selectedTipoCita,
         tipoPaciente: 'C',
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
