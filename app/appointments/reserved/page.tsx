@@ -45,6 +45,8 @@ interface ReservaData {
   idSolicitudCita?: number
   tipoAtencion?: string | null
   tipoCita?: string | null
+  especialidadInterconsulta?: string | null  // ✅ Especialidad de interconsulta
+  observacionPaciente?: string | null  // ✅ Observaciones del paciente
   rutaReferencia?: string
   consultorio?: string | null
 }
@@ -187,6 +189,12 @@ export default function ReservedAppointmentsPage() {
       const data = await response.json()
       setReservas(data.content || [])
       setTotalElements(data.totalElements || 0)
+
+      // ✅ Debug: Ver qué campos están llegando desde la API
+      if (data.content && data.content.length > 0) {
+        console.log('🔍 Campos disponibles en la primera reserva:', Object.keys(data.content[0]))
+        console.log('📋 Datos de la primera reserva:', data.content[0])
+      }
     } catch (error) {
       console.error('Error al cargar reservas:', error)
       toast({
@@ -305,6 +313,12 @@ export default function ReservedAppointmentsPage() {
 
       const solicitudData = await response.json()
       console.log('📋 Información de la solicitud obtenida:', solicitudData)
+      console.log('🔍 Campos disponibles en solicitudInfo:', Object.keys(solicitudData))
+      console.log('📋 Nuevos campos en solicitudInfo:', {
+        tipoCita: solicitudData.tipoCita,
+        especialidadInterconsulta: solicitudData.especialidadInterconsulta,
+        observacionPaciente: solicitudData.observacionPaciente
+      })
       
       return solicitudData
     } catch (error) {
@@ -411,15 +425,31 @@ export default function ReservedAppointmentsPage() {
       idSolicitudCita: solicitudInfo.idSolicitudCita,
       rutaReferencia: solicitudInfo.rutaReferencia,
       consultorio: solicitudInfo.consultorio,
-      tipoAtencion: solicitudInfo.tipoAtencion
+      tipoAtencion: solicitudInfo.tipoAtencion,
+      tipoCita: solicitudInfo.tipoCita,
+      especialidadInterconsulta: solicitudInfo.especialidadInterconsulta,
+      observacionPaciente: solicitudInfo.observacionPaciente
     }
     setSelectedReserva(reservaCompleta)
     console.log('📋 Reserva actualizada con citaId:', reservaCompleta.citaId, 'idSolicitudCita:', reservaCompleta.idSolicitudCita)
+    console.log('📋 Nuevos campos:', {
+      tipoCita: reservaCompleta.tipoCita,
+      especialidadInterconsulta: reservaCompleta.especialidadInterconsulta,
+      observacionPaciente: reservaCompleta.observacionPaciente
+    })
+    console.log('📝 Verificando actualización de reserva:', reservaCompleta)
+    console.log('📝 Estado actual de reserva:', reservaCompleta.estado)
     
     // Actualizar la lista de reservas con el citaId e idSolicitudCita
     setReservas(prev => prev.map(r => 
       r.codigo === reserva.codigo 
-        ? { ...r, citaId: solicitudInfo.citaId, idSolicitudCita: solicitudInfo.idSolicitudCita }
+        ? { ...r,
+            citaId: solicitudInfo.citaId,
+            idSolicitudCita: solicitudInfo.idSolicitudCita,
+            tipoCita: solicitudInfo.tipoCita,
+            especialidadInterconsulta: solicitudInfo.especialidadInterconsulta,
+            observacionPaciente: solicitudInfo.observacionPaciente
+          }
         : r
     ))
     
@@ -427,6 +457,17 @@ export default function ReservedAppointmentsPage() {
     const found = await searchPatientByDocument(reserva.numeroDocumento, reserva.codigo)
     if (found) {
       console.log('✅ Abriendo modal con datos del paciente')
+      console.log('📋 Datos que se pasarán al modal:', {
+        patientData: patientData ? { HISTORIA: patientData.HISTORIA, NOMBRES: patientData.NOMBRES } : null,
+        appointment: {
+          codigo: reservaCompleta.codigo,
+          tipoCita: reservaCompleta.tipoCita,
+          especialidadInterconsulta: reservaCompleta.especialidadInterconsulta,
+          observacionPaciente: reservaCompleta.observacionPaciente,
+          fecha: reservaCompleta.fecha,
+          especialidadNombre: reservaCompleta.especialidadNombre
+        }
+      })
       setIsModalOpen(true)
     } else {
       console.log('❌ No se pudo abrir el modal - datos del paciente no encontrados')
@@ -917,7 +958,12 @@ export default function ReservedAppointmentsPage() {
                               {reserva.tipoAtencion || '-'}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {reserva.tipoCita || '-'}
+                              {/* ✅ Fusionar tipo de cita con especialidad de interconsulta */}
+                              {reserva.tipoCita 
+                                ? (reserva.tipoCita === 'INTERCONSULTA' && reserva.especialidadInterconsulta
+                                    ? `${reserva.tipoCita} - ${reserva.especialidadInterconsulta}`
+                                    : reserva.tipoCita)
+                                : '-'}
                             </TableCell>
                             <TableCell className="text-sm">
                               {formatTurno(reserva.turno)}
@@ -1061,7 +1107,10 @@ export default function ReservedAppointmentsPage() {
                 especialidadNombre: selectedReserva.especialidadNombre,
                 medico: selectedReserva.medico,
                 medicoNombre: selectedReserva.medicoNombre,
-                estado: selectedReserva.estado
+                estado: selectedReserva.estado,
+                tipoCita: selectedReserva.tipoCita,
+                especialidadInterconsulta: selectedReserva.especialidadInterconsulta,
+                observacionPaciente: selectedReserva.observacionPaciente
               }}
               onApprove={async (data: any) => {
                 console.log('Aprobación de reserva:', data)
@@ -1125,8 +1174,6 @@ export default function ReservedAppointmentsPage() {
               }}
             />
           )}
-
-          {/* Modal de advertencia de paciente no encontrado */}
           <Dialog open={showPacienteNoEncontradoModal} onOpenChange={(open) => {
             setShowPacienteNoEncontradoModal(open)
             if (!open) {

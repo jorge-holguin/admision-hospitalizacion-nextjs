@@ -58,6 +58,9 @@ interface Appointment {
   medico: string
   medicoNombre?: string
   estado: string
+  tipoCita?: string | null  // ✅ Tipo de cita
+  especialidadInterconsulta?: string | null  // ✅ Especialidad de interconsulta
+  observacionPaciente?: string | null  // ✅ Observaciones del paciente
 }
 
 interface TipoCita {
@@ -171,6 +174,30 @@ export function PatientAssignmentReservedModal({
   onBack,
   searchType = 'document'
 }: PatientAssignmentReservedModalProps) {
+
+  // ✅ Debug: Verificar datos recibidos
+  useEffect(() => {
+    console.log('🔍 Datos recibidos en modal:', {
+      patient: patient ? { HISTORIA: patient.HISTORIA, NOMBRES: patient.NOMBRES } : null,
+      appointment: appointment ? {
+        codigo: appointment.codigo,
+        tipoCita: appointment.tipoCita,
+        especialidadInterconsulta: appointment.especialidadInterconsulta,
+        observacionPaciente: appointment.observacionPaciente,
+        fecha: appointment.fecha,
+        especialidadNombre: appointment.especialidadNombre
+      } : null
+    })
+
+    // ✅ Debug adicional: verificar si los campos existen pero son undefined/null
+    if (appointment) {
+      console.log('📋 Campos individuales del appointment:')
+      console.log('   - tipoCita:', appointment.tipoCita, typeof appointment.tipoCita)
+      console.log('   - especialidadInterconsulta:', appointment.especialidadInterconsulta, typeof appointment.especialidadInterconsulta)
+      console.log('   - observacionPaciente:', appointment.observacionPaciente, typeof appointment.observacionPaciente)
+    }
+  }, [appointment, patient])
+
   // Use contexts instead of local state for tipos de cita and seguros
   const { tiposCita } = useTipoCita()
   const { seguros } = useSegurosCita()
@@ -534,6 +561,7 @@ export function PatientAssignmentReservedModal({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Información básica de fecha y hora */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Fecha</Label>
@@ -550,7 +578,8 @@ export function PatientAssignmentReservedModal({
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* Información médica */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Especialidad</Label>
@@ -567,6 +596,38 @@ export function PatientAssignmentReservedModal({
                       </div>
                     </div>
                   </div>
+
+                  {/* ✅ Tipo de Cita y Especialidad de Interconsulta en la misma fila */}
+                  {appointment.tipoCita && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-600">Tipo de Cita</Label>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium">{appointment.tipoCita}</span>
+                        </div>
+                      </div>
+                      {appointment.tipoCita === 'INTERCONSULTA' && appointment.especialidadInterconsulta && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-600">Especialidad de Interconsulta</Label>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Stethoscope className="h-4 w-4 text-blue-400" />
+                            <span className="font-medium text-blue-600">{appointment.especialidadInterconsulta}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ✅ Observaciones del Paciente */}
+                  {(appointment.tipoCita === 'INTERCONSULTA' || appointment.observacionPaciente) && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Observaciones del Paciente</Label>
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-gray-700">{appointment.observacionPaciente || '-'}</p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
