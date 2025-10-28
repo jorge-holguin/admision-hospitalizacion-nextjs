@@ -119,15 +119,32 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     }
   }, [patient])
   
-  // ✅ Consultar RENIEC automáticamente si STRING_FOTO es null y tiene DNI
+  // ✅ Consultar RENIEC automáticamente SOLO si no hay foto y es DNI
   useEffect(() => {
     const autoConsultReniec = async () => {
-      if (patient && !patient.STRING_FOTO && patient.TIPO_DOCUMENTO?.trim() === 'D') {
-        const dni = patient.DOCUMENTO || patient.dni || patient.documento;
-        if (dni && !reniecButtonUsed) {
-          console.log('📸 STRING_FOTO es null, consultando RENIEC automáticamente...');
-          await handleUpdateFromReniec();
-        }
+      // Solo consultar automáticamente si no tiene foto
+      const fotoBase64 = patient.STRING_FOTO || patient.stringFoto;
+      const noTieneFoto = !fotoBase64 || fotoBase64 === null || fotoBase64 === '';
+      // Soportar tanto string como objeto { tipoDocumento }
+      const tipoDocStr = (typeof patient.TIPO_DOCUMENTO === 'string' ? patient.TIPO_DOCUMENTO : '')
+        || (typeof patient.tipoDocumento === 'string' ? patient.tipoDocumento : '')
+        || (typeof patient.tipoDocumento === 'object' ? (patient.tipoDocumento?.tipoDocumento || '').trim() : '');
+      const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI';
+      const dni = patient.DOCUMENTO || patient.dni || patient.documento;
+      
+      console.log('🔍 Verificando necesidad de consulta RENIEC automática:', {
+        noTieneFoto,
+        esDNI,
+        dni,
+        reniecButtonUsed,
+        STRING_FOTO: fotoBase64 ? 'Tiene foto' : 'Sin foto'
+      });
+      
+      if (patient && noTieneFoto && esDNI && dni && !reniecButtonUsed) {
+        console.log('📸 STRING_FOTO es null/vacío, consultando RENIEC automáticamente...');
+        await handleUpdateFromReniec();
+      } else {
+        console.log('⏭️ No se consulta RENIEC automáticamente (tiene foto o ya se consultó)');
       }
     };
     
@@ -404,6 +421,9 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           // ✅ Ubigeos consultados desde tabla UBIGEO
           lugarNacimiento: lugarNacimientoUbigeo,
           distritoProcedencia: distritoProcedenciaUbigeo,
+          
+          // ✅ Grado de instrucción mapeado desde RENIEC
+          gradoInstruccion: result.data.educationLevel || prev.gradoInstruccion,
           
           // Datos Familiares
           padre: result.data.fatherName || prev.padre,

@@ -25,6 +25,8 @@ interface ReniecData {
   nombrePadre: string;
   nombreMadre: string;
   imagenFoto: string;
+  nivelEstudios?: string;  // Código RENIEC de nivel de estudios
+  gradoInstruccionCod?: string;  // Código RENIEC de grado de instrucción (campo alternativo)
   // Códigos de ubigeo RENIEC
   codUbigeoDepNac?: string;
   codUbigeoProvNac?: string;
@@ -52,6 +54,8 @@ interface PatientFormData {
   birthPlace: string;
   address: string;
   district: string;
+  educationLevel?: string;  // Grado de instrucción (código BD)
+  educationLevelReniec?: string;  // Código RENIEC de grado de instrucción
 
   // Datos Familiares
   fatherName: string;
@@ -208,7 +212,7 @@ export function buildUbigeoReniecCode(dep?: string, prov?: string, dist?: string
 /**
  * Mapea datos de RENIEC al formato del formulario de paciente
  */
-export function mapReniecToPatientForm(reniecData: ReniecData): Partial<PatientFormData> {
+export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Partial<PatientFormData>> {
   // Construir códigos de ubigeo RENIEC
   const ubigeoReniecNacimiento = buildUbigeoReniecCode(
     reniecData.codUbigeoDepNac,
@@ -224,6 +228,14 @@ export function mapReniecToPatientForm(reniecData: ReniecData): Partial<PatientF
 
   console.log('🗺️ Ubigeo RENIEC nacimiento construido:', ubigeoReniecNacimiento);
   console.log('🗺️ Ubigeo RENIEC procedencia construido:', ubigeoReniecProcedencia);
+
+  // Mapear grado de instrucción de RENIEC a código de BD
+  let gradoInstruccionBD: string | undefined = undefined;
+  const codigoReniec = reniecData.gradoInstruccionCod || reniecData.nivelEstudios;
+  if (codigoReniec) {
+    console.log('🎓 Nivel de estudios RENIEC:', codigoReniec);
+    gradoInstruccionBD = await getGradoInstruccionByReniecCode(codigoReniec);
+  }
 
   return {
     // Información del Sistema
@@ -243,6 +255,8 @@ export function mapReniecToPatientForm(reniecData: ReniecData): Partial<PatientF
     birthPlace: reniecData.departamentoNacimiento,
     address: buildCompleteAddress(reniecData), // Construir dirección completa
     district: reniecData.distrito === 'SIN DATOS' ? '' : reniecData.distrito,
+    educationLevel: gradoInstruccionBD,  // Código BD del grado de instrucción
+    educationLevelReniec: reniecData.gradoInstruccionCod || reniecData.nivelEstudios,  // Código RENIEC original
 
     // Datos Familiares
     fatherName: reniecData.nombrePadre === 'SIN DATOS' ? '' : reniecData.nombrePadre,
@@ -305,6 +319,52 @@ export async function getUbigeoByReniecCode(codigoReniec: string): Promise<strin
     return data.ubigeo;
   } catch (error) {
     console.error(`❌ Error al consultar UBIGEO para código RENIEC ${codigoReniec}:`, error);
+    return undefined;
+  }
+}
+
+/**
+ * Consulta el grado de instrucción correcto usando el código RENIEC
+ * @param codigoReniec Código RENIEC de grado de instrucción (ej: "20" para Secundaria Completa)
+ * @returns Código de grado de instrucción de la BD (ej: "05") o undefined si no se encuentra
+ */
+export async function getGradoInstruccionByReniecCode(codigoReniec: string): Promise<string | undefined> {
+  try {
+    if (!codigoReniec) {
+      console.warn(`⚠️ Código RENIEC de grado de instrucción inválido`);
+      return undefined;
+    }
+
+    console.log(`🎓 Consultando grado de instrucción para código RENIEC: ${codigoReniec}`);
+    
+    // Consultar todos los grados de instrucción
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
+    const response = await fetch(`${API_BASE_URL}/maestro/grado-instruccion/buscar?limite=50`);
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Error al consultar grados de instrucción`);
+      return undefined;
+    }
+
+    const gradosInstruccion = await response.json();
+    
+    // Buscar el grado que tenga el código RENIEC que coincida
+    // El código RENIEC puede venir con espacios o en diferentes formatos, normalizar
+    const codigoNormalizado = codigoReniec.trim();
+    
+    const gradoEncontrado = gradosInstruccion.find((grado: any) => 
+      grado.reniec && grado.reniec.trim() === codigoNormalizado
+    );
+    
+    if (gradoEncontrado) {
+      console.log(`✅ Grado de instrucción encontrado: ${gradoEncontrado.gradoInstruccion} (${gradoEncontrado.nombre}) para RENIEC: ${codigoReniec}`);
+      return gradoEncontrado.gradoInstruccion;
+    } else {
+      console.warn(`⚠️ No se encontró grado de instrucción para código RENIEC: ${codigoReniec}`);
+      return undefined;
+    }
+  } catch (error) {
+    console.error(`❌ Error al consultar grado de instrucción para código RENIEC ${codigoReniec}:`, error);
     return undefined;
   }
 }

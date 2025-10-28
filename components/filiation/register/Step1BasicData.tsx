@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,10 +40,44 @@ export function Step1BasicData({
   onDocumentTypeChange,
   onDocumentNumberChange
 }: Step1BasicDataProps) {
+  // Estado para la foto con cache-busting
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoTimestamp, setPhotoTimestamp] = useState<number>(Date.now())
+  
   console.log('📋 Step1BasicData recibido:')
   console.log('   - documentType:', documentType)
   console.log('   - documentNumber:', documentNumber)
   console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
+  console.log('   - patientData:', patientData ? 'Presente' : 'Ausente')
+  if (patientData?.STRING_FOTO) {
+    console.log('   - patientData.STRING_FOTO:', patientData.STRING_FOTO.substring(0, 50) + '...')
+  }
+  
+  // Actualizar foto cuando cambien los datos
+  useEffect(() => {
+    let newPhotoUrl: string | null = null
+    
+    // Prioridad 1: Foto de RENIEC (más reciente)
+    if (reniecData?.photoReniec) {
+      newPhotoUrl = `data:image/jpeg;base64,${reniecData.photoReniec}`
+      console.log('📸 Usando foto de RENIEC')
+    }
+    // Prioridad 2: Foto del paciente (de filiación)
+    else if (patientData?.STRING_FOTO || patientData?.stringFoto) {
+      // Asegurar que sea base64 válido (sin espacios ni saltos de línea)
+      const rawBase64 = patientData.STRING_FOTO || patientData.stringFoto
+      const cleanBase64 = String(rawBase64).replace(/\s/g, '')
+      newPhotoUrl = cleanBase64.startsWith('data:') 
+        ? cleanBase64 
+        : `data:image/jpeg;base64,${cleanBase64}`
+      console.log('📸 Usando foto de patientData (STRING_FOTO)')
+    }
+    
+    if (newPhotoUrl) {
+      setPhotoUrl(newPhotoUrl)
+      setPhotoTimestamp(Date.now()) // Actualizar timestamp para forzar recarga
+    }
+  }, [reniecData?.photoReniec, patientData?.STRING_FOTO, patientData?.stringFoto])
   
   // Obtener nombre completo del tipo de documento
   const { getTipoDocumentoNombre } = useTiposDocumento()
@@ -152,17 +187,10 @@ export function Step1BasicData({
             {/* Foto del Paciente */}
             <div className="flex flex-col items-center space-y-2">
               <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
-                {reniecData?.photoReniec ? (
+                {photoUrl ? (
                   <ImageWithLoader
-                    src={`data:image/jpeg;base64,${reniecData.photoReniec}`}
-                    alt="Foto RENIEC"
-                    width={128}
-                    height={192}
-                    className="w-full h-full object-cover"
-                  />
-                ) : patientData?.STRING_FOTO ? (
-                  <ImageWithLoader
-                    src={`data:image/jpeg;base64,${patientData.STRING_FOTO}`}
+                    key={photoTimestamp}
+                    src={photoUrl.startsWith('data:') ? photoUrl : `${photoUrl}?t=${photoTimestamp}`}
                     alt="Foto del paciente"
                     width={128}
                     height={192}

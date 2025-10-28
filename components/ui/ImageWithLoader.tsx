@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { cn } from '@/lib/utils';
+import { User } from 'lucide-react';
 
 interface ImageWithLoaderProps extends Omit<ImageProps, 'className'> {
   /**
@@ -40,11 +41,29 @@ export default function ImageWithLoader({
   ...props
 }: ImageWithLoaderProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   // Manejar el evento de carga completada
   const handleLoad = () => {
     setIsLoaded(true);
+    setHasError(false);
   };
+  
+  // Manejar errores de carga
+  const handleError = () => {
+    console.warn(`⚠️ Error al cargar imagen: ${alt}`);
+    setHasError(true);
+    setIsLoaded(false);
+  };
+  
+  // Si hay error, mostrar placeholder
+  if (hasError) {
+    return (
+      <div className={cn('flex items-center justify-center bg-gray-100', className)}>
+        <User className="w-16 h-16 text-gray-400" />
+      </div>
+    );
+  }
   
   return (
     <Image
@@ -64,6 +83,7 @@ export default function ImageWithLoader({
         transitionDuration: `${transitionDuration}ms` 
       }}
       onLoad={handleLoad}
+      onError={handleError}
       {...props}
     />
   );

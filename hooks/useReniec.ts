@@ -18,6 +18,8 @@ interface ReniecData {
   nombrePadre: string;
   nombreMadre: string;
   imagenFoto: string;
+  nivelEstudios?: string;  // Código RENIEC de grado de instrucción
+  gradoInstruccionCod?: string;  // Código RENIEC de grado de instrucción (campo alternativo)
 }
 
 /**
@@ -114,8 +116,8 @@ export function useReniec() {
 
       console.log('✅ Datos obtenidos de RENIEC:', reniecData);
 
-      // Mapear datos de RENIEC al formato del formulario
-      const mappedData = mapReniecToPatientForm(reniecData);
+      // Mapear datos de RENIEC al formato del formulario (ahora es async)
+      const mappedData = await mapReniecToPatientForm(reniecData);
 
       return {
         success: true,
