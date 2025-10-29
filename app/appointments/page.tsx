@@ -40,7 +40,6 @@ import {
 import { Navbar } from "@/components/Navbar"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
-import { SegurosProvider } from "@/contexts/SegurosContext"
 import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import RoleBasedRoute from "@/components/RoleBasedRoute"
@@ -611,7 +610,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           allowedRoles={['CALL CENTER', 'DEVOPS' , 'ANALISTA', 'DESARROLLADOR', 'ADMISIONISTA']}
           moduleName="Módulo de Citas"
         >
-          <SegurosProvider>
             <FiliationProvider>
               <TipoCitaProvider>
                 <SegurosCitaProvider>
@@ -1261,7 +1259,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                 </SegurosCitaProvider>
               </TipoCitaProvider>
             </FiliationProvider>
-          </SegurosProvider>
         </RoleBasedRoute>
       </ProtectedRoute>
   )

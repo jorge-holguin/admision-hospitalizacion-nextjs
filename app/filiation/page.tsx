@@ -266,7 +266,7 @@ export default function FiliationPage() {
       console.log(`🔍 Cargando datos completos de historia clínica para paciente: ${patientId}`);
       setIsLoadingPatientHistory(true);
       
-      const response = await fetch(`http://192.168.0.252:9011/api/historia-clinica/pacientes/${patientId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al obtener historia clínica: ${response.status}`);

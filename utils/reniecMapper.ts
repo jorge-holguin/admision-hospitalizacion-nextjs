@@ -54,6 +54,8 @@ interface PatientFormData {
   birthPlace: string;
   address: string;
   district: string;
+  direccionReniec?: string;  // Dirección de RENIEC (para referencia)
+  distritoReniec?: string;  // Código ubigeo BD del distrito de RENIEC
   educationLevel?: string;  // Grado de instrucción (código BD)
   educationLevelReniec?: string;  // Código RENIEC de grado de instrucción
 
@@ -237,6 +239,19 @@ export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Pa
     gradoInstruccionBD = await getGradoInstruccionByReniecCode(codigoReniec);
   }
 
+  // Mapear ubigeo RENIEC de procedencia a código de BD
+  let distritoReniecBD: string | undefined = undefined;
+  if (ubigeoReniecProcedencia) {
+    console.log('🗺️ Transformando ubigeo RENIEC procedencia:', ubigeoReniecProcedencia);
+    distritoReniecBD = await getUbigeoByReniecCode(ubigeoReniecProcedencia);
+    if (distritoReniecBD) {
+      console.log('✅ Ubigeo BD encontrado:', distritoReniecBD);
+    }
+  }
+
+  // Construir dirección RENIEC
+  const direccionReniec = buildCompleteAddress(reniecData);
+
   return {
     // Información del Sistema
     historyNumber: reniecData.dni, // N° Historia Clínica = DNI
@@ -255,6 +270,8 @@ export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Pa
     birthPlace: reniecData.departamentoNacimiento,
     address: buildCompleteAddress(reniecData), // Construir dirección completa
     district: reniecData.distrito === 'SIN DATOS' ? '' : reniecData.distrito,
+    direccionReniec,  // Dirección de RENIEC
+    distritoReniec: distritoReniecBD,  // Código ubigeo BD del distrito RENIEC
     educationLevel: gradoInstruccionBD,  // Código BD del grado de instrucción
     educationLevelReniec: reniecData.gradoInstruccionCod || reniecData.nivelEstudios,  // Código RENIEC original
 

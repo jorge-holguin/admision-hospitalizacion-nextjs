@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle, Edit } from "lucide-react"
 import { TipoCitaSelector } from "../../../../components/appointments/selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../../../../components/appointments/selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../../../../components/appointments/selectors/EntidadSisSelector"
@@ -19,6 +19,7 @@ import { SimpleSISVerification } from "../../../../components/appointments/patie
 import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
 import { convertTo12HourFormat } from "@/utils/timeUtils"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 
 interface Patient {
   HISTORIA: string

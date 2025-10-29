@@ -92,38 +92,29 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
         </div>
       )}
       
-      <div className="flex justify-end space-x-4 pt-6">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={submitting}
-          className="bg-[#e91e63] hover:bg-[#d81b60] text-white hover:text-white"
-        >
-          <X className="mr-2 h-4 w-4" /> Cancelar
-        </Button>
-        <Button
-          type="button"
-          onClick={() => {
-            console.log('Botón de guardar clickeado');
-            handleSaveClick();
-          }}
-          disabled={submitting || !isEditable || (isUpdate && !hasValidAccount)}
-          className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {isUpdate ? 'Actualizando...' : 'Guardando...'}
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              {isUpdate ? 'Actualizar' : 'Guardar'}
-            </>
-          )}
-        </Button>
-      </div>
+        <div className="flex justify-end space-x-4 pt-6">
+          <Button
+            type="button"
+            onClick={() => {
+              console.log('Botón de guardar clickeado');
+              handleSaveClick();
+            }}
+            disabled={submitting || !isEditable || (isUpdate && !hasValidAccount)}
+            className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isUpdate ? 'Actualizando...' : 'Guardando...'}
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {isUpdate ? 'Actualizar' : 'Guardar'}
+              </>
+            )}
+          </Button>
+        </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>

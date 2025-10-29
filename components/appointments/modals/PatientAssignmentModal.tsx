@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../patient/PatientInfoCardAppointment"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer, Edit } from "lucide-react"
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { extractNombreCompletoFromToken, extractDocumentFromToken } from "@/utils/jwtUtils"
 import { convertTo12HourFormat } from "@/utils/timeUtils"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 
 interface Patient {
   HISTORIA: string
@@ -98,6 +99,9 @@ export function PatientAssignmentModal({
   const { seguros } = useSegurosCita()
   
   const [selectedTipoCita, setSelectedTipoCita] = useState("")
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
+  const [fullPatientData, setFullPatientData] = useState<any>(null)
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
   const [selectedSeguro, setSelectedSeguro] = useState("")
   const [selectedEntidadSis, setSelectedEntidadSis] = useState("")
   const [referencia, setReferencia] = useState("")
@@ -185,6 +189,38 @@ export function PatientAssignmentModal({
       setEnhancedPatient(patient)
     } finally {
       setIsLoadingPatientData(false)
+    }
+  }
+
+  const loadFullPatientData = async (pacienteId: string) => {
+    if (!pacienteId) return
+    
+    setIsLoadingFullPatient(true)
+    try {
+      console.log('🔍 Precargando historia clínica completa para paciente ID:', pacienteId)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}`)
+      
+      if (response.ok) {
+        const fullData = await response.json()
+        console.log('📋 Historia clínica completa recibida:', fullData)
+        setFullPatientData(fullData)
+      } else {
+        console.warn('⚠️ No se pudo cargar historia clínica completa')
+        toast({
+          title: "Advertencia",
+          description: "No se pudo cargar la historia clínica completa del paciente",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('❌ Error cargando historia clínica completa:', error)
+      toast({
+        title: "Error",
+        description: "Error al cargar la historia clínica del paciente",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingFullPatient(false)
     }
   }
 
@@ -514,10 +550,36 @@ export function PatientAssignmentModal({
                 </CardContent>
               </Card>
             ) : (
-              <PatientInfoCardAppointment 
-                patient={enhancedPatient || patient!}
-                className="h-full"
-              />
+              <div className="space-y-3">
+                <PatientInfoCardAppointment 
+                  patient={enhancedPatient || patient!}
+                  className="h-full"
+                />
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+                    if (pacienteId) {
+                      await loadFullPatientData(pacienteId)
+                      setShowPatientEditModal(true)
+                    }
+                  }}
+                  disabled={isLoadingFullPatient}
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                >
+                  {isLoadingFullPatient ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Cargando...
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Actualizar Historia Clínica
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -822,6 +884,27 @@ export function PatientAssignmentModal({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    
+    {/* Modal de Actualización de Historia Clínica */}
+    {showPatientEditModal && patient && (
+      <Dialog open={showPatientEditModal} onOpenChange={setShowPatientEditModal}>
+        <PatientEditModal
+          patient={fullPatientData || enhancedPatient || patient}
+          onCancel={() => {
+            setShowPatientEditModal(false)
+            setFullPatientData(null) // Limpiar datos precargados
+          }}
+          onSuccess={() => {
+            setShowPatientEditModal(false)
+            setFullPatientData(null) // Limpiar datos precargados
+            toast({
+              title: "✅ Historia actualizada",
+              description: "Los cambios se han guardado correctamente.",
+            })
+          }}
+        />
+      </Dialog>
+    )}
     </>
   )
 }

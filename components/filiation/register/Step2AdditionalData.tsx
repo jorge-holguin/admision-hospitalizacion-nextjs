@@ -35,7 +35,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         {/* Seguro - Grado de instrucción - Ocupación */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="tipoSeguro">Tipo de Seguro</Label>
+            <Label htmlFor="tipoSeguro">Tipo de Seguro <span className="text-red-600">*</span></Label>
             <SeguroSelector
               value={formData.tipoSeguro}
               onChange={(value) => onInputChange("tipoSeguro", value)}
@@ -43,7 +43,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
           </div>
 
           <div>
-            <Label htmlFor="gradoInstruccion">Grado de Instrucción</Label>
+            <Label htmlFor="gradoInstruccion">Grado de Instrucción <span className="text-red-600">*</span></Label>
             <GradoInstruccionSelector
               value={formData.gradoInstruccion}
               onChange={(value, reniec) => {
@@ -54,7 +54,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
           </div>
 
           <div>
-            <Label htmlFor="ocupacion">Ocupación</Label>
+            <Label htmlFor="ocupacion">Ocupación <span className="text-red-600">*</span></Label>
             <OcupacionSelector
               value={formData.ocupacion}
               onChange={(value) => onInputChange("ocupacion", value)}
@@ -72,14 +72,14 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
             />
           </div>
           <div>
-            <Label htmlFor="etnia">Etnia</Label>
+            <Label htmlFor="etnia">Etnia <span className="text-red-600">*</span></Label>
             <EtniaSelector
               value={formData.etnia}
               onChange={(value) => onInputChange("etnia", value)}
             />
           </div>
           <div>
-            <Label htmlFor="centroPoblado">Centro Poblado</Label>
+            <Label htmlFor="centroPoblado">Centro Poblado <span className="text-red-600">*</span></Label>
             <LocalidadSelector
               value={formData.centroPoblado}
               onChange={(value) => onInputChange("centroPoblado", value)}

@@ -192,6 +192,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     // Campos especiales para RENIEC (permiten autocompletar ubigeos)
     lugarNacimientoReniec: "",
     ubigeoReniec: "",
+    direccionReniec: "",
+    distritoReniec: "",
   })
 
   // Función para mapear valores de la API a valores de las opciones
@@ -323,6 +325,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         // Campos especiales para RENIEC (inicialmente vacíos)
         lugarNacimientoReniec: "",
         ubigeoReniec: "",
+        direccionReniec: patient.direccionReniec || "",
+        distritoReniec: patient.distritoReniec || "",
       })
     }
   }, [patient])
@@ -432,6 +436,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           // Campos especiales RENIEC (para referencia)
           lugarNacimientoReniec: result.data.ubigeoReniecNacimiento || "",
           ubigeoReniec: result.data.ubigeoReniecProcedencia || "",
+          direccionReniec: result.data.direccionReniec || result.data.address || "",
+          distritoReniec: result.data.distritoReniec || distritoProcedenciaUbigeo || "",
         }));
 
         toast({
@@ -561,6 +567,21 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         updateData.stringFoto = reniecPhotoHex
         console.log('📸 Enviando foto RENIEC (hexadecimal):', reniecPhotoHex.substring(0, 50) + '...')
       }
+      
+      // ✅ Campos RENIEC
+      if (formData.direccionReniec?.trim()) {
+        updateData.direccionReniec = formData.direccionReniec.trim()
+        console.log('📍 Dirección RENIEC:', updateData.direccionReniec)
+      }
+      if (formData.distritoReniec?.trim()) {
+        updateData.distritoReniec = formData.distritoReniec.trim()
+        console.log('🗺️ Distrito RENIEC (ubigeo BD):', updateData.distritoReniec)
+      }
+      // Si se consultó RENIEC (reniecData existe), marcar como validado
+      if (reniecData) {
+        updateData.validadoReniec = true
+        console.log('✅ Validado RENIEC: true')
+      }
 
       console.log('Actualizando paciente:', pacienteId)
       console.log('Datos a enviar (solo campos editados):', updateData)
@@ -568,7 +589,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       // Obtener usuario del JWT
       const usuario = extractDocumentFromToken();
       
-      const response = await fetch(`http://192.168.0.252:9011/api/historia-clinica/pacientes/${pacienteId}?usuario=${encodeURIComponent(usuario || '')}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}?usuario=${encodeURIComponent(usuario || '')}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

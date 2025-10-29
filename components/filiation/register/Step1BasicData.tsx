@@ -43,6 +43,7 @@ export function Step1BasicData({
   // Estado para la foto con cache-busting
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoTimestamp, setPhotoTimestamp] = useState<number>(Date.now())
+  const [distritoReniecNombre, setDistritoReniecNombre] = useState<string>('')
   
   console.log('📋 Step1BasicData recibido:')
   console.log('   - documentType:', documentType)
@@ -78,6 +79,30 @@ export function Step1BasicData({
       setPhotoTimestamp(Date.now()) // Actualizar timestamp para forzar recarga
     }
   }, [reniecData?.photoReniec, patientData?.STRING_FOTO, patientData?.stringFoto])
+  
+  // Obtener nombre del distrito RENIEC cuando cambia
+  useEffect(() => {
+    const fetchDistritoReniecNombre = async () => {
+      const codigoDistrito = reniecData?.distritoReniec || formData.distritoReniec || patientData?.distritoReniec
+      if (codigoDistrito) {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/${codigoDistrito}`)
+          if (response.ok) {
+            const data = await response.json()
+            setDistritoReniecNombre(`${codigoDistrito} - ${data.distrito}`)
+          } else {
+            setDistritoReniecNombre(codigoDistrito)
+          }
+        } catch (error) {
+          console.error('Error al obtener nombre de distrito RENIEC:', error)
+          setDistritoReniecNombre(codigoDistrito)
+        }
+      } else {
+        setDistritoReniecNombre('')
+      }
+    }
+    fetchDistritoReniecNombre()
+  }, [reniecData?.distritoReniec, formData.distritoReniec, patientData?.distritoReniec])
   
   // Obtener nombre completo del tipo de documento
   const { getTipoDocumentoNombre } = useTiposDocumento()
@@ -220,7 +245,7 @@ export function Step1BasicData({
               <div>
                 <Label htmlFor="tipoDocumento" className="flex items-center text-sm font-medium text-gray-700">
                   <CreditCard className="w-4 h-4 mr-1" />
-                  Tipo de Documento
+                  Tipo de Documento <span className="text-red-600">*</span>
                 </Label>
                 {reniecData ? (
                   <Input id="tipoDocumento" value={documentTypeDisplay} disabled className="bg-gray-50 text-gray-600 uppercase" />
@@ -240,7 +265,7 @@ export function Step1BasicData({
               <div>
                 <Label htmlFor="dni" className="flex items-center text-sm font-medium text-gray-700">
                   <Hash className="w-4 h-4 mr-1" />
-                  N° Documento
+                  N° Documento <span className="text-red-600">*</span>
                 </Label>
                 {reniecData ? (
                   <Input
@@ -316,7 +341,7 @@ export function Step1BasicData({
     {/* Apellido Paterno - Apellido Materno - Nombres */}
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
-        <Label htmlFor="apellidoPaterno">Apellido Paterno</Label>
+        <Label htmlFor="apellidoPaterno">Apellido Paterno <span className="text-red-600">*</span></Label>
                 <Input
                   id="apellidoPaterno"
                   value={reniecData?.apellidoPaterno || formData.apellidoPaterno || patientData?.PATERNO || ""}
@@ -326,7 +351,7 @@ export function Step1BasicData({
                 />
       </div>
       <div>
-        <Label htmlFor="apellidoMaterno">Apellido Materno</Label>
+        <Label htmlFor="apellidoMaterno">Apellido Materno <span className="text-red-600">*</span></Label>
                 <Input
                   id="apellidoMaterno"
                   value={reniecData?.apellidoMaterno || formData.apellidoMaterno || patientData?.MATERNO || ""}
@@ -336,7 +361,7 @@ export function Step1BasicData({
                 />
       </div>
       <div>
-        <Label htmlFor="nombres">Nombres</Label>
+        <Label htmlFor="nombres">Nombres <span className="text-red-600">*</span></Label>
                 <Input
                   id="nombres"
                   value={reniecData?.nombres || formData.nombres || patientData?.NOMBRES || ""}
@@ -350,7 +375,7 @@ export function Step1BasicData({
     {/* Fecha, Sexo y Estado Civil */}
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
-        <Label htmlFor="fechaNacimiento">Fecha Nacimiento</Label>
+        <Label htmlFor="fechaNacimiento">Fecha Nacimiento <span className="text-red-600">*</span></Label>
         <Input
           id="fechaNacimiento"
           type="date"
@@ -359,7 +384,7 @@ export function Step1BasicData({
         />
       </div>
       <div>
-        <Label htmlFor="sexo">Sexo</Label>
+        <Label htmlFor="sexo">Sexo <span className="text-red-600">*</span></Label>
         <Select value={formData.sexo} onValueChange={(value) => onInputChange("sexo", value)}>
           <SelectTrigger>
             <SelectValue placeholder="Seleccionar" />
@@ -371,7 +396,7 @@ export function Step1BasicData({
         </Select>
       </div>
       <div>
-        <Label htmlFor="estadoCivil">Estado Civil</Label>
+        <Label htmlFor="estadoCivil">Estado Civil <span className="text-red-600">*</span></Label>
         <EstadoCivilSelector
           value={formData.estadoCivil}
           onChange={(value, reniec) => {
@@ -385,14 +410,14 @@ export function Step1BasicData({
     {/* País y Lugar de Nacimiento */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <Label htmlFor="paisNacimiento">País de Nacimiento</Label>
+        <Label htmlFor="paisNacimiento">País de Nacimiento <span className="text-red-600">*</span></Label>
         <PaisSelector
           value={formData.paisNacimiento}
           onChange={(value) => onInputChange("paisNacimiento", value)}
         />
       </div>
       <div>
-        <Label htmlFor="lugarNacimiento">Lugar de Nacimiento (Distrito)</Label>
+        <Label htmlFor="lugarNacimiento">Lugar de Nacimiento (Distrito) <span className="text-red-600">*</span></Label>
         <UbigeoSelector
           value={formData.lugarNacimiento}
           onChange={(value, ubigeoreniec) => {
@@ -408,7 +433,7 @@ export function Step1BasicData({
     {/* Dirección y Distrito */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <Label htmlFor="direccion">Dirección</Label>
+        <Label htmlFor="direccion">Dirección <span className="text-red-600">*</span></Label>
               <Input
                 id="direccion"
                 placeholder="Ingrese dirección completa"
@@ -418,7 +443,7 @@ export function Step1BasicData({
               />
       </div>
       <div>
-        <Label htmlFor="distritoProcedencia">Distrito de Procedencia</Label>
+        <Label htmlFor="distritoProcedencia">Distrito de Procedencia <span className="text-red-600">*</span></Label>
         <UbigeoSelector
           value={formData.distritoProcedencia}
           onChange={(value, ubigeoreniec) => {
@@ -428,6 +453,28 @@ export function Step1BasicData({
           }}
           placeholder="Buscar distrito de procedencia..."
           ubigeoReniecInitial={reniecData?.ubigeoReniecProcedencia}
+        />
+      </div>
+    </div>
+
+    {/* Dirección y Distrito RENIEC (solo lectura) */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="direccionReniec">Dirección RENIEC</Label>
+        <Input
+          id="direccionReniec"
+          value={reniecData?.direccionReniec || formData.direccionReniec || patientData?.direccionReniec || ""}
+          disabled
+          className="bg-gray-50 text-gray-600 uppercase"
+        />
+      </div>
+      <div>
+        <Label htmlFor="distritoReniec">Distrito RENIEC</Label>
+        <Input
+          id="distritoReniec"
+          value={distritoReniecNombre}
+          disabled
+          className="bg-gray-50 text-gray-600 uppercase"
         />
       </div>
     </div>

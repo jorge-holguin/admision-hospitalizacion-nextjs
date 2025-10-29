@@ -50,19 +50,19 @@ export function Step3FamilyData({ formData, onInputChange }: Step3FamilyDataProp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="conyuge">Cónyuge</Label>
+              <Label htmlFor="conyuge">Cónyuge <span className="text-red-600">*</span></Label>
               <Input
                 id="conyuge"
                 placeholder="Apellidos y nombres completos"
-                value={formData.conyuge}
+                value={formData.conyuge ?? '-'}
                 onChange={(e) => onInputChange("conyuge", e.target.value.toUpperCase())}
                 className="uppercase"
               />
             </div>
             <div>
-              <Label htmlFor="ocupacionFamiliar">Ocupación del Conyuge</Label>
+              <Label htmlFor="ocupacionFamiliar">Ocupación del Cónyuge <span className="text-red-600">*</span></Label>
               <OcupacionSelector
-                value={formData.ocupacionFamiliar || ""}
+                value={(formData.ocupacionFamiliar ?? '0')}
                 onChange={(value) => onInputChange("ocupacionFamiliar", value)}
                 placeholder="Buscar ocupación..."
               />

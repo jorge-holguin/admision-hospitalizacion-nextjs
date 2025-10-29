@@ -21,6 +21,7 @@ interface FormDataInput {
   // Step 2 - Datos adicionales
   tipoSeguro: string
   gradoInstruccion: string
+  gradoInstruccionReniec?: string // Código RENIEC del grado de instrucción
   ocupacion: string
   religion: string
   etnia: string
@@ -61,6 +62,7 @@ interface HistoriaClinicaPayload {
   distrito: string
   seguro: string
   gradoInstruccion: string
+  gradoInstruccionCod: string // Código RENIEC del grado de instrucción
   ocupacion: string
   religion: string
   codEtnia: string
@@ -192,7 +194,9 @@ export async function transformFormDataToAPIPayload(
   if (validadoReniec && reniecRawData) {
     direccionReniecCompleta = buildCompleteAddress(reniecRawData)
     console.log('📍 Dirección RENIEC construida:', direccionReniecCompleta)
-    distritoReniecCodigo = ubigeoReniecProcedencia || ''
+    // distritoReniec debe ser el ubigeo BD (ya transformado), no el código RENIEC
+    distritoReniecCodigo = distritoUbigeo || ''
+    console.log('🗺️ Distrito RENIEC (ubigeo BD):', distritoReniecCodigo)
   }
   
   console.log('🔍 Modo de registro:', validadoReniec ? 'CON RENIEC' : 'MANUAL')
@@ -216,6 +220,7 @@ export async function transformFormDataToAPIPayload(
     distrito: distritoUbigeo,
     seguro: formData.tipoSeguro,
     gradoInstruccion: formData.gradoInstruccion,
+    gradoInstruccionCod: formData.gradoInstruccionReniec || '', // Código RENIEC
     ocupacion: formData.ocupacion,
     religion: formData.religion,
     codEtnia: formData.etnia,

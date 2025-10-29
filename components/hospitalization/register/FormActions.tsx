@@ -116,15 +116,6 @@ export function FormActions({
     <>
       <div className="flex justify-end space-x-2 mt-6">
         <Button 
-          variant="outline" 
-          onClick={onCancel}
-          disabled={submitting || isConfirming}
-          className="bg-[#e91e63] hover:bg-[#d81b60] text-white hover:text-white"
-        >
-          <X className="mr-2 h-4 w-4" />
-          Cancelar
-        </Button>
-        <Button 
           onClick={handleSaveClick}
           disabled={submitting || isConfirming || !isEditable}
           className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"

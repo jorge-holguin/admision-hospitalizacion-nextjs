@@ -73,6 +73,7 @@ export function PatientRegistrationModal({
     // Datos adicionales
     tipoSeguro: "",
     gradoInstruccion: "",
+    gradoInstruccionReniec: "", // Código RENIEC del grado de instrucción
     ocupacion: "",
     religion: "",
     etnia: "",
@@ -128,7 +129,14 @@ export function PatientRegistrationModal({
         // Guardar códigos RENIEC para que UbigeoSelector los use
         lugarNacimientoReniec: reniecData.ubigeoReniecNacimiento || "",
         ubigeoReniec: reniecData.ubigeoReniecProcedencia || "",
+        // Grado de instrucción desde RENIEC (código BD)
+        gradoInstruccion: reniecData.educationLevel || "",
+        // Código RENIEC del grado de instrucción
+        gradoInstruccionReniec: reniecData.educationLevelReniec || "",
+        // Ocupación del cónyuge por defecto
+        ocupacionFamiliar: "0", // 0 = Ninguno
       })
+      console.log('🎓 Grado de instrucción desde RENIEC:', reniecData.educationLevel, 'Código RENIEC:', reniecData.educationLevelReniec)
     }
     
     // Datos del SIS - mapear tipo de seguro
