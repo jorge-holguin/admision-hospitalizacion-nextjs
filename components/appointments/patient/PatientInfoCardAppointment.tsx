@@ -5,7 +5,7 @@ import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
-import { User, Calendar, Phone, MapPin, CreditCard, Heart, House } from 'lucide-react';
+import { User, Calendar, Phone, CreditCard, Heart, House, Mail } from 'lucide-react';
 
 interface Patient {
   // Campos que vienen del servicio filiacion2Service
@@ -25,6 +25,7 @@ interface Patient {
   Distrito_Dir?: string
   TELEFONO1?: string
   TELEFONO2?: string
+  CORREO?: string
   SEGURO?: string
   NOMBRE_SEGURO?: string
   RELIGION?: string
@@ -206,6 +207,12 @@ export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProp
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patient.TELEFONO1}</span>
+              </div>
+            )}
+            {patient.CORREO && (
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-gray-400" />
+                <span className="text-sm">{patient.CORREO}</span>
               </div>
             )}
           </div>

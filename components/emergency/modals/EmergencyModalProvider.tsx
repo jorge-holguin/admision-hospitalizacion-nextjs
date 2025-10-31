@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { EmergencyProvider } from "@/contexts/EmergencyProvider"
+import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { EmergencyMainModal } from './EmergencyMainModal'
 
 interface EmergencyModalProviderProps {
@@ -34,13 +35,15 @@ export function EmergencyModalProvider({
   }
 
   return (
-    <EmergencyProvider>
-      <EmergencyMainModal
-        isOpen={isOpen}
-        onClose={onClose}
-        patientId={patientId}
-        patientName={patientName}
-      />
-    </EmergencyProvider>
+    <SegurosCitaProvider>
+      <EmergencyProvider>
+        <EmergencyMainModal
+          isOpen={isOpen}
+          onClose={onClose}
+          patientId={patientId}
+          patientName={patientName}
+        />
+      </EmergencyProvider>
+    </SegurosCitaProvider>
   )
 }

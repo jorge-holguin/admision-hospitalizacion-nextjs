@@ -246,6 +246,9 @@ export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Pa
     distritoReniecBD = await getUbigeoByReniecCode(ubigeoReniecProcedencia);
     if (distritoReniecBD) {
       console.log('✅ Ubigeo BD encontrado:', distritoReniecBD);
+    } else {
+      console.warn(`⚠️ No se encontró ubigeo en BD para código RENIEC: ${ubigeoReniecProcedencia}`);
+      console.warn(`   → Complete manualmente el distrito de procedencia`);
     }
   }
 
@@ -271,7 +274,7 @@ export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Pa
     address: buildCompleteAddress(reniecData), // Construir dirección completa
     district: reniecData.distrito === 'SIN DATOS' ? '' : reniecData.distrito,
     direccionReniec,  // Dirección de RENIEC
-    distritoReniec: distritoReniecBD,  // Código ubigeo BD del distrito RENIEC
+    distritoReniec: ubigeoReniecProcedencia,  // ✅ Código RENIEC original (6 dígitos), NO ubigeo BD
     educationLevel: gradoInstruccionBD,  // Código BD del grado de instrucción
     educationLevelReniec: reniecData.gradoInstruccionCod || reniecData.nivelEstudios,  // Código RENIEC original
 

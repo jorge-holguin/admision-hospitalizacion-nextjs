@@ -16,8 +16,8 @@ import {
   Home 
 } from "lucide-react"
 import ImageWithLoader from "@/components/ui/ImageWithLoader"
-import { useTiposDocumento } from "@/contexts/TiposDocumentoContext"
 import { UbigeoSelector, EstadoCivilSelector, PaisSelector } from "@/components/filiation/selectors"
+import { TipoDocumentoSelector } from "@/components/filiation/selectors/TipoDocumentoSelector"
 
 interface Step1BasicDataProps {
   formData: any
@@ -83,19 +83,44 @@ export function Step1BasicData({
   // Obtener nombre del distrito RENIEC cuando cambia
   useEffect(() => {
     const fetchDistritoReniecNombre = async () => {
-      const codigoDistrito = reniecData?.distritoReniec || formData.distritoReniec || patientData?.distritoReniec
-      if (codigoDistrito) {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/${codigoDistrito}`)
-          if (response.ok) {
-            const data = await response.json()
-            setDistritoReniecNombre(`${codigoDistrito} - ${data.distrito}`)
-          } else {
-            setDistritoReniecNombre(codigoDistrito)
+      const codigo = reniecData?.distritoReniec || formData.distritoReniec || patientData?.distritoReniec
+      if (codigo && codigo.trim() !== '') {
+        const codigoTrimmed = codigo.trim()
+        
+        // ✅ Distinguir entre código RENIEC (6 dígitos) y ubigeo BD (7 dígitos)
+        const esCodigoReniec = codigoTrimmed.length === 6 || (codigoTrimmed.length < 7 && !codigoTrimmed.includes(' '))
+        
+        if (esCodigoReniec) {
+          // Caso 1: Es código RENIEC → mapear a ubigeo BD
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/reniec/${codigoTrimmed}`)
+            if (response.ok) {
+              const data = await response.json()
+              setDistritoReniecNombre(`${data.ubigeo?.trim() || codigoTrimmed} - ${data.distrito}`)
+              console.log('✅ Código RENIEC mapeado:', `${codigoTrimmed} → ${data.ubigeo?.trim()} (${data.distrito})`)
+            } else {
+              setDistritoReniecNombre(codigoTrimmed)
+              console.warn('⚠️ No se pudo mapear código RENIEC:', codigoTrimmed)
+            }
+          } catch (error) {
+            console.error('Error al mapear código RENIEC:', error)
+            setDistritoReniecNombre(codigoTrimmed)
           }
-        } catch (error) {
-          console.error('Error al obtener nombre de distrito RENIEC:', error)
-          setDistritoReniecNombre(codigoDistrito)
+        } else {
+          // Caso 2: Ya es ubigeo BD → obtener solo el nombre
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/${codigoTrimmed}`)
+            if (response.ok) {
+              const data = await response.json()
+              setDistritoReniecNombre(`${codigoTrimmed} - ${data.distrito}`)
+              console.log('✅ Ubigeo BD encontrado:', `${codigoTrimmed} (${data.distrito})`)
+            } else {
+              setDistritoReniecNombre(codigoTrimmed)
+            }
+          } catch (error) {
+            console.error('Error al obtener nombre de ubigeo:', error)
+            setDistritoReniecNombre(codigoTrimmed)
+          }
         }
       } else {
         setDistritoReniecNombre('')
@@ -103,45 +128,6 @@ export function Step1BasicData({
     }
     fetchDistritoReniecNombre()
   }, [reniecData?.distritoReniec, formData.distritoReniec, patientData?.distritoReniec])
-  
-  // Obtener nombre completo del tipo de documento
-  const { getTipoDocumentoNombre } = useTiposDocumento()
-  
-  // Mapeo de fallback para tipos de documento comunes
-  const documentTypeMap: Record<string, string> = {
-    'D': 'DNI',
-    'CE': 'CARNET DE EXTRANJERÍA',
-    'PP': 'PASAPORTE',
-    '0': '*NINGUNO',
-    'DNI': 'DNI' // Por si viene ya como "DNI"
-  }
-  
-  // Limpiar el tipo de documento (quitar espacios)
-  const cleanDocType = documentType?.trim() || ''
-  
-  // Intentar obtener el nombre del tipo de documento
-  let documentTypeDisplay = '-'
-  
-  // 1. Intentar desde el contexto con el valor original
-  if (documentType) {
-    documentTypeDisplay = getTipoDocumentoNombre(documentType)
-  }
-  
-  // 2. Si no se encontró, intentar con el valor limpio
-  if (documentTypeDisplay === documentType || documentTypeDisplay === '-') {
-    documentTypeDisplay = getTipoDocumentoNombre(cleanDocType)
-  }
-  
-  // 3. Si aún no se encontró, usar el mapeo local
-  if (documentTypeDisplay === documentType || documentTypeDisplay === cleanDocType || documentTypeDisplay === '-') {
-    documentTypeDisplay = documentTypeMap[cleanDocType] || cleanDocType || '-'
-  }
-  
-  console.log('📋 Tipo de documento:', {
-    original: documentType,
-    cleaned: cleanDocType,
-    display: documentTypeDisplay
-  })
   // Generar datos automáticos
   const currentDate = new Date()
   const currentDateTime = currentDate.toLocaleString("es-PE", {
@@ -237,7 +223,13 @@ export function Step1BasicData({
                 </Label>
                 <Input 
                   id="hc" 
-                  value={reniecData?.historyNumber || patientData?.HISTORIA?.trim() || documentNumber || "Se genera automáticamente"} 
+                  value={
+                    patientData?.HISTORIA?.trim() || 
+                    patientData?.historia?.trim() || 
+                    reniecData?.historyNumber || 
+                    (documentType === 'D' || documentType === 'DNI' ? documentNumber : '') || 
+                    "Se genera automáticamente"
+                  } 
                   disabled 
                   className="bg-gray-50 text-gray-600" 
                 />
@@ -247,19 +239,20 @@ export function Step1BasicData({
                   <CreditCard className="w-4 h-4 mr-1" />
                   Tipo de Documento <span className="text-red-600">*</span>
                 </Label>
-                {reniecData ? (
-                  <Input id="tipoDocumento" value={documentTypeDisplay} disabled className="bg-gray-50 text-gray-600 uppercase" />
+                {reniecData && reniecData.dni ? (
+                  <Input id="tipoDocumento" value="DNI" disabled className="bg-gray-50 text-gray-600 uppercase" />
+                ) : patientData ? (
+                  <TipoDocumentoSelector
+                    value={documentType}
+                    onChange={(value) => onDocumentTypeChange?.(value)}
+                    disabled={true}
+                  />
                 ) : (
-                  <Select value={documentType} onValueChange={onDocumentTypeChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="D">DNI</SelectItem>
-                      <SelectItem value="CE">CARNET DE EXTRANJERÍA</SelectItem>
-                      <SelectItem value="PP">PASAPORTE</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <TipoDocumentoSelector
+                    value={documentType}
+                    onChange={(value) => onDocumentTypeChange?.(value)}
+                    disabled={!!reniecData}
+                  />
                 )}
               </div>
               <div>
@@ -270,14 +263,14 @@ export function Step1BasicData({
                 {reniecData ? (
                   <Input
                     id="dni"
-                    value={reniecData?.dni || documentNumber}
+                    value={reniecData?.document || reniecData?.dni || patientData?.documento || patientData?.DOCUMENTO || documentNumber}
                     disabled
                     className="bg-gray-50 text-gray-600"
                   />
                 ) : (
                   <Input
                     id="dni"
-                    value={documentNumber}
+                    value={documentNumber || patientData?.documento || patientData?.DOCUMENTO || ""}
                     onChange={(e) => onDocumentNumberChange?.(e.target.value)}
                     placeholder="Ingrese número de documento"
                   />
@@ -437,7 +430,7 @@ export function Step1BasicData({
               <Input
                 id="direccion"
                 placeholder="Ingrese dirección completa"
-                value={reniecData?.address || formData.direccion || patientData?.DIRECCION || ""}
+                value={formData.direccion || patientData?.DIRECCION || reniecData?.address || ""}
                 onChange={(e) => onInputChange("direccion", e.target.value.toUpperCase())}
                 className="uppercase"
               />

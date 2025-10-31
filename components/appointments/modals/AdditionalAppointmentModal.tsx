@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PatientInfoCardAppointment } from "../patient/PatientInfoCardAppointment"
+import { PatientPendingAppointmentsModal, type PendingAppointment } from "../patient/PatientPendingAppointmentsModal"
 import { ConsultorioCitasSelector } from "../selectors/ConsultorioCitasSelector"
 import { MedicoSelector } from "../selectors/MedicoSelector"
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { TurnoSelector } from "../selectors/TurnoSelector"
-import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle, Edit } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
 import { extractDocumentFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
@@ -35,14 +37,16 @@ export function AdditionalAppointmentModal({
 }: AdditionalAppointmentModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [appointmentId, setAppointmentId] = useState<string>("")
-  const [isLoadingPatientData, setIsLoadingPatientData] = useState(false)
-  const [enhancedPatient, setEnhancedPatient] = useState<any>(null)
+  const [createdAppointment, setCreatedAppointment] = useState<any>(null)
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
+  const [fullPatientData, setFullPatientData] = useState<any>(null)
+  const [refreshedPatient, setRefreshedPatient] = useState<any>(null)
+  const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([])
+  const [consultorioNombreSel, setConsultorioNombreSel] = useState<string>("")
   
   // Form fields
   const [fecha, setFecha] = useState<string>("")
-  const [numero, setNumero] = useState<string>("")
-  const [hora, setHora] = useState<string>("")
   const [consultorio, setConsultorio] = useState<string>("")
   const [medico, setMedico] = useState<string>("")
   const [turno, setTurno] = useState<string>("")
@@ -52,61 +56,10 @@ export function AdditionalAppointmentModal({
   const [referencia, setReferencia] = useState<string>("")
   const [selectedEntidadSis, setSelectedEntidadSis] = useState<string>("")
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
+  const [especialidadConsultorio, setEspecialidadConsultorio] = useState<string | null>(null)
 
   // Get API base URL from environment
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
-
-  const loadEnhancedPatientData = async (pacienteId: string) => {
-    if (!pacienteId) return
-    
-    setIsLoadingPatientData(true)
-    try {
-      console.log('🔍 Cargando datos adicionales para paciente ID:', pacienteId)
-      const response = await fetch(`${apiBaseUrl}/paciente-foto/${pacienteId}`)
-      
-      if (response.ok) {
-        const additionalData = await response.json()
-        console.log('📋 Datos adicionales recibidos:', additionalData)
-        
-        // Combinar datos originales con datos adicionales
-        const enhancedPatientData = {
-          ...patient,
-          // Sobrescribir con datos más completos de la API
-          NOMBRES: additionalData.nombres || patient?.NOMBRES,
-          STRING_FOTO: additionalData.stringFoto || patient?.STRING_FOTO,
-          ESTADO_CIVIL: additionalData.estadoCivil || patient?.ESTADO_CIVIL,
-          FECHA_NACIMIENTO: additionalData.fechaNacimiento ? 
-            new Date(additionalData.fechaNacimiento).toISOString().split('T')[0] : 
-            patient?.FECHA_NACIMIENTO,
-          EDAD: additionalData.edad || patient?.EDAD
-        }
-        
-        setEnhancedPatient(enhancedPatientData)
-        console.log('✅ Datos del paciente mejorados:', enhancedPatientData)
-      } else {
-        console.warn('⚠️ No se pudieron cargar datos adicionales, usando datos originales')
-        setEnhancedPatient(patient)
-      }
-    } catch (error) {
-      console.error('❌ Error cargando datos adicionales:', error)
-      setEnhancedPatient(patient)
-    } finally {
-      setIsLoadingPatientData(false)
-    }
-  }
-
-  // Load enhanced patient data when modal opens
-  useEffect(() => {
-    if (isOpen && patient) {
-      // Load enhanced patient data
-      const pacienteId = patient.PACIENTE || patient.HISTORIA
-      if (pacienteId) {
-        loadEnhancedPatientData(pacienteId)
-      } else {
-        setEnhancedPatient(patient)
-      }
-    }
-  }, [isOpen, patient])
 
   // Initialize form when modal opens
   useEffect(() => {
@@ -118,12 +71,13 @@ export function AdditionalAppointmentModal({
       
       // Set default seguro from patient data
       if (patient.SEGURO) {
+        console.log('📋 Estableciendo seguro desde paciente:', patient.SEGURO)
         setTipoSeguro(patient.SEGURO)
+      } else {
+        console.warn('⚠️ Paciente no tiene SEGURO definido:', patient)
       }
       
       // Reset other fields
-      setNumero("")
-      setHora("")
       setConsultorio("")
       setMedico("")
       setTurno("")
@@ -133,42 +87,61 @@ export function AdditionalAppointmentModal({
       setSelectedEntidadSis("")
       setSisVerificationResult(null)
       setShowSuccess(false)
-      setAppointmentId("")
+      setCreatedAppointment(null)
     }
   }, [isOpen, patient])
 
-  // Validate Turno + Consultorio to generate Numero and Hora
+  // Actualizar tipo de seguro cuando se recarga el paciente
   useEffect(() => {
-    if (turno && consultorio) {
-      // Simulate validation logic - in real app this would be an API call
-      const generateAppointmentDetails = () => {
-        // Generate a random number for demonstration
-        const randomNum = Math.floor(Math.random() * 100) + 1
-        setNumero(randomNum.toString().padStart(3, '0'))
-        
-        // Generate time based on turno
-        if (turno === 'MAÑANA') {
-          const hour = Math.floor(Math.random() * 4) + 8 // 8-11 AM
-          const minute = Math.floor(Math.random() * 4) * 15 // 0, 15, 30, 45
-          setHora(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
-        } else if (turno === 'TARDE') {
-          const hour = Math.floor(Math.random() * 4) + 14 // 2-5 PM
-          const minute = Math.floor(Math.random() * 4) * 15 // 0, 15, 30, 45
-          setHora(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
-        }
-      }
-      
-      generateAppointmentDetails()
-    } else {
-      setNumero("")
-      setHora("")
+    if (refreshedPatient && refreshedPatient.SEGURO) {
+      console.log('🔄 Actualizando tipo de seguro desde paciente recargado:', refreshedPatient.SEGURO)
+      setTipoSeguro(refreshedPatient.SEGURO)
     }
-  }, [turno, consultorio])
+  }, [refreshedPatient])
+
+  // Limpiar campos SIS cuando no es seguro SIS
+  useEffect(() => {
+    if (!isSisSeguro()) {
+      setSelectedEntidadSis("")
+      setReferencia("")
+      setSisVerificationResult(null)
+    }
+  }, [tipoSeguro])
 
   // Function to check if selected insurance is SIS
   const isSisSeguro = () => {
-    const sisTypes = ['20', '21', '22', '23', '24', '25', '01']
-    return sisTypes.includes(tipoSeguro)
+    const sisSegurosCodes = ['20', '21', '22', '23', '24', '25']
+    const isSis = sisSegurosCodes.includes(tipoSeguro?.toString().trim())
+    console.log('🔍 isSisSeguro check:', { tipoSeguro, tipoSeguroTrimmed: tipoSeguro?.toString().trim(), isSis, sisSegurosCodes })
+    return isSis
+  }
+
+  // Función para cargar datos completos del paciente
+  const loadFullPatientData = async (pacienteId: string) => {
+    try {
+      setIsLoadingFullPatient(true)
+      console.log('🔄 Cargando datos completos del paciente:', pacienteId)
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${pacienteId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar datos del paciente')
+      }
+      
+      const data = await response.json()
+      console.log('✅ Datos completos del paciente cargados:', data)
+      setFullPatientData(data)
+    } catch (error) {
+      console.error('❌ Error al cargar datos del paciente:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos completos del paciente",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingFullPatient(false)
+    }
   }
 
   const handleSave = async () => {
@@ -203,13 +176,11 @@ export function AdditionalAppointmentModal({
         consultorio: consultorio,
         medico: medico,
         fecha: new Date(fecha).toISOString(),
-        hora: hora,
         turnoConsulta: turno === 'MAÑANA' ? 'M' : 'T',
         paciente: patient.HISTORIA || patient.PACIENTE,
         nombre: patient.NOMBRES || patient.NOMBRE || '',
         observacion: observacion || '',
         seguro: tipoSeguro,
-        numero: numero,
         numRef: referencia || '',
         entidadSis: selectedEntidadSis || ''
       }
@@ -261,9 +232,8 @@ export function AdditionalAppointmentModal({
       // Extraer el ID de la cita creada de la respuesta
       const citaId = responseData.citaId || responseData.id || responseData.data?.citaId || null
       
-      // Show success
-      const mockId = citaId || `CITA-${Date.now()}`
-      setAppointmentId(mockId)
+      // Guardar datos de la cita creada
+      setCreatedAppointment(responseData)
       setShowSuccess(true)
       
       toast({
@@ -345,17 +315,38 @@ export function AdditionalAppointmentModal({
     if (showSuccess) {
       // Reset form and close
       setShowSuccess(false)
-      setAppointmentId("")
+      setCreatedAppointment(null)
     }
     onClose()
   }
 
   if (!patient) return null
 
+  // Detectar coincidencias para mostrar advertencia en cabecera
+  const hasConsultorioMatch = pendingAppointments?.some((apt) => {
+    const curr = consultorioNombreSel?.trim().toLowerCase()
+    const other = apt.consultorioNombre?.trim().toLowerCase()
+    return curr && other && curr === other
+  })
+
+  const hasEspecialidadMatch = pendingAppointments?.some((apt) => {
+    const currEspecialidad = especialidadConsultorio?.trim().toLowerCase()
+    if (!currEspecialidad) return false
+    
+    // Comparar con el campo 'especialidad' (código) de las citas pendientes
+    const matchCodigo = apt.especialidad?.trim().toLowerCase() === currEspecialidad
+    
+    return matchCodigo
+  })
+
   if (showSuccess) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent
+          className="max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-center text-green-700 flex items-center justify-center">
               <CheckCircle className="mr-2 h-6 w-6" />
@@ -366,11 +357,26 @@ export function AdditionalAppointmentModal({
             <p className="text-gray-700">
               La cita adicional ha sido guardada correctamente.
             </p>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="font-semibold text-green-800">
-                ID de la Cita: {appointmentId}
-              </p>
-            </div>
+            {createdAppointment && (
+              <div className="bg-green-50 p-4 rounded-lg space-y-2">
+                <p className="font-semibold text-green-800 text-lg mb-3">
+                  Información de la Cita Creada
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">Número:</span> {createdAppointment.numero || 'N/A'}</div>
+                  <div><span className="font-medium">Fecha:</span> {createdAppointment.fecha ? new Date(createdAppointment.fecha).toLocaleDateString('es-PE') : 'N/A'}</div>
+                  <div><span className="font-medium">Hora:</span> {createdAppointment.hora || 'N/A'}</div>
+                  <div><span className="font-medium">Turno:</span> {createdAppointment.turnoConsulta === 'M' ? 'MAÑANA' : 'TARDE'}</div>
+                  <div><span className="font-medium">Consultorio:</span> {createdAppointment.consultorio || 'N/A'}</div>
+                  <div><span className="font-medium">Especialidad:</span> {createdAppointment.especialidad || 'N/A'}</div>
+                  <div><span className="font-medium">Médico:</span> {createdAppointment.medico || 'N/A'}</div>
+                  <div className="col-span-2"><span className="font-medium">Paciente:</span> {createdAppointment.nombre || patient.NOMBRES}</div>
+                  {createdAppointment.observacion && (
+                    <div className="col-span-2"><span className="font-medium">Observación:</span> {createdAppointment.observacion}</div>
+                  )}
+                </div>
+              </div>
+            )}
             <Button onClick={handleClose} className="w-full">
               Cerrar
             </Button>
@@ -382,7 +388,11 @@ export function AdditionalAppointmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-6xl max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-800 flex items-center">
             <Button
@@ -400,27 +410,83 @@ export function AdditionalAppointmentModal({
           </DialogDescription>
         </DialogHeader>
 
+        {(hasConsultorioMatch || hasEspecialidadMatch) && (
+          <div className="mb-4">
+            <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-orange-800">
+              {hasConsultorioMatch && hasEspecialidadMatch && (
+                <>⚠️ Este paciente tiene una cita pendiente en el mismo consultorio y especialidad.</>
+              )}
+              {!hasEspecialidadMatch && hasConsultorioMatch && (
+                <>⚠️ Este paciente tiene una cita pendiente en el mismo consultorio.</>
+              )}
+              {!hasConsultorioMatch && hasEspecialidadMatch && (
+                <>⚠️ Este paciente tiene una cita pendiente en la misma especialidad.</>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Patient Info Card - Left Side */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 flex flex-col space-y-3">
             <PatientInfoCardAppointment 
-              patient={enhancedPatient || patient}
-              className="h-full"
+              patient={refreshedPatient || patient}
+              className="flex-1"
             />
+            
+            <Button
+              variant="outline"
+              onClick={async () => {
+                console.log('🔘 Click en Actualizar Historia Clínica')
+                console.log('   - patient:', patient)
+                console.log('   - patient?.PACIENTE:', patient?.PACIENTE)
+                console.log('   - patient?.HISTORIA:', patient?.HISTORIA)
+                
+                const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+                console.log('   - pacienteId seleccionado:', pacienteId)
+                
+                if (pacienteId) {
+                  await loadFullPatientData(pacienteId)
+                  console.log('✅ Abriendo modal de edición')
+                  setShowPatientEditModal(true)
+                } else {
+                  console.error('❌ No se encontró pacienteId')
+                  toast({
+                    title: "Error",
+                    description: "No se pudo identificar al paciente",
+                    variant: "destructive"
+                  })
+                }
+              }}
+              disabled={isLoadingFullPatient}
+              className="w-full justify-center px-6 py-2.5 h-11 border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 relative z-10 mt-4"
+            >
+              {isLoadingFullPatient ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Actualizar Historia Clínica
+                </>
+              )}
+            </Button>
           </div>
-
+          
           {/* Appointment Form - Right Side */}
-          <div className="lg:col-span-1">
-            <Card className="h-full">
-              <CardContent className="p-4 space-y-6">
+          <div className="lg:col-span-1 flex flex-col">
+            <Card className="flex-1">
+              <CardContent className="p-6 space-y-6">
                 {/* Información de la Cita */}
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
                     Información de la Cita
                   </h3>
                   
-                  {/* First Row: Fecha, Numero */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* Fecha (solo lectura) */}
+                  <div className="grid grid-cols-1 gap-4 mb-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Fecha</Label>
                       <Input
@@ -430,31 +496,9 @@ export function AdditionalAppointmentModal({
                         className="bg-gray-100"
                       />
                     </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Número</Label>
-                      <Input
-                        value={numero}
-                        disabled
-                        placeholder="Auto-generado"
-                        className="bg-gray-100"
-                      />
-                    </div>
                   </div>
 
-                  {/* Second Row: Hora */}
-                  <div className="grid grid-cols-1 gap-4 mb-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Hora</Label>
-                      <Input
-                        value={hora}
-                        disabled
-                        placeholder="Auto-generada"
-                        className="bg-gray-100"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Third Row: Consultorio */}
+                  {/* Consultorio */}
                   <div className="grid grid-cols-1 gap-4 mb-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
@@ -464,12 +508,23 @@ export function AdditionalAppointmentModal({
                         label=""
                         value={consultorio}
                         onChange={setConsultorio}
+                        onConsultorioDataChange={(data) => {
+                          console.log('🏭 Consultorio seleccionado:', data)
+                          if (data && data.ESPECIALIDAD) {
+                            console.log('👨‍⚕️ Especialidad del consultorio:', data.ESPECIALIDAD)
+                            setEspecialidadConsultorio(data.ESPECIALIDAD)
+                            if (data.NOMBRE) setConsultorioNombreSel(data.NOMBRE)
+                          } else {
+                            setEspecialidadConsultorio(null)
+                            setConsultorioNombreSel("")
+                          }
+                        }}
                         className="w-full"
                       />
                     </div>
                   </div>
 
-                  {/* Fourth Row: Médico */}
+                  {/* Médico */}
                   <div className="grid grid-cols-1 gap-4 mb-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
@@ -479,12 +534,13 @@ export function AdditionalAppointmentModal({
                         label=""
                         value={medico}
                         onChange={setMedico}
+                        especialidad={especialidadConsultorio}
                         className="w-full"
                       />
                     </div>
                   </div>
-
-                  {/* Fifth Row: Turno */}
+                  
+                  {/* Turno */}
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
@@ -497,6 +553,20 @@ export function AdditionalAppointmentModal({
                       />
                     </div>
                   </div>
+
+                  {/* Botón para ver citas pendientes del paciente */}
+                  {patient?.PACIENTE && (
+                    <div className="mt-4">
+                      <PatientPendingAppointmentsModal
+                        pacienteId={patient.PACIENTE}
+                        currentConsultorio={consultorioNombreSel}
+                        currentEspecialidad={especialidadConsultorio || undefined}
+                        limite={5}
+                        highlight={hasConsultorioMatch || hasEspecialidadMatch}
+                        onAppointmentsLoaded={setPendingAppointments}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Datos de Asignación */}
@@ -545,16 +615,22 @@ export function AdditionalAppointmentModal({
                         documento={patient.DOCUMENTO}
                         onVerificationComplete={(result) => {
                           setSisVerificationResult(result)
-                          if (result.isSuccess && result.eess) {
-                            // Hacer trim a los ceros del código de establecimiento
-                            const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
-                            // Asegurar que se actualice el estado inmediatamente
-                            setSelectedEntidadSis(trimmedEess)
+                          if (result.isSuccess) {
+                            // ✅ Cambiar tipo de cita a "D" (Demanda) cuando SIS es exitoso
+                            setTipoCita('D')
+                            console.log('✅ SIS verificado exitosamente - Tipo de cita establecido a DEMANDA')
                             
-                            // Forzar un retraso para asegurar que el estado se actualice
-                            setTimeout(() => {
-                              console.log('Establecimiento autocompletado:', trimmedEess)
-                            }, 100)
+                            if (result.eess) {
+                              // Hacer trim a los ceros del código de establecimiento
+                              const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
+                              // Asegurar que se actualice el estado inmediatamente
+                              setSelectedEntidadSis(trimmedEess)
+                              
+                              // Forzar un retraso para asegurar que el estado se actualice
+                              setTimeout(() => {
+                                console.log('Establecimiento autocompletado:', trimmedEess)
+                              }, 100)
+                            }
                           }
                         }}
                       />
@@ -591,6 +667,8 @@ export function AdditionalAppointmentModal({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Botón para ver citas pendientes del paciente - removido desde aquí, ahora está dentro de la tarjeta de info */}
           </div>
         </div>
 
@@ -606,6 +684,7 @@ export function AdditionalAppointmentModal({
           <Button
             onClick={handleSave}
             disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia))}
+            className="bg-cyan-600 hover:bg-cyan-700 text-white"
           >
             {isLoading ? (
               <>
@@ -618,6 +697,82 @@ export function AdditionalAppointmentModal({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Modal de edición de paciente */}
+      {showPatientEditModal && fullPatientData && (
+        <Dialog open={showPatientEditModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowPatientEditModal(false)
+            setFullPatientData(null)
+          }
+        }}>
+          <PatientEditModal
+            patient={fullPatientData}
+            onCancel={() => {
+              setShowPatientEditModal(false)
+              setFullPatientData(null)
+            }}
+          onSuccess={async () => {
+            setShowPatientEditModal(false)
+            setFullPatientData(null)
+            
+            // Recargar datos del paciente
+            const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+            if (pacienteId) {
+              try {
+                console.log('🔄 Recargando datos del paciente:', pacienteId)
+                const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+                const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${pacienteId}`)
+                
+                if (response.ok) {
+                  const data = await response.json()
+                  console.log('✅ Datos del paciente recargados:', data)
+                  
+                  // Mapear los datos al formato esperado por PatientInfoCardAppointment
+                  const mappedPatient = {
+                    ...patient, // Mantener campos originales
+                    HISTORIA: data.historia || patient.HISTORIA,
+                    NOMBRES: data.nombres ? `${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''} ${data.nombres || ''}`.trim() : patient.NOMBRES,
+                    NOMBRE: data.nombres || patient.NOMBRE,
+                    PATERNO: data.apellidoPaterno || patient.PATERNO,
+                    MATERNO: data.apellidoMaterno || patient.MATERNO,
+                    SEXO: data.sexo || patient.SEXO,
+                    DOCUMENTO: data.numeroDocumento || patient.DOCUMENTO,
+                    TIPO_DOCUMENTO: data.tipoDocumento || patient.TIPO_DOCUMENTO,
+                    FECHA_NACIMIENTO: data.fechaNacimiento || patient.FECHA_NACIMIENTO,
+                    EDAD: data.edad || patient.EDAD,
+                    // Estado Civil: puede venir como objeto { estadoCivil, nombre } o como string
+                    ESTADO_CIVIL: (data.estadoCivil?.estadoCivil?.trim && data.estadoCivil?.estadoCivil?.trim()) || data.estadoCivil || patient.ESTADO_CIVIL,
+                    DIRECCION: data.direccion || patient.DIRECCION,
+                    DISTRITO: data.distrito || patient.DISTRITO,
+                    Distrito_Dir: data.distritoNacimiento || data.Distrito_Dir || patient.Distrito_Dir,
+                    TELEFONO1: data.telefono || patient.TELEFONO1,
+                    CORREO: data.correo || patient.CORREO,
+                    // Seguro: puede venir como objeto {seguro, nombre} o como string
+                    SEGURO: data.seguro?.seguro?.trim() || data.seguro || patient.SEGURO,
+                    NOMBRE_SEGURO: data.seguro?.nombre || data.nombreSeguro || patient.NOMBRE_SEGURO,
+                    STRING_FOTO: data.foto || patient.STRING_FOTO,
+                    PACIENTE: data.paciente || patient.PACIENTE
+                  }
+                  
+                  console.log('✅ Paciente mapeado:', mappedPatient)
+                  setRefreshedPatient(mappedPatient)
+                } else {
+                  console.error('❌ Error al recargar datos del paciente')
+                }
+              } catch (error) {
+                console.error('❌ Error al recargar datos del paciente:', error)
+              }
+            }
+            
+            toast({
+              title: "Éxito",
+              description: "Historia clínica actualizada correctamente",
+            })
+          }}
+          />
+        </Dialog>
+      )}
     </Dialog>
   )
 }

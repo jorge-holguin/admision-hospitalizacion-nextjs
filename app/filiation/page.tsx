@@ -20,7 +20,7 @@ import { usePatient } from "@/contexts/PatientContext"
 import { EmergencyModalProvider } from "@/components/emergency/modals/EmergencyModalProvider"
 import { HospitalizationModalProvider } from "@/components/hospitalization/modals/HospitalizationModalProvider"
 import ProtectedRoute from "@/components/ProtectedRoute"
-import { SegurosProvider } from "@/contexts/SegurosContext"
+import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 
 // Filiation components
@@ -179,8 +179,11 @@ export default function FiliationPage() {
   // Cuando no se encuentra y se obtienen datos de RENIEC (o null para llenado manual)
   const handleSearchComplete = (reniecSearchData: any, sisSearchData: any) => {
     console.log('📥 handleSearchComplete recibió:', { reniecSearchData, sisSearchData });
+    console.log('   - sisSearchData:', sisSearchData);
+    console.log('   - sisSearchData.tipoSeguro:', sisSearchData?.tipoSeguro);
     setReniecData(reniecSearchData);
     setSisData(sisSearchData);
+    console.log('✅ Estados actualizados - sisData:', sisSearchData);
     setDocumentType(reniecSearchData?.documentType || "DNI");
     setDocumentNumber(reniecSearchData?.document || "");
     setIsPatientRegistrationModalOpen(true);
@@ -736,7 +739,7 @@ export default function FiliationPage() {
 
       {/* Modales de Filiación - Envueltos en providers solo cuando están abiertos */}
       {(isPatientSearchModalOpen || isPatientRegistrationModalOpen || isPatientViewModalOpen || isPatientEditModalOpen) && (
-        <SegurosProvider>
+        <SegurosCitaProvider>
           <FiliationProvider>
             {isPatientSearchModalOpen && (
               <Dialog open={isPatientSearchModalOpen} onOpenChange={setIsPatientSearchModalOpen}>
@@ -751,6 +754,12 @@ export default function FiliationPage() {
 
             {isPatientRegistrationModalOpen && (
               <Dialog open={isPatientRegistrationModalOpen} onOpenChange={setIsPatientRegistrationModalOpen}>
+                {(() => {
+                  console.log('🎯 Renderizando PatientRegistrationModal con:');
+                  console.log('   - sisData desde estado:', sisData);
+                  console.log('   - sisData.tipoSeguro:', sisData?.tipoSeguro);
+                  return null;
+                })()}
                 <PatientRegistrationModal
                   reniecData={reniecData}
                   sisData={sisData}
@@ -785,7 +794,7 @@ export default function FiliationPage() {
               </Dialog>
             )}
           </FiliationProvider>
-        </SegurosProvider>
+        </SegurosCitaProvider>
       )}
       </div>
     </ProtectedRoute>

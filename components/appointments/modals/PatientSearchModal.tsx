@@ -48,6 +48,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
   const [showFiliationSearch, setShowFiliationSearch] = useState(false)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [reniecData, setReniecData] = useState<any>(null)
+  const [sisData, setSisData] = useState<any>(null)
   const [prefilledDocument, setPrefilledDocument] = useState("")
   
   // Función para formatear fechas en formato YYYY-MM-DD a DD/MM/YYYY
@@ -162,8 +163,17 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     setShowFiliationSearch(true)
   }
 
-  const handleFiliationSearchComplete = (reniecData: any) => {
+  const handleFiliationSearchComplete = (reniecData: any, sisData?: any) => {
+    console.log('🔄 handleFiliationSearchComplete en PatientSearchModal (appointments):')
+    console.log('   - reniecData recibido:', reniecData ? 'Sí' : 'No')
+    console.log('   - sisData recibido:', sisData ? 'Sí' : 'No')
+    if (sisData) {
+      console.log('   - sisData.tipoSeguro:', sisData.tipoSeguro)
+      console.log('   - sisData completo:', JSON.stringify(sisData, null, 2))
+    }
     setReniecData(reniecData)
+    setSisData(sisData || null)
+    console.log('✅ Estados actualizados, abriendo modal de registro')
     setShowFiliationSearch(false)
     setShowRegistrationModal(true)
   }
@@ -175,12 +185,60 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     onClose()
   }
 
-  const handleRegistrationSuccess = () => {
+  const handleRegistrationSuccess = async (newPatientDocument?: string) => {
     setShowRegistrationModal(false)
     setReniecData(null)
-    setPrefilledDocument("")
-    onPatientCreated?.() // Notificar que se creó un paciente
-    onClose()
+    
+    // ✅ En lugar de cerrar, buscar al paciente recién creado
+    const documentToSearch = newPatientDocument || prefilledDocument
+    
+    if (documentToSearch) {
+      console.log('🔍 Buscando paciente recién creado:', documentToSearch)
+      setSearchTerm(documentToSearch)
+      setSearchType('documento')
+      setPrefilledDocument("")
+      setHasSearched(true)
+      
+      // ✅ Realizar búsqueda automática usando la misma API que handleSearch
+      try {
+        setIsLoading(true)
+        const params = new URLSearchParams({
+          page: '1',
+          pageSize: '10',
+          documento: documentToSearch.trim()
+        })
+        
+        const response = await fetch(`/api/filiation/search?${params}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('📦 Respuesta de búsqueda:', data)
+          
+          // La respuesta puede venir como { data: [...] } o { success: true, data: [...] }
+          const patients = data.data || data
+          
+          if (Array.isArray(patients) && patients.length > 0) {
+            console.log('✅ Paciente encontrado:', patients[0])
+            setPatients(patients)
+          } else {
+            console.warn('⚠️ No se encontró el paciente recién creado')
+            setPatients([])
+          }
+        } else {
+          console.error('❌ Error en la respuesta de búsqueda')
+          setPatients([])
+        }
+      } catch (error) {
+        console.error('❌ Error buscando paciente recién creado:', error)
+        setPatients([])
+      } finally {
+        setIsLoading(false)
+      }
+    } else {
+      // Si no hay documento, cerrar como antes
+      onPatientCreated?.()
+      onClose()
+    }
   }
 
   const handleCancelFiliation = () => {
@@ -198,7 +256,11 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-4xl max-h-[80vh] overflow-y-auto"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="text-blue-800 font-semibold">Asignar Paciente</DialogTitle>
         </DialogHeader>
@@ -349,6 +411,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
                     <GradoInstruccionProvider>
                       <PatientRegistrationModal
                         reniecData={reniecData}
+                        sisData={sisData}
                         documentType="D"
                         documentNumber={prefilledDocument}
                         onCancel={handleCancelFiliation}

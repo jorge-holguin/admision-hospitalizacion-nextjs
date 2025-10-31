@@ -2,6 +2,7 @@
  * Servicio para guardar historia clínica
  */
 import { buildCompleteAddress } from '@/utils/reniecMapper'
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
 
 interface FormDataInput {
   // Step 1 - Datos básicos
@@ -17,6 +18,7 @@ interface FormDataInput {
   direccion: string
   distritoProcedencia: string // Ubigeo
   ubigeoReniec?: string // Ubigeo RENIEC de procedencia
+  distritoReniec?: string // Ubigeo BD mapeado desde código RENIEC
   
   // Step 2 - Datos adicionales
   tipoSeguro: string
@@ -189,19 +191,27 @@ export async function transformFormDataToAPIPayload(
   
   // Construir dirección completa de RENIEC (sin "SIN DATOS")
   let direccionReniecCompleta = ''
-  let distritoReniecCodigo = ''
+  let distritoReniecUbigeo = ''
   
   if (validadoReniec && reniecRawData) {
     direccionReniecCompleta = buildCompleteAddress(reniecRawData)
     console.log('📍 Dirección RENIEC construida:', direccionReniecCompleta)
-    // distritoReniec debe ser el ubigeo BD (ya transformado), no el código RENIEC
-    distritoReniecCodigo = distritoUbigeo || ''
-    console.log('🗺️ Distrito RENIEC (ubigeo BD):', distritoReniecCodigo)
+  }
+  
+  // ✅ distritoReniec: Si hay código RENIEC de procedencia, obtener el ubigeo BD mapeado
+  // Ejemplo: código RENIEC "021401" → API retorna ubigeo BD "021901"
+  if (ubigeoReniecProcedencia) {
+    distritoReniecUbigeo = await getUbigeoFromReniec(ubigeoReniecProcedencia)
+    console.log(`🗺️ Distrito RENIEC: código ${ubigeoReniecProcedencia} → ubigeo BD ${distritoReniecUbigeo}`)
+  } else if (formData.distritoReniec) {
+    // Si no hay código RENIEC pero hay distritoReniec en formData, usarlo
+    distritoReniecUbigeo = formData.distritoReniec
+    console.log('🗺️ Distrito RENIEC (desde formulario):', distritoReniecUbigeo)
   }
   
   console.log('🔍 Modo de registro:', validadoReniec ? 'CON RENIEC' : 'MANUAL')
   console.log('   - direccionReniec:', validadoReniec ? direccionReniecCompleta : 'null')
-  console.log('   - distritoReniec:', validadoReniec ? distritoReniecCodigo : 'null')
+  console.log('   - distritoReniec:', distritoReniecUbigeo || 'vacío')
 
   const payload: HistoriaClinicaPayload = {
     stringFoto: photoBase64,
@@ -218,7 +228,7 @@ export async function transformFormDataToAPIPayload(
     lugarNacimiento: lugarNacimientoUbigeo,
     direccion: formData.direccion,
     distrito: distritoUbigeo,
-    seguro: formData.tipoSeguro,
+    seguro: formData.tipoSeguro?.split('-')[0]?.trim() || formData.tipoSeguro || '0', // ✅ Extraer solo código
     gradoInstruccion: formData.gradoInstruccion,
     gradoInstruccionCod: formData.gradoInstruccionReniec || '', // Código RENIEC
     ocupacion: formData.ocupacion,
@@ -234,7 +244,7 @@ export async function transformFormDataToAPIPayload(
     conyugeOcupacion: formData.ocupacionFamiliar,
     correo: formData.correoElectronico,
     direccionReniec: validadoReniec ? (direccionReniecCompleta || formData.direccion) : '', // null si es manual
-    distritoReniec: validadoReniec ? distritoReniecCodigo : '', // null si es manual
+    distritoReniec: distritoReniecUbigeo || '', // ✅ Enviar siempre si existe, no solo cuando validadoReniec
     validadoReniec: validadoReniec,
     localidad: formData.centroPoblado
   }
@@ -294,16 +304,31 @@ function calculateAgeForAPI(birthDateStr: string): string {
 }
 
 /**
- * Guarda la historia clínica llamando al endpoint de Next.js
+ * Guarda la historia clínica llamando directamente a la API externa
  */
 export async function saveHistoriaClinica(
   payload: HistoriaClinicaPayload
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     console.log('💾 Guardando historia clínica...')
-      console.log('📍 Localidad a enviar:', `"${payload.localidad}" (length: ${payload.localidad.length})`)
+    console.log('📍 Localidad a enviar:', `"${payload.localidad}" (length: ${payload.localidad.length})`)
     
-    const response = await fetch('/api/filiation/save', {
+    // Obtener usuario del JWT
+    const usuario = extractDocumentFromToken()
+    
+    if (!usuario) {
+      console.error('❌ No se pudo obtener el usuario del token JWT')
+      return {
+        success: false,
+        error: 'No se pudo obtener el usuario del token JWT'
+      }
+    }
+    
+    // Llamar directamente a la API externa del servidor Spring Boot
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes?usuario=${encodeURIComponent(usuario)}`
+    console.log('📡 Llamando a API externa:', apiUrl)
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -317,7 +342,7 @@ export async function saveHistoriaClinica(
       console.error('❌ Error al guardar:', data)
       return {
         success: false,
-        error: data.error || 'Error al guardar historia clínica'
+        error: data.error || data.message || 'Error al guardar historia clínica'
       }
     }
     

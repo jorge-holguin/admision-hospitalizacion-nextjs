@@ -5,8 +5,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
-import { Seguro } from '@/services/hospitalizacion/seguroService';
-import { useSeguros } from '@/contexts/SegurosContext';
+import { Seguro } from '@/services/citas/seguroService';
+import { useSegurosCita } from '@/contexts/SegurosCitaContext';
 
 // Función para obtener el nombre completo del código de financiamiento
 const getFinancingCodeName = (code: string): string => {
@@ -49,10 +49,10 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   
-  // Usar el contexto de seguros en lugar de llamada directa a la API
-  const { seguros, loading } = useSeguros();
+  // Usar el contexto de seguros de citas (SegurosCitaContext) para evitar duplicar contextos
+  const { seguros, loading } = useSegurosCita();
   
-  console.log('🏥 SeguroSelector: Usando contexto, seguros disponibles:', seguros?.length || 0);
+  console.log('🏥 SeguroSelector: Usando SegurosCitaContext, seguros disponibles:', seguros?.length || 0);
 
   // Buscar el seguro seleccionado, considerando diferentes formatos posibles
   const selectedSeguro = seguros.find(seguro => {

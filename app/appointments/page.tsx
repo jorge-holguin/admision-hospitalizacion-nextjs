@@ -106,6 +106,8 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
   const [showTicketPreview, setShowTicketPreview] = useState(false)
   const [ticketData, setTicketData] = useState<TicketData | null>(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
+    const [showReservaActivaDialog, setShowReservaActivaDialog] = useState(false)
+    const [isValidatingReserva, setIsValidatingReserva] = useState(false)
 
     // Parámetros de paginación para búsqueda remota
     const [pageParam, setPageParam] = useState<number>(0)
@@ -286,6 +288,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           medicoNombre: String(it.medicoNombre ?? it.MEDICO_NOMBRE ?? it.NOMBRE_MEDICO ?? "").trim(),
           seguro: String(it.seguro ?? it.SEGURO ?? ""),
           seguroNombre: String(it.seguroNombre ?? it.SEGURO_NOMBRE ?? it.NOMBRE_SEGURO ?? "").trim(),
+          especialidadSolicitud: String(it.especialidadSolicitud ?? it.ESPECIALIDAD_SOLICITUD ?? "").trim(),
           paciente: String(it.nombre ?? it.NOMBRE ?? it.paciente ?? it.PACIENTE ?? "").replace(/^\d+\s*/, "").trim(),
           codigoPaciente: String(it.paciente ?? it.PACIENTE ?? "").trim(),
           numero: String(it.numero ?? it.NUMERO ?? ""),
@@ -377,6 +380,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           medicoNombre: String(it.medicoNombre ?? it.MEDICO_NOMBRE ?? ""),
           seguro: String(it.seguro ?? it.SEGURO ?? ""),
           seguroNombre: String(it.seguroNombre ?? it.nombreSeguro ?? it.NOMBRE_SEGURO ?? ""),
+          especialidadSolicitud: String(it.especialidadSolicitud ?? it.ESPECIALIDAD_SOLICITUD ?? "").trim(),
           paciente: String(it.paciente ?? it.PACIENTE ?? ""),
           nombre: String(it.nombre ?? it.NOMBRE ?? ""),
           numero: String(it.numero ?? it.NUMERO ?? ""),
@@ -418,7 +422,34 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
       // Keep the selected time for UI purposes but don't filter the appointments
     }
 
-    const handleAction = (action: string, appointment: any) => {
+    // Validar si la cita tiene una reserva activa
+    const validarReservaActiva = async (citaId: string): Promise<boolean> => {
+      try {
+        setIsValidatingReserva(true)
+        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+        const response = await fetch(`${apiUrl}/cita/cita-valida-solicitud?citaId=${citaId}`)
+        
+        if (!response.ok) {
+          throw new Error('Error al validar reserva')
+        }
+        
+        const tieneReservaActiva = await response.json()
+        console.log('🔍 Validación de reserva activa:', { citaId, tieneReservaActiva })
+        return tieneReservaActiva
+      } catch (error) {
+        console.error('❌ Error validando reserva:', error)
+        toast({
+          title: "Error",
+          description: "No se pudo validar la reserva de la cita",
+          variant: "destructive"
+        })
+        return false
+      } finally {
+        setIsValidatingReserva(false)
+      }
+    }
+
+    const handleAction = async (action: string, appointment: any) => {
       console.log('🎯 handleAction - Acción:', action, 'Appointment:', {
         id: appointment.id,
         consultorio: appointment.consultorio,
@@ -432,7 +463,16 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
       setSelectedAppointment(appointment)
       switch (action) {
         case "assign":
-          console.log('📋 Abriendo modal de asignación con appointment:', appointment)
+          console.log('📋 Validando reserva activa antes de asignar...')
+          const tieneReserva = await validarReservaActiva(appointment.id)
+          
+          if (tieneReserva) {
+            console.log('⚠️ Cita tiene reserva activa')
+            setShowReservaActivaDialog(true)
+            return
+          }
+          
+          console.log('✅ Cita sin reserva activa, abriendo modal de asignación')
           setShowAssignModal(true)
           break
         case "reschedule":
@@ -668,7 +708,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                     </Button>
                   )}
                   
-                 {/*  <Button
+                 { <Button
                     variant="default"
                     size="lg"
                     className="font-semibold bg-green-600 hover:bg-green-700 text-white"
@@ -676,7 +716,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Cita Adicional
-                  </Button> */}
+                  </Button>}
                 </div>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -1255,6 +1295,57 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               }}
               ticketData={ticketData}
             />
+
+            {/* Dialog de Reserva Activa */}
+            <Dialog open={showReservaActivaDialog} onOpenChange={setShowReservaActivaDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-orange-600">
+                    <CalendarClock className="h-6 w-6" />
+                    Cita con Reserva Activa
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <p className="text-gray-700">
+                      Esta cita tiene una <strong>reserva activa</strong> pendiente de aprobación.
+                    </p>
+                    <p className="text-gray-700 mt-2">
+                      No se puede asignar directamente hasta que la reserva sea procesada.
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 font-medium">
+                      ℹ️ Recomendación:
+                    </p>
+                    <ul className="text-sm text-gray-700 mt-2 space-y-1 ml-4 list-disc">
+                      <li>Dirígete a la sección de <strong>Reservas</strong></li>
+                      <li>Aprueba o deniega la solicitud pendiente</li>
+                      <li>Luego podrás asignar la cita normalmente</li>
+                    </ul>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      onClick={() => setShowReservaActivaDialog(false)}
+                      variant="outline"
+                    >
+                      Cerrar
+                    </Button>
+                    {/* {canAccessReservas && (
+                      <Button 
+                        onClick={() => {
+                          setShowReservaActivaDialog(false)
+                          window.location.href = '/appointments/reserved'
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Ir a Reservas
+                      </Button>
+                    )} */}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
                 </SegurosCitaProvider>
               </TipoCitaProvider>

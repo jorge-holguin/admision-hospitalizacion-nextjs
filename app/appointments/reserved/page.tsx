@@ -1169,6 +1169,8 @@ export default function ReservedAppointmentsPage() {
                 setIsModalOpen(false)
                 setSelectedReserva(null)
                 setPatientData(null)
+                // Limpiar filtro de búsqueda para mostrar todas las reservas
+                setSearchTerm("")
                 // Recargar reservas
                 loadReservas()
               }}

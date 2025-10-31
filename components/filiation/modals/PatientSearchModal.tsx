@@ -68,6 +68,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
       let hasData = false
       let reniecData = null
       let sisData = null
+      let reniecError: string | null = null
 
       // RENIEC: Solo para DNI de 8 dígitos
       if (isDNI && documentNumber.length === 8) {
@@ -78,6 +79,37 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
           console.log(`✅ Datos obtenidos de RENIEC`)
           reniecData = reniecResult.data
           hasData = true
+          
+          // ✅ Verificar si hay advertencias de UBIGEO
+          if (reniecResult.data.ubigeoReniecNacimiento || reniecResult.data.ubigeoReniecProcedencia) {
+            // Mostrar mensaje informativo si algún UBIGEO no se pudo convertir
+            // (esto se detecta cuando el código RENIEC existe pero no hay ubigeo en BD)
+            console.log('ℹ️ Verificando UBIGEOs de RENIEC...')
+          }
+        } else if (reniecResult.error) {
+          // ✅ Manejar errores específicos de RENIEC
+          if (reniecResult.error.includes('DNI_NO_EXISTE')) {
+            console.warn('⚠️ DNI no existe en RENIEC')
+            reniecError = 'DNI_NO_EXISTE'
+            toast({
+              title: "⚠️ DNI no encontrado",
+              description: "El DNI consultado no existe en la base de datos de RENIEC. Verifique el número o complete el registro manualmente.",
+              variant: "destructive"
+            })
+          } else if (reniecResult.error.includes('UBIGEO')) {
+            toast({
+              title: "ℹ️ Información",
+              description: "Algunos datos de ubicación no se pudieron cargar automáticamente. Puede completarlos manualmente.",
+              variant: "default"
+            })
+          } else {
+            console.error('❌ Error RENIEC:', reniecResult.error)
+            toast({
+              title: "Error RENIEC",
+              description: reniecResult.error,
+              variant: "destructive"
+            })
+          }
         }
       }
 
@@ -91,14 +123,21 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
           )
         ])
         
+        console.log('🔍 Resultado de consultarSIS:', sisResult)
+        console.log('   - sisResult.success:', sisResult.success)
+        console.log('   - sisResult.data:', sisResult.data)
+        
         if (sisResult.success && sisResult.data) {
           console.log(`✅ Datos obtenidos del SIS`)
           console.log(`📋 Tipo de seguro SIS: ${sisResult.data.tipoSeguro} - ${sisResult.data.descTipoSeguro}`)
           console.log(`📦 Objeto sisData completo:`, sisResult.data)
           sisData = sisResult.data
           hasData = true
+          console.log('✅ sisData asignado correctamente:', sisData)
         } else {
           console.warn(`⚠️ SIS no retornó datos válidos:`, sisResult)
+          console.warn(`   - success: ${sisResult.success}`)
+          console.warn(`   - data: ${sisResult.data}`)
         }
       } catch (error: any) {
         console.warn(`⏱️ Timeout o error en consulta SIS (2s):`, error?.message || error)
@@ -128,18 +167,50 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
         console.log(`🚀 Pasando datos al modal de registro:`)
         console.log(`   - reniecData:`, reniecData ? 'Sí' : 'No')
         console.log(`   - sisData:`, sisData ? 'Sí' : 'No')
+        console.log(`   - documentType:`, documentType)
+        console.log(`   - documentNumber:`, documentNumber)
         if (sisData) {
           console.log(`   - sisData.tipoSeguro:`, sisData.tipoSeguro)
+          console.log(`   - sisData COMPLETO antes de pasar:`, JSON.stringify(sisData, null, 2))
+        } else {
+          console.error(`   ❌ sisData es falsy antes de pasar al modal:`, sisData)
         }
-        onSearchComplete(reniecData, sisData)
+        
+        // ✅ Agregar documentType y documentNumber al reniecData
+        // Si no hay reniecData (CE, Pasaporte), crear objeto mínimo con tipo y número
+        const enhancedReniecData = reniecData ? {
+          ...reniecData,
+          documentType: reniecData.documentType || documentType,
+          document: reniecData.document || documentNumber,
+          reniecError: reniecError || undefined
+        } : {
+          documentType: documentType,
+          document: documentNumber,
+          reniecError: reniecError || undefined
+        }
+        
+        console.log('🔄 Llamando onSearchComplete con:', { 
+          reniecData: !!enhancedReniecData, 
+          sisData: !!sisData,
+          documentType: enhancedReniecData.documentType,
+          documentNumber: enhancedReniecData.document
+        })
+        onSearchComplete(enhancedReniecData, sisData)
       } else {
         console.warn(`⚠️ No se encontraron datos en ${isDNI ? 'RENIEC ni ' : ''}SIS`)
         toast({
           title: "No encontrado",
           description: `⚠️ El paciente no cuenta con SIS activo. Puede registrar manualmente.`,
         })
-        // Abrir modal de registro sin datos (llenado manual)
-        onSearchComplete(null, null)
+        
+        // ✅ Abrir modal de registro con tipo y número de documento (llenado manual)
+        const manualData = {
+          documentType: documentType,
+          document: documentNumber,
+          reniecError: reniecError || undefined
+        }
+        console.log('📋 Abriendo modal con datos manuales:', manualData)
+        onSearchComplete(manualData, null)
       }
     } catch (error) {
       console.error('❌ Error al buscar paciente:', error);

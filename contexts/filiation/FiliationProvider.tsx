@@ -7,7 +7,6 @@ import { OcupacionProvider } from './OcupacionContext'
 import { EstadoCivilProvider } from './EstadoCivilContext'
 import { GradoInstruccionProvider } from './GradoInstruccionContext'
 import { PaisProvider } from './PaisContext'
-import { SegurosProvider } from '../SegurosContext'
 
 interface FiliationProviderProps {
   children: ReactNode
@@ -16,23 +15,24 @@ interface FiliationProviderProps {
 /**
  * Provider unificado para el módulo de filiación
  * Centraliza todos los contextos necesarios para evitar llamadas API duplicadas
+ * 
+ * NOTA: NO incluye SegurosProvider porque appointments ya usa SegurosCitaProvider
+ * Si necesitas seguros en filiación standalone, envuélvelo externamente con SegurosProvider
  */
 export function FiliationProvider({ children }: FiliationProviderProps) {
   return (
-    <SegurosProvider>
-      <ReligionProvider>
-        <EtniaProvider>
-          <OcupacionProvider>
-            <EstadoCivilProvider>
-              <GradoInstruccionProvider>
-                <PaisProvider>
-                  {children}
-                </PaisProvider>
-              </GradoInstruccionProvider>
-            </EstadoCivilProvider>
-          </OcupacionProvider>
-        </EtniaProvider>
-      </ReligionProvider>
-    </SegurosProvider>
+    <ReligionProvider>
+      <EtniaProvider>
+        <OcupacionProvider>
+          <EstadoCivilProvider>
+            <GradoInstruccionProvider>
+              <PaisProvider>
+                {children}
+              </PaisProvider>
+            </GradoInstruccionProvider>
+          </EstadoCivilProvider>
+        </OcupacionProvider>
+      </EtniaProvider>
+    </ReligionProvider>
   )
 }

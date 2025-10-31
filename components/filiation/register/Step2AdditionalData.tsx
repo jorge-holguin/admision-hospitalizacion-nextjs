@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { FileText } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { FileText, Shield, Loader2 } from "lucide-react"
 import { SeguroSelector } from "@/components/hospitalization/selectors/SeguroSelector"
 import { 
   GradoInstruccionSelector, 
@@ -13,6 +15,8 @@ import {
   EtniaSelector, 
   LocalidadSelector 
 } from "@/components/filiation/selectors"
+import { consultarSIS, mapSISSeguroToLocal } from "@/services/sisService"
+import { toast } from "@/hooks/use-toast"
 
 interface Step2AdditionalDataProps {
   formData: any
@@ -21,6 +25,65 @@ interface Step2AdditionalDataProps {
 }
 
 export function Step2AdditionalData({ formData, onInputChange, patientData }: Step2AdditionalDataProps) {
+  const [isVerifyingSIS, setIsVerifyingSIS] = useState(false)
+  const [sisButtonUsed, setSisButtonUsed] = useState(false) // ✅ Controlar uso del botón SIS
+
+  // ✅ Función para verificar SIS manualmente
+  const handleVerifySIS = async () => {
+    // Obtener DNI del formData o patientData
+    const dni = formData.documento || patientData?.documento || patientData?.DOCUMENTO;
+    
+    if (!dni) {
+      toast({
+        title: "⚠️ Advertencia",
+        description: "Debe ingresar un número de documento para verificar el seguro SIS.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsVerifyingSIS(true);
+    try {
+      console.log('🏥 Verificando SIS para DNI:', dni);
+      const result = await consultarSIS(dni);
+
+      if (result.success && result.data) {
+        // Mapear tipoSeguro (CODSIS) a SEGURO usando el servicio
+        const nombreCompleto = formData.nombres || patientData?.nombres || patientData?.NOMBRES || '';
+        const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);
+        
+        console.log(`✅ Seguro SIS detectado: ${seguroId} (CODSIS: ${result.data.tipoSeguro})`);
+        onInputChange("tipoSeguro", seguroId);
+        setSisButtonUsed(true); // ✅ Marcar botón como usado
+        
+        toast({
+          title: "✅ Verificación SIS Exitosa",
+          description: `Seguro detectado: ${result.data.descTipoSeguro}. Estado: ${result.data.estado}`,
+          variant: "default"
+        });
+      } else {
+        // ✅ Si no se encontró afiliación, marcar como PAGANTE (0)
+        console.log('⚠️ No se encontró seguro SIS - estableciendo como PAGANTE');
+        onInputChange("tipoSeguro", "0");
+        setSisButtonUsed(true); // ✅ Marcar botón como usado
+        
+        toast({
+          title: "ℹ️ Sin seguro SIS",
+          description: "No se encontró afiliación SIS para este documento. Se estableció como PAGANTE.",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error validando SIS:', error);
+      toast({
+        title: "⚠️ Error",
+        description: "No se pudo verificar el seguro SIS en este momento.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifyingSIS(false);
+    }
+  };
 
   return (
     <Card>
@@ -36,10 +99,29 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="tipoSeguro">Tipo de Seguro <span className="text-red-600">*</span></Label>
-            <SeguroSelector
-              value={formData.tipoSeguro}
-              onChange={(value) => onInputChange("tipoSeguro", value)}
-            />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <SeguroSelector
+                  value={formData.tipoSeguro}
+                  onChange={(value) => onInputChange("tipoSeguro", value)}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleVerifySIS}
+                disabled={isVerifyingSIS || sisButtonUsed}
+                className="shrink-0 border-blue-500 text-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={sisButtonUsed ? "SIS ya verificado" : "Verificar SIS"}
+              >
+                {isVerifyingSIS ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Shield className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
 
           <div>
@@ -90,7 +172,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         {/* Teléfonos e hijos */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="telefono1">Teléfono 1</Label>
+            <Label htmlFor="telefono1">Teléfono 1 <span className="text-red-600">*</span></Label>
             <Input
               id="telefono1"
               placeholder="Número principal"
@@ -113,7 +195,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
               id="hijos"
               type="number"
               min="0"
-              value={formData.hijos}
+              value={formData.hijos || "0"}
               onChange={(e) => onInputChange("hijos", e.target.value)}
             />
           </div>
@@ -122,7 +204,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         {/* Correo Electrónico y Observación */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="correoElectronico">Correo Electrónico</Label>
+            <Label htmlFor="correoElectronico">Correo Electrónico <span className="text-red-600">*</span></Label>
             <Input
               id="correoElectronico"
               type="email"

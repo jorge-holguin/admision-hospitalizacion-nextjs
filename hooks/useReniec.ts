@@ -109,12 +109,38 @@ export function useReniec() {
 
       const reniecData: ReniecData = await response.json();
 
+      console.log('📋 Respuesta de RENIEC - Código:', reniecData.codigoRespuesta);
+
       // Verificar si la respuesta es exitosa
+      // 0000 = Éxito
+      // 5114 = DNI no existe en base de datos RENIEC
+      if (reniecData.codigoRespuesta === '5114') {
+        console.warn('⚠️ DNI no existe en base de datos RENIEC (código 5114)');
+        throw new Error('DNI_NO_EXISTE: El DNI consultado no existe en la base de datos de RENIEC');
+      }
+      
       if (reniecData.codigoRespuesta !== '0000') {
-        throw new Error(reniecData.codigoError || 'No se encontraron datos en RENIEC');
+        console.error('❌ Error RENIEC - Código:', reniecData.codigoRespuesta, 'Error:', reniecData.codigoError);
+        throw new Error(reniecData.codigoError || `Error RENIEC (código ${reniecData.codigoRespuesta})`);
       }
 
       console.log('✅ Datos obtenidos de RENIEC:', reniecData);
+
+      // Detectar caso degradado: 200 pero campos importantes nulos/vacíos
+      const primaryFields = [
+        reniecData?.dni,
+        reniecData?.apellidoPaterno,
+        reniecData?.apellidoMaterno,
+        reniecData?.nombres,
+        reniecData?.fechaNacimiento,
+        reniecData?.sexo,
+        reniecData?.direccion,
+        reniecData?.imagenFoto,
+      ];
+      const isDegraded = primaryFields.every((v) => v === null || v === undefined || String(v).trim() === '');
+      if (isDegraded) {
+        console.warn('⚠️ RENIEC respondió 200 pero sin datos útiles (modo degradado). Se solicitará ingreso manual.');
+      }
 
       // Mapear datos de RENIEC al formato del formulario (ahora es async)
       const mappedData = await mapReniecToPatientForm(reniecData);
@@ -122,7 +148,9 @@ export function useReniec() {
       return {
         success: true,
         data: mappedData,
-        rawData: reniecData
+        rawData: reniecData,
+        degraded: isDegraded,
+        warning: isDegraded ? 'RENIEC_SIN_DATOS' : undefined,
       };
 
     } catch (err: any) {

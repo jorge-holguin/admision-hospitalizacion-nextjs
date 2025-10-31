@@ -269,7 +269,11 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent
+          className="max-w-6xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-purple-800 flex items-center">
               <History className="mr-2 h-5 w-5" />

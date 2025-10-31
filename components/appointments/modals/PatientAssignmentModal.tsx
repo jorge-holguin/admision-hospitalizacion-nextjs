@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../patient/PatientInfoCardAppointment"
+import { PatientPendingAppointmentsModal, type PendingAppointment } from "../patient/PatientPendingAppointmentsModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer, Edit } from "lucide-react"
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
@@ -99,12 +100,14 @@ export function PatientAssignmentModal({
   const { seguros } = useSegurosCita()
   
   const [selectedTipoCita, setSelectedTipoCita] = useState("")
-  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
-  const [fullPatientData, setFullPatientData] = useState<any>(null)
-  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
   const [selectedSeguro, setSelectedSeguro] = useState("")
   const [selectedEntidadSis, setSelectedEntidadSis] = useState("")
   const [referencia, setReferencia] = useState("")
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
+  const [fullPatientData, setFullPatientData] = useState<any>(null)
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
+  const [refreshedPatient, setRefreshedPatient] = useState<any>(null)
+  const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [assignedCitaId, setAssignedCitaId] = useState<string | null>(null)
@@ -130,10 +133,30 @@ export function PatientAssignmentModal({
         consultorioNombre: appointment.consultorioNombre,
         medico: appointment.medico,
         medicoNombre: appointment.medicoNombre,
+        especialidadSolicitud: (appointment as any)?.especialidadSolicitud,
         appointmentCompleto: appointment
       })
     }
   }, [isOpen, appointment])
+
+  // Determinar si hay coincidencias con citas pendientes
+  const hasConsultorioMatch = pendingAppointments?.some((apt) => {
+    const curr = appointment?.consultorioNombre?.trim().toLowerCase()
+    const other = apt.consultorioNombre?.trim().toLowerCase()
+    return curr && other && curr === other
+  })
+
+  const hasEspecialidadMatch = pendingAppointments?.some((apt) => {
+    // El appointment actual tiene "especialidadSolicitud" (código como "0001")
+    // Las citas pendientes tienen "especialidad" (código como "0001")
+    const currCodigo = (appointment as any)?.especialidadSolicitud?.trim()?.toLowerCase()
+    if (!currCodigo) return false
+    
+    // Comparar código con código
+    const matchCodigo = apt.especialidad?.trim()?.toLowerCase() === currCodigo
+    
+    return matchCodigo
+  })
 
   useEffect(() => {
     if (isOpen) {
@@ -501,6 +524,7 @@ export function PatientAssignmentModal({
         className="max-w-6xl max-h-[90vh] overflow-y-auto" 
         aria-describedby="patient-assignment-description"
         onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <div className="flex items-center gap-3">
@@ -525,6 +549,23 @@ export function PatientAssignmentModal({
             </div>
           </div>
         </DialogHeader>
+        {(hasConsultorioMatch || hasEspecialidadMatch) && (
+          <div className="mb-4">
+            <Alert className="bg-orange-50 border-orange-200">
+              <AlertDescription className="text-orange-800">
+                {hasConsultorioMatch && hasEspecialidadMatch && (
+                  <>⚠️ Este paciente tiene una cita pendiente en el mismo consultorio y especialidad.</>
+                )}
+                {!hasEspecialidadMatch && hasConsultorioMatch && (
+                  <>⚠️ Este paciente tiene una cita pendiente en el mismo consultorio.</>
+                )}
+                {!hasConsultorioMatch && hasEspecialidadMatch && (
+                  <>⚠️ Este paciente tiene una cita pendiente en la misma especialidad.</>
+                )}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
         
         {/* Mensaje de éxito */}
         {showSuccess && (
@@ -558,14 +599,29 @@ export function PatientAssignmentModal({
                 <Button
                   variant="outline"
                   onClick={async () => {
+                    console.log('🔘 Click en Actualizar Historia Clínica')
+                    console.log('   - patient:', patient)
+                    console.log('   - patient?.PACIENTE:', patient?.PACIENTE)
+                    console.log('   - patient?.HISTORIA:', patient?.HISTORIA)
+                    
                     const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+                    console.log('   - pacienteId seleccionado:', pacienteId)
+                    
                     if (pacienteId) {
                       await loadFullPatientData(pacienteId)
+                      console.log('✅ Abriendo modal de edición')
                       setShowPatientEditModal(true)
+                    } else {
+                      console.error('❌ No se encontró pacienteId')
+                      toast({
+                        title: "Error",
+                        description: "No se pudo identificar al paciente",
+                        variant: "destructive"
+                      })
                     }
                   }}
                   disabled={isLoadingFullPatient}
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                  className="w-full justify-center px-6 py-2.5 h-11 border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 relative z-10"
                 >
                   {isLoadingFullPatient ? (
                     <>
@@ -640,6 +696,18 @@ export function PatientAssignmentModal({
                     </div>
                   </div>
                 </div>
+
+                {/* Botón para ver citas pendientes */}
+                {patient?.PACIENTE && (
+                  <PatientPendingAppointmentsModal
+                    pacienteId={patient.PACIENTE}
+                    currentConsultorio={appointment?.consultorioNombre}
+                    currentEspecialidad={(appointment as any)?.especialidadSolicitud}
+                    limite={5}
+                    highlight={hasConsultorioMatch || hasEspecialidadMatch}
+                    onAppointmentsLoaded={setPendingAppointments}
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -670,16 +738,22 @@ export function PatientAssignmentModal({
                       documento={patient.DOCUMENTO}
                       onVerificationComplete={(result) => {
                         setSisVerificationResult(result)
-                        if (result.isSuccess && result.eess) {
-                          // Hacer trim a los ceros del código de establecimiento
-                          const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
-                          // Asegurar que se actualice el estado inmediatamente
-                          setSelectedEntidadSis(trimmedEess)
+                        if (result.isSuccess) {
+                          // ✅ Cambiar tipo de cita a "D" (Demanda) cuando SIS es exitoso
+                          setSelectedTipoCita('D')
+                          console.log('✅ SIS verificado exitosamente - Tipo de cita establecido a DEMANDA')
                           
-                          // Forzar un retraso para asegurar que el estado se actualice
-                          setTimeout(() => {
-                            console.log('Establecimiento autocompletado:', trimmedEess)
-                          }, 100)
+                          if (result.eess) {
+                            // Hacer trim a los ceros del código de establecimiento
+                            const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
+                            // Asegurar que se actualice el estado inmediatamente
+                            setSelectedEntidadSis(trimmedEess)
+                            
+                            // Forzar un retraso para asegurar que el estado se actualice
+                            setTimeout(() => {
+                              console.log('Establecimiento autocompletado:', trimmedEess)
+                            }, 100)
+                          }
                         }
                       }}
                     />
@@ -740,7 +814,11 @@ export function PatientAssignmentModal({
 
       {/* Diálogo de confirmación de impresión */}
       <Dialog open={showPrintConfirmation} onOpenChange={setShowPrintConfirmation}>
-        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent 
+          className="sm:max-w-md" 
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5 text-blue-600" />
@@ -832,6 +910,7 @@ export function PatientAssignmentModal({
               <p><span className="font-medium">Hora:</span> {appointment?.hora}</p>
               <p><span className="font-medium">Médico:</span> {appointment?.medicoNombre || 'No especificado'}</p>
               <p><span className="font-medium">Consultorio:</span> {appointment?.consultorioNombre || appointment?.consultorio}</p>
+              <p><span className="font-medium">Especialidad:</span> {(appointment as any)?.especialidadSolicitud || 'N/A'}</p>
               <p><span className="font-medium">Tipo de Cita:</span> {tiposCita.find(t => t.Tipo_cita === selectedTipoCita)?.Nombre}</p>
               <p><span className="font-medium">Seguro:</span> {seguros.find(s => s.Seguro === selectedSeguro)?.Nombre}</p>
               {isSisSeguro() && selectedEntidadSis && (
@@ -894,12 +973,36 @@ export function PatientAssignmentModal({
             setShowPatientEditModal(false)
             setFullPatientData(null) // Limpiar datos precargados
           }}
-          onSuccess={() => {
+          onSuccess={async () => {
             setShowPatientEditModal(false)
             setFullPatientData(null) // Limpiar datos precargados
+            
+            // ✅ Recargar datos del paciente después de actualizar
+            const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+            if (pacienteId) {
+              console.log('🔄 Recargando datos del paciente después de actualizar HC...')
+              await loadFullPatientData(pacienteId)
+              
+              // También recargar enhancedPatient si existe
+              if (patient?.HISTORIA) {
+                try {
+                  const response = await fetch(`/api/filiation/search?page=1&pageSize=10&documento=${patient.DOCUMENTO || patient.HISTORIA}`)
+                  if (response.ok) {
+                    const data = await response.json()
+                    if (data.data && data.data.length > 0) {
+                      console.log('✅ Datos del paciente actualizados')
+                      setEnhancedPatient(data.data[0])
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error recargando datos del paciente:', error)
+                }
+              }
+            }
+            
             toast({
               title: "✅ Historia actualizada",
-              description: "Los cambios se han guardado correctamente.",
+              description: "Los cambios se han guardado correctamente y los datos se han actualizado.",
             })
           }}
         />

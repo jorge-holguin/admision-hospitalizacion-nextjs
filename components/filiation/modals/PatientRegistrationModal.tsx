@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { StepIndicator } from "../register/StepIndicator"
 import { Step1BasicData } from "../register/Step1BasicData"
 import { Step2AdditionalData } from "../register/Step2AdditionalData"
@@ -34,6 +35,11 @@ export function PatientRegistrationModal({
   console.log('   - documentType:', documentType)
   console.log('   - documentNumber:', documentNumber)
   console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
+  console.log('   - sisData:', sisData ? 'Presente' : 'Ausente')
+  if (sisData) {
+    console.log('   - sisData.tipoSeguro:', sisData.tipoSeguro)
+    console.log('   - sisData.descTipoSeguro:', sisData.descTipoSeguro)
+  }
 
   const [selectedDocType, setSelectedDocType] = useState(documentType || "DNI")
   const [selectedDocNumber, setSelectedDocNumber] = useState(documentNumber || "")
@@ -54,6 +60,13 @@ export function PatientRegistrationModal({
   }, [documentType, documentNumber])
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
+  
+  // ✅ Estados para alertas visuales de APIs
+  const [apiAlerts, setApiAlerts] = useState<Array<{
+    type: 'success' | 'warning' | 'info'
+    title: string
+    message: string
+  }>>([])
   
   const [formData, setFormData] = useState({
     // Datos básicos
@@ -76,7 +89,7 @@ export function PatientRegistrationModal({
     gradoInstruccionReniec: "", // Código RENIEC del grado de instrucción
     ocupacion: "",
     religion: "",
-    etnia: "",
+    etnia: "58", // ✅ Valor por defecto: 58 = Mestizo
     centroPoblado: "",
     telefono1: "",
     telefono2: "",
@@ -97,20 +110,84 @@ export function PatientRegistrationModal({
     telefonoAcompanante2: "",
   })
 
-  // Actualizar formData 
+  // ✅ useEffect separado para sisData (se ejecuta cuando sisData cambia de undefined a un valor)
   useEffect(() => {
-    console.log('🔍 useEffect ejecutado en PatientRegistrationModal')
-    console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
-    console.log('   - sisData:', sisData ? 'Presente' : 'Ausente')
-    if (sisData) {
-      console.log('   - sisData completo:', sisData)
+    if (!sisData || !sisData.tipoSeguro) {
+      console.log('⏭️ Saltando actualización SIS - sisData no disponible aún')
+      return
     }
     
+    console.log('🔄 sisData actualizado - aplicando seguro SIS:', sisData)
+    console.log('   - sisData.tipoSeguro:', sisData.tipoSeguro)
+    console.log('   - sisData.descTipoSeguro:', sisData.descTipoSeguro)
+    
+    // Obtener nombres completos para detectar RN
+    const nombresCompletos = `${formData.nombres || ""} ${formData.apellidoPaterno || ""} ${formData.apellidoMaterno || ""}`.trim()
+    const codigoSeguroLocal = mapSISSeguroToLocal(sisData.tipoSeguro, nombresCompletos)
+    
+    console.log(`🔄 Mapeando seguro SIS ${sisData.tipoSeguro} → ${codigoSeguroLocal}`)
+    
+    // Actualizar formData con el seguro SIS
+    setFormData(prev => ({
+      ...prev,
+      tipoSeguro: codigoSeguroLocal
+    }))
+    
+    // Agregar alerta de éxito
+    setApiAlerts(prev => [
+      ...prev,
+      {
+        type: 'success',
+        title: '✅ Verificación SIS Exitosa',
+        message: `Seguro detectado: ${sisData.descTipoSeguro}. Estado: ${sisData.estado || 'ACTIVO'}`
+      }
+    ])
+    
+    console.log('✅ Seguro SIS aplicado correctamente:', codigoSeguroLocal)
+  }, [sisData]) // ✅ Se ejecuta cuando sisData cambia
+  
+  // Actualizar formData con datos de RENIEC
+  useEffect(() => {
+    console.log('🔍 useEffect RENIEC ejecutado en PatientRegistrationModal')
+    console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
+    
     const updates: any = {}
+    const alerts: Array<{ type: 'success' | 'warning' | 'info', title: string, message: string }> = []
 
     // Datos de RENIEC
     if (reniecData) {
       console.log('📋 Datos de RENIEC recibidos en modal:', reniecData)
+      
+      // ✅ Aviso inline cuando RENIEC respondió que el DNI no existe (código 5114)
+      if (reniecData.reniecError === 'DNI_NO_EXISTE') {
+        console.warn('⚠️ RENIEC: DNI no existe (mostrando alerta inline en modal)')
+        alerts.push({
+          type: 'warning',
+          title: '⚠️ DNI no encontrado en RENIEC',
+          message: 'El DNI consultado no existe en la base de datos de RENIEC. Verifique el número o complete el registro manualmente.'
+        })
+      }
+
+      // ✅ Alerta de éxito SOLO si hay datos reales de RENIEC (no solo documentType/document)
+      // Verificar que tenga al menos nombres o apellidos (datos que solo vienen de RENIEC)
+      if (reniecData.paternalSurname || reniecData.names || reniecData.dni) {
+        alerts.push({
+          type: 'success',
+          title: '✅ Datos obtenidos de RENIEC',
+          message: 'Se cargaron datos personales, dirección y ubigeos desde el servicio RENIEC.'
+        })
+      }
+      
+      // ✅ Verificar si hay código RENIEC de procedencia pero no se encontró ubigeo en BD
+      if (reniecData.ubigeoReniecProcedencia && !reniecData.distritoReniec) {
+        console.warn(`⚠️ Código RENIEC ${reniecData.ubigeoReniecProcedencia} no encontrado en BD`)
+        alerts.push({
+          type: 'warning',
+          title: '⚠️ Ubigeo no encontrado',
+          message: `El código RENIEC ${reniecData.ubigeoReniecProcedencia} no existe en la base de datos. Complete manualmente el distrito de procedencia.`
+        })
+      }
+      
       Object.assign(updates, {
         apellidoPaterno: reniecData.paternalSurname || "",
         apellidoMaterno: reniecData.maternalSurname || "",
@@ -139,27 +216,9 @@ export function PatientRegistrationModal({
       console.log('🎓 Grado de instrucción desde RENIEC:', reniecData.educationLevel, 'Código RENIEC:', reniecData.educationLevelReniec)
     }
     
-    // Datos del SIS - mapear tipo de seguro
-    if (sisData && sisData.tipoSeguro) {
-      console.log('🏥 Datos del SIS recibidos en modal:', sisData)
-      console.log(`📋 Tipo de seguro SIS: ${sisData.tipoSeguro} - ${sisData.descTipoSeguro}`)
-      
-      // Obtener nombres completos para detectar RN
-      const nombresCompletos = `${updates.nombres || ""} ${updates.apellidoPaterno || ""} ${updates.apellidoMaterno || ""}`.trim()
-      const codigoSeguroLocal = mapSISSeguroToLocal(sisData.tipoSeguro, nombresCompletos)
-      
-      console.log(`🔄 Mapeando seguro SIS ${sisData.tipoSeguro} → ${codigoSeguroLocal}`)
-      console.log(`✅ Seguro establecido: ${codigoSeguroLocal}`)
-      
-      Object.assign(updates, {
-        tipoSeguro: codigoSeguroLocal
-      })
-    } else {
-      // Si NO hay datos del SIS, establecer PAGANTE por defecto
-      console.log('⚠️ No hay datos del SIS, estableciendo seguro PAGANTE por defecto')
-      Object.assign(updates, {
-        tipoSeguro: '0' // PAGANTE
-      })
+    // ✅ Aplicar alertas de RENIEC (sisData se maneja en useEffect separado)
+    if (alerts.length > 0) {
+      setApiAlerts(prev => [...prev, ...alerts])
     }
     
     // Aplicar actualizaciones si hay datos
@@ -260,6 +319,7 @@ export function PatientRegistrationModal({
           <Step2AdditionalData
             formData={formData}
             onInputChange={handleInputChange}
+            patientData={{ documento: selectedDocNumber, DOCUMENTO: selectedDocNumber }}
           />
         )
       case 3:
@@ -281,6 +341,50 @@ export function PatientRegistrationModal({
             Registro de Nuevo Paciente
           </DialogTitle>
         </DialogHeader>
+
+        {/* ✅ Alertas visuales de APIs llamadas */}
+        {apiAlerts.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {apiAlerts.map((alert, index) => (
+              <Alert 
+                key={index} 
+                className={
+                  alert.type === 'success' 
+                    ? 'bg-green-50 border-green-200' 
+                    : alert.type === 'warning'
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : 'bg-blue-50 border-blue-200'
+                }
+              >
+                <div className="flex items-start gap-2">
+                  {alert.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
+                  {alert.type === 'warning' && <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />}
+                  {alert.type === 'info' && <Info className="h-5 w-5 text-blue-600 mt-0.5" />}
+                  <div className="flex-1">
+                    <div className={`font-semibold text-sm ${
+                      alert.type === 'success' 
+                        ? 'text-green-800' 
+                        : alert.type === 'warning'
+                        ? 'text-yellow-800'
+                        : 'text-blue-800'
+                    }`}>
+                      {alert.title}
+                    </div>
+                    <AlertDescription className={`text-sm ${
+                      alert.type === 'success' 
+                        ? 'text-green-700' 
+                        : alert.type === 'warning'
+                        ? 'text-yellow-700'
+                        : 'text-blue-700'
+                    }`}>
+                      {alert.message}
+                    </AlertDescription>
+                  </div>
+                </div>
+              </Alert>
+            ))}
+          </div>
+        )}
 
         <StepIndicator currentStep={currentStep} />
 

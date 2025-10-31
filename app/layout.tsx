@@ -7,6 +7,7 @@ import { PatientProvider } from '@/contexts/PatientContext'
 import { PatientAccountProvider } from '@/contexts/PatientAccountContext'
 import { EmergencyAccountProvider } from '@/contexts/EmergencyAccountContext'
 import { PatientDataProvider } from '@/contexts/PatientDataContext'
+import { TipoDocumentoProvider } from '@/contexts/filiation/TipoDocumentoContext'
 
 export const metadata: Metadata = {
   title: 'Sistema de Admisión',
@@ -24,16 +25,18 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <LoadingProvider>
-            <PatientDataProvider>
-              <PatientAccountProvider>
-                <EmergencyAccountProvider>
-                  <PatientProvider>
-                    <HideDebugger />
-                    {children}
-                  </PatientProvider>
-                </EmergencyAccountProvider>
-              </PatientAccountProvider>
-            </PatientDataProvider>
+            <TipoDocumentoProvider>
+              <PatientDataProvider>
+                <PatientAccountProvider>
+                  <EmergencyAccountProvider>
+                    <PatientProvider>
+                      <HideDebugger />
+                      {children}
+                    </PatientProvider>
+                  </EmergencyAccountProvider>
+                </PatientAccountProvider>
+              </PatientDataProvider>
+            </TipoDocumentoProvider>
           </LoadingProvider>
         </AuthProvider>
       </body>

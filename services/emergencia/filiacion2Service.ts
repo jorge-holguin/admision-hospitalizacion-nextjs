@@ -178,55 +178,69 @@ export const filiacionService = {
         }
       }
       
-      // Para otros tipos de búsqueda, usar la consulta SQL original
-      // Verificar primero si la vista existe
-      try {
-        const checkView = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION2'`;
-        console.log('Verificación de vista V_FILIACION2:', checkView);
-      } catch (checkError) {
-        console.error('Error al verificar la vista V_FILIACION2:', checkError);
-      }
+      // Para otros tipos de búsqueda, usar consulta directa a tablas (sin vista)
+      console.log('🔍 Usando consulta directa a tablas PACIENTE (sin vista V_FILIACION2)');
       
       // Construir la cláusula WHERE basada en los filtros proporcionados
       let whereClause = '';
       const conditions = [];
       
       if (filter.historia) {
-        conditions.push(`HISTORIA LIKE '%${filter.historia}%'`);
+        conditions.push(`P.HISTORIA LIKE '%${filter.historia}%'`);
       }
       
       if (filter.documento) {
-        conditions.push(`DOCUMENTO LIKE '%${filter.documento}%'`);
+        conditions.push(`P.DOCUMENTO LIKE '%${filter.documento}%'`);
       }
       
-      // Nota: Ya no necesitamos esta condición para nombres, ya que se maneja arriba
-      // pero la mantenemos por si acaso se llama sin el filtro de nombres
       if (filter.nombres) {
-        conditions.push(`(NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`);
+        conditions.push(`(P.NOMBRES LIKE '%${filter.nombres}%' OR P.PATERNO LIKE '%${filter.nombres}%' OR P.MATERNO LIKE '%${filter.nombres}%' OR P.NOMBRE LIKE '%${filter.nombres}%')`);
       }
       
       if (conditions.length > 0) {
         whereClause = `WHERE ${conditions.join(' AND ')}`;
       }
       
-      // Consulta para obtener el total de registros
-      const countQuery = `SELECT COUNT(*) as total FROM V_FILIACION2 ${whereClause}`;
+      // Consulta directa a tablas para obtener el total de registros
+      const countQuery = `
+        SELECT COUNT(*) as total 
+        FROM dbo.PACIENTE P
+        ${whereClause}
+      `;
       console.log('Consulta de conteo:', countQuery);
       
       const countResult = await prisma.$queryRawUnsafe(countQuery);
       const total = Number(countResult[0]?.total || 0);
       
-      // Consulta para obtener los datos paginados usando una técnica compatible con SQL Server 2008
+      // Consulta directa a tablas para obtener los datos paginados
+      // Replica la estructura de V_FILIACION2 pero con LEFT JOIN para no perder registros
       const dataQuery = `
         WITH NumberedData AS (
-          SELECT *, ROW_NUMBER() OVER (ORDER BY NOMBRES ASC) AS RowNum
-          FROM V_FILIACION2
-          ${whereClause}  
+          SELECT 
+            P.PACIENTE, P.HISTORIA, P.NOMBRES, P.SEXO, P.DIRECCION, P.TELEFONO1, 
+            P.FECHA_NACIMIENTO, P.DOCUMENTO, S.NOMBRE AS NOMBRE_SEGURO, 
+            P.PATERNO, P.MATERNO, P.NOMBRE, P.LUGAR_NACIMIENTO, P.EDAD,
+            L.Nombre AS Nombre_Localidad, 
+            U1.DISTRITO AS Distrito_Dir, 
+            U1.DEPARTAMENTO AS Departamento_Dir,
+            P.RELIGION, R.NOMBRE AS DESRELIGION, P.STRING_FOTO, 
+            P.LOCALIDAD, P.TELEFONO2, P.SEGURO, P.DISTRITO AS Expr2, 
+            P.TIPO_DOCUMENTO, EC.NOMBRE AS NOMBRE_ESTADO_CIVIL, 
+            EC.ESTADO_CIVIL, U2.DISTRITO,
+            ROW_NUMBER() OVER (ORDER BY P.NOMBRES ASC) AS RowNum
+          FROM dbo.PACIENTE P
+          LEFT JOIN dbo.ESTADO_CIVIL EC ON P.ESTADO_CIVIL = EC.ESTADO_CIVIL
+          LEFT JOIN dbo.SEGURO S ON P.SEGURO = S.SEGURO
+          LEFT JOIN dbo.LOCALIDAD L ON P.LOCALIDAD = L.Localidad
+          LEFT JOIN dbo.UBIGEO U1 ON P.DISTRITO = U1.UBIGEO
+          LEFT JOIN dbo.UBIGEO U2 ON P.LUGAR_NACIMIENTO = U2.UBIGEO
+          LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
+          ${whereClause}
         )
         SELECT * FROM NumberedData
         WHERE RowNum > ${skip} AND RowNum <= ${skip + pageSize}
       `;
-      console.log('Consulta de datos:', dataQuery);
+      console.log('Consulta de datos (directa a tablas):', dataQuery);
       
       const data = await prisma.$queryRawUnsafe(dataQuery);
       
@@ -285,26 +299,7 @@ export const filiacionService = {
    */
   async getFiliacionById(id: string) {
     try {
-      console.log(`Buscando registro de filiación con ID: ${id}`);
-      
-      // Verificar primero si la vista existe
-      let viewExists = false;
-      try {
-        const viewCheck = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION2'`;
-        console.log('Verificación de vista V_FILIACION2:', viewCheck);
-        
-        // Verificar si la vista existe basado en el resultado
-        if (Array.isArray(viewCheck) && viewCheck.length > 0) {
-          viewExists = true;
-          console.log('Vista V_FILIACION2 encontrada');
-        } else {
-          console.error('Vista V_FILIACION2 no encontrada en la base de datos');
-          throw new Error('Vista V_FILIACION2 no existe en la base de datos');
-        }
-      } catch (checkError) {
-        console.error('Error al verificar la vista V_FILIACION2:', checkError);
-        throw new Error(`Error al verificar la vista V_FILIACION2: ${checkError instanceof Error ? checkError.message : 'Error desconocido'}`);
-      }
+      console.log(`🔍 Buscando registro de filiación con ID: ${id} (consulta directa a tablas)`);
       
       // Validar el ID antes de usarlo en la consulta SQL
       if (!id || typeof id !== 'string') {
@@ -321,9 +316,31 @@ export const filiacionService = {
       // Escapar comillas simples en el ID para prevenir SQL injection
       const safeId = id.replace(/'/g, "''");
       
-      // Usar una consulta más robusta con TOP para asegurar compatibilidad con SQL Server 2008
-      const query = `SELECT TOP 1 * FROM V_FILIACION2 WHERE PACIENTE = '${safeId}'`;
-      console.log('Ejecutando consulta:', query);
+      // Consulta directa a tablas (sin vista) - replica estructura de V_FILIACION2
+      // Buscar por PACIENTE (numérico) o HISTORIA (string)
+      // PACIENTE es numérico, HISTORIA es varchar
+      const query = `
+        SELECT TOP 1
+          P.PACIENTE, P.HISTORIA, P.NOMBRES, P.SEXO, P.DIRECCION, P.TELEFONO1,
+          P.FECHA_NACIMIENTO, P.DOCUMENTO, S.NOMBRE AS NOMBRE_SEGURO,
+          P.PATERNO, P.MATERNO, P.NOMBRE, P.LUGAR_NACIMIENTO, P.EDAD,
+          L.Nombre AS Nombre_Localidad,
+          U1.DISTRITO AS Distrito_Dir,
+          U1.DEPARTAMENTO AS Departamento_Dir,
+          P.RELIGION, R.NOMBRE AS DESRELIGION, P.STRING_FOTO,
+          P.LOCALIDAD, P.TELEFONO2, P.SEGURO, P.DISTRITO AS Expr2,
+          P.TIPO_DOCUMENTO, EC.NOMBRE AS NOMBRE_ESTADO_CIVIL,
+          EC.ESTADO_CIVIL, U2.DISTRITO
+        FROM dbo.PACIENTE P
+        LEFT JOIN dbo.ESTADO_CIVIL EC ON P.ESTADO_CIVIL = EC.ESTADO_CIVIL
+        LEFT JOIN dbo.SEGURO S ON P.SEGURO = S.SEGURO
+        LEFT JOIN dbo.LOCALIDAD L ON P.LOCALIDAD = L.Localidad
+        LEFT JOIN dbo.UBIGEO U1 ON P.DISTRITO = U1.UBIGEO
+        LEFT JOIN dbo.UBIGEO U2 ON P.LUGAR_NACIMIENTO = U2.UBIGEO
+        LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
+        WHERE P.PACIENTE = ${safeId} OR P.HISTORIA = '${safeId}'
+      `;
+      console.log('🔍 Ejecutando consulta directa a tablas (PACIENTE numérico, HISTORIA string):', query);
       
       let result;
       try {
@@ -418,17 +435,34 @@ export const filiacionService = {
    */
   async searchByHistoria(historia: string) {
     try {
-      console.log(`Buscando registros de filiación por historia: ${historia}`);
+      console.log(`🔍 Buscando registros de filiación por historia: ${historia} (consulta directa)`);
       
-      // Consulta compatible con SQL Server 2008
+      // Consulta directa a tablas (sin vista)
       const query = `
-        SELECT TOP 10 * FROM V_FILIACION2 
-        WHERE HISTORIA LIKE '%${historia}%' 
-        ORDER BY NOMBRES ASC
+        SELECT TOP 10
+          P.PACIENTE, P.HISTORIA, P.NOMBRES, P.SEXO, P.DIRECCION, P.TELEFONO1,
+          P.FECHA_NACIMIENTO, P.DOCUMENTO, S.NOMBRE AS NOMBRE_SEGURO,
+          P.PATERNO, P.MATERNO, P.NOMBRE, P.LUGAR_NACIMIENTO, P.EDAD,
+          L.Nombre AS Nombre_Localidad,
+          U1.DISTRITO AS Distrito_Dir,
+          U1.DEPARTAMENTO AS Departamento_Dir,
+          P.RELIGION, R.NOMBRE AS DESRELIGION, P.STRING_FOTO,
+          P.LOCALIDAD, P.TELEFONO2, P.SEGURO, P.DISTRITO AS Expr2,
+          P.TIPO_DOCUMENTO, EC.NOMBRE AS NOMBRE_ESTADO_CIVIL,
+          EC.ESTADO_CIVIL, U2.DISTRITO
+        FROM dbo.PACIENTE P
+        LEFT JOIN dbo.ESTADO_CIVIL EC ON P.ESTADO_CIVIL = EC.ESTADO_CIVIL
+        LEFT JOIN dbo.SEGURO S ON P.SEGURO = S.SEGURO
+        LEFT JOIN dbo.LOCALIDAD L ON P.LOCALIDAD = L.Localidad
+        LEFT JOIN dbo.UBIGEO U1 ON P.DISTRITO = U1.UBIGEO
+        LEFT JOIN dbo.UBIGEO U2 ON P.LUGAR_NACIMIENTO = U2.UBIGEO
+        LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
+        WHERE P.HISTORIA LIKE '%${historia}%'
+        ORDER BY P.NOMBRES ASC
       `;
       
       const result = await prisma.$queryRawUnsafe(query);
-      console.log(`Encontrados ${result.length} registros de filiación por historia`);
+      console.log(`✅ Encontrados ${result.length} registros de filiación por historia`);
       
       return serializeBigInt(result);
     } catch (error) {
@@ -442,17 +476,34 @@ export const filiacionService = {
    */
   async searchByDocumento(documento: string) {
     try {
-      console.log(`Buscando registros de filiación por documento: ${documento}`);
+      console.log(`🔍 Buscando registros de filiación por documento: ${documento} (consulta directa)`);
       
-      // Consulta compatible con SQL Server 2008
+      // Consulta directa a tablas (sin vista)
       const query = `
-        SELECT TOP 10 * FROM V_FILIACION2 
-        WHERE DOCUMENTO LIKE '%${documento}%' 
-        ORDER BY NOMBRES ASC
+        SELECT TOP 10
+          P.PACIENTE, P.HISTORIA, P.NOMBRES, P.SEXO, P.DIRECCION, P.TELEFONO1,
+          P.FECHA_NACIMIENTO, P.DOCUMENTO, S.NOMBRE AS NOMBRE_SEGURO,
+          P.PATERNO, P.MATERNO, P.NOMBRE, P.LUGAR_NACIMIENTO, P.EDAD,
+          L.Nombre AS Nombre_Localidad,
+          U1.DISTRITO AS Distrito_Dir,
+          U1.DEPARTAMENTO AS Departamento_Dir,
+          P.RELIGION, R.NOMBRE AS DESRELIGION, P.STRING_FOTO,
+          P.LOCALIDAD, P.TELEFONO2, P.SEGURO, P.DISTRITO AS Expr2,
+          P.TIPO_DOCUMENTO, EC.NOMBRE AS NOMBRE_ESTADO_CIVIL,
+          EC.ESTADO_CIVIL, U2.DISTRITO
+        FROM dbo.PACIENTE P
+        LEFT JOIN dbo.ESTADO_CIVIL EC ON P.ESTADO_CIVIL = EC.ESTADO_CIVIL
+        LEFT JOIN dbo.SEGURO S ON P.SEGURO = S.SEGURO
+        LEFT JOIN dbo.LOCALIDAD L ON P.LOCALIDAD = L.Localidad
+        LEFT JOIN dbo.UBIGEO U1 ON P.DISTRITO = U1.UBIGEO
+        LEFT JOIN dbo.UBIGEO U2 ON P.LUGAR_NACIMIENTO = U2.UBIGEO
+        LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
+        WHERE P.DOCUMENTO LIKE '%${documento}%'
+        ORDER BY P.NOMBRES ASC
       `;
       
       const result = await prisma.$queryRawUnsafe(query);
-      console.log(`Encontrados ${result.length} registros de filiación por documento`);
+      console.log(`✅ Encontrados ${result.length} registros de filiación por documento`);
       
       return serializeBigInt(result);
     } catch (error) {
@@ -466,20 +517,37 @@ export const filiacionService = {
    */
   async searchByName(name: string) {
     try {
-      console.log(`Buscando registros de filiación por nombre: ${name}`);
+      console.log(`🔍 Buscando registros de filiación por nombre: ${name} (consulta directa)`);
       
-      // Consulta compatible con SQL Server 2008
+      // Consulta directa a tablas (sin vista)
       const query = `
-        SELECT TOP 100 * FROM V_FILIACION2 
-        WHERE NOMBRES LIKE '%${name}%' 
-          OR PATERNO LIKE '%${name}%' 
-          OR MATERNO LIKE '%${name}%' 
-          OR NOMBRE LIKE '%${name}%' 
-        ORDER BY NOMBRES ASC
+        SELECT TOP 100
+          P.PACIENTE, P.HISTORIA, P.NOMBRES, P.SEXO, P.DIRECCION, P.TELEFONO1,
+          P.FECHA_NACIMIENTO, P.DOCUMENTO, S.NOMBRE AS NOMBRE_SEGURO,
+          P.PATERNO, P.MATERNO, P.NOMBRE, P.LUGAR_NACIMIENTO, P.EDAD,
+          L.Nombre AS Nombre_Localidad,
+          U1.DISTRITO AS Distrito_Dir,
+          U1.DEPARTAMENTO AS Departamento_Dir,
+          P.RELIGION, R.NOMBRE AS DESRELIGION, P.STRING_FOTO,
+          P.LOCALIDAD, P.TELEFONO2, P.SEGURO, P.DISTRITO AS Expr2,
+          P.TIPO_DOCUMENTO, EC.NOMBRE AS NOMBRE_ESTADO_CIVIL,
+          EC.ESTADO_CIVIL, U2.DISTRITO
+        FROM dbo.PACIENTE P
+        LEFT JOIN dbo.ESTADO_CIVIL EC ON P.ESTADO_CIVIL = EC.ESTADO_CIVIL
+        LEFT JOIN dbo.SEGURO S ON P.SEGURO = S.SEGURO
+        LEFT JOIN dbo.LOCALIDAD L ON P.LOCALIDAD = L.Localidad
+        LEFT JOIN dbo.UBIGEO U1 ON P.DISTRITO = U1.UBIGEO
+        LEFT JOIN dbo.UBIGEO U2 ON P.LUGAR_NACIMIENTO = U2.UBIGEO
+        LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
+        WHERE P.NOMBRES LIKE '%${name}%'
+          OR P.PATERNO LIKE '%${name}%'
+          OR P.MATERNO LIKE '%${name}%'
+          OR P.NOMBRE LIKE '%${name}%'
+        ORDER BY P.NOMBRES ASC
       `;
       
       const result = await prisma.$queryRawUnsafe(query);
-      console.log(`Encontrados ${result.length} registros de filiación por nombre`);
+      console.log(`✅ Encontrados ${result.length} registros de filiación por nombre`);
       
       return serializeBigInt(result);
     } catch (error) {
@@ -500,29 +568,33 @@ export const filiacionService = {
       const conditions = [];
       
       if (filter.historia) {
-        conditions.push(`HISTORIA LIKE '%${filter.historia}%'`);
+        conditions.push(`P.HISTORIA LIKE '%${filter.historia}%'`);
       }
       
       if (filter.documento) {
-        conditions.push(`DOCUMENTO LIKE '%${filter.documento}%'`);
+        conditions.push(`P.DOCUMENTO LIKE '%${filter.documento}%'`);
       }
       
       if (filter.nombres) {
-        conditions.push(`(NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`);
+        conditions.push(`(P.NOMBRES LIKE '%${filter.nombres}%' OR P.PATERNO LIKE '%${filter.nombres}%' OR P.MATERNO LIKE '%${filter.nombres}%' OR P.NOMBRE LIKE '%${filter.nombres}%')`);
       }
       
       if (conditions.length > 0) {
         whereClause = `WHERE ${conditions.join(' AND ')}`;
       }
       
-      // Consulta para obtener el total de registros
-      const countQuery = `SELECT COUNT(*) as total FROM V_FILIACION2 ${whereClause}`;
-      console.log('Consulta de conteo:', countQuery);
+      // Consulta directa a tablas para obtener el total de registros
+      const countQuery = `
+        SELECT COUNT(*) as total 
+        FROM dbo.PACIENTE P
+        ${whereClause}
+      `;
+      console.log('Consulta de conteo (directa a tablas):', countQuery);
       
       const result = await prisma.$queryRawUnsafe(countQuery);
       const total = Number(result[0]?.total || 0);
       
-      console.log(`Total de registros de filiación: ${total}`);
+      console.log(`✅ Total de registros de filiación: ${total}`);
       
       return serializeBigInt({
         success: true,

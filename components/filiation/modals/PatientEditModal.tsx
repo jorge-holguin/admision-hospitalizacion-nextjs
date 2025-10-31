@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogHeader, DialogTitle, Dialog } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { StepIndicator } from "../register/StepIndicator"
 import { Step1BasicData } from "../register/Step1BasicData"
 import { Step2AdditionalData } from "../register/Step2AdditionalData"
@@ -13,6 +14,7 @@ import { toast } from "@/hooks/use-toast"
 import { useReniec } from "@/hooks/useReniec"
 import { convertToLocalDateTime } from "@/utils/dateFormatUtils"
 import { getUbigeoByReniecCode } from "@/utils/reniecMapper"
+import { consultarSIS, mapSISSeguroToLocal } from "@/services/sisService"
 
 interface Patient {
   id?: string
@@ -109,6 +111,13 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   const [reniecPhotoHex, setReniecPhotoHex] = useState<string | null>(null) // ✅ Foto en hexadecimal de RENIEC
   const [reniecButtonUsed, setReniecButtonUsed] = useState(false) // ✅ Bloquear botón después de usar
   const { consultarReniec } = useReniec()
+  
+  // ✅ Estados para alertas visuales de APIs
+  const [apiAlerts, setApiAlerts] = useState<Array<{
+    type: 'success' | 'warning' | 'info'
+    title: string
+    message: string
+  }>>([])
   
   // Resetear al paso 1 cuando se abre el modal
   useEffect(() => {
@@ -281,11 +290,11 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         })(),
         // Religión: usar código directo
         religion: patient.religion || mapReligionValue(patient.DESRELIGION),
-        // Etnia: extraer código del objeto
+        // Etnia: extraer código del objeto, por defecto "58" (Mestizo)
         etnia: (() => {
           const codigo = typeof patient.codEtnia === 'object' 
             ? patient.codEtnia?.codEtnia?.trim() 
-            : patient.COD_ETNIA?.trim() || patient.etnia || "";
+            : patient.COD_ETNIA?.trim() || patient.etnia || "58"; // ✅ Default: 58 = Mestizo
           console.log('🌍 Etnia cargada:', codigo, 'desde:', patient.codEtnia);
           return codigo;
         })(),
@@ -295,7 +304,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         telefono2: patient.TELEFONO2?.trim() || patient.telefono2 || "",
         hijos: String(patient.hijos || patient.HIJOS?.s || patient.HIJOS?.d?.[0] || ""),
         // Observación: campo email
-        observacion: patient.email?.trim() || patient.EMAIL?.trim() || patient.observacion || "",
+        observacion: patient.email?.trim() || patient.EMAIL?.trim() || patient.observacion || " ",
         // Correo Electrónico: campo correo
         correoElectronico: patient.correo?.trim() || "",
         
@@ -311,7 +320,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           }
           if (patient.CONYUGE_OCUPACION) return patient.CONYUGE_OCUPACION.trim();
           if (patient.ocupacionFamiliar) return patient.ocupacionFamiliar;
-          return "";
+          return " ";
         })(),
         
         // Datos de Acompañante/Responsable
@@ -320,7 +329,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         ocupacionAcompanante: patient.RESPONSABLE_OCUPACION?.trim() || patient.ocupacionAcompanante || "",
         direccionAcompanante: patient.RESPONSABLE_DIRECCION?.trim() || patient.direccionAcompanante || "",
         telefonoAcompanante1: patient.RESPONSABLE_TELEFONO?.trim() || patient.telefonoAcompanante1 || "",
-        telefonoAcompanante2: "", // No existe en la API, campo legacy
+        telefonoAcompanante2: " ", // No existe en la API, campo legacy
         
         // Campos especiales para RENIEC (inicialmente vacíos)
         lugarNacimientoReniec: "",
@@ -347,6 +356,60 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     }
   }
 
+  // ✅ Función para validar SIS y actualizar seguro automáticamente usando el servicio
+  const validateSISAndUpdateSeguro = async (dni: string, showToast: boolean = false) => {
+    try {
+      console.log('🏥 Validando SIS para DNI:', dni);
+      
+      // Usar el servicio consultarSIS existente
+      const result = await consultarSIS(dni);
+
+      if (result.success && result.data) {
+        // Mapear tipoSeguro (CODSIS) a SEGURO usando el servicio
+        const nombreCompleto = formData.nombres || patient.NOMBRES || patient.nombres || '';
+        const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);
+        
+        console.log(`✅ Seguro SIS detectado: ${seguroId} (CODSIS: ${result.data.tipoSeguro})`);
+        setFormData(prev => ({
+          ...prev,
+          tipoSeguro: seguroId
+        }));
+        
+        // ✅ Mensaje informativo para el usuario cuando la verificación SIS es exitosa
+        if (showToast) {
+          toast({
+            title: "✅ Verificación SIS Exitosa",
+            description: `Seguro detectado: ${result.data.descTipoSeguro}. Estado: ${result.data.estado}`,
+            variant: "default"
+          });
+        }
+      } else {
+        console.log('⚠️ No se encontró seguro SIS, asignando PAGANTE');
+        setFormData(prev => ({
+          ...prev,
+          tipoSeguro: '0' // PAGANTE
+        }));
+        
+        if (showToast) {
+          toast({
+            title: "ℹ️ Información",
+            description: "No se encontró seguro SIS para este paciente. Se asignó como PAGANTE.",
+            variant: "default"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error validando SIS:', error);
+      if (showToast) {
+        toast({
+          title: "⚠️ Advertencia",
+          description: "No se pudo verificar el seguro SIS en este momento.",
+          variant: "default"
+        });
+      }
+    }
+  }
+
   const handleUpdateFromReniec = async () => {
     try {
       setIsLoadingReniec(true);
@@ -367,17 +430,45 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       const result = await consultarReniec(dni);
       
       if (result.success && result.data) {
-        setReniecData(result.data);
-        
-        // ✅ Guardar foto en hexadecimal si existe (viene como photoReniec desde el mapper)
-        if (result.data.photoReniec) {
-          setReniecPhotoHex(result.data.photoReniec);
-          console.log('📸 Foto RENIEC guardada (hexadecimal):', result.data.photoReniec.substring(0, 50) + '...');
+        if ((result as any).degraded) {
+          // ⚠️ Caso degradado: 200 pero sin datos útiles → no sobreescribir formulario
+          setReniecButtonUsed(true);
+          setApiAlerts(prev => ([
+            ...prev,
+            {
+              type: 'warning',
+              title: '⚠️ RENIEC sin datos',
+              message: 'El servicio de RENIEC respondió sin datos útiles. Continúe completando la información manualmente.'
+            }
+          ]));
+          // 🚫 No continuar con el procesamiento que usa result.data
+          return;
+        } else {
+          // ✅ Caso normal: setear datos de RENIEC
+          setReniecData(result.data);
+          setReniecButtonUsed(true);
+          setApiAlerts(prev => ([
+            ...prev,
+            {
+              type: 'success',
+              title: '✅ Datos obtenidos de RENIEC',
+              message: 'Se cargaron datos personales, dirección y ubigeos desde el servicio RENIEC.'
+            }
+          ]));
         }
-        
-        // ✅ Bloquear botón después de consultar
-        setReniecButtonUsed(true);
-        
+      } else {
+        setApiAlerts(prev => ([
+          ...prev,
+          {
+            type: 'warning',
+            title: '⚠️ No se pudo actualizar desde RENIEC',
+            message: 'Intente nuevamente más tarde o complete los datos manualmente.'
+          }
+        ]));
+      }
+
+      // ✅ Continuar SOLO cuando éxito y no degradado
+      if (result.success && result.data && !(result as any).degraded) {
         console.log('✅ Datos de RENIEC obtenidos:', result.data);
         console.log('📋 Datos mapeados completos:', result.data);
         
@@ -385,24 +476,39 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         let lugarNacimientoUbigeo = formData.lugarNacimiento;
         let distritoProcedenciaUbigeo = formData.distritoProcedencia;
         
-        // Consultar Lugar de Nacimiento si hay código RENIEC
+        // ✅ Consultar Lugar de Nacimiento si hay código RENIEC
+        let ubigeoWarnings: string[] = [];
+        
         if (result.data.ubigeoReniecNacimiento) {
           console.log('🗺️ Consultando UBIGEO para lugar de nacimiento:', result.data.ubigeoReniecNacimiento);
           const ubigeoNac = await getUbigeoByReniecCode(result.data.ubigeoReniecNacimiento);
           if (ubigeoNac) {
             lugarNacimientoUbigeo = ubigeoNac;
             console.log('✅ UBIGEO Lugar de Nacimiento:', ubigeoNac);
+          } else {
+            ubigeoWarnings.push(`Lugar de Nacimiento (código RENIEC: ${result.data.ubigeoReniecNacimiento})`);
           }
         }
         
-        // Consultar Distrito de Procedencia si hay código RENIEC
+        // ✅ Consultar Distrito de Procedencia si hay código RENIEC
         if (result.data.ubigeoReniecProcedencia) {
           console.log('🗺️ Consultando UBIGEO para distrito de procedencia:', result.data.ubigeoReniecProcedencia);
           const ubigeoProc = await getUbigeoByReniecCode(result.data.ubigeoReniecProcedencia);
           if (ubigeoProc) {
             distritoProcedenciaUbigeo = ubigeoProc;
             console.log('✅ UBIGEO Distrito de Procedencia:', ubigeoProc);
+          } else {
+            ubigeoWarnings.push(`Distrito de Procedencia (código RENIEC: ${result.data.ubigeoReniecProcedencia})`);
           }
+        }
+        
+        // ✅ Mostrar advertencia informativa si hay UBIGEOs no encontrados
+        if (ubigeoWarnings.length > 0) {
+          toast({
+            title: "⚠️ Información",
+            description: `No se encontró UBIGEO para: ${ubigeoWarnings.join(', ')}. Puede continuar y completar manualmente estos campos.`,
+            variant: "default"
+          });
         }
         
         // ✅ Actualizar formData con TODOS los datos importantes de RENIEC
@@ -437,15 +543,44 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           lugarNacimientoReniec: result.data.ubigeoReniecNacimiento || "",
           ubigeoReniec: result.data.ubigeoReniecProcedencia || "",
           direccionReniec: result.data.direccionReniec || result.data.address || "",
-          distritoReniec: result.data.distritoReniec || distritoProcedenciaUbigeo || "",
+          // ✅ distritoReniec debe ser el código RENIEC (070101), NO el ubigeo de BD
+          distritoReniec: result.data.ubigeoReniecProcedencia || "",
         }));
 
+        // ✅ Validar SIS automáticamente después de actualizar RENIEC (sin toast aquí)
+        await validateSISAndUpdateSeguro(dni, false);
+        
+        // ✅ Agregar alertas visuales dentro del modal
+        const alerts: Array<{ type: 'success' | 'warning' | 'info', title: string, message: string }> = []
+        
+        alerts.push({
+          type: 'success',
+          title: '✅ Actualización desde RENIEC Exitosa',
+          message: 'Se actualizaron los datos personales, dirección y ubigeos desde el servicio RENIEC.'
+        })
+        
+        // Verificar si se validó SIS
+        if (formData.tipoSeguro && formData.tipoSeguro !== '0') {
+          alerts.push({
+            type: 'success',
+            title: '✅ Verificación SIS Exitosa',
+            message: 'El seguro SIS fue verificado y actualizado automáticamente.'
+          })
+        } else {
+          alerts.push({
+            type: 'info',
+            title: 'ℹ️ Sin seguro SIS',
+            message: 'No se encontró seguro SIS activo para este paciente.'
+          })
+        }
+        
+        setApiAlerts(alerts)
+        
+        // ✅ Mensaje informativo para el usuario sobre la actualización desde RENIEC
         toast({
-          title: "✅ Datos Actualizados",
-          description: "Información obtenida de RENIEC correctamente. Se han actualizado los ubigeos.",
+          title: "✅ Actualización desde RENIEC Exitosa",
+          description: "Se actualizaron los datos personales, dirección y ubigeos desde RENIEC. El seguro SIS fue verificado automáticamente.",
         });
-      } else {
-        throw new Error(result.error || 'No se encontraron datos');
       }
     } catch (error: any) {
       console.error('Error al consultar RENIEC:', error);
@@ -519,10 +654,20 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         console.log('📄 Documento:', updateData.documento)
       }
       
-      // Tipo de documento: extraer del paciente o usar 'D' por defecto para DNI
-      const tipoDocValue = patient.TIPO_DOCUMENTO || patient.tipoDocumento || 'D'
-      updateData.tipoDocumento = tipoDocValue.trim()
-      console.log('📋 Tipo Documento:', updateData.tipoDocumento)
+      // ✅ Tipo de documento: extraer correctamente del objeto o string
+      let tipoDocValue = 'D' // Default DNI
+      
+      if (typeof patient.TIPO_DOCUMENTO === 'string') {
+        tipoDocValue = patient.TIPO_DOCUMENTO.trim()
+      } else if (typeof patient.tipoDocumento === 'string') {
+        tipoDocValue = patient.tipoDocumento.trim()
+      } else if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
+        // Si es objeto como { tipoDocumento: "D", nombre: "DNI" }
+        tipoDocValue = patient.tipoDocumento.tipoDocumento.trim()
+      }
+      
+      updateData.tipoDocumento = tipoDocValue
+      console.log('📋 Tipo Documento extraído:', updateData.tipoDocumento, 'de:', patient.tipoDocumento || patient.TIPO_DOCUMENTO)
       
       // ✅ IMPORTANTE: Enviar CÓDIGOS con PADDING, no nombres
       if (formData.distritoProcedencia?.trim()) {
@@ -559,13 +704,22 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.correoElectronico?.trim()) updateData.correo = formData.correoElectronico.trim()
       if (formData.padre?.trim()) updateData.padre = formData.padre.trim()
       if (formData.madre?.trim()) updateData.madre = formData.madre.trim()
-      if (formData.conyuge?.trim()) updateData.conyugeNombre = formData.conyuge.trim()
+      // ✅ conyugeNombre: siempre enviar un valor (trim si existe, sino '-' por defecto)
+      updateData.conyugeNombre = formData.conyuge?.trim() || '-'
       if (formData.ocupacionFamiliar?.trim()) updateData.conyugeOcupacion = formData.ocupacionFamiliar.trim()
       
-      // ✅ Enviar foto RENIEC en hexadecimal si existe
+      // ✅ Siempre enviar foto si existe (nueva de RENIEC o existente del paciente)
       if (reniecPhotoHex) {
+        // Si hay foto nueva de RENIEC, enviarla
         updateData.stringFoto = reniecPhotoHex
         console.log('📸 Enviando foto RENIEC (hexadecimal):', reniecPhotoHex.substring(0, 50) + '...')
+      } else {
+        // Si no hay foto nueva, pero el paciente tiene foto existente, preservarla
+        const fotoExistente = patient.STRING_FOTO || patient.stringFoto;
+        if (fotoExistente && fotoExistente.trim() !== '') {
+          updateData.stringFoto = fotoExistente
+          console.log('📸 Preservando foto existente del paciente')
+        }
       }
       
       // ✅ Campos RENIEC
@@ -636,7 +790,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             <Step1BasicData
               formData={formData}
               onInputChange={handleInputChange}
-              documentType={patient.TIPO_DOCUMENTO || patient.tipoDocumento || "DNI"}
+              documentType={(() => {
+                // Extraer código del tipo de documento (string u objeto)
+                if (typeof patient.TIPO_DOCUMENTO === 'string') return patient.TIPO_DOCUMENTO.trim();
+                if (typeof patient.tipoDocumento === 'string') return patient.tipoDocumento.trim();
+                if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
+                  return patient.tipoDocumento.tipoDocumento.trim(); // ✅ Extraer del objeto
+                }
+                return 'D'; // Default DNI
+              })()}
               documentNumber={patient.DOCUMENTO || patient.dni || ''}
               patientData={patient}
               reniecData={reniecData || {
@@ -647,7 +809,16 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
               }}
             />
             {/* ✅ Botón RENIEC solo visible para pacientes con tipo de documento 'D' (DNI) */}
-            {(patient.TIPO_DOCUMENTO?.trim() === 'D' || patient.tipoDocumento?.trim() === 'D') && (
+            {(() => {
+              // Extraer código del tipo de documento para verificar si es DNI
+              let tipoDoc = '';
+              if (typeof patient.TIPO_DOCUMENTO === 'string') tipoDoc = patient.TIPO_DOCUMENTO.trim();
+              else if (typeof patient.tipoDocumento === 'string') tipoDoc = patient.tipoDocumento.trim();
+              else if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
+                tipoDoc = patient.tipoDocumento.tipoDocumento.trim();
+              }
+              return tipoDoc === 'D';
+            })() && (
               <div className="flex justify-center mt-4">
                 <Button 
                   onClick={handleUpdateFromReniec}
@@ -701,9 +872,53 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="text-xl font-bold text-blue-800">
-          Editar Información del Paciente - H.C. {patient.HISTORIA || patient.hc || 'N/A'}
+          Editar Información del Paciente - H.C. {patient.HISTORIA?.trim() || patient.historia?.trim() || formData.historia || 'N/A'}
         </DialogTitle>
       </DialogHeader>
+
+      {/* ✅ Alertas visuales de APIs llamadas */}
+      {apiAlerts.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {apiAlerts.map((alert, index) => (
+            <Alert 
+              key={`alert-${index}`}
+              className={
+                alert.type === 'success' 
+                  ? 'bg-green-50 border-green-200' 
+                  : alert.type === 'warning'
+                  ? 'bg-yellow-50 border-yellow-200'
+                  : 'bg-blue-50 border-blue-200'
+              }
+            >
+              <div className="flex items-start gap-2">
+                {alert.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
+                {alert.type === 'warning' && <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />}
+                {alert.type === 'info' && <Info className="h-5 w-5 text-blue-600 mt-0.5" />}
+                <div className="flex-1">
+                  <div className={`font-semibold text-sm ${
+                    alert.type === 'success' 
+                      ? 'text-green-800' 
+                      : alert.type === 'warning'
+                      ? 'text-yellow-800'
+                      : 'text-blue-800'
+                  }`}>
+                    {alert.title}
+                  </div>
+                  <AlertDescription className={`text-sm ${
+                    alert.type === 'success' 
+                      ? 'text-green-700' 
+                      : alert.type === 'warning'
+                      ? 'text-yellow-700'
+                      : 'text-blue-700'
+                  }`}>
+                    {alert.message}
+                  </AlertDescription>
+                </div>
+              </div>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       <StepIndicator currentStep={currentStep} />
 
@@ -735,13 +950,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
                 Siguiente (Opcional)
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
-                Actualizar
+              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Actualizar Historia Clínica
               </Button>
             </>
           ) : (
-            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
-              Actualizar
+            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Actualizar Historia Clínica
             </Button>
           )}
         </div>

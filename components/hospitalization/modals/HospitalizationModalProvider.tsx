@@ -3,6 +3,7 @@
 import React from 'react'
 import { HospitalizationProvider } from "./HospitalizationProvider"
 import { ConsultoriosProvider } from "@/contexts/ConsultoriosContext"
+import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { HospitalizationMainModal } from './HospitalizationMainModal'
 
 interface HospitalizationModalProviderProps {
@@ -39,15 +40,17 @@ export function HospitalizationModalProvider({
   }
 
   return (
-    <ConsultoriosProvider>
-      <HospitalizationProvider>
-        <HospitalizationMainModal
-          isOpen={isOpen}
-          onClose={onClose}
-          patientId={patientId}
-          patientName={patientName}
-        />
-      </HospitalizationProvider>
-    </ConsultoriosProvider>
+    <SegurosCitaProvider>
+      <ConsultoriosProvider>
+        <HospitalizationProvider>
+          <HospitalizationMainModal
+            isOpen={isOpen}
+            onClose={onClose}
+            patientId={patientId}
+            patientName={patientName}
+          />
+        </HospitalizationProvider>
+      </ConsultoriosProvider>
+    </SegurosCitaProvider>
   )
 }

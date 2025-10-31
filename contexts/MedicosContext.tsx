@@ -1,4 +1,4 @@
-﻿import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 
 // Definición de tipos
 export type MedicoInfo = {
@@ -11,6 +11,7 @@ type MedicosContextType = {
   loading: boolean;
   getMedicoInfo: (codigo: string) => string;
   loadMedicosByCodigos: (codigos: string[]) => Promise<void>;
+  loadMedicosByEspecialidad: (especialidad: string) => Promise<void>;
 };
 
 // Crear el contexto
@@ -19,6 +20,7 @@ const MedicosContext = createContext<MedicosContextType>({
   loading: false,
   getMedicoInfo: () => '',
   loadMedicosByCodigos: async () => {},
+  loadMedicosByEspecialidad: async () => {},
 });
 
 // Proveedor del contexto
@@ -99,6 +101,45 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Función para cargar médicos por especialidad
+  const loadMedicosByEspecialidad = useCallback(async (especialidad: string) => {
+    if (!especialidad) return;
+    
+    console.log(`Cargando médicos de especialidad: ${especialidad}`);
+    
+    try {
+      setLoading(true);
+      
+      // Usar el endpoint correcto con especialidad
+      const response = await fetch(`/api/master-tables/medicos/search?especialidad=${especialidad}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const nuevosMedicos = Array.isArray(data) ? data : 
+                            Array.isArray(data?.data) ? data.data : 
+                            Array.isArray(data?.items) ? data.items : [];
+        
+        console.log(`Cargados ${nuevosMedicos.length} médicos de especialidad ${especialidad}`);
+        
+        // Actualizar el cache y el estado
+        nuevosMedicos.forEach((medico: MedicoInfo) => {
+          if (medico.MEDICO) {
+            medicoCache.current.set(medico.MEDICO.trim(), medico);
+          }
+        });
+        
+        // Reemplazar médicos con los de la especialidad
+        setMedicos(nuevosMedicos);
+      } else {
+        console.error('Error al cargar médicos por especialidad:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error al cargar médicos por especialidad:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Función para obtener solo el nombre del médico por código
   const getMedicoInfo = useCallback((codigo: string): string => {
     if (!codigo) return '-';
@@ -126,7 +167,7 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
   }, [medicos]);
 
   return (
-    <MedicosContext.Provider value={{ medicos, loading, getMedicoInfo, loadMedicosByCodigos }}>
+    <MedicosContext.Provider value={{ medicos, loading, getMedicoInfo, loadMedicosByCodigos, loadMedicosByEspecialidad }}>
       {children}
     </MedicosContext.Provider>
   );
