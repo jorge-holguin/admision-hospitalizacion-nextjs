@@ -19,7 +19,6 @@ yarn-error.log*
 # archivos de configuración
 .env
 .env.local
-.env.example
 
 # vercel
 .vercel
