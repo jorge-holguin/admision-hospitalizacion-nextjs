@@ -92,7 +92,7 @@ export const medicoService = {
   async findByEspecialidad(especialidad: string, searchTerm: string = '', limit: number = 50): Promise<Medico[]> {
     try {
       const searchCondition = searchTerm 
-        ? `AND (m.MEDICO LIKE '%${searchTerm}%' OR m.NOMBRE LIKE '%${searchTerm}%')`
+        ? `AND (MEDICO LIKE '%${searchTerm}%' OR NOMBRE LIKE '%${searchTerm}%')`
         : '';
       
       const query = `
@@ -103,6 +103,8 @@ export const medicoService = {
         ${searchCondition}
         ORDER BY NOMBRE
       `;
+      
+      console.log('🔍 Query médicos por especialidad:', query);
       
       const medicos = await prisma.$queryRawUnsafe(query) as Medico[];
       

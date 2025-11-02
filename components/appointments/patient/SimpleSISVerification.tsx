@@ -52,6 +52,10 @@ export function SimpleSISVerification({
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
       
       try {
+        // Determinar el tipo de documento: 9 dígitos = Carné de Extranjería (tipo "3"), sino DNI (tipo "1")
+        const tipoDocumento = documento.length === 9 ? "3" : "1";
+        console.log(`📋 Verificando SIS - Documento: ${documento} (${documento.length} dígitos) - Tipo: ${tipoDocumento === "3" ? "Carné de Extranjería" : "DNI"}`);
+        
         const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
           method: 'POST',
           headers: {
@@ -59,7 +63,7 @@ export function SimpleSISVerification({
           },
           body: JSON.stringify({
             intOpcion: "1",
-            strTipoDocumento: "1",
+            strTipoDocumento: tipoDocumento,
             strNroDocumento: documento,
             strTipoFormato: "2",
             strNroContrato: documento

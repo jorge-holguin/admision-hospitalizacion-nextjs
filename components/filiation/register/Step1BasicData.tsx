@@ -91,13 +91,14 @@ export function Step1BasicData({
         const esCodigoReniec = codigoTrimmed.length === 6 || (codigoTrimmed.length < 7 && !codigoTrimmed.includes(' '))
         
         if (esCodigoReniec) {
-          // Caso 1: Es código RENIEC → mapear a ubigeo BD
+          // Caso 1: Es código RENIEC → mostrar código RENIEC con nombre del distrito
           try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/reniec/${codigoTrimmed}`)
             if (response.ok) {
               const data = await response.json()
-              setDistritoReniecNombre(`${data.ubigeo?.trim() || codigoTrimmed} - ${data.distrito}`)
-              console.log('✅ Código RENIEC mapeado:', `${codigoTrimmed} → ${data.ubigeo?.trim()} (${data.distrito})`)
+              // Mostrar el código RENIEC original (no el ubigeo BD) con el nombre del distrito
+              setDistritoReniecNombre(`${codigoTrimmed} - ${data.distrito}`)
+              console.log('✅ Código RENIEC encontrado:', `${codigoTrimmed} (${data.distrito}) [Ubigeo BD: ${data.ubigeo?.trim()}]`)
             } else {
               setDistritoReniecNombre(codigoTrimmed)
               console.warn('⚠️ No se pudo mapear código RENIEC:', codigoTrimmed)

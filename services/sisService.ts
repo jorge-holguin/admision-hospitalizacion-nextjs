@@ -88,6 +88,10 @@ export async function consultarSIS(documentNumber: string): Promise<{
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos
     
     try {
+      // Determinar el tipo de documento: 9 dígitos = Carné de Extranjería (tipo "3"), sino DNI (tipo "1")
+      const tipoDocumento = documentNumber.length === 9 ? "3" : "1";
+      console.log(`📋 Verificando SIS - Documento: ${documentNumber} (${documentNumber.length} dígitos) - Tipo: ${tipoDocumento === "3" ? "Carné de Extranjería" : "DNI"}`);
+      
       // Usar POST con la estructura correcta requerida por la API
       const response = await fetch(`${SIS_API_URL}/sis/validar`, {
         method: 'POST',
@@ -96,7 +100,7 @@ export async function consultarSIS(documentNumber: string): Promise<{
         },
         body: JSON.stringify({
           intOpcion: "1",
-          strTipoDocumento: "1",
+          strTipoDocumento: tipoDocumento,
           strNroDocumento: documentNumber,
           strTipoFormato: "2",
           strNroContrato: documentNumber

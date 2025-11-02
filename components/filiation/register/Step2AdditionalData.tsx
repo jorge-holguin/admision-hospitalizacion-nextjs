@@ -204,7 +204,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         {/* Correo Electrónico y Observación */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="correoElectronico">Correo Electrónico <span className="text-red-600">*</span></Label>
+            <Label htmlFor="correoElectronico">Correo Electrónico</Label>
             <Input
               id="correoElectronico"
               type="email"

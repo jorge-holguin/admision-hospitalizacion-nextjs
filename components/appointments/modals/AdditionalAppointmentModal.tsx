@@ -188,7 +188,7 @@ export function AdditionalAppointmentModal({
       console.log('🚀 Enviando cita adicional:', requestBody)
       
       // Call the API
-      const response = await fetch(`${apiBaseUrl}/adicional`, {
+      const response = await fetch(`${apiBaseUrl}/cita/adicional`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -492,7 +492,7 @@ export function AdditionalAppointmentModal({
                       <Input
                         type="date"
                         value={fecha}
-                        disabled
+                        onChange={(e) => setFecha(e.target.value)}
                         className="bg-gray-100"
                       />
                     </div>
