@@ -24,6 +24,7 @@ interface MedicoSelectorProps {
   // consultorio is intentionally ignored to keep this selector independent
   consultorio?: string | "all"
   especialidad?: string | null  // Filtrar médicos por especialidad del consultorio
+  availableMedicos?: Array<{codigo: string, nombre: string}>  // Lista filtrada de médicos disponibles
 }
 
 function buildNombre(m: MedicoItem): string {
@@ -33,7 +34,7 @@ function buildNombre(m: MedicoItem): string {
   return m.MEDICO ?? ""
 }
 
-export function MedicoSelector({ label = "Médico", value, onChange, className = "", consultorio = "all", especialidad }: MedicoSelectorProps) {
+export function MedicoSelector({ label = "Médico", value, onChange, className = "", consultorio = "all", especialidad, availableMedicos }: MedicoSelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [items, setItems] = useState<MedicoItem[]>([])
@@ -55,7 +56,19 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
     }
   }
 
+  // Si se proporciona availableMedicos, usar esa lista en lugar de cargar desde API
   useEffect(() => {
+    if (availableMedicos && availableMedicos.length > 0) {
+      // Convertir la lista de médicos disponibles al formato MedicoItem
+      const medicoItems: MedicoItem[] = availableMedicos.map(m => ({
+        MEDICO: m.codigo,
+        NOMBRE: m.nombre
+      }))
+      setItems(medicoItems)
+      return
+    }
+    
+    // Si no hay availableMedicos, cargar desde API como antes
     if (!open) return
     const ctrl = new AbortController()
     const t = setTimeout(() => load(search, ctrl.signal), 250)
@@ -63,7 +76,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       clearTimeout(t)
       ctrl.abort()
     }
-  }, [open, search, especialidad])  // Recargar cuando cambie especialidad
+  }, [open, search, especialidad, availableMedicos])  // Recargar cuando cambie especialidad o availableMedicos
 
   // No carga inicial para evitar duplicados causados por StrictMode; se carga al abrir
 

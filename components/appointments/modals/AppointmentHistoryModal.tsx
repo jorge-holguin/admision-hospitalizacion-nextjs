@@ -16,8 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ConsultorioCitasSelector } from "../selectors/ConsultorioCitasSelector"
 import { MedicoSelector } from "../selectors/MedicoSelector"
 import { AppointmentDetailsModal } from "./AppointmentDetailsModal"
-import { History, Search, Calendar, User, Eye, Loader2, AlertCircle, RefreshCw, CalendarIcon, Filter, ChevronDown, ChevronUp } from "lucide-react"
+import { History, Search, Calendar, User, Eye, Loader2, AlertCircle, RefreshCw, CalendarIcon, Filter, ChevronDown, ChevronUp, Printer, UserCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { extractDocumentFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
+import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
+import { PatientViewModal } from "@/components/filiation/modals/PatientViewModal"
+import { TicketPreviewModal, type TicketData } from "./TicketPreviewModal"
 
 // Estado options for appointments
 const ESTADO_OPTIONS = [
@@ -98,6 +102,12 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const [error, setError] = useState<string | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<HistoryAppointment | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showPatientModal, setShowPatientModal] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<any | null>(null)
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false)
+  const [showTicketPreview, setShowTicketPreview] = useState(false)
+  const [ticketData, setTicketData] = useState<TicketData | null>(null)
+  const [isLoadingTicket, setIsLoadingTicket] = useState<string | null>(null)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(0)
@@ -232,6 +242,99 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const handleViewDetails = (appointment: HistoryAppointment) => {
     setSelectedAppointment(appointment)
     setShowDetailsModal(true)
+  }
+
+  const handleViewPatient = async (pacienteId: string) => {
+    try {
+      setIsLoadingPatient(true)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}`)
+      
+      if (!response.ok) {
+        throw new Error('No se pudo cargar los datos del paciente')
+      }
+      
+      const patientData = await response.json()
+      setSelectedPatient(patientData)
+      setShowPatientModal(true)
+    } catch (error) {
+      console.error('Error al cargar paciente:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la historia clínica del paciente",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingPatient(false)
+    }
+  }
+
+  const handlePrintClick = async (citaId: string) => {
+    try {
+      setIsLoadingTicket(citaId)
+      console.log('🎫 Obteniendo datos de la cita para preview:', citaId)
+      
+      // Obtener datos completos de la cita
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      
+      if (!response.ok) {
+        throw new Error('No se pudo obtener los datos de la cita')
+      }
+      
+      const citaData = await response.json()
+      console.log('📋 Datos de cita recibidos:', citaData)
+      
+      // Obtener el operador desde el JWT
+      const operador = extractNombreCompletoFromToken() || 'OPERADOR'
+      
+      // Formatear turno
+      const turnoConsulta = citaData.turnoConsulta || ''
+      const turnoFormateado = turnoConsulta.trim().toUpperCase() === 'M' ? 'Mañana' : 
+                              turnoConsulta.trim().toUpperCase() === 'T' ? 'Tarde' : turnoConsulta
+      
+      // Construir el TicketData para preview
+      const ticket: TicketData = {
+        numero: citaData.citaId || citaId,
+        numeroAtencion: citaData.numero || '',
+        paciente: citaData.nombre || '',
+        consultorio: citaData.consultorioNombre || '',
+        medico: citaData.medicoNombre || '',
+        diaAtencion: formatDateToDDMMYYYY(citaData.fecha || new Date().toISOString()),
+        turno: turnoFormateado,
+        hora: citaData.hora || '',
+        historiaClinica: citaData.historia ? String(citaData.historia).trim() : '',
+        emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
+        operador: operador,
+        seguro: citaData.seguroNombre || 'PAGANTE'
+      }
+      
+      setTicketData(ticket)
+      setShowTicketPreview(true)
+      
+    } catch (error) {
+      console.error('❌ Error al cargar datos de cita:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo cargar los datos de la cita. Intente nuevamente.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingTicket(null)
+    }
+  }
+
+  // Función para formatear fecha correctamente sin desfase
+  const formatFecha = (fechaStr: string): string => {
+    if (!fechaStr) return '-'
+    
+    // Si viene en formato DD/MM/YYYY, retornar tal cual
+    if (fechaStr.includes('/')) {
+      return fechaStr
+    }
+    
+    // Si viene en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss)
+    const fecha = fechaStr.split('T')[0] // Obtener solo la parte de la fecha
+    const [year, month, day] = fecha.split('-')
+    return `${day}/${month}/${year}`
   }
 
   const resetFilters = () => {
@@ -576,7 +679,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                         <TableHead>Tipo Seguro</TableHead>
                         <TableHead>Num Referencia</TableHead>
                         <TableHead>Paciente</TableHead>
-                        <TableHead>Acciones</TableHead>
+                        <TableHead className="text-center">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -586,7 +689,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             {appointment.id}
                           </TableCell>
                           <TableCell className="font-medium">
-                            {appointment.fecha}
+                            {formatFecha(appointment.fecha)}
                           </TableCell>
                           <TableCell>{appointment.hora}</TableCell>
                           <TableCell>{getEstadoBadge(appointment.estado)}</TableCell>
@@ -607,14 +710,37 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                           </TableCell>
                           <TableCell>{appointment.nombre}</TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewDetails(appointment)}
-                              title="Ver detalles"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewDetails(appointment)}
+                                title="Ver detalles"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handlePrintClick(appointment.id)}
+                                disabled={isLoadingTicket === appointment.id}
+                                title="Ver ticket de cita"
+                              >
+                                {isLoadingTicket === appointment.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Printer className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewPatient(appointment.paciente)}
+                                title="Ver historia clínica"
+                              >
+                                <UserCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -682,6 +808,35 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
         appointment={selectedAppointment}
         getEstadoBadge={getEstadoBadge}
         formatTurno={formatTurno}
+      />
+
+      {/* Patient View Modal */}
+      {showPatientModal && selectedPatient && (
+        <PatientViewModal
+          patient={selectedPatient}
+          onClose={() => {
+            setShowPatientModal(false)
+            setSelectedPatient(null)
+          }}
+          onEdit={() => {
+            // No permitir edición desde aquí
+            toast({
+              title: "Información",
+              description: "Para editar el paciente, use el módulo de filiación",
+              variant: "default"
+            })
+          }}
+        />
+      )}
+
+      {/* Ticket Preview Modal */}
+      <TicketPreviewModal
+        isOpen={showTicketPreview}
+        onClose={() => {
+          setShowTicketPreview(false)
+          setTicketData(null)
+        }}
+        ticketData={ticketData}
       />
     </>
   )

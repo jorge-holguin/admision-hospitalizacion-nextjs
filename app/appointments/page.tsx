@@ -708,15 +708,15 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                     </Button>
                   )}
                   
-                 { <Button
-                    variant="default"
+                  <Button
+                    variant="outline"
                     size="lg"
-                    className="font-semibold bg-green-600 hover:bg-green-700 text-white"
+                    className="font-semibold border-green-300 text-green-700 hover:bg-green-50"
                     onClick={() => setShowAdditionalPatientSearchModal(true)}
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Cita Adicional
-                  </Button>}
+                  </Button>
                 </div>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -1266,12 +1266,31 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               onClose={() => {
                 setShowAdditionalAppointmentModal(false)
                 setSelectedPatientForAdditional(null)
+                // NO recargar aquí, el callback onAppointmentCreated ya maneja la búsqueda
               }}
               onBack={() => {
                 setShowAdditionalAppointmentModal(false)
                 setShowAdditionalPatientSearchModal(true)
               }}
               patient={selectedPatientForAdditional}
+              onAppointmentCreated={(appointment) => {
+                console.log('✅ Cita adicional creada:', appointment)
+                // Obtener el ID de la cita creada
+                const citaId = appointment?.citaId || appointment?.id || appointment?.data?.citaId
+                if (citaId) {
+                  console.log('🔍 Buscando cita recién creada con ID:', citaId)
+                  // Enfocar búsqueda por ID para posicionarse en la cita creada
+                  setShowSearchById(true)
+                  setSearchQuery(String(citaId))
+                  // Buscar específicamente por ID después de un pequeño delay
+                  setTimeout(() => {
+                    searchAppointmentById(String(citaId))
+                  }, 300)
+                } else {
+                  // Si no hay ID, solo recargar
+                  searchAppointmentsByParams()
+                }
+              }}
             />
 
             {/* Appointment History Modal */}

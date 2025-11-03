@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { User, FileText, Calendar, Home, Phone, Users, Heart, Printer } from "lucide-react"
 import { useDocumentPrinter } from "@/components/hospitalization/DocumentPrinter"
 
@@ -231,13 +231,14 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
   }
   
   return (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-blue-800 flex items-center">
-            <User className="w-6 h-6 mr-2" />
-            Información del Paciente - H.C. {mappedPatient?.hc || 'N/A'}
-          </DialogTitle>
-      </DialogHeader>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-blue-800 flex items-center">
+              <User className="w-6 h-6 mr-2" />
+              Información del Paciente - H.C. {mappedPatient?.hc || 'N/A'}
+            </DialogTitle>
+        </DialogHeader>
 
       <div className="space-y-6">
         {/* Información del Sistema */}
@@ -538,5 +539,6 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         </div>
       </div>
     </DialogContent>
+    </Dialog>
   )
 }

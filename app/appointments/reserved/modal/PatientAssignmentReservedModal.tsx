@@ -260,6 +260,64 @@ export function PatientAssignmentReservedModal({
     return matchCodigo
   })
 
+  // Validar ventana de 3 horas entre citas
+  const validateTimeWindow = (): { isValid: boolean; conflictingAppointment?: any; message?: string } => {
+    if (!appointment?.fecha || !appointment?.hora || pendingAppointments.length === 0) {
+      return { isValid: true }
+    }
+
+    // Parsear fecha y hora de la cita actual
+    let currentDate: Date
+    if (appointment.fecha.includes('/')) {
+      const [day, month, year] = appointment.fecha.split('/')
+      currentDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
+    } else if (appointment.fecha.includes('-')) {
+      currentDate = new Date(appointment.fecha)
+    } else {
+      return { isValid: true }
+    }
+
+    const [currentHours, currentMinutes] = appointment.hora.split(':').map(Number)
+    currentDate.setHours(currentHours, currentMinutes || 0, 0, 0)
+
+    // Verificar cada cita pendiente
+    for (const apt of pendingAppointments) {
+      if (!apt.fecha || !apt.hora) continue
+
+      // Parsear fecha de la cita pendiente
+      let aptDate: Date
+      if (apt.fecha.includes('/')) {
+        const [day, month, year] = apt.fecha.split('/')
+        aptDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
+      } else if (apt.fecha.includes('-')) {
+        aptDate = new Date(apt.fecha)
+      } else {
+        continue
+      }
+
+      // Parsear hora de la cita pendiente
+      const [hours, minutes] = apt.hora.split(':').map(Number)
+      aptDate.setHours(hours, minutes || 0, 0, 0)
+
+      // Calcular diferencia en horas
+      const diffMs = Math.abs(currentDate.getTime() - aptDate.getTime())
+      const diffHours = diffMs / (1000 * 60 * 60)
+
+      // Si la diferencia es menor a 3 horas, hay conflicto
+      if (diffHours < 3) {
+        return {
+          isValid: false,
+          conflictingAppointment: apt,
+          message: `⚠️ El paciente tiene una cita programada el ${apt.fecha} a las ${apt.hora}. Los horarios se cruzarían. Debe haber al menos 3 horas de diferencia entre citas para evitar conflictos.`
+        }
+      }
+    }
+
+    return { isValid: true }
+  }
+
+  const timeValidation = validateTimeWindow()
+
   const isSisSeguro = () => {
     if (!selectedSeguro || !seguros) return false
     // Asumimos que SIS es el seguro con código '21' o nombre que contenga 'SIS'
@@ -599,8 +657,9 @@ export function PatientAssignmentReservedModal({
        
           </DialogHeader>
 
-          {(hasConsultorioMatch || hasEspecialidadMatch) && (
-            <div className="mb-4">
+          {/* Advertencias */}
+          <div className="space-y-3 mb-4">
+            {(hasConsultorioMatch || hasEspecialidadMatch) && (
               <Alert className="bg-orange-50 border-orange-200">
                 <AlertDescription className="text-orange-800">
                   {hasConsultorioMatch && hasEspecialidadMatch && (
@@ -614,8 +673,20 @@ export function PatientAssignmentReservedModal({
                   )}
                 </AlertDescription>
               </Alert>
-            </div>
-          )}
+            )}
+            
+            {!timeValidation.isValid && (
+              <Alert className="bg-red-50 border-red-200">
+                <AlertDescription className="text-red-800 flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold">⛔ Conflicto de horario</p>
+                    <p className="text-sm mt-1">{timeValidation.message}</p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Columna izquierda: Información del paciente */}

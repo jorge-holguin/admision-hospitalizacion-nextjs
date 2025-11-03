@@ -10,6 +10,7 @@ import { formatDateToDDMMYYYY } from "@/services/appointments/printService"
 export interface PendingAppointment {
   paciente: string
   fecha: string
+  hora?: string
   usuario: string
   nombre: string
   estado: string
@@ -189,6 +190,9 @@ export function PatientPendingAppointmentsModal({
                         <div className="flex items-center gap-2 mb-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
                           <span className="font-medium text-gray-900">{formatDateToDDMMYYYY(appointment.fecha)}</span>
+                          {appointment.hora && (
+                            <span className="text-sm font-semibold text-blue-600 ml-2">{appointment.hora}</span>
+                          )}
                           {getEstadoBadge(appointment.estado)}
                         </div>
                         

@@ -1,16 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, User, Stethoscope, AlertCircle, Eye } from "lucide-react"
+import { Calendar, User, Stethoscope, AlertCircle, RefreshCw } from "lucide-react"
 import { formatDateToDDMMYYYY } from "@/services/appointments/printService"
 
 export interface PendingAppointment {
   paciente: string
   fecha: string
+  hora?: string
   usuario: string
   nombre: string
   estado: string
@@ -144,10 +144,22 @@ export function PatientPendingAppointments({
   return (
     <Card className="border-blue-200">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          Citas Pendientes ({appointments.length})
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Citas Pendientes ({appointments.length})
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={loadPendingAppointments}
+            disabled={isLoading}
+            className="h-7 px-2"
+            title="Actualizar citas pendientes"
+          >
+            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -174,6 +186,9 @@ export function PatientPendingAppointments({
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3 text-gray-500" />
                     <span className="font-medium">{formatDateToDDMMYYYY(appointment.fecha)}</span>
+                    {appointment.hora && (
+                      <span className="text-xs font-semibold text-blue-600 ml-1">{appointment.hora}</span>
+                    )}
                   </div>
                   {getEstadoBadge(appointment.estado)}
                 </div>
