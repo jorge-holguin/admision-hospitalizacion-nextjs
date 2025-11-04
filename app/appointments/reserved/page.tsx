@@ -760,7 +760,7 @@ export default function ReservedAppointmentsPage() {
 
   return (
     <RoleBasedRoute 
-      allowedRoles={['DEVOPS', 'ANALISTA', 'CALL CENTER']}
+      allowedRoles={['DEVOPS', 'ANALISTA', 'CALL CENTER','DESARROLLADOR']}
       moduleName="Módulo de Citas Reservadas"
     >
       <TipoCitaProvider>
