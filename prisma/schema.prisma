@@ -748,6 +748,12 @@ model CIEX {
   CODCAT String? @db.VarChar(3)
 }
 
+model CIEX_SIS {
+  CIE10       String @id(map: "PK__CIEX_SIS__A6999B400DB632BF") @db.Char(5)
+  DESCRIPCION String @db.VarChar(200)
+  ID_SEXO     String @db.Char(1)
+}
+
 model CIEXHIS {
   CODORD   Float
   CODIGO   String  @id(map: "PK_CIEXHIS") @db.NVarChar(10)
@@ -976,6 +982,10 @@ model CONSULTORIO {
   CITAS_WEB_MINSA                                                      Boolean?
   ESPECIALIDAD_SIS                                                     String?                 @db.VarChar(2)
   ACTIVO_REFCON                                                        Boolean?
+  SOLICITUD_CITA                                                       Boolean?
+  LUGAR                                                                String?                 @db.VarChar(2)
+  NOMBRE_PUBLICO                                                       String?                 @db.VarChar(50)
+  ESPECIALIDAD_SOLICITUD                                               String?                 @db.VarChar(4)
   ATENCIONC_ATENCIONC_CONSULTORIOToCONSULTORIO                         ATENCIONC[]             @relation("ATENCIONC_CONSULTORIOToCONSULTORIO")
   CASEFORM_CASEFORM_CONSULTORIOToCONSULTORIO                           CASEFORM[]              @relation("CASEFORM_CONSULTORIOToCONSULTORIO")
   CITA_CITA_CONSULTORIOToCONSULTORIO                                   CITA[]                  @relation("CITA_CONSULTORIOToCONSULTORIO")
@@ -1253,7 +1263,7 @@ model CUENTA {
   ACUENTA                                           Decimal?      @default(0, map: "DF__CUENTA__ACUENTA__55C548A9") @db.Decimal(8, 3)
   SALDO                                             Decimal?      @default(0.0, map: "DF__CUENTA__SALDO__0A3910E8") @db.Decimal(8, 3)
   PAGOS                                             Decimal?      @default(0.0, map: "DF__CUENTA__PAGOS__0B2D3521") @db.Decimal(8, 3)
-  abonos                                            ABONO[]
+  ABONO                                             ABONO[]
   EMPRESASEGURO_CUENTA_EMPRESASEGUROToEMPRESASEGURO EMPRESASEGURO @relation("CUENTA_EMPRESASEGUROToEMPRESASEGURO", fields: [EMPRESASEGURO], references: [EMPRESASEGURO], onUpdate: NoAction, map: "FK__CUENTA__EMPRESAS__0F183235")
   ORIGEN_CUENTA_ORIGENToORIGEN                      ORIGEN        @relation("CUENTA_ORIGENToORIGEN", fields: [ORIGEN], references: [ORIGEN], onUpdate: NoAction, map: "FK__CUENTA__ORIGEN__0E240DFC")
   SEGURO_CUENTA_SEGUROToSEGURO                      SEGURO        @relation("CUENTA_SEGUROToSEGURO", fields: [SEGURO], references: [SEGURO], onUpdate: NoAction, map: "FK__CUENTA__SEGURO__100C566E")
@@ -1768,6 +1778,20 @@ model EMERGENCIA_DET_WEB {
   @@index([TIPO_PROCESO], map: "IX_EMERGENCIA_DET_WEB_2")
   @@index([TIPO_PROCESO], map: "IX_EMERGENCIA_DET_WEB_3")
   @@index([EMERGENCIA_ID], map: "IX_EMERGENCIA_DET_WEB_emergencia_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model EMERGENCIA_FECHA_BKP {
+  BackupId             String    @db.UniqueIdentifier
+  BackedUpAt           DateTime  @default(dbgenerated("sysutcdatetime()"), map: "DF__EMERGENCI__Backe__5448AB39")
+  Usuario              String    @default("suser_sname()", map: "DF__EMERGENCI__Usuar__553CCF72") @db.NVarChar(128)
+  EMERGENCIA_ID        String    @db.VarChar(20)
+  PACIENTE             String?   @db.VarChar(20)
+  FECHA                DateTime? @db.DateTime
+  FECHA_NACIMIENTO_OLD DateTime? @db.DateTime
+
+  @@index([BackupId, EMERGENCIA_ID], map: "IX_EMERGENCIA_FECHA_BKP")
+  @@ignore
 }
 
 model EMERGENCIA_LUGAR_WEB {
@@ -3574,6 +3598,7 @@ model MEDICO {
   REG_FECHA_CREACION                                 DateTime?           @default(now(), map: "DF_MEDICO_REG_FECHA_CREACION") @db.DateTime
   REG_USUARIO_CREACION                               String?             @default("user_name()", map: "DF_MEDICO_REG_USUARIO_CREACION") @db.VarChar(30)
   GENERO                                             String?             @db.Char(1)
+  PROFESION_COLEGIO                                  String?             @db.Char(2)
   ATENCIONC_ATENCIONC_MEDICOToMEDICO                 ATENCIONC[]         @relation("ATENCIONC_MEDICOToMEDICO")
   CITA_CITA_MEDICOToMEDICO                           CITA[]              @relation("CITA_MEDICOToMEDICO")
   ROLREPROGRAMACION_ROLREPROGRAMACION_MEDICOToMEDICO ROLREPROGRAMACION[] @relation("ROLREPROGRAMACION_MEDICOToMEDICO")
@@ -3760,6 +3785,16 @@ model NOTACREDITODET {
 model NRODOCUMENTO {
   TIPO_DOCUMENTO String  @db.Char(1)
   CORRELATIVO    String? @db.VarChar(10)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model nueva_tabla {
+  PACIENTE     String?   @db.VarChar(100)
+  DNI          String?   @db.VarChar(20)
+  DOCUMENTO    String    @db.VarChar(20)
+  FECHA_OTORGA DateTime? @db.DateTime
 
   @@ignore
 }
@@ -4052,6 +4087,10 @@ model PACIENTE {
   STRING_FOTO                                                     String?           @db.Text
   DIRECCION_RENIEC                                                String?           @db.VarChar(80)
   DISTRITO_RENIEC                                                 String?           @db.VarChar(7)
+  CORREO                                                          String?           @db.VarChar(50)
+  UBIGEO_NAC_RENIEC                                               String?           @db.VarChar(7)
+  REG_USUARIO_ACTUALIZACION                                       String?           @db.VarChar(50)
+  REG_EQUIPO_ACTUALIZACION                                        String?           @db.VarChar(50)
   CUENTA_CUENTA_PACIENTEToPACIENTE                                CUENTA[]          @relation("CUENTA_PACIENTEToPACIENTE")
   ORDENC_ORDENC_PACIENTEToPACIENTE                                ORDENC[]          @relation("ORDENC_PACIENTEToPACIENTE")
   CONSULTORIO_PACIENTE_CONSULTORIOToCONSULTORIO                   CONSULTORIO       @relation("PACIENTE_CONSULTORIOToCONSULTORIO", fields: [CONSULTORIO], references: [CONSULTORIO], onUpdate: NoAction, map: "FK__PACIENTE__CONSUL__353DDB1D")
@@ -4336,7 +4375,7 @@ model PATRON_LABO {
   ID_GPATRON        Int?
   UPS               String?            @db.VarChar(10)
   ORDEN             Int?
-  CPT_LABORATORIO   CPT_LABORATORIO[] @ignore
+  CPT_LABORATORIO   CPT_LABORATORIO[]  @ignore
   GRUPO_PATRON_LABO GRUPO_PATRON_LABO? @relation(fields: [ID_GPATRON], references: [ID_GPATRON], onDelete: NoAction, onUpdate: NoAction, map: "ID_GPATRON")
 }
 
@@ -4654,6 +4693,14 @@ model PROFESIONALESHIS {
   COD_PROF   String  @id(map: "PK__PROFESIO__3BAFBC06089BAC90") @db.NVarChar(2)
   NOMBRE     String? @db.NVarChar(40)
   ID_COLEGIO String? @db.Char(2)
+}
+
+model ProfesionesColegio {
+  id_profesion String  @id(map: "PK__Profesio__6D67E9781ADB23B3") @db.Char(2)
+  Profesion    String  @db.NVarChar(100)
+  id_colegio   String  @db.Char(2)
+  Colegio      String  @db.NVarChar(100)
+  ACTIVO       Decimal @default(1, map: "DF_ProfesionesColegio_Activo") @db.Decimal(5, 0)
 }
 
 model PROVEEDOR {
@@ -6652,16 +6699,6 @@ model Web_Services_Sis {
   IdGrupoPoblacional String?   @db.Char(2)
   MsgConfidencial    String?   @db.VarChar(500)
   FechaConsulta      DateTime? @db.DateTime
-
-  @@ignore
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model nueva_tabla {
-  PACIENTE     String?   @db.VarChar(100)
-  DNI          String?   @db.VarChar(20)
-  DOCUMENTO    String    @db.VarChar(20)
-  FECHA_OTORGA DateTime? @db.DateTime
 
   @@ignore
 }

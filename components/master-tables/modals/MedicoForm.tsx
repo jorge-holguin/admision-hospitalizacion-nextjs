@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { useOptimizedMedicos } from "@/hooks/master-tables/useOptimizedMedicos";
 import { useMedicoById } from "@/hooks/master-tables/useMedicoById";
+import { ProfesionColegioSelector } from "@/components/master-tables/selectors/ProfesionColegioSelector";
 
 interface MedicoFormProps {
   medico?: any;
@@ -62,7 +63,8 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     CODHIS: "", // Codigo HIS
     CONTRATO: "NINGUNO", // Condicion Laboral
     ACTIVO: "1", // Activo ("1") o no ("0")
-    IMPCITA: "N" // Default value
+    IMPCITA: "N", // Default value
+    PROFESION_COLEGIO: "" // Profesión y Colegio
   });
 
   // State for selectors
@@ -116,7 +118,8 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         CODHIS: medico.CODHIS || "",
         CONTRATO: medico.CONTRATO || "NINGUNO",
         ACTIVO: medico.ACTIVO || "1",
-        IMPCITA: medico.IMPCITA || "N"
+        IMPCITA: medico.IMPCITA || "N",
+        PROFESION_COLEGIO: medico.PROFESION_COLEGIO || ""
       });
     }
   }, [medico]);
@@ -293,8 +296,8 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           />
         </div>
 
-        {/* DNI and Código - Ahora en 2 columnas para mejor aprovechamiento del espacio */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* DNI, Código y Profesión - Ahora en 3 columnas */}
+        <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="DNI" className="flex items-center">
               <Fingerprint className="mr-2 h-4 w-4" /> DNI *
@@ -349,6 +352,16 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             {!medico && codigosSugeridos.length === 0 && !loadingCodigos && formData.NOMBRE && (
               <p className="text-xs text-red-500">Ingrese apellidos y nombres para generar códigos sugeridos</p>
             )}
+          </div>
+          
+          {/* Profesión y Colegio */}
+          <div className="space-y-2">
+            <ProfesionColegioSelector
+              value={formData.PROFESION_COLEGIO}
+              onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO: value }))}
+              label="Profesión"
+              required={false}
+            />
           </div>
         </div>
       </div>

@@ -21,6 +21,12 @@ function normalizeMedico(row: any): Medico {
     CONTRATO: row.CONTRATO?.toString?.() ?? row.CONTRATO,
     ACTIVO: activo,
     IMPCITA: row.IMPCITA?.toString?.() ?? row.IMPCITA,
+    PROFESION_COLEGIO: row.PROFESION_COLEGIO?.toString?.() ?? row.PROFESION_COLEGIO,
+    // Campos con descripciones (JOINs)
+    CONSULTORIO_NOMBRE: row.CONSULTORIO_NOMBRE?.toString?.() ?? row.CONSULTORIO_NOMBRE,
+    ESPECIALIDAD_NOMBRE: row.ESPECIALIDAD_NOMBRE?.toString?.() ?? row.ESPECIALIDAD_NOMBRE,
+    PROFESION_NOMBRE: row.PROFESION_NOMBRE?.toString?.() ?? row.PROFESION_NOMBRE,
+    COLEGIO_NOMBRE: row.COLEGIO_NOMBRE?.toString?.() ?? row.COLEGIO_NOMBRE,
     // Legacy fields for compatibility
     NOMBRES: row.NOMBRES?.toString?.() ?? row.NOMBRES,
     APATERNO: row.APATERNO?.toString?.() ?? row.APATERNO,
@@ -44,6 +50,12 @@ export interface Medico {
   CONTRATO?: string;
   ACTIVO: string;
   IMPCITA?: string;
+  PROFESION_COLEGIO?: string;
+  // Campos con descripciones (JOINs)
+  CONSULTORIO_NOMBRE?: string;
+  ESPECIALIDAD_NOMBRE?: string;
+  PROFESION_NOMBRE?: string;
+  COLEGIO_NOMBRE?: string;
   // Legacy fields for compatibility
   NOMBRES?: string;
   APATERNO?: string;
@@ -94,13 +106,20 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
-              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
-              ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM MEDICO
-            WHERE NOMBRE LIKE ${`%${search}%`} 
-              OR MEDICO LIKE ${`%${search}%`}
-              OR DNI LIKE ${`%${search}%`}
+              M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              C.NOMBRE AS CONSULTORIO_NOMBRE,
+              E.NOMBRE AS ESPECIALIDAD_NOMBRE,
+              P.Profesion AS PROFESION_NOMBRE,
+              P.Colegio AS COLEGIO_NOMBRE,
+              ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
+            FROM MEDICO M
+            LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
+            LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            WHERE M.NOMBRE LIKE ${`%${search}%`} 
+              OR M.MEDICO LIKE ${`%${search}%`}
+              OR M.DNI LIKE ${`%${search}%`}
           )
           SELECT * FROM CTE
           WHERE RowNum BETWEEN ${startRow} AND ${endRow}
@@ -114,11 +133,18 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
-              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
-              ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM MEDICO
-            WHERE CONSULTORIO = ${consultorio}
+              M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              C.NOMBRE AS CONSULTORIO_NOMBRE,
+              E.NOMBRE AS ESPECIALIDAD_NOMBRE,
+              P.Profesion AS PROFESION_NOMBRE,
+              P.Colegio AS COLEGIO_NOMBRE,
+              ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
+            FROM MEDICO M
+            LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
+            LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            WHERE M.CONSULTORIO = ${consultorio}
           )
           SELECT * FROM CTE
           WHERE RowNum BETWEEN ${startRow} AND ${endRow}
@@ -132,11 +158,18 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
-              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
-              ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM MEDICO
-            WHERE NOMBRE LIKE ${`%${nombre}%`}
+              M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              C.NOMBRE AS CONSULTORIO_NOMBRE,
+              E.NOMBRE AS ESPECIALIDAD_NOMBRE,
+              P.Profesion AS PROFESION_NOMBRE,
+              P.Colegio AS COLEGIO_NOMBRE,
+              ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
+            FROM MEDICO M
+            LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
+            LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            WHERE M.NOMBRE LIKE ${`%${nombre}%`}
           )
           SELECT * FROM CTE
           WHERE RowNum BETWEEN ${startRow} AND ${endRow}
@@ -150,11 +183,18 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
-              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
-              ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM MEDICO
-            WHERE DNI LIKE ${`%${dni}%`}
+              M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              C.NOMBRE AS CONSULTORIO_NOMBRE,
+              E.NOMBRE AS ESPECIALIDAD_NOMBRE,
+              P.Profesion AS PROFESION_NOMBRE,
+              P.Colegio AS COLEGIO_NOMBRE,
+              ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
+            FROM MEDICO M
+            LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
+            LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            WHERE M.DNI LIKE ${`%${dni}%`}
           )
           SELECT * FROM CTE
           WHERE RowNum BETWEEN ${startRow} AND ${endRow}
@@ -166,10 +206,17 @@ export const medicoServerService = {
         medicos = await prisma.$queryRaw`
           WITH CTE AS (
             SELECT 
-              ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
-              ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA,
-              ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM MEDICO
+              M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              C.NOMBRE AS CONSULTORIO_NOMBRE,
+              E.NOMBRE AS ESPECIALIDAD_NOMBRE,
+              P.Profesion AS PROFESION_NOMBRE,
+              P.Colegio AS COLEGIO_NOMBRE,
+              ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
+            FROM MEDICO M
+            LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
+            LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
           )
           SELECT * FROM CTE
           WHERE RowNum BETWEEN ${startRow} AND ${endRow}
@@ -198,10 +245,18 @@ export const medicoServerService = {
   async getMedicoById(id: string): Promise<Medico | null> {
     try {
       const medico = await prisma.$queryRaw`
-        SELECT ID_MEDICO, MEDICO, NOMBRE, DNI, EESS, ABREVIATURA, COLEGIO, COLESP,
-               ESPECIALIDAD, CONSULTORIO, CODHIS, CONTRATO, ACTIVO, IMPCITA
-        FROM MEDICO
-        WHERE MEDICO = ${id}
+        SELECT 
+          M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
+          M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+          C.NOMBRE AS CONSULTORIO_NOMBRE,
+          E.NOMBRE AS ESPECIALIDAD_NOMBRE,
+          P.Profesion AS PROFESION_NOMBRE,
+          P.Colegio AS COLEGIO_NOMBRE
+        FROM MEDICO M
+        LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
+        LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
+        LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+        WHERE M.MEDICO = ${id}
       `;
 
       if (!medico || (Array.isArray(medico) && medico.length === 0)) {
@@ -268,6 +323,9 @@ export const medicoServerService = {
       const eess = String(data.EESS || "00000005947").substring(0, 10); // EESS char(10)
       const contrato = String(data.CONTRATO || "NINGUNO").substring(0, 100); // CONTRATO varchar(100)
       const impcita = String(data.IMPCITA || "N").substring(0, 1); // IMPCITA varchar(1)
+      const profesionColegio = (data.PROFESION_COLEGIO && String(data.PROFESION_COLEGIO).trim() !== "") 
+        ? String(data.PROFESION_COLEGIO).trim().substring(0, 2) 
+        : null; // PROFESION_COLEGIO char(2)
 
       // Log field lengths to identify truncation issues
       console.log('Field lengths:', {
@@ -283,13 +341,19 @@ export const medicoServerService = {
         eess: eess.length,
         contrato: contrato.length,
         impcita: impcita.length,
+        profesionColegio: profesionColegio?.length || 0,
+      });
+      
+      console.log('PROFESION_COLEGIO value:', {
+        original: data.PROFESION_COLEGIO,
+        processed: profesionColegio
       });
 
       // Try inserting fields one by one to identify which one causes truncation
       try {
         // Insert the new medico with more conservative field lengths
         await prisma.$executeRaw`
-          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA) 
+          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO) 
           VALUES(
             ${medicoCode}, 
             ${nombre}, 
@@ -303,7 +367,8 @@ export const medicoServerService = {
             ${codhis}, 
             ${eess}, 
             ${contrato}, 
-            ${impcita}
+            ${impcita},
+            ${profesionColegio}
           )
         `;
       } catch (error) {
@@ -339,7 +404,8 @@ export const medicoServerService = {
         CODHIS: codhis,
         CONTRATO: contrato,
         ACTIVO: activoVal === 1 ? "1" : "0",
-        IMPCITA: impcita
+        IMPCITA: impcita,
+        PROFESION_COLEGIO: profesionColegio || ""
       };
     } catch (error) {
       console.error('Error in medicoServerService.createMedico:', error);
@@ -382,6 +448,9 @@ export const medicoServerService = {
       const codhis = String(data.CODHIS ?? existing.CODHIS ?? "").substring(0, 11); // varchar(11)
       const contrato = String(data.CONTRATO ?? existing.CONTRATO ?? "NINGUNO").substring(0, 100); // varchar(100)
       const impcita = String(data.IMPCITA ?? existing.IMPCITA ?? "N").substring(0, 1); // varchar(1)
+      const profesionColegio = data.PROFESION_COLEGIO !== undefined 
+        ? ((data.PROFESION_COLEGIO && String(data.PROFESION_COLEGIO).trim() !== "") ? String(data.PROFESION_COLEGIO).trim().substring(0, 2) : null)
+        : ((existing.PROFESION_COLEGIO && String(existing.PROFESION_COLEGIO).trim() !== "") ? String(existing.PROFESION_COLEGIO).trim().substring(0, 2) : null); // char(2)
       
       // Log para depuración
       console.log('Field lengths for update:', {
@@ -393,9 +462,13 @@ export const medicoServerService = {
         colesp: colesp.length,
         especialidadVal: especialidadValTruncated?.length || 0,
         consultorioVal: consultorioValTruncated?.length || 0,
-        codhis: codhis.length,
-        contrato: contrato.length,
-        impcita: impcita.length
+        profesionColegio: profesionColegio?.length || 0,
+      });
+      
+      console.log('PROFESION_COLEGIO update value:', {
+        original: data.PROFESION_COLEGIO,
+        existing: existing.PROFESION_COLEGIO,
+        processed: profesionColegio
       });
       
       // Update the medico
@@ -412,7 +485,8 @@ export const medicoServerService = {
             CODHIS = ${codhis},
             CONTRATO = ${contrato},
             ACTIVO = ${newActivoVal},
-            IMPCITA = ${impcita}
+            IMPCITA = ${impcita},
+            PROFESION_COLEGIO = ${profesionColegio}
         WHERE MEDICO = ${id}
       `;
 

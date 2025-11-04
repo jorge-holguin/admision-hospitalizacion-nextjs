@@ -52,6 +52,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
+    console.log('API POST /api/master-tables/medicos - Received body:', {
+      PROFESION_COLEGIO: body.PROFESION_COLEGIO,
+      MEDICO: body.MEDICO,
+      NOMBRE: body.NOMBRE
+    });
 
     if (!body.MEDICO || String(body.MEDICO).trim() === "") {
       return NextResponse.json(
@@ -82,7 +88,18 @@ export async function POST(request: NextRequest) {
       EESS: body.EESS ?? body.EESS?.toString?.() ?? "",
       CONTRATO: body.CONTRATO ?? "",
       ACTIVO: body.ACTIVO ?? "1",
+      ABREVIATURA: body.ABREVIATURA ?? "MED",
+      COLEGIO: body.COLEGIO ?? "",
+      COLESP: body.COLESP ?? "",
+      IMPCITA: body.IMPCITA ?? "N",
+      PROFESION_COLEGIO: body.PROFESION_COLEGIO ?? "",
     };
+    
+    console.log('API POST - Payload to service:', {
+      PROFESION_COLEGIO: payload.PROFESION_COLEGIO,
+      MEDICO: payload.MEDICO,
+      NOMBRE: payload.NOMBRE
+    });
 
     const newMedico = await medicoServerService.createMedico(payload);
     return NextResponse.json(newMedico, { status: 201 });

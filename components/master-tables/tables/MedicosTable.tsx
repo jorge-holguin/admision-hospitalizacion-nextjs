@@ -88,42 +88,107 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
 
   // Definir las columnas para el DataTable (usando campos reales del API)
   const columns = [
-    { key: "MEDICO", header: "Código" },
-    { key: "NOMBRE", header: "Apellidos y Nombres" },
-    { key: "DNI", header: "DNI" },
-    {
-      key: "ABREVIATURA",
-      header: "Tipo",
-      cell: (medico: any) => medico.ABREVIATURA || "MED",
+    { 
+      key: "MEDICO", 
+      header: "Código",
+      cell: (medico: any) => (
+        <span className="font-mono font-semibold text-blue-600">{medico.MEDICO}</span>
+      )
     },
-    { key: "COLEGIO", header: "Colegiatura" },
+    { 
+      key: "NOMBRE", 
+      header: "Apellidos y Nombres",
+      cell: (medico: any) => (
+        <span className="font-medium">{medico.NOMBRE}</span>
+      )
+    },
+    { 
+      key: "DNI", 
+      header: "DNI",
+      cell: (medico: any) => (
+        <span className="font-mono text-sm">{medico.DNI}</span>
+      )
+    },
+    {
+      key: "PROFESION_COLEGIO",
+      header: "Profesión",
+      cell: (medico: any) => (
+        <div className="space-y-0.5">
+          {medico.PROFESION_NOMBRE ? (
+            <>
+              <div className="text-sm font-medium text-gray-900">{medico.PROFESION_NOMBRE}</div>
+              <div className="text-xs text-gray-500">{medico.PROFESION_COLEGIO}</div>
+            </>
+          ) : (
+            <span className="text-xs text-gray-400 italic">Sin profesión</span>
+          )}
+        </div>
+      ),
+    },
     {
       key: "ESPECIALIDAD",
       header: "Especialidad",
-      cell: (medico: any) => medico.ESPECIALIDAD || "",
+      cell: (medico: any) => (
+        <div className="space-y-0.5">
+          {medico.ESPECIALIDAD_NOMBRE ? (
+            <>
+              <div className="text-sm font-medium text-gray-900">{medico.ESPECIALIDAD_NOMBRE}</div>
+              <div className="text-xs text-gray-500 font-mono">{medico.ESPECIALIDAD}</div>
+            </>
+          ) : (
+            <span className="text-xs text-gray-400 italic">Sin especialidad</span>
+          )}
+        </div>
+      ),
     },
     {
       key: "CONSULTORIO",
       header: "Consultorio",
-      cell: (medico: any) => (medico.CONSULTORIO ? String(medico.CONSULTORIO).trim() : ""),
+      cell: (medico: any) => (
+        <div className="space-y-0.5">
+          {medico.CONSULTORIO_NOMBRE ? (
+            <>
+              <div className="text-sm font-medium text-gray-900">{medico.CONSULTORIO_NOMBRE}</div>
+              <div className="text-xs text-gray-500 font-mono">{medico.CONSULTORIO?.trim()}</div>
+            </>
+          ) : (
+            <span className="text-xs text-gray-400 italic">Sin consultorio</span>
+          )}
+        </div>
+      ),
     },
     {
       key: "CONTRATO",
       header: "Condición",
-      cell: (medico: any) => medico.CONTRATO || "NINGUNO",
+      cell: (medico: any) => {
+        const contrato = medico.CONTRATO || "NINGUNO";
+        const colorMap: Record<string, string> = {
+          'CAS': 'bg-blue-100 text-blue-800',
+          'NOMBRADO': 'bg-green-100 text-green-800',
+          'TERCERO': 'bg-orange-100 text-orange-800',
+          'NINGUNO': 'bg-gray-100 text-gray-600'
+        };
+        const colorClass = colorMap[contrato] || 'bg-gray-100 text-gray-600';
+        
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+            {contrato}
+          </span>
+        );
+      },
     },
     { 
       key: "ACTIVO", 
       header: "Estado",
       cell: (medico: any) => (
         <span
-          className={`px-2 py-1 rounded-full text-xs ${
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
             medico.ACTIVO === "1"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {medico.ACTIVO === "1" ? "Activo" : "Inactivo"}
+          {medico.ACTIVO === "1" ? "✓ Activo" : "✕ Inactivo"}
         </span>
       )
     },
@@ -136,6 +201,7 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
             variant="outline"
             size="sm"
             onClick={() => onEdit(medico)}
+            className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
           >
             <Edit className="h-4 w-4" />
           </Button>
@@ -143,6 +209,7 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
             variant="outline"
             size="sm"
             onClick={() => confirmDelete(medico.MEDICO)}
+            className="hover:bg-red-50 hover:text-red-600 hover:border-red-300"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
