@@ -777,6 +777,7 @@ export function PatientAssignmentModal({
                     limite={5}
                     highlight={hasConsultorioMatch || hasEspecialidadMatch}
                     onAppointmentsLoaded={setPendingAppointments}
+                    timeConflict={timeValidation}
                   />
                 )}
               </CardContent>

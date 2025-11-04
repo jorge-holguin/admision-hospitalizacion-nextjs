@@ -459,7 +459,7 @@ export function AdditionalAppointmentModal({
         diaAtencion: formatDateToDDMMYYYY(citaData.fecha || new Date().toISOString()),
         turno: turnoFormateado,
         hora: citaData.hora || '',
-        historiaClinica: citaData.historia ? String(citaData.historia).trim() : null,
+        historiaClinica: patient?.HISTORIA ? String(patient.HISTORIA).trim() : (citaData.historia ? String(citaData.historia).trim() : null),
         emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
         operador: operador,
         seguro: citaData.seguroNombre || 'PAGANTE'
@@ -503,7 +503,7 @@ export function AdditionalAppointmentModal({
     return matchCodigo
   })
 
-  // Validar ventana de 3 horas entre citas
+  // Validar ventana de 3 horas entre citas y mismo turno
   const validateTimeWindow = (): { isValid: boolean; conflictingAppointment?: any; message?: string } => {
     if (!fecha || !turno || pendingAppointments.length === 0) {
       return { isValid: true }
@@ -511,10 +511,13 @@ export function AdditionalAppointmentModal({
 
     // Obtener hora de inicio del turno seleccionado
     let selectedHour = 0
+    let selectedTurno = ''
     if (turno === 'M' || turno === 'MAÑANA') {
       selectedHour = 8 // 8:00 AM
+      selectedTurno = 'MAÑANA'
     } else if (turno === 'T' || turno === 'TARDE') {
       selectedHour = 14 // 2:00 PM
+      selectedTurno = 'TARDE'
     } else {
       return { isValid: true } // Si no hay turno válido, permitir
     }
@@ -543,16 +546,33 @@ export function AdditionalAppointmentModal({
       const [hours, minutes] = apt.hora.split(':').map(Number)
       aptDate.setHours(hours, minutes || 0, 0, 0)
 
-      // Calcular diferencia en horas
-      const diffMs = Math.abs(selectedDateTime.getTime() - aptDate.getTime())
-      const diffHours = diffMs / (1000 * 60 * 60)
+      // Verificar si es el mismo día
+      const isSameDay = selectedDate.toDateString() === aptDate.toDateString()
+      
+      if (isSameDay) {
+        // Determinar turno de la cita pendiente
+        const aptTurno = hours < 14 ? 'MAÑANA' : 'TARDE'
+        
+        // Si es el mismo turno, advertir
+        if (aptTurno === selectedTurno) {
+          return {
+            isValid: false,
+            conflictingAppointment: apt,
+            message: `⚠️ El paciente ya tiene una cita programada el ${apt.fecha} a las ${apt.hora} en el turno de ${aptTurno}. No se puede asignar otra cita en el mismo turno.`
+          }
+        }
+        
+        // Calcular diferencia en horas
+        const diffMs = Math.abs(selectedDateTime.getTime() - aptDate.getTime())
+        const diffHours = diffMs / (1000 * 60 * 60)
 
-      // Si la diferencia es menor a 3 horas, hay conflicto
-      if (diffHours < 3) {
-        return {
-          isValid: false,
-          conflictingAppointment: apt,
-          message: `⚠️ El paciente tiene una cita programada el ${apt.fecha} a las ${apt.hora}. Los horarios se cruzarían. Debe haber al menos 3 horas de diferencia entre citas para evitar conflictos.`
+        // Si la diferencia es menor a 3 horas, hay conflicto
+        if (diffHours < 3) {
+          return {
+            isValid: false,
+            conflictingAppointment: apt,
+            message: `⚠️ El paciente tiene una cita programada el ${apt.fecha} a las ${apt.hora}. Los horarios se cruzarían. Debe haber al menos 3 horas de diferencia entre citas para evitar conflictos.`
+          }
         }
       }
     }
@@ -889,6 +909,7 @@ export function AdditionalAppointmentModal({
                         limite={5}
                         highlight={hasConsultorioMatch || hasEspecialidadMatch}
                         onAppointmentsLoaded={setPendingAppointments}
+                        timeConflict={timeValidation}
                       />
                     </div>
                   )}

@@ -30,6 +30,11 @@ interface PatientPendingAppointmentsModalProps {
   limite?: number
   onAppointmentsLoaded?: (appointments: PendingAppointment[]) => void
   highlight?: boolean
+  timeConflict?: {
+    isValid: boolean
+    conflictingAppointment?: PendingAppointment
+    message?: string
+  }
 }
 
 export function PatientPendingAppointmentsModal({ 
@@ -38,7 +43,8 @@ export function PatientPendingAppointmentsModal({
   currentEspecialidad,
   limite = 5,
   onAppointmentsLoaded,
-  highlight = false
+  highlight = false,
+  timeConflict
 }: PatientPendingAppointmentsModalProps) {
   const [appointments, setAppointments] = useState<PendingAppointment[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -121,15 +127,29 @@ export function PatientPendingAppointmentsModal({
     return 'none'
   }
 
+  // Determinar el estilo del botón basado en conflictos
+  const hasTimeConflict = timeConflict && !timeConflict.isValid
+  const buttonStyle = hasTimeConflict 
+    ? 'border-red-600 text-red-700 bg-red-50 hover:bg-red-100 animate-pulse'
+    : highlight 
+    ? 'border-orange-600 text-orange-700 bg-orange-50 hover:bg-orange-100 animate-pulse'
+    : 'border-blue-600 text-blue-600 hover:bg-blue-50'
+  
+  const buttonText = hasTimeConflict
+    ? '⛔ ¡Conflicto de horario! Ver Citas Pendientes'
+    : highlight 
+    ? '⚠️ Ver Citas Pendientes del Paciente' 
+    : 'Ver Citas Pendientes del Paciente'
+
   return (
     <>
       <Button
         variant="outline"
         onClick={() => setIsOpen(true)}
-        className={`w-full justify-center ${highlight ? 'border-orange-600 text-orange-700 bg-orange-50 hover:bg-orange-100' : 'border-blue-600 text-blue-600 hover:bg-blue-50'}`}
+        className={`w-full justify-center font-semibold ${buttonStyle}`}
       >
         <Eye className="h-4 w-4 mr-2" />
-        {highlight ? '⚠️ Ver Citas Pendientes del Paciente' : 'Ver Citas Pendientes del Paciente'}
+        {buttonText}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -164,17 +184,30 @@ export function PatientPendingAppointmentsModal({
               {appointments.map((appointment) => {
                 const matchType = getMatchType(appointment)
                 const hasMatch = matchType !== 'none'
+                const isConflicting = timeConflict?.conflictingAppointment?.citaId === appointment.citaId
                 
                 return (
                   <div
                     key={appointment.citaId}
                     className={`p-4 rounded-lg border ${
-                      hasMatch 
+                      isConflicting
+                        ? 'bg-red-100 border-red-500 border-2 shadow-lg'
+                        : hasMatch 
                         ? 'bg-orange-50 border-orange-300' 
                         : 'bg-gray-50 border-gray-200'
                     }`}
                   >
-                    {hasMatch && (
+                    {isConflicting && (
+                      <div className="flex items-center gap-2 text-red-800 font-bold mb-3 pb-2 border-b-2 border-red-400 bg-red-50 -m-4 mb-3 p-3">
+                        <AlertCircle className="h-5 w-5 animate-pulse" />
+                        <div>
+                          <div className="text-sm font-bold">⛔ CONFLICTO DE HORARIO</div>
+                          <div className="text-xs font-normal mt-1">Esta cita se cruza con la cita que estás intentando crear</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!isConflicting && hasMatch && (
                       <div className="flex items-center gap-2 text-orange-700 font-medium mb-3 pb-2 border-b border-orange-200">
                         <AlertCircle className="h-4 w-4" />
                         <span className="text-sm">
