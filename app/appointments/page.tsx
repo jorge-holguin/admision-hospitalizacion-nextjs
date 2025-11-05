@@ -601,15 +601,10 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         setReleasedCitaId(citaId)
         setShowReleaseSuccessDialog(true)
         
-        // Actualizar inmediatamente la lista de citas para reflejar el cambio
-        await searchAppointmentsByParams()
-        
-        // Luego buscar específicamente la cita liberada para mostrarla
-        setTimeout(async () => {
-          setShowSearchById(true)
-          setSearchQuery(citaId)
-          await searchAppointmentsByParams()
-        }, 500)
+        // Buscar específicamente la cita liberada para mostrarla
+        setShowSearchById(true)
+        setSearchQuery(citaId)
+        await searchAppointmentById(citaId)
         
       } catch (error: any) {
         console.error('Error al liberar la cita:', error)
@@ -839,7 +834,13 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                           <Button
                             variant="outline"
                             onClick={() => {
-                              searchAppointmentsByParams()
+                              // Si está buscando por ID, refrescar esa búsqueda
+                              if (showSearchById && searchQuery.trim()) {
+                                searchAppointmentById(searchQuery)
+                              } else {
+                                // Si no, refrescar con los filtros actuales
+                                searchAppointmentsByParams()
+                              }
                             }}
                             disabled={isRefreshing}
                             className="font-medium"
@@ -870,6 +871,16 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                                 setShowSearchById(checked as boolean)
                                 if (!checked) {
                                   setSearchQuery("") // Limpiar al desmarcar
+                                  // Refrescar con filtros actuales
+                                  searchAppointmentsByParams()
+                                } else {
+                                  // Al activar búsqueda por ID, limpiar filtros de estado, consultorio y médico
+                                  setFilters({
+                                    estado: "all",
+                                    consultorio: "all",
+                                    medico: "all",
+                                    turno: filters.turno
+                                  })
                                 }
                               }}
                             />
@@ -925,6 +936,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                           onChange={(val: string | "all") => {
                             setFilters({ ...filters, estado: val })
                             setPageParam(0) // Reset to page 0 when filter changes
+                            // Si está buscando por ID, desactivar búsqueda por ID
+                            if (showSearchById) {
+                              setShowSearchById(false)
+                              setSearchQuery("")
+                            }
                           }}
                           className="space-y-2"
                           options={ESTADO_OPTIONS}
@@ -937,6 +953,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                             // ✅ Al seleccionar consultorio, resetear médico
                             setFilters({ ...filters, consultorio: val, medico: val !== 'all' ? 'all' : filters.medico })
                             setPageParam(0)
+                            // Si está buscando por ID, desactivar búsqueda por ID
+                            if (showSearchById) {
+                              setShowSearchById(false)
+                              setSearchQuery("")
+                            }
                           }}
                           onConsultorioDataChange={(data: any) => {
                             setSelectedConsultorioData(data)
@@ -951,6 +972,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                             // ✅ Al seleccionar médico, resetear consultorio
                             setFilters({ ...filters, medico: val, consultorio: val !== 'all' ? 'all' : filters.consultorio })
                             setPageParam(0)
+                            // Si está buscando por ID, desactivar búsqueda por ID
+                            if (showSearchById) {
+                              setShowSearchById(false)
+                              setSearchQuery("")
+                            }
                           }}
                           especialidad={selectedConsultorioData?.ESPECIALIDAD?.trim() || null}
                           className="mt-1"
