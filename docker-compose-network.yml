@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  # Servicio de producción con acceso a red del host
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+    container_name: admision-app
+    network_mode: host  # Usa la red del host para acceder a 172.16.0.10
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped

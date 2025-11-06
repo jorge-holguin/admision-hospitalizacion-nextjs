@@ -415,7 +415,8 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         EDAD: data.EDAD || '',
         SEXO: data.SEXO || '',
         ESTADO_CIVIL: data.ESTADO_CIVIL || '',
-        DIRECCION: data.DIRECCION || '',
+        // Limitar DIRECCION a 60 caracteres para evitar problemas con la vista de BD
+        DIRECCION: (data.DIRECCION || '').slice(0, 60),
         DISTRITO: data.DISTRITO || '',
         TELEFONO1: data.TELEFONO1 || '',
         TELEFONO2: data.TELEFONO2 || '',
@@ -569,7 +570,9 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         await prisma.$executeRaw`UPDATE EMERGENCIA SET ESTADO_CIVIL = ${data.ESTADO_CIVIL} WHERE EMERGENCIA_ID = ${emergenciaId}`;
       }
       if (data.DIRECCION !== undefined) {
-        await prisma.$executeRaw`UPDATE EMERGENCIA SET DIRECCION = ${data.DIRECCION} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+        // Limitar DIRECCION a 60 caracteres para evitar problemas con la vista de BD
+        const direccionTruncada = (data.DIRECCION || '').slice(0, 60);
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET DIRECCION = ${direccionTruncada} WHERE EMERGENCIA_ID = ${emergenciaId}`;
       }
       if (data.DISTRITO !== undefined) {
         await prisma.$executeRaw`UPDATE EMERGENCIA SET DISTRITO = ${data.DISTRITO} WHERE EMERGENCIA_ID = ${emergenciaId}`;

@@ -457,7 +457,9 @@ export const ordenHospitalizacionService = {
       }
       if (data.ACOMPANANTE_DIRECCION) {
         campos.push('ACOMPANANTE_DIRECCION');
-        valores.push(`'${data.ACOMPANANTE_DIRECCION.replace(/'/g, "''")}'`);
+        // Limitar ACOMPANANTE_DIRECCION a 60 caracteres para evitar problemas con la vista de BD
+        const direccionTruncada = data.ACOMPANANTE_DIRECCION.slice(0, 60).replace(/'/g, "''");
+        valores.push(`'${direccionTruncada}'`);
       }
       
       console.log(`Insertando ${campos.length} campos:`, campos);
@@ -538,7 +540,9 @@ export const ordenHospitalizacionService = {
         updates.push(`ACOMPANANTE_TELEFONO = '${data.ACOMPANANTE_TELEFONO}'`);
       }
       if (data.ACOMPANANTE_DIRECCION) {
-        updates.push(`ACOMPANANTE_DIRECCION = '${data.ACOMPANANTE_DIRECCION.replace(/'/g, "''")}'`);
+        // Limitar ACOMPANANTE_DIRECCION a 60 caracteres para evitar problemas con la vista de BD
+        const direccionTruncada = data.ACOMPANANTE_DIRECCION.slice(0, 60).replace(/'/g, "''");
+        updates.push(`ACOMPANANTE_DIRECCION = '${direccionTruncada}'`);
       }
       
       if (updates.length === 0) {

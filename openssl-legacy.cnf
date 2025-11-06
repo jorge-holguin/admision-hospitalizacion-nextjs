@@ -1,0 +1,26 @@
+# openssl-legacy.cnf
+# Configuración para habilitar TLS 1.0 en OpenSSL 3.x
+# Necesario para conectar con SQL Server 2008
+
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+ssl_conf = ssl_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+
+[ssl_sect]
+system_default = tls_defaults
+
+[tls_defaults]
+MinProtocol = TLSv1
+CipherString = DEFAULT:@SECLEVEL=0
