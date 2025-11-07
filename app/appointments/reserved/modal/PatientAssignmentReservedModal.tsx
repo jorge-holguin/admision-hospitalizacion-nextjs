@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
@@ -229,6 +229,9 @@ export function PatientAssignmentReservedModal({
   // Estados para modal de error
   const [showErrorDialog, setShowErrorDialog] = useState(false)
   const [errorDialogData, setErrorDialogData] = useState<{title: string, message: string, type: 'warning' | 'error'}>({title: '', message: '', type: 'error'})
+  
+  // Estado para el dialog de confirmación de conflicto de horario
+  const [showTimeConflictDialog, setShowTimeConflictDialog] = useState(false)
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -926,15 +929,31 @@ export function PatientAssignmentReservedModal({
           {/* Botones de acción - Solo Aprobar y Denegar */}
           <div className="flex justify-center gap-4 pt-6 border-t">
             <Button 
-              onClick={handleApprove}
+              onClick={() => {
+                // Si hay conflicto de horario, mostrar diálogo de advertencia primero
+                if (!timeValidation.isValid) {
+                  setShowTimeConflictDialog(true)
+                } else {
+                  handleApprove()
+                }
+              }}
               disabled={
                 !selectedTipoCita || 
                 !selectedSeguro || 
                 (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) ||
+                hasConsultorioMatch || // Deshabilitar si hay cita en el mismo consultorio
+                hasEspecialidadMatch || // Deshabilitar si hay cita en la misma especialidad
                 isLoading
               }
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
               size="lg"
+              title={
+                hasConsultorioMatch 
+                  ? "No se puede aprobar: el paciente ya tiene una cita en el mismo consultorio" 
+                  : hasEspecialidadMatch 
+                  ? "No se puede aprobar: el paciente ya tiene una cita en la misma especialidad" 
+                  : ""
+              }
             >
               <CheckCircle className="h-5 w-5 mr-2" />
               {isLoading ? "Aprobando..." : "Aprobar Solicitud"}
@@ -1064,6 +1083,72 @@ export function PatientAssignmentReservedModal({
             />
           </FiliationProvider>
         )}
+      </Dialog>
+      
+      {/* Diálogo de confirmación de conflicto de horario */}
+      <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>
+        <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-6 w-6" />
+              ⚠️ Advertencia: Posible Conflicto de Horario
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Se ha detectado un posible conflicto de horario con otra cita del paciente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Mensaje de conflicto */}
+            <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-orange-800">
+                  <p className="font-semibold mb-2">Detalles del conflicto:</p>
+                  <p>{timeValidation.message}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Advertencia de responsabilidad */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-900 font-semibold mb-2">
+                ⚠️ IMPORTANTE - Responsabilidad del Admisionista
+              </p>
+              <p className="text-sm text-red-800">
+                Si decide continuar con la aprobación a pesar del conflicto de horario detectado, 
+                <span className="font-bold"> usted será responsable de cualquier problema o inconveniente</span> que 
+                pueda surgir debido a la superposición de horarios.
+              </p>
+            </div>
+
+            {/* Pregunta de confirmación */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-900 font-medium text-center">
+                ¿Está seguro de que desea continuar con la aprobación de esta solicitud?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowTimeConflictDialog(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowTimeConflictDialog(false)
+                handleApprove() // Continuar con la aprobación
+              }}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              Sí, Continuar Bajo Mi Responsabilidad
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </>
   )

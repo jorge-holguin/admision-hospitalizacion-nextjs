@@ -385,8 +385,23 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               required
             >
-              <option value="MED">MED</option>
-              <option value="ENF">ENF</option>
+              <option value="MED">MED - Médico</option>
+              <option value="ENF">ENF - Enfermero(a)</option>
+              <option value="QF">QF - Químico Farmacéutico</option>
+              <option value="LIC">LIC - Licenciado(a)</option>
+              <option value="TEC">TEC - Técnico(a)</option>
+              <option value="PSI">PSI - Psicólogo(a)</option>
+              <option value="OBS">OBS - Obstetra</option>
+              <option value="TMD">TMD - Técnico Médico</option>
+              <option value="ODO">ODO - Odontólogo(a)</option>
+              <option value="NUT">NUT - Nutricionista</option>
+              <option value="TMP">TMP - Tecnólogo Médico</option>
+              <option value="OSD">OSD - Obstetriz</option>
+              <option value="ARU">ARU - Asistente de Rehabilitación</option>
+              <option value="MRE">MRE - Médico Residente</option>
+              <option value="TSP">TSP - Trabajador Social</option>
+              <option value="BIO">BIO - Biólogo(a)</option>
+              <option value="VET">VET - Veterinario(a)</option>
             </select>
           </div>
           <div className="space-y-2">

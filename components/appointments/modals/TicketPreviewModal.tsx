@@ -35,6 +35,26 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
   const [isPrinting, setIsPrinting] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
 
+  // Función para ofuscar el nombre del operador
+  // Ejemplo: "HOLGUIN CUCALON JORGE" -> "JHOLGUIN"
+  const ofuscarOperador = (nombreCompleto: string): string => {
+    if (!nombreCompleto || nombreCompleto.trim() === '') return ''
+    
+    const partes = nombreCompleto.trim().split(/\s+/)
+    if (partes.length === 0) return ''
+    
+    // Si solo hay una palabra, devolver la primera letra en mayúscula
+    if (partes.length === 1) {
+      return partes[0].charAt(0).toUpperCase()
+    }
+    
+    // Tomar la primera letra del último elemento (nombre) + primer apellido
+    const nombre = partes[partes.length - 1] // Último elemento es el nombre
+    const primerApellido = partes[0] // Primer elemento es el primer apellido
+    
+    return (nombre.charAt(0) + primerApellido).toUpperCase()
+  }
+
   // Resetear estados cuando el modal se cierra
   useEffect(() => {
     if (!isOpen) {
@@ -308,7 +328,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
 
             {/* Footer */}
             <div className="text-center pt-3 border-t border-gray-200">
-              <p className="text-xs text-gray-500">Emitido: {ticketData.emitidoEl} | Operador: {ticketData.operador}</p>
+              <p className="text-xs text-gray-500">Emitido: {ticketData.emitidoEl} | Operador: {ofuscarOperador(ticketData.operador)}</p>
             </div>
           </div>
         </div>

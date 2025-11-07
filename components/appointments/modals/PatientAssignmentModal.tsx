@@ -124,6 +124,9 @@ export function PatientAssignmentModal({
   
   // Estado para el dialog de confirmación de asignación
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  
+  // Estado para el dialog de confirmación de conflicto de horario
+  const [showTimeConflictDialog, setShowTimeConflictDialog] = useState(false)
 
   // Console.log para rastrear datos del appointment cuando se abre el modal
   useEffect(() => {
@@ -870,14 +873,30 @@ export function PatientAssignmentModal({
             Cancelar
           </Button>
           <Button 
-            onClick={() => setShowConfirmDialog(true)}
+            onClick={() => {
+              // Si hay conflicto de horario, mostrar diálogo de advertencia primero
+              if (!timeValidation.isValid) {
+                setShowTimeConflictDialog(true)
+              } else {
+                setShowConfirmDialog(true)
+              }
+            }}
             disabled={
               !selectedTipoCita || 
               !selectedSeguro || 
               (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) ||
+              hasConsultorioMatch || // Deshabilitar si hay cita en el mismo consultorio
+              hasEspecialidadMatch || // Deshabilitar si hay cita en la misma especialidad
               isLoading
             }
             className="bg-blue-600 hover:bg-blue-700"
+            title={
+              hasConsultorioMatch 
+                ? "No se puede confirmar: el paciente ya tiene una cita en el mismo consultorio" 
+                : hasEspecialidadMatch 
+                ? "No se puede confirmar: el paciente ya tiene una cita en la misma especialidad" 
+                : ""
+            }
           >
             Confirmar Asignación
           </Button>
@@ -1036,6 +1055,72 @@ export function PatientAssignmentModal({
       </AlertDialogContent>
     </AlertDialog>
     
+    {/* Diálogo de confirmación de conflicto de horario */}
+    <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>
+      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-orange-600">
+            <AlertTriangle className="h-6 w-6" />
+            ⚠️ Advertencia: Posible Conflicto de Horario
+          </DialogTitle>
+          <DialogDescription className="text-gray-600">
+            Se ha detectado un posible conflicto de horario con otra cita del paciente.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          {/* Mensaje de conflicto */}
+          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-orange-800">
+                <p className="font-semibold mb-2">Detalles del conflicto:</p>
+                <p>{timeValidation.message}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Advertencia de responsabilidad */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-900 font-semibold mb-2">
+              ⚠️ IMPORTANTE - Responsabilidad del Admisionista
+            </p>
+            <p className="text-sm text-red-800">
+              Si decide continuar con la asignación a pesar del conflicto de horario detectado, 
+              <span className="font-bold"> usted será responsable de cualquier problema o inconveniente</span> que 
+              pueda surgir debido a la superposición de horarios.
+            </p>
+          </div>
+
+          {/* Pregunta de confirmación */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-900 font-medium text-center">
+              ¿Está seguro de que desea continuar con la asignación de esta cita?
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowTimeConflictDialog(false)}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              setShowTimeConflictDialog(false)
+              setShowConfirmDialog(true) // Continuar con el flujo normal
+            }}
+            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            Sí, Continuar Bajo Mi Responsabilidad
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     {/* Modal de Actualización de Historia Clínica */}
     {showPatientEditModal && patient && (
       <Dialog open={showPatientEditModal} onOpenChange={setShowPatientEditModal}>
