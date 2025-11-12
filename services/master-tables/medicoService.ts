@@ -22,11 +22,19 @@ function normalizeMedico(row: any): Medico {
     ACTIVO: activo,
     IMPCITA: row.IMPCITA?.toString?.() ?? row.IMPCITA,
     PROFESION_COLEGIO: row.PROFESION_COLEGIO?.toString?.() ?? row.PROFESION_COLEGIO,
+    FECHNAC: row.FECHNAC?.toString?.() ?? row.FECHNAC,
+    GENERO: row.GENERO?.toString?.() ?? row.GENERO,
+    ESPECIALIDAD2: row.ESPECIALIDAD2?.toString?.() ?? row.ESPECIALIDAD2,
+    CONSULTORIO2: row.CONSULTORIO2?.toString?.() ?? row.CONSULTORIO2,
+    PROFESION_COLEGIO2: row.PROFESION_COLEGIO2?.toString?.() ?? row.PROFESION_COLEGIO2,
     // Campos con descripciones (JOINs)
     CONSULTORIO_NOMBRE: row.CONSULTORIO_NOMBRE?.toString?.() ?? row.CONSULTORIO_NOMBRE,
     ESPECIALIDAD_NOMBRE: row.ESPECIALIDAD_NOMBRE?.toString?.() ?? row.ESPECIALIDAD_NOMBRE,
     PROFESION_NOMBRE: row.PROFESION_NOMBRE?.toString?.() ?? row.PROFESION_NOMBRE,
     COLEGIO_NOMBRE: row.COLEGIO_NOMBRE?.toString?.() ?? row.COLEGIO_NOMBRE,
+    CONSULTORIO2_NOMBRE: row.CONSULTORIO2_NOMBRE?.toString?.() ?? row.CONSULTORIO2_NOMBRE,
+    ESPECIALIDAD2_NOMBRE: row.ESPECIALIDAD2_NOMBRE?.toString?.() ?? row.ESPECIALIDAD2_NOMBRE,
+    PROFESION_COLEGIO2_NOMBRE: row.PROFESION_COLEGIO2_NOMBRE?.toString?.() ?? row.PROFESION_COLEGIO2_NOMBRE,
     // Legacy fields for compatibility
     NOMBRES: row.NOMBRES?.toString?.() ?? row.NOMBRES,
     APATERNO: row.APATERNO?.toString?.() ?? row.APATERNO,
@@ -51,11 +59,19 @@ export interface Medico {
   ACTIVO: string;
   IMPCITA?: string;
   PROFESION_COLEGIO?: string;
+  FECHNAC?: string;
+  GENERO?: string;
+  ESPECIALIDAD2?: string;
+  CONSULTORIO2?: string;
+  PROFESION_COLEGIO2?: string;
   // Campos con descripciones (JOINs)
   CONSULTORIO_NOMBRE?: string;
   ESPECIALIDAD_NOMBRE?: string;
   PROFESION_NOMBRE?: string;
   COLEGIO_NOMBRE?: string;
+  CONSULTORIO2_NOMBRE?: string;
+  ESPECIALIDAD2_NOMBRE?: string;
+  PROFESION_COLEGIO2_NOMBRE?: string;
   // Legacy fields for compatibility
   NOMBRES?: string;
   APATERNO?: string;
@@ -108,15 +124,22 @@ export const medicoServerService = {
             SELECT 
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
               M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
               P.Colegio AS COLEGIO_NOMBRE,
+              C2.NOMBRE AS CONSULTORIO2_NOMBRE,
+              E2.NOMBRE AS ESPECIALIDAD2_NOMBRE,
+              P2.Profesion AS PROFESION_COLEGIO2_NOMBRE,
               ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
             FROM MEDICO M
             LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
             LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
             LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            LEFT JOIN CONSULTORIO C2 ON M.CONSULTORIO2 = C2.Consultorio
+            LEFT JOIN ESPECIALIDAD E2 ON M.ESPECIALIDAD2 = E2.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P2 ON M.PROFESION_COLEGIO2 = P2.id_profesion
             WHERE M.NOMBRE LIKE ${`%${search}%`} 
               OR M.MEDICO LIKE ${`%${search}%`}
               OR M.DNI LIKE ${`%${search}%`}
@@ -134,16 +157,22 @@ export const medicoServerService = {
           WITH CTE AS (
             SELECT 
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
-              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
               P.Colegio AS COLEGIO_NOMBRE,
+              C2.NOMBRE AS CONSULTORIO2_NOMBRE,
+              E2.NOMBRE AS ESPECIALIDAD2_NOMBRE,
+              P2.Profesion AS PROFESION_COLEGIO2_NOMBRE,
               ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
             FROM MEDICO M
             LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
             LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
             LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            LEFT JOIN CONSULTORIO C2 ON M.CONSULTORIO2 = C2.Consultorio
+            LEFT JOIN ESPECIALIDAD E2 ON M.ESPECIALIDAD2 = E2.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P2 ON M.PROFESION_COLEGIO2 = P2.id_profesion
             WHERE M.CONSULTORIO = ${consultorio}
           )
           SELECT * FROM CTE
@@ -159,16 +188,22 @@ export const medicoServerService = {
           WITH CTE AS (
             SELECT 
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
-              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
               P.Colegio AS COLEGIO_NOMBRE,
+              C2.NOMBRE AS CONSULTORIO2_NOMBRE,
+              E2.NOMBRE AS ESPECIALIDAD2_NOMBRE,
+              P2.Profesion AS PROFESION_COLEGIO2_NOMBRE,
               ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
             FROM MEDICO M
             LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
             LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
             LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            LEFT JOIN CONSULTORIO C2 ON M.CONSULTORIO2 = C2.Consultorio
+            LEFT JOIN ESPECIALIDAD E2 ON M.ESPECIALIDAD2 = E2.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P2 ON M.PROFESION_COLEGIO2 = P2.id_profesion
             WHERE M.NOMBRE LIKE ${`%${nombre}%`}
           )
           SELECT * FROM CTE
@@ -184,16 +219,22 @@ export const medicoServerService = {
           WITH CTE AS (
             SELECT 
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
-              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
               P.Colegio AS COLEGIO_NOMBRE,
+              C2.NOMBRE AS CONSULTORIO2_NOMBRE,
+              E2.NOMBRE AS ESPECIALIDAD2_NOMBRE,
+              P2.Profesion AS PROFESION_COLEGIO2_NOMBRE,
               ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
             FROM MEDICO M
             LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
             LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
             LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            LEFT JOIN CONSULTORIO C2 ON M.CONSULTORIO2 = C2.Consultorio
+            LEFT JOIN ESPECIALIDAD E2 ON M.ESPECIALIDAD2 = E2.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P2 ON M.PROFESION_COLEGIO2 = P2.id_profesion
             WHERE M.DNI LIKE ${`%${dni}%`}
           )
           SELECT * FROM CTE
@@ -207,16 +248,22 @@ export const medicoServerService = {
           WITH CTE AS (
             SELECT 
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
-              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+              M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
               P.Colegio AS COLEGIO_NOMBRE,
+              C2.NOMBRE AS CONSULTORIO2_NOMBRE,
+              E2.NOMBRE AS ESPECIALIDAD2_NOMBRE,
+              P2.Profesion AS PROFESION_COLEGIO2_NOMBRE,
               ROW_NUMBER() OVER (ORDER BY M.NOMBRE) AS RowNum
             FROM MEDICO M
             LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
             LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
             LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+            LEFT JOIN CONSULTORIO C2 ON M.CONSULTORIO2 = C2.Consultorio
+            LEFT JOIN ESPECIALIDAD E2 ON M.ESPECIALIDAD2 = E2.ESPECIALIDAD
+            LEFT JOIN ProfesionesColegio P2 ON M.PROFESION_COLEGIO2 = P2.id_profesion
           )
           SELECT * FROM CTE
           WHERE RowNum BETWEEN ${startRow} AND ${endRow}
@@ -248,14 +295,21 @@ export const medicoServerService = {
         SELECT 
           M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
           M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
+          M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
           C.NOMBRE AS CONSULTORIO_NOMBRE,
           E.NOMBRE AS ESPECIALIDAD_NOMBRE,
           P.Profesion AS PROFESION_NOMBRE,
-          P.Colegio AS COLEGIO_NOMBRE
+          P.Colegio AS COLEGIO_NOMBRE,
+          C2.NOMBRE AS CONSULTORIO2_NOMBRE,
+          E2.NOMBRE AS ESPECIALIDAD2_NOMBRE,
+          P2.Profesion AS PROFESION_COLEGIO2_NOMBRE
         FROM MEDICO M
         LEFT JOIN CONSULTORIO C ON M.CONSULTORIO = C.Consultorio
         LEFT JOIN ESPECIALIDAD E ON M.ESPECIALIDAD = E.ESPECIALIDAD
         LEFT JOIN ProfesionesColegio P ON M.PROFESION_COLEGIO = P.id_profesion
+        LEFT JOIN CONSULTORIO C2 ON M.CONSULTORIO2 = C2.Consultorio
+        LEFT JOIN ESPECIALIDAD E2 ON M.ESPECIALIDAD2 = E2.ESPECIALIDAD
+        LEFT JOIN ProfesionesColegio P2 ON M.PROFESION_COLEGIO2 = P2.id_profesion
         WHERE M.MEDICO = ${id}
       `;
 
@@ -326,6 +380,30 @@ export const medicoServerService = {
       const profesionColegio = (data.PROFESION_COLEGIO && String(data.PROFESION_COLEGIO).trim() !== "") 
         ? String(data.PROFESION_COLEGIO).trim().substring(0, 2) 
         : null; // PROFESION_COLEGIO char(2)
+      // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY
+      let fechnac = "";
+      if (data.FECHNAC && String(data.FECHNAC).trim() !== "") {
+        const fechaParts = String(data.FECHNAC).split("-");
+        if (fechaParts.length === 3) {
+          fechnac = `${fechaParts[2]}/${fechaParts[1]}/${fechaParts[0]}`;
+        } else {
+          fechnac = String(data.FECHNAC);
+        }
+      }
+      fechnac = fechnac.substring(0, 15); // FECHNAC varchar(15)
+      
+      const genero = String(data.GENERO || "").substring(0, 1); // GENERO char(1)
+      
+      // ESPECIALIDAD2 y CONSULTORIO2 no pueden ser NULL, usar "0" como default
+      const especialidad2Val = (data.ESPECIALIDAD2 && String(data.ESPECIALIDAD2).trim() !== "" && String(data.ESPECIALIDAD2).trim() !== "0")
+        ? String(data.ESPECIALIDAD2).trim().substring(0, 4)
+        : "0";
+      const consultorio2Val = (data.CONSULTORIO2 && String(data.CONSULTORIO2).trim() !== "" && String(data.CONSULTORIO2).trim() !== "0")
+        ? String(data.CONSULTORIO2).trim().substring(0, 6)
+        : "0";
+      const profesionColegio2 = (data.PROFESION_COLEGIO2 && String(data.PROFESION_COLEGIO2).trim() !== "") 
+        ? String(data.PROFESION_COLEGIO2).trim().substring(0, 2) 
+        : null; // PROFESION_COLEGIO2 char(2)
 
       // Log field lengths to identify truncation issues
       console.log('Field lengths:', {
@@ -353,7 +431,7 @@ export const medicoServerService = {
       try {
         // Insert the new medico with more conservative field lengths
         await prisma.$executeRaw`
-          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO) 
+          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO,FECHNAC,GENERO,ESPECIALIDAD2,CONSULTORIO2,PROFESION_COLEGIO2) 
           VALUES(
             ${medicoCode}, 
             ${nombre}, 
@@ -368,7 +446,12 @@ export const medicoServerService = {
             ${eess}, 
             ${contrato}, 
             ${impcita},
-            ${profesionColegio}
+            ${profesionColegio},
+            ${fechnac},
+            ${genero},
+            ${especialidad2Val},
+            ${consultorio2Val},
+            ${profesionColegio2}
           )
         `;
       } catch (error) {
@@ -405,7 +488,12 @@ export const medicoServerService = {
         CONTRATO: contrato,
         ACTIVO: activoVal === 1 ? "1" : "0",
         IMPCITA: impcita,
-        PROFESION_COLEGIO: profesionColegio || ""
+        PROFESION_COLEGIO: profesionColegio || "",
+        FECHNAC: fechnac,
+        GENERO: genero,
+        ESPECIALIDAD2: especialidad2Val,
+        CONSULTORIO2: consultorio2Val,
+        PROFESION_COLEGIO2: profesionColegio2 || ""
       };
     } catch (error) {
       console.error('Error in medicoServerService.createMedico:', error);
@@ -451,6 +539,31 @@ export const medicoServerService = {
       const profesionColegio = data.PROFESION_COLEGIO !== undefined 
         ? ((data.PROFESION_COLEGIO && String(data.PROFESION_COLEGIO).trim() !== "") ? String(data.PROFESION_COLEGIO).trim().substring(0, 2) : null)
         : ((existing.PROFESION_COLEGIO && String(existing.PROFESION_COLEGIO).trim() !== "") ? String(existing.PROFESION_COLEGIO).trim().substring(0, 2) : null); // char(2)
+      // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY
+      let fechnac = "";
+      const fechaToConvert = data.FECHNAC ?? existing.FECHNAC ?? "";
+      if (fechaToConvert && String(fechaToConvert).trim() !== "") {
+        const fechaParts = String(fechaToConvert).split("-");
+        if (fechaParts.length === 3) {
+          fechnac = `${fechaParts[2]}/${fechaParts[1]}/${fechaParts[0]}`;
+        } else {
+          fechnac = String(fechaToConvert);
+        }
+      }
+      fechnac = fechnac.substring(0, 15); // varchar(15)
+      
+      const genero = String(data.GENERO ?? existing.GENERO ?? "").substring(0, 1); // char(1)
+      
+      // ESPECIALIDAD2 y CONSULTORIO2 no pueden ser NULL, usar "0" como default
+      const especialidad2Val = data.ESPECIALIDAD2 !== undefined
+        ? ((data.ESPECIALIDAD2 && String(data.ESPECIALIDAD2).trim() !== "" && String(data.ESPECIALIDAD2).trim() !== "0") ? String(data.ESPECIALIDAD2).trim().substring(0, 4) : "0")
+        : ((existing.ESPECIALIDAD2 && String(existing.ESPECIALIDAD2).trim() !== "" && String(existing.ESPECIALIDAD2).trim() !== "0") ? String(existing.ESPECIALIDAD2).trim().substring(0, 4) : "0");
+      const consultorio2Val = data.CONSULTORIO2 !== undefined
+        ? ((data.CONSULTORIO2 && String(data.CONSULTORIO2).trim() !== "" && String(data.CONSULTORIO2).trim() !== "0") ? String(data.CONSULTORIO2).trim().substring(0, 6) : "0")
+        : ((existing.CONSULTORIO2 && String(existing.CONSULTORIO2).trim() !== "" && String(existing.CONSULTORIO2).trim() !== "0") ? String(existing.CONSULTORIO2).trim().substring(0, 6) : "0");
+      const profesionColegio2 = data.PROFESION_COLEGIO2 !== undefined
+        ? ((data.PROFESION_COLEGIO2 && String(data.PROFESION_COLEGIO2).trim() !== "") ? String(data.PROFESION_COLEGIO2).trim().substring(0, 2) : null)
+        : ((existing.PROFESION_COLEGIO2 && String(existing.PROFESION_COLEGIO2).trim() !== "") ? String(existing.PROFESION_COLEGIO2).trim().substring(0, 2) : null);
       
       // Log para depuración
       console.log('Field lengths for update:', {
@@ -486,7 +599,12 @@ export const medicoServerService = {
             CONTRATO = ${contrato},
             ACTIVO = ${newActivoVal},
             IMPCITA = ${impcita},
-            PROFESION_COLEGIO = ${profesionColegio}
+            PROFESION_COLEGIO = ${profesionColegio},
+            FECHNAC = ${fechnac},
+            GENERO = ${genero},
+            ESPECIALIDAD2 = ${especialidad2Val},
+            CONSULTORIO2 = ${consultorio2Val},
+            PROFESION_COLEGIO2 = ${profesionColegio2}
         WHERE MEDICO = ${id}
       `;
 

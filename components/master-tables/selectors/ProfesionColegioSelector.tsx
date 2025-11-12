@@ -92,13 +92,13 @@ export function ProfesionColegioSelector({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
+        <PopoverContent className="w-[400px] p-0" align="start" onWheel={(e) => e.stopPropagation()}>
           <Command>
             <CommandInput placeholder="Buscar profesión..." />
             <CommandEmpty>
               {error ? error : "No se encontró profesión."}
             </CommandEmpty>
-            <CommandGroup className="max-h-[300px] overflow-y-auto">
+            <CommandGroup className="max-h-[300px] overflow-y-auto overscroll-contain">
               {profesiones.map((profesion) => (
                 <CommandItem
                   key={profesion.id_profesion}
@@ -107,16 +107,17 @@ export function ProfesionColegioSelector({
                     onChange(profesion.id_profesion)
                     setOpen(false)
                   }}
+                  className="cursor-pointer"
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 flex-shrink-0",
                       value === profesion.id_profesion ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{profesion.Profesion}</span>
-                    <span className="text-xs text-muted-foreground">{profesion.Colegio}</span>
+                  <div className="flex flex-col truncate">
+                    <span className="font-medium truncate">{profesion.Profesion}</span>
+                    <span className="text-xs text-muted-foreground truncate">{profesion.Colegio}</span>
                   </div>
                 </CommandItem>
               ))}

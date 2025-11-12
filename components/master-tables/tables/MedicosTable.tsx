@@ -1,19 +1,21 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Plus } from "lucide-react";
+import { Edit, Trash2, Plus, Power, PowerOff } from "lucide-react";
 import { SearchBox } from "../SearchBox";
 import { useMedicos } from "@/hooks/master-tables/useMedicos";
 import { useDebounce } from "../SearchBox";
 import { useToast } from "@/hooks/use-toast";
 import DeleteConfirmationDialog from "@/components/ui/DeleteConfirmationDialog";
 import { DataTable } from "@/components/ui/data-table";
+import { extractPuestoFromToken } from "@/utils/jwtUtils";
 
 interface MedicosTableProps {
   onEdit: (medico: any) => void;
   onNew: () => void;
+  refreshRef?: React.RefObject<(() => void) | null>;
 }
 
-export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => {
+export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew, refreshRef }) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState("nombre");
@@ -29,8 +31,18 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
     handlePageChange,
     handleFilterChange,
     deleteMedico,
+    toggleMedicoStatus,
     refreshData,
   } = useMedicos();
+
+  // Asignar refreshData al ref para que el componente padre pueda acceder
+  if (refreshRef) {
+    refreshRef.current = refreshData;
+  }
+
+  // Verificar si el usuario tiene permisos para eliminar
+  const userRole = extractPuestoFromToken()?.toUpperCase();
+  const canDelete = ['DEVOPS', 'DESARROLLADOR', 'ANALISTA'].includes(userRole || '');
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -76,6 +88,24 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
       
       setDeleteDialogOpen(false);
       setMedicoToDelete(null);
+    }
+  };
+
+  const handleToggleStatus = async (medico: any) => {
+    const action = medico.ACTIVO === "1" ? "desactivar" : "activar";
+    const result = await toggleMedicoStatus(medico.MEDICO, medico.ACTIVO);
+    
+    if (result.success) {
+      toast({
+        title: `Médico ${action === "desactivar" ? "desactivado" : "activado"}`,
+        description: `El médico ha sido ${action === "desactivar" ? "desactivado" : "activado"} correctamente`,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || `No se pudo ${action} el médico`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -208,11 +238,25 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew }) => 
           <Button
             variant="outline"
             size="sm"
-            onClick={() => confirmDelete(medico.MEDICO)}
-            className="hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+            onClick={() => handleToggleStatus(medico)}
+            className={medico.ACTIVO === "1" 
+              ? "hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300" 
+              : "hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+            }
+            title={medico.ACTIVO === "1" ? "Desactivar Médico" : "Activar Médico"}
           >
-            <Trash2 className="h-4 w-4" />
+            {medico.ACTIVO === "1" ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
           </Button>
+          {canDelete && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => confirmDelete(medico.MEDICO)}
+              className="hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       )
     }

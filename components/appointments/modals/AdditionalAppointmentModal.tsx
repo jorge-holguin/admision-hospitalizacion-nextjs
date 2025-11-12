@@ -25,6 +25,7 @@ import { AppointmentCalendar } from "../utils/AppointmentCalendar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
+import { datetimeService } from '@/services/datetimeService'
 
 interface AdditionalAppointmentModalProps {
   isOpen: boolean
@@ -327,11 +328,14 @@ export function AdditionalAppointmentModal({
       // Get user from JWT token
       const usuario = extractDocumentFromToken()
       
+      // Obtener fecha y hora del servidor para evitar desfase de zona horaria
+      const serverDateTime = await datetimeService.getCurrentDateTime();
+      
       // Prepare request body
       const requestBody = {
         consultorio: consultorio,
         medico: medico,
-        fecha: new Date(fecha).toISOString(),
+        fecha: `${fecha}T${serverDateTime.time}:00`,
         turnoConsulta: turno === 'MAÑANA' ? 'M' : 'T',
         paciente: patient.HISTORIA || patient.PACIENTE,
         nombre: patient.NOMBRES || patient.NOMBRE || '',

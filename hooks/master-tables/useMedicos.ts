@@ -13,6 +13,12 @@ export interface Medico {
   ESPECIALIDAD?: string;
   CONSULTORIO?: string;
   ACTIVO: string;
+  FECHNAC?: string;
+  GENERO?: string;
+  ESPECIALIDAD2?: string;
+  CONSULTORIO2?: string;
+  CONSULTORIO2_NOMBRE?: string;
+  ESPECIALIDAD2_NOMBRE?: string;
   [key: string]: any;
 }
 
@@ -164,6 +170,32 @@ export function useMedicos(initialPage = 1, initialPageSize = 10) {
     }
   };
 
+  const toggleMedicoStatus = async (id: string, currentStatus: string) => {
+    setIsLoading(true);
+    try {
+      const newStatus = currentStatus === "1" ? "0" : "1";
+      const res = await fetch(`/api/master-tables/medicos/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ACTIVO: newStatus }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${res.status} al cambiar estado del médico`);
+      }
+      refreshData();
+      return { success: true, newStatus };
+    } catch (err) {
+      console.error("Error toggling médico status:", err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : "Error desconocido" 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     data,
     pagination,
@@ -176,5 +208,6 @@ export function useMedicos(initialPage = 1, initialPageSize = 10) {
     createMedico,
     updateMedico,
     deleteMedico,
+    toggleMedicoStatus,
   };
 }

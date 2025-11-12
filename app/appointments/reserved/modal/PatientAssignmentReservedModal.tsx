@@ -18,7 +18,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SimpleSISVerification } from "../../../../components/appointments/patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
-import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
+import { datetimeService } from '@/services/datetimeService'
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
@@ -362,18 +363,20 @@ export function PatientAssignmentReservedModal({
     setIsLoading(true)
     try {
       // Preparar el cuerpo de la solicitud según el formato requerido
-      const currentDate = new Date();
       const usuarioApellido = extractDocumentFromToken();
       
+      // Obtener fecha y hora del servidor para evitar desfase de zona horaria
+      const serverDateTime = await datetimeService.getCurrentDateTime();
+      
       const requestBody = {
-        fechaOtorga: currentDate.toISOString(),
+        fechaOtorga: `${serverDateTime.date}T${serverDateTime.time}:00`,
         tipoCita: selectedTipoCita,
         tipoPaciente: 'C',
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
         estado: '2', // Estado asignado
-        horaOtorga: `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`,
+        horaOtorga: serverDateTime.time,
         usuario: usuarioApellido,
         numRef: referencia || '',
         entidadSis: selectedEntidadSis || ''

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Home } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
@@ -28,6 +28,9 @@ export default function MasterTablesPage() {
   const [selectedMedico, setSelectedMedico] = useState<any>(null)
   const [selectedConsultorio, setSelectedConsultorio] = useState<any>(null)
   const [selectedLocalidad, setSelectedLocalidad] = useState<any>(null)
+  
+  // Ref para el refresh de médicos
+  const medicoRefreshRef = useRef<(() => void) | null>(null)
 
   // Handlers para abrir formularios de creación - sin llamadas a la API
   const handleNewMedico = () => {
@@ -117,7 +120,11 @@ export default function MasterTablesPage() {
           </TabsList>
           
           <TabsContent value="medicos" className="mt-6">
-            <MedicosTable onEdit={handleEditMedico} onNew={handleNewMedico} />
+            <MedicosTable 
+              onEdit={handleEditMedico} 
+              onNew={handleNewMedico}
+              refreshRef={medicoRefreshRef}
+            />
           </TabsContent>
           
           <TabsContent value="consultorios" className="mt-6">
@@ -132,14 +139,18 @@ export default function MasterTablesPage() {
 
       {/* Diálogo para Médicos */}
       <Dialog open={medicoDialogOpen} onOpenChange={setMedicoDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent 
+          className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{selectedMedico ? "Editar Médico" : "Nuevo Médico"}</DialogTitle>
           </DialogHeader>
           <MedicoForm 
             medico={selectedMedico} 
             onClose={handleMedicoDialogClose} 
-            onSuccess={handleMedicoDialogClose} 
+            onSuccess={handleMedicoDialogClose}
+            onRefresh={medicoRefreshRef.current ? async () => { medicoRefreshRef.current?.(); } : undefined}
           />
         </DialogContent>
       </Dialog>

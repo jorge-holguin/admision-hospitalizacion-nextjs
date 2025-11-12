@@ -93,6 +93,10 @@ export async function POST(request: NextRequest) {
       COLESP: body.COLESP ?? "",
       IMPCITA: body.IMPCITA ?? "N",
       PROFESION_COLEGIO: body.PROFESION_COLEGIO ?? "",
+      FECHNAC: body.FECHNAC ?? "",
+      GENERO: body.GENERO ?? "",
+      ESPECIALIDAD2: body.ESPECIALIDAD2 ?? "0",
+      CONSULTORIO2: body.CONSULTORIO2 ?? "0",
     };
     
     console.log('API POST - Payload to service:', {

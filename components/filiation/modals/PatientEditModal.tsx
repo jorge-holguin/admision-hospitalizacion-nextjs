@@ -203,6 +203,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     ubigeoReniec: "",
     direccionReniec: "",
     distritoReniec: "",
+    ubigeoNacReniec: "",
+    stringFoto: "",
   })
 
   // Función para mapear valores de la API a valores de las opciones
@@ -269,6 +271,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           console.log('📍 Distrito cargado:', codigo, 'desde:', patient.distrito);
           return codigo;
         })(),
+
+        stringFoto: patient.STRING_FOTO || patient.stringFoto || "",
         
         // Datos Adicionales
         tipoSeguro: typeof patient.seguro === 'object' ? patient.seguro?.seguro?.trim() : patient.SEGURO?.trim() || patient.tipoSeguro || "",
@@ -336,6 +340,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         ubigeoReniec: "",
         direccionReniec: patient.direccionReniec || "",
         distritoReniec: patient.distritoReniec || "",
+        ubigeoNacReniec: patient.ubigeoNacReniec || patient.UBIGEO_NAC_RENIEC || "",
       })
     }
   }, [patient])
@@ -545,6 +550,10 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           direccionReniec: result.data.direccionReniec || result.data.address || "",
           // ✅ distritoReniec debe ser el código RENIEC (070101), NO el ubigeo de BD
           distritoReniec: result.data.ubigeoReniecProcedencia || "",
+          // ✅ ubigeoNacReniec: código de 6 dígitos del lugar de nacimiento
+          ubigeoNacReniec: result.data.ubigeoReniecNacimiento || "",
+          // ✅ stringFoto: imagen en base64 desde RENIEC
+          stringFoto: result.data.photoReniec || prev.stringFoto,
         }));
 
         // ✅ Validar SIS automáticamente después de actualizar RENIEC (sin toast aquí)
@@ -708,11 +717,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       updateData.conyugeNombre = formData.conyuge?.trim() || '-'
       if (formData.ocupacionFamiliar?.trim()) updateData.conyugeOcupacion = formData.ocupacionFamiliar.trim()
       
-      // ✅ Siempre enviar foto si existe (nueva de RENIEC o existente del paciente)
+      // ✅ Siempre enviar foto si existe (nueva de RENIEC, del formData o existente del paciente)
       if (reniecPhotoHex) {
         // Si hay foto nueva de RENIEC, enviarla
         updateData.stringFoto = reniecPhotoHex
         console.log('📸 Enviando foto RENIEC (hexadecimal):', reniecPhotoHex.substring(0, 50) + '...')
+      } else if (formData.stringFoto && formData.stringFoto.trim() !== '') {
+        // Si hay foto en formData (cargada desde RENIEC anteriormente), enviarla
+        updateData.stringFoto = formData.stringFoto
+        console.log('📸 Enviando foto desde formData (RENIEC):', formData.stringFoto.substring(0, 50) + '...')
       } else {
         // Si no hay foto nueva, pero el paciente tiene foto existente, preservarla
         const fotoExistente = patient.STRING_FOTO || patient.stringFoto;
@@ -730,6 +743,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.distritoReniec?.trim()) {
         updateData.distritoReniec = formData.distritoReniec.trim()
         console.log('🗺️ Distrito RENIEC (ubigeo BD):', updateData.distritoReniec)
+      }
+      // ✅ Ubigeo de nacimiento RENIEC (código de 6 dígitos: depProvDist)
+      if (formData.ubigeoNacReniec?.trim()) {
+        updateData.ubigeoNacReniec = formData.ubigeoNacReniec.trim()
+        console.log('🗺️ Ubigeo Nacimiento RENIEC:', updateData.ubigeoNacReniec)
+      } else if (reniecData?.ubigeoReniecNacimiento) {
+        // Si no está en formData pero está en reniecData, usarlo
+        updateData.ubigeoNacReniec = reniecData.ubigeoReniecNacimiento
+        console.log('🗺️ Ubigeo Nacimiento RENIEC (desde reniecData):', updateData.ubigeoNacReniec)
       }
       // Si se consultó RENIEC (reniecData existe), marcar como validado
       if (reniecData) {

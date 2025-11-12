@@ -5,7 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     const especialidades = await prisma.$queryRaw`
       SELECT Especialidad AS Codigo, Nombre 
-      FROM Especialidad 
+      FROM Especialidad
+      WHERE Activo = '1' 
       ORDER BY Codigo
     `;
 

@@ -20,6 +20,7 @@ import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { extractNombreCompletoFromToken, extractDocumentFromToken } from "@/utils/jwtUtils"
+import { datetimeService } from '@/services/datetimeService'
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 
@@ -369,17 +370,19 @@ export function PatientAssignmentModal({
       // Obtener el DNI del usuario desde el JWT
       const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
       
+      // Obtener fecha y hora del servidor para evitar desfase de zona horaria
+      const serverDateTime = await datetimeService.getCurrentDateTime();
+      
       // Preparar el cuerpo de la solicitud según el formato requerido
-      const currentDate = new Date();
       const requestBody = {
-        fechaOtorga: currentDate.toISOString(),
+        fechaOtorga: `${serverDateTime.date}T${serverDateTime.time}:00`,
         tipoCita: selectedTipoCita,
         tipoPaciente: 'C',
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
         estado: '2', // Estado asignado
-        horaOtorga: `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}`,
+        horaOtorga: serverDateTime.time,
         usuario: usuarioDni,
         numRef: referencia || '',
         entidadSis: selectedEntidadSis || ''
