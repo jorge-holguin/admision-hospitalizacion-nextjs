@@ -603,7 +603,67 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     }
   };
 
+  const validateRequiredFields = (): { isValid: boolean; missingFields: string[] } => {
+    const missingFields: string[] = []
+    
+    // Step 1: Datos Básicos
+    const docType = patient.TIPO_DOCUMENTO || patient.tipoDocumento
+    const docNumber = patient.DOCUMENTO || patient.dni || patient.documento
+    
+    if (!docType || (typeof docType === 'string' && docType.trim() === '')) missingFields.push('Tipo de Documento')
+    if (!docNumber || (typeof docNumber === 'string' && docNumber.trim() === '')) missingFields.push('N° Documento')
+    if (!formData.apellidoPaterno || formData.apellidoPaterno.trim() === '') missingFields.push('Apellido Paterno')
+    if (!formData.apellidoMaterno || formData.apellidoMaterno.trim() === '') missingFields.push('Apellido Materno')
+    if (!formData.nombres || formData.nombres.trim() === '') missingFields.push('Nombres')
+    if (!formData.fechaNacimiento || formData.fechaNacimiento.trim() === '') missingFields.push('Fecha de Nacimiento')
+    if (!formData.sexo || formData.sexo.trim() === '') missingFields.push('Sexo')
+    if (!formData.estadoCivil || formData.estadoCivil.trim() === '') missingFields.push('Estado Civil')
+    if (!formData.paisNacimiento || formData.paisNacimiento.trim() === '') missingFields.push('País de Nacimiento')
+    if (!formData.lugarNacimiento || formData.lugarNacimiento.trim() === '') missingFields.push('Lugar de Nacimiento')
+    if (!formData.direccion || formData.direccion.trim() === '') missingFields.push('Dirección')
+    if (!formData.distritoProcedencia || formData.distritoProcedencia.trim() === '') missingFields.push('Distrito de Procedencia')
+    
+    // Step 2: Datos Adicionales
+    if (!formData.tipoSeguro || formData.tipoSeguro.trim() === '') missingFields.push('Tipo de Seguro')
+    if (!formData.gradoInstruccion || formData.gradoInstruccion.trim() === '') missingFields.push('Grado de Instrucción')
+    if (!formData.ocupacion || formData.ocupacion.trim() === '') missingFields.push('Ocupación')
+    if (!formData.religion || formData.religion.trim() === '') missingFields.push('Religión')
+    if (!formData.etnia || formData.etnia.trim() === '') missingFields.push('Etnia')
+    if (!formData.centroPoblado || formData.centroPoblado.trim() === '') missingFields.push('Centro Poblado')
+    if (!formData.telefono1 || formData.telefono1.trim() === '') missingFields.push('Teléfono 1')
+    
+    // Step 3: Datos Familiares
+    if (!formData.ocupacionFamiliar || formData.ocupacionFamiliar.trim() === '') missingFields.push('Ocupación del Cónyuge')
+    
+    return {
+      isValid: missingFields.length === 0,
+      missingFields
+    }
+  }
+
   const handleSubmit = async () => {
+    // Validar campos obligatorios
+    const validation = validateRequiredFields()
+    
+    if (!validation.isValid) {
+      toast({
+        title: "⚠️ Campos Obligatorios Faltantes",
+        description: (
+          <div className="mt-2">
+            <p className="font-semibold mb-2">Por favor complete los siguientes campos:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {validation.missingFields.map((field, index) => (
+                <li key={index} className="text-sm">{field}</li>
+              ))}
+            </ul>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 8000
+      })
+      return
+    }
+    
     try {
       const pacienteId = patient.PACIENTE || patient.paciente || patient.id
       

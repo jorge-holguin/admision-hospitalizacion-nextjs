@@ -50,7 +50,7 @@ export function Step3FamilyData({ formData, onInputChange }: Step3FamilyDataProp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="conyuge">Cónyuge <span className="text-red-600">*</span></Label>
+              <Label htmlFor="conyuge">Cónyuge</Label>
               <Input
                 id="conyuge"
                 placeholder="Apellidos y nombres completos"
