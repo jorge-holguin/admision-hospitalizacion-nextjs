@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/popover";
 import { useOptimizedMedicos } from "@/hooks/master-tables/useOptimizedMedicos";
 import { ProfesionColegioSelector } from "@/components/master-tables/selectors/ProfesionColegioSelector";
+import { extractDocumentFromToken } from "@/utils/jwtUtils";
 
 interface MedicoFormProps {
   medico?: any;
@@ -319,11 +320,20 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Obtener el DNI del usuario desde el JWT
+      const usuarioDni = extractDocumentFromToken();
+      
+      // Agregar el DNI del usuario al formData
+      const dataToSend = {
+        ...formData,
+        USUARIO: usuarioDni
+      };
+      
       let result;
       if (medico) {
-        result = await updateMedico(medico.MEDICO, formData);
+        result = await updateMedico(medico.MEDICO, dataToSend);
       } else {
-        result = await createMedico(formData);
+        result = await createMedico(dataToSend);
       }
 
       if (result.success) {

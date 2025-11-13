@@ -295,7 +295,7 @@ export const medicoServerService = {
         SELECT 
           M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
           M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
-          M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
+          M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2, M.USUARIO,
           C.NOMBRE AS CONSULTORIO_NOMBRE,
           E.NOMBRE AS ESPECIALIDAD_NOMBRE,
           P.Profesion AS PROFESION_NOMBRE,
@@ -427,11 +427,14 @@ export const medicoServerService = {
         processed: profesionColegio
       });
 
+      // Obtener el DNI del usuario desde data.USUARIO (viene del frontend)
+      const usuarioDni = data.USUARIO ? String(data.USUARIO).substring(0, 15) : null;
+      
       // Try inserting fields one by one to identify which one causes truncation
       try {
         // Insert the new medico with more conservative field lengths
         await prisma.$executeRaw`
-          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO,FECHNAC,GENERO,ESPECIALIDAD2,CONSULTORIO2,PROFESION_COLEGIO2) 
+          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO,FECHNAC,GENERO,ESPECIALIDAD2,CONSULTORIO2,PROFESION_COLEGIO2,USUARIO) 
           VALUES(
             ${medicoCode}, 
             ${nombre}, 
@@ -451,7 +454,8 @@ export const medicoServerService = {
             ${genero},
             ${especialidad2Val},
             ${consultorio2Val},
-            ${profesionColegio2}
+            ${profesionColegio2},
+            ${usuarioDni}
           )
         `;
       } catch (error) {
@@ -493,7 +497,8 @@ export const medicoServerService = {
         GENERO: genero,
         ESPECIALIDAD2: especialidad2Val,
         CONSULTORIO2: consultorio2Val,
-        PROFESION_COLEGIO2: profesionColegio2 || ""
+        PROFESION_COLEGIO2: profesionColegio2 || "",
+        USUARIO: usuarioDni || ""
       };
     } catch (error) {
       console.error('Error in medicoServerService.createMedico:', error);
@@ -584,6 +589,9 @@ export const medicoServerService = {
         processed: profesionColegio
       });
       
+      // Obtener el DNI del usuario desde data.USUARIO (viene del frontend)
+      const usuarioDni = data.USUARIO ? String(data.USUARIO).substring(0, 15) : null;
+      
       // Update the medico
       await prisma.$executeRaw`
         UPDATE MEDICO 
@@ -604,7 +612,8 @@ export const medicoServerService = {
             GENERO = ${genero},
             ESPECIALIDAD2 = ${especialidad2Val},
             CONSULTORIO2 = ${consultorio2Val},
-            PROFESION_COLEGIO2 = ${profesionColegio2}
+            PROFESION_COLEGIO2 = ${profesionColegio2},
+            USUARIO = ${usuarioDni}
         WHERE MEDICO = ${id}
       `;
 

@@ -3603,6 +3603,7 @@ model MEDICO {
   ESPECIALIDAD2                                      String              @default("0", map: "DF_MEDICO_ESPECIALIDAD2") @db.Char(4)
   CONSULTORIO2                                       String              @default("0", map: "DF_MEDICO_CONSULTORIO2") @db.Char(6)
   PROFESION_COLEGIO2                                 String?             @db.Char(2)
+  USUARIO                                            String?             @db.Char(15)
   ATENCIONC_ATENCIONC_MEDICOToMEDICO                 ATENCIONC[]         @relation("ATENCIONC_MEDICOToMEDICO")
   CITA_CITA_MEDICOToMEDICO                           CITA[]              @relation("CITA_MEDICOToMEDICO")
   ROLREPROGRAMACION_ROLREPROGRAMACION_MEDICOToMEDICO ROLREPROGRAMACION[] @relation("ROLREPROGRAMACION_MEDICOToMEDICO")

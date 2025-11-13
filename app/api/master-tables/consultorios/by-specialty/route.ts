@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       consultorios = await prisma.$queryRaw`
         SELECT Consultorio, Nombre 
         FROM Consultorio 
-        WHERE especialidad = ${especialidad}
+        WHERE especialidad = ${especialidad} OR especialidad = '0'
         ORDER BY Nombre
       `;
     } else {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       consultorios = await prisma.$queryRaw`
         SELECT Consultorio, Nombre 
         FROM Consultorio 
-        WHERE especialidad = '0001'
+        WHERE especialidad = '0001' OR especialidad = '0'
         ORDER BY Nombre
       `;
     }

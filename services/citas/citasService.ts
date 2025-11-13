@@ -322,3 +322,60 @@ export async function updateFechaPago(
     throw new Error('Error al actualizar fecha de pago y estado de la cita')
   }
 }
+
+export interface MedicoByDate {
+  MEDICO: string
+  NOMBRE: string
+}
+
+/**
+ * Obtiene médicos únicos que tienen citas en una fecha específica
+ * @param fecha Fecha en formato DD/MM/YYYY (ej: "14/11/2025")
+ * @param consultorio Código del consultorio (opcional)
+ * @returns Lista de médicos con código y nombre
+ */
+export async function getMedicosByDate(
+  fecha: string,
+  consultorio?: string
+): Promise<MedicoByDate[]> {
+  try {
+    let result: any[]
+
+    if (consultorio) {
+      // Consulta con filtro de consultorio
+      result = await prisma.$queryRaw`
+        SELECT DISTINCT 
+          C.MEDICO,
+          M.NOMBRE
+        FROM CITA C
+        LEFT JOIN MEDICO M 
+          ON LTRIM(RTRIM(M.MEDICO)) = LTRIM(RTRIM(C.MEDICO))
+        WHERE CONVERT(date, C.FECHA) = CONVERT(date, CONVERT(datetime, ${fecha}, 103))
+          AND LTRIM(RTRIM(C.CONSULTORIO)) = LTRIM(RTRIM(${consultorio}))
+        ORDER BY M.NOMBRE
+      `
+    } else {
+      // Consulta sin filtro de consultorio (todos los médicos del día)
+      result = await prisma.$queryRaw`
+        SELECT DISTINCT 
+          C.MEDICO,
+          M.NOMBRE
+        FROM CITA C
+        LEFT JOIN MEDICO M 
+          ON LTRIM(RTRIM(M.MEDICO)) = LTRIM(RTRIM(C.MEDICO))
+        WHERE CONVERT(date, C.FECHA) = CONVERT(date, CONVERT(datetime, ${fecha}, 103))
+        ORDER BY M.NOMBRE
+      `
+    }
+
+    console.log(`✅ Médicos encontrados para fecha ${fecha}${consultorio ? ` y consultorio ${consultorio}` : ''}: ${result.length}`)
+    
+    return result.map(item => ({
+      MEDICO: item.MEDICO?.trim() || '',
+      NOMBRE: item.NOMBRE?.trim() || ''
+    }))
+  } catch (error) {
+    console.error('Error al obtener médicos por fecha:', error)
+    throw new Error('Error al obtener médicos por fecha')
+  }
+}

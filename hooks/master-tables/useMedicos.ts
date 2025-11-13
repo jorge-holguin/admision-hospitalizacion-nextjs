@@ -19,6 +19,7 @@ export interface Medico {
   CONSULTORIO2?: string;
   CONSULTORIO2_NOMBRE?: string;
   ESPECIALIDAD2_NOMBRE?: string;
+  USUARIO?: string;
   [key: string]: any;
 }
 

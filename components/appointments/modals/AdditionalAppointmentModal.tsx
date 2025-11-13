@@ -67,6 +67,7 @@ export function AdditionalAppointmentModal({
   
   // Estados para el calendario
   const [datesWithAppointments, setDatesWithAppointments] = useState<Date[]>([])
+  const [datesWithoutAppointments, setDatesWithoutAppointments] = useState<Date[]>([])
   const [showPastDates, setShowPastDates] = useState(false)
   const [loadingDates, setLoadingDates] = useState(false)
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(new Date())
@@ -174,10 +175,11 @@ export function AdditionalAppointmentModal({
         
         // Filtrar solo las fechas del consultorio seleccionado
         const consultorioCode = consultorio.trim()
-        const { available } = availableDatesService.getDatesWithAvailability(availableDates, consultorioCode)
+        const { available, unavailable } = availableDatesService.getDatesWithAvailability(availableDates, consultorioCode)
         
         setDatesWithAppointments(available)
-        console.log('✅ Fechas con citas cargadas:', available.length, 'para consultorio:', consultorioCode)
+        setDatesWithoutAppointments(unavailable)
+        console.log('✅ Fechas cargadas:', available.length, 'con citas (verdes),', unavailable.length, 'sin citas (rojas), para consultorio:', consultorioCode)
       } catch (error) {
         console.error('Error al cargar fechas disponibles:', error)
         setDatesWithAppointments([])
@@ -222,8 +224,12 @@ export function AdditionalAppointmentModal({
         
         console.log('👨‍⚕️ Cargando médicos disponibles para fecha:', fechaConsulta, 'consultorio:', consultorio)
         
-        // Llamar a la API de citas para el día específico
-        const url = `${apiBaseUrl}/cita/buscar?desde=${encodeURIComponent(fechaConsulta)}&hasta=${encodeURIComponent(fechaConsulta)}&consultorio=${encodeURIComponent(consultorio)}&estado=1&page=0&size=1000`
+        // Llamar al nuevo endpoint de médicos por fecha
+        // El consultorio es opcional, si no se envía, retorna todos los médicos del día
+        const url = consultorio 
+          ? `/api/appointments/doctor-by-date?fecha=${encodeURIComponent(fechaConsulta)}&consultorio=${encodeURIComponent(consultorio)}`
+          : `/api/appointments/doctor-by-date?fecha=${encodeURIComponent(fechaConsulta)}`
+        
         const response = await fetch(url)
         
         if (!response.ok) {
@@ -231,26 +237,12 @@ export function AdditionalAppointmentModal({
         }
         
         const data = await response.json()
-        const list = Array.isArray(data) ? data : 
-                     Array.isArray(data?.content) ? data.content : 
-                     Array.isArray(data?.items) ? data.items : []
         
-        // Extraer médicos únicos
-        const medicosMap = new Map<string, string>()
-        list.forEach((cita: any) => {
-          const codigoMedico = (cita.medico || cita.MEDICO || '').trim()
-          const nombreMedico = (cita.medicoNombre || cita.MEDICO_NOMBRE || '').trim()
-          
-          if (codigoMedico && nombreMedico && !medicosMap.has(codigoMedico)) {
-            medicosMap.set(codigoMedico, nombreMedico)
-          }
-        })
-        
-        // Convertir a array
-        const medicos = Array.from(medicosMap.entries()).map(([codigo, nombre]) => ({
-          codigo,
-          nombre
-        }))
+        // El endpoint retorna directamente un array de { MEDICO, NOMBRE }
+        const medicos = Array.isArray(data) ? data.map((item: any) => ({
+          codigo: item.MEDICO,
+          nombre: item.NOMBRE
+        })) : []
         
         setAvailableMedicos(medicos)
         console.log('✅ Médicos disponibles cargados:', medicos.length, medicos)
@@ -331,11 +323,15 @@ export function AdditionalAppointmentModal({
       // Obtener fecha y hora del servidor para evitar desfase de zona horaria
       const serverDateTime = await datetimeService.getCurrentDateTime();
       
+      // Construir fecha en formato ISO 8601 con milisegundos y zona horaria
+      // Ejemplo: "2025-11-13T19:59:59.237Z"
+      const fechaISO = new Date(`${fecha}T${serverDateTime.time}`).toISOString();
+      
       // Prepare request body
       const requestBody = {
         consultorio: consultorio,
         medico: medico,
-        fecha: `${fecha}T${serverDateTime.time}:00`,
+        fecha: fechaISO,
         turnoConsulta: turno === 'MAÑANA' ? 'M' : 'T',
         paciente: patient.HISTORIA || patient.PACIENTE,
         nombre: patient.NOMBRES || patient.NOMBRE || '',
@@ -814,16 +810,25 @@ export function AdditionalAppointmentModal({
                             onDateSelect={handleCalendarDateSelect}
                             className="h-full border-0 rounded-none"
                             datesWithAppointments={datesWithAppointments}
+                            datesWithoutAvailability={datesWithoutAppointments}
                             disablePastDates={!showPastDates}
                           />
                         </div>
                         
-                        {consultorio && datesWithAppointments.length > 0 && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
-                              <span>Días con citas programadas ({datesWithAppointments.length})</span>
-                            </div>
+                        {consultorio && (datesWithAppointments.length > 0 || datesWithoutAppointments.length > 0) && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 space-y-1">
+                            {datesWithAppointments.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                                <span>Días con citas disponibles ({datesWithAppointments.length})</span>
+                              </div>
+                            )}
+                            {datesWithoutAppointments.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                                <span>Días sin citas disponibles - Adicional permitido ({datesWithoutAppointments.length})</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </>
