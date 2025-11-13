@@ -228,6 +228,26 @@ export default function FiliationPage() {
     refreshData()
   }
 
+  const handleRegistrationSuccessWithSearch = (documento: string) => {
+    setIsPatientRegistrationModalOpen(false)
+    setReniecData(null)
+    setSisData(null)
+    
+    // Realizar búsqueda automática por documento
+    setSearchType("documento")
+    setSearchTerm(documento)
+    
+    // Ejecutar búsqueda inmediatamente
+    setTimeout(() => {
+      handleSearch(documento, "documento")
+    }, 500)
+    
+    toast({
+      title: "Paciente registrado",
+      description: `Historia clínica creada. Buscando paciente con documento ${documento}...`,
+    })
+  }
+
   const handleEditSuccess = () => {
     setIsPatientEditModalOpen(false)
     setSelectedPatient(null)
@@ -767,6 +787,7 @@ export default function FiliationPage() {
                   documentNumber={documentNumber}
                   onCancel={() => setIsPatientRegistrationModalOpen(false)}
                   onSuccess={handleRegistrationSuccess}
+                  onSuccessWithDocument={handleRegistrationSuccessWithSearch}
                 />
               </Dialog>
             )}

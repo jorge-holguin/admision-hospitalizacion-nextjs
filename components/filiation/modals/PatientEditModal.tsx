@@ -684,7 +684,13 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         updateData.distrito = formData.distritoProcedencia.trim().padEnd(7, ' ')
         console.log('📍 Distrito (ubigeo con padding):', `"${updateData.distrito}"`, `Length: ${updateData.distrito.length}`)
       }
-      if (formData.tipoSeguro?.trim()) updateData.seguro = formData.tipoSeguro.trim()
+      if (formData.tipoSeguro?.trim()) {
+        // Extraer solo el código del seguro (antes del guión si existe)
+        // Ejemplo: "0   - PAGANTE" -> "0"
+        const seguroValue = formData.tipoSeguro.trim().split('-')[0].trim()
+        updateData.seguro = seguroValue
+        console.log('🏥 Seguro (código):', updateData.seguro, 'desde:', formData.tipoSeguro)
+      }
       if (formData.gradoInstruccion?.trim()) {
         // gradoInstruccion debe ser el código (ej: "05")
         updateData.gradoInstruccion = formData.gradoInstruccion.trim()

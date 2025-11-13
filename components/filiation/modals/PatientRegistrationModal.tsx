@@ -20,6 +20,7 @@ interface PatientRegistrationModalProps {
   documentNumber: string
   onCancel: () => void
   onSuccess: () => void
+  onSuccessWithDocument?: (documento: string) => void
 }
 
 export function PatientRegistrationModal({ 
@@ -28,7 +29,8 @@ export function PatientRegistrationModal({
   documentType, 
   documentNumber, 
   onCancel, 
-  onSuccess 
+  onSuccess,
+  onSuccessWithDocument
 }: PatientRegistrationModalProps) {
   
   console.log('📝 PatientRegistrationModal recibido:')
@@ -277,10 +279,16 @@ export function PatientRegistrationModal({
       if (result.success) {
         toast({
           title: "✅ Historia clínica guardada",
-          description: "El paciente ha sido registrado exitosamente.",
+          description: "El paciente ha sido registrado exitosamente. Redirigiendo a búsqueda...",
           variant: "default"
         })
-        onSuccess()
+        
+        // Si existe onSuccessWithDocument, pasar el documento para búsqueda automática
+        if (onSuccessWithDocument && selectedDocNumber) {
+          onSuccessWithDocument(selectedDocNumber)
+        } else {
+          onSuccess()
+        }
       } else {
         toast({
           title: "❌ Error al guardar",
