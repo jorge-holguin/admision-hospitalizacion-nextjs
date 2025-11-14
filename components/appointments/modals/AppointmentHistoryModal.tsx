@@ -304,7 +304,11 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
         historiaClinica: citaData.historia ? String(citaData.historia).trim() : '',
         emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
         operador: operador,
-        seguro: citaData.seguroNombre || 'PAGANTE'
+        seguro: citaData.seguroNombre || 'PAGANTE',
+        // Campos SIS (solo si el seguro es SIS: códigos 20-25)
+        numRef: citaData.numRef || citaData.nroRef || '',
+        entidadSis: citaData.entidadSis || citaData.eess || '',
+        codigoSeguro: citaData.seguro?.trim() || ''  // Código del seguro para validar si es SIS
       }
       
       setTicketData(ticket)

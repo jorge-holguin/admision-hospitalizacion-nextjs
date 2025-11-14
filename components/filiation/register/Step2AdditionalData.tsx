@@ -147,7 +147,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         {/* Religión - Etnia - Centro poblado (Localidad) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="religion">Religión <span className="text-red-600">*</span></Label>
+            <Label htmlFor="religion">Religión<span className="text-red-600">*</span></Label>
             <ReligionSelector
               value={formData.religion}
               onChange={(value) => onInputChange("religion", value)}

@@ -301,7 +301,8 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           fechaOtorgada: String(it.fechaOtorgada ?? it.FECHA_OTORGADA ?? ""),
           pagoId: String(it.pagoId ?? it.PAGO_ID ?? it.PAGOID ?? ""),
           orden: String(it.orden ?? it.ORDEN ?? ""),
-          entidadSis: String(it.entidadSis ?? it.ENTIDAD_SIS ?? it.ENTIDADSIS ?? ""),
+          numRef: it.numRef ? String(it.numRef).trim() : (it.NUMREF ? String(it.NUMREF).trim() : ''),
+          entidadSis: it.entidadSis ? String(it.entidadSis).trim() : (it.ENTIDAD_SIS ? String(it.ENTIDAD_SIS).trim() : (it.ENTIDADSIS ? String(it.ENTIDADSIS).trim() : '')),
           idRefcon: it.idRefcon ?? it.ID_REFCON ?? it.IDREFCON ?? null,
         }))
         
@@ -385,8 +386,8 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           nombre: String(it.nombre ?? it.NOMBRE ?? ""),
           numero: String(it.numero ?? it.NUMERO ?? ""),
           historia: it.historia ? String(it.historia).trim() : null,
-          numRef: String(it.numRef ?? it.NUMREF ?? ""),
-          entidadSis: String(it.entidadSis ?? it.ENTIDADSIS ?? ""),
+          numRef: it.numRef ? String(it.numRef).trim() : (it.NUMREF ? String(it.NUMREF).trim() : ''),
+          entidadSis: it.entidadSis ? String(it.entidadSis).trim() : (it.ENTIDADSIS ? String(it.ENTIDADSIS).trim() : ''),
           usuario: String(it.usuario ?? it.USUARIO ?? ""),
           userLiberacion: it.userLiberacion ?? it.USER_LIBERACION ?? null,
           userEliminacion: it.userEliminacion ?? it.USER_ELIMINACION ?? null,
@@ -528,7 +529,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           historiaClinica: appointment.historia || '',
           emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
           operador: operador,
-          seguro: appointment.seguroNombre || 'PAGANTE'
+          seguro: appointment.seguroNombre || 'PAGANTE',
+          // Campos SIS (solo si el seguro es SIS: códigos 20-25)
+          numRef: appointment.numRef || appointment.nroRef || '',
+          entidadSis: appointment.entidadSis || appointment.eess || '',
+          codigoSeguro: appointment.seguro?.trim() || ''  // Código del seguro para validar si es SIS
         }
         
         console.log('📋 Abriendo previsualización de ticket:', ticket)

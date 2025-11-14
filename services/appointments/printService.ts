@@ -50,6 +50,8 @@ export interface CitaDto {
   emitidoEl: string
   operador: string
   seguro: string
+  nroRef?: string  // Número de referencia SIS (opcional)
+  eess?: string    // Entidad SIS (opcional)
 }
 
 /**

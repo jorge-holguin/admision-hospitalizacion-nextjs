@@ -333,6 +333,28 @@ export function PatientAssignmentModal({
       const turnoFormateado = turnoConsulta.trim().toUpperCase() === 'M' ? 'Mañana' : 
                               turnoConsulta.trim().toUpperCase() === 'T' ? 'Tarde' : turnoConsulta
       
+      // Obtener nombre de entidad SIS si existe
+      let eessFormatted = ''
+      if (citaData.entidadSis) {
+        try {
+          const entidadResponse = await fetch(`/api/appointments/sis-entities/${citaData.entidadSis.trim()}`)
+          if (entidadResponse.ok) {
+            const entidadData = await entidadResponse.json()
+            if (entidadData.success && entidadData.data) {
+              eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadData.data.NOMBRE}`
+              console.log('✅ EESS formateado:', eessFormatted)
+            } else {
+              eessFormatted = citaData.entidadSis.trim()
+            }
+          } else {
+            eessFormatted = citaData.entidadSis.trim()
+          }
+        } catch (error) {
+          console.warn('⚠️ Error al obtener nombre de entidad SIS, usando solo código:', error)
+          eessFormatted = citaData.entidadSis.trim()
+        }
+      }
+      
       // Construir el DTO para impresión con fechas formateadas
       const citaDto: CitaDto = {
         numero: citaData.citaId || citaId,
@@ -346,7 +368,10 @@ export function PatientAssignmentModal({
         historiaClinica: citaData.historia ? String(citaData.historia).trim() : null,
         emitidoEl: formatDateTimeToDDMMYYYY(new Date().toISOString()),
         operador: operador,
-        seguro: citaData.seguroNombre || 'PAGANTE'
+        seguro: citaData.seguroNombre || 'PAGANTE',
+        // Incluir campos SIS si existen
+        ...(citaData.numRef && { nroRef: citaData.numRef }),
+        ...(eessFormatted && { eess: eessFormatted })
       }
       
       console.log('🖨️ Enviando cita a imprimir:', citaDto)

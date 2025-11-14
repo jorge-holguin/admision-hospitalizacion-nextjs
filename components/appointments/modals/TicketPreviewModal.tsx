@@ -23,6 +23,9 @@ export type TicketData = {
   paciente: string;
   seguro: string;
   turno: string;
+  numRef?: string;      // Número de referencia SIS (opcional)
+  entidadSis?: string;  // Entidad SIS (opcional)
+  codigoSeguro?: string; // Código del seguro para validar si es SIS
 };
 
 interface TicketPreviewModalProps {
@@ -34,6 +37,7 @@ interface TicketPreviewModalProps {
 export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPreviewModalProps) {
   const [isPrinting, setIsPrinting] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
+  const [entidadSisNombre, setEntidadSisNombre] = useState<string>('')
 
   // Función para ofuscar el nombre del operador
   // Ejemplo: "HOLGUIN CUCALON JORGE" -> "JHOLGUIN"
@@ -55,11 +59,45 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
     return (nombre.charAt(0) + primerApellido).toUpperCase()
   }
 
+  // Cargar nombre de entidad SIS cuando se abre el modal
+  useEffect(() => {
+    const fetchEntidadSisNombre = async () => {
+      if (!ticketData?.entidadSis) {
+        setEntidadSisNombre('')
+        return
+      }
+
+      try {
+        console.log('🔍 Obteniendo nombre de entidad SIS:', ticketData.entidadSis)
+        const response = await fetch(`/api/appointments/sis-entities/${ticketData.entidadSis.trim()}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setEntidadSisNombre(data.data.NOMBRE)
+            console.log('✅ Nombre de entidad SIS obtenido:', data.data.NOMBRE)
+          }
+        } else {
+          console.warn('⚠️ No se pudo obtener el nombre de la entidad SIS')
+          setEntidadSisNombre('')
+        }
+      } catch (error) {
+        console.error('❌ Error al obtener nombre de entidad SIS:', error)
+        setEntidadSisNombre('')
+      }
+    }
+
+    if (isOpen && ticketData) {
+      fetchEntidadSisNombre()
+    }
+  }, [isOpen, ticketData])
+
   // Resetear estados cuando el modal se cierra
   useEffect(() => {
     if (!isOpen) {
       setIsPrinting(false)
       setIsCopying(false)
+      setEntidadSisNombre('')
     }
   }, [isOpen])
 
@@ -68,6 +106,20 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
     
     setIsPrinting(true)
     try {
+      // Verificar si el seguro es SIS (códigos 20-25)
+      const codigoSeguro = ticketData.codigoSeguro?.trim() || ''
+      const esSIS = ['20', '21', '22', '23', '24', '25'].includes(codigoSeguro)
+      
+      // Formatear EESS como "(código) - nombre" si tenemos el nombre
+      let eessFormatted = ''
+      if (ticketData.entidadSis) {
+        if (entidadSisNombre) {
+          eessFormatted = `(${ticketData.entidadSis.trim()}) - ${entidadSisNombre}`
+        } else {
+          eessFormatted = ticketData.entidadSis.trim()
+        }
+      }
+
       const citaDto: CitaDto = {
         numero: ticketData.numero,
         numeroAtencion: ticketData.numeroAtencion,
@@ -79,8 +131,13 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
         hora: ticketData.hora,
         historiaClinica: ticketData.historiaClinica,
         emitidoEl: ticketData.emitidoEl,
-        operador: ticketData.operador,
-        seguro: ticketData.seguro
+        operador: ofuscarOperador(ticketData.operador),
+        seguro: ticketData.seguro,
+        // Solo incluir nroRef y eess si es seguro SIS
+        ...(esSIS && {
+          nroRef: ticketData.numRef || '',
+          eess: eessFormatted
+        })
       }
       
       await imprimirCita(citaDto)
@@ -298,6 +355,37 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
                 <p className="text-sm font-bold text-green-900 leading-tight">{ticketData.seguro}</p>
               </div>
             </div>
+
+            {/* Información SIS (solo si es seguro SIS: códigos 20-25) */}
+            {ticketData.codigoSeguro && ['20', '21', '22', '23', '24', '25'].includes(ticketData.codigoSeguro.trim()) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                {/* Número de Referencia SIS */}
+                {ticketData.numRef && (
+                  <div className="bg-purple-50 p-3 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText className="h-4 w-4 text-purple-600" />
+                      <p className="text-xs text-gray-600 font-medium">Nro. Referencia SIS</p>
+                    </div>
+                    <p className="text-sm font-bold text-purple-900">{ticketData.numRef}</p>
+                  </div>
+                )}
+                
+                {/* Entidad SIS (EESS) */}
+                {ticketData.entidadSis && (
+                  <div className="bg-purple-50 p-3 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                      <p className="text-xs text-gray-600 font-medium">EESS</p>
+                    </div>
+                    <p className="text-sm font-bold text-purple-900">
+                      {entidadSisNombre 
+                        ? `(${ticketData.entidadSis.trim()}) - ${entidadSisNombre}`
+                        : ticketData.entidadSis}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Consultorio y médico */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">

@@ -31,5 +31,30 @@ export const entidadSisService = {
       console.error('Error al obtener entidades SIS:', error);
       throw new Error('Error al obtener entidades SIS');
     }
+  },
+
+  async getEntidadSisByCode(code: string): Promise<EntidadSis | null> {
+    try {
+      console.log('Obteniendo entidad SIS por código:', code);
+      
+      const query = `
+        SELECT TOP 1 RTRIM(ENTIDADSIS) AS ENTIDADSIS, RTRIM(NOMBRE) AS NOMBRE 
+        FROM ENTIDADSIS 
+        WHERE RTRIM(ENTIDADSIS) = '${code.trim()}' AND ESTADO = '1'
+      `;
+
+      const result = await prisma.$queryRawUnsafe(query) as EntidadSis[];
+
+      if (Array.isArray(result) && result.length > 0) {
+        console.log('✅ Entidad SIS encontrada:', result[0]);
+        return result[0];
+      }
+
+      console.log('⚠️ Entidad SIS no encontrada para código:', code);
+      return null;
+    } catch (error) {
+      console.error('Error al obtener entidad SIS por código:', error);
+      throw new Error('Error al obtener entidad SIS');
+    }
   }
 };
