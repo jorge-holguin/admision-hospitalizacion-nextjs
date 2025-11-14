@@ -320,12 +320,10 @@ export function AdditionalAppointmentModal({
       // Get user from JWT token
       const usuario = extractDocumentFromToken()
       
-      // Obtener fecha y hora del servidor para evitar desfase de zona horaria
-      const serverDateTime = await datetimeService.getCurrentDateTime();
-      
-      // Construir fecha en formato ISO 8601 con milisegundos y zona horaria
-      // Ejemplo: "2025-11-13T19:59:59.237Z"
-      const fechaISO = new Date(`${fecha}T${serverDateTime.time}`).toISOString();
+      // Construir fecha normalizada a medianoche (00:00:00.000) en formato ISO
+      // Esto es crítico para que coincida con los filtros SQL que buscan fechas exactas
+      // Ejemplo: "2025-11-15T00:00:00.000Z"
+      const fechaISO = new Date(`${fecha}T00:00:00.000Z`).toISOString();
       
       // Prepare request body
       const requestBody = {
@@ -333,7 +331,7 @@ export function AdditionalAppointmentModal({
         medico: medico,
         fecha: fechaISO,
         turnoConsulta: turno === 'MAÑANA' ? 'M' : 'T',
-        paciente: patient.HISTORIA || patient.PACIENTE,
+        paciente: patient.PACIENTE,  // ✅ Código del paciente (sin HISTORIA)
         nombre: patient.NOMBRES || patient.NOMBRE || '',
         observacion: observacion || '',
         seguro: tipoSeguro,
