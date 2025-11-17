@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       AMATERNO: body.AMATERNO ?? "",
       DNI: body.DNI ?? body.DOCUMENTO ?? "",
       TIPO_DOCUMENTO: body.TIPO_DOCUMENTO ?? "D",
+      PAIS: body.PAIS ?? "146",
       ESPECIALIDAD: body.ESPECIALIDAD ?? "",
       CONSULTORIO: body.CONSULTORIO ?? "",
       CODHIS: body.CODHIS ?? body.CODHIS?.toString?.() ?? "",
@@ -97,6 +98,8 @@ export async function POST(request: NextRequest) {
       GENERO: body.GENERO ?? "",
       ESPECIALIDAD2: body.ESPECIALIDAD2 ?? "0",
       CONSULTORIO2: body.CONSULTORIO2 ?? "0",
+      PROFESION_COLEGIO2: body.PROFESION_COLEGIO2 ?? "",
+      USUARIO: body.USUARIO ?? "",
     };
     
     console.log('API POST - Payload to service:', {

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/popover";
 import { useOptimizedMedicos } from "@/hooks/master-tables/useOptimizedMedicos";
 import { ProfesionColegioSelector } from "@/components/master-tables/selectors/ProfesionColegioSelector";
+import { PaisSelector } from "@/components/master-tables/selectors/PaisSelector";
 import { extractDocumentFromToken } from "@/utils/jwtUtils";
 
 interface MedicoFormProps {
@@ -58,6 +59,9 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     DNI: "",
     EESS: "00000005947",
     MEDICO: "",
+    NOMBRES: "",
+    APATERNO: "",
+    AMATERNO: "",
     NOMBRE: "",
     ABREVIATURA: "MED",
     COLEGIO: "",
@@ -73,7 +77,10 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     GENERO: "",
     ESPECIALIDAD2: "0",
     CONSULTORIO2: "0",
-    PROFESION_COLEGIO2: ""
+    PROFESION_COLEGIO2: "",
+    TIPO_DOCUMENTO: "D",
+    PAIS: "146",
+    USUARIO: extractDocumentFromToken() || ""
   });
 
   // Catálogos / UI
@@ -117,6 +124,14 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     }
   }, [formData.ESPECIALIDAD2]);
 
+  // Concatenar NOMBRE automáticamente cuando cambian los campos individuales
+  useEffect(() => {
+    const nombreCompleto = `${formData.APATERNO.trim()} ${formData.AMATERNO.trim()} ${formData.NOMBRES.trim()}`.trim();
+    if (nombreCompleto !== formData.NOMBRE) {
+      setFormData(prev => ({ ...prev, NOMBRE: nombreCompleto }));
+    }
+  }, [formData.NOMBRES, formData.APATERNO, formData.AMATERNO]);
+
   // Sugerir códigos cuando cambia NOMBRE (solo en creación)
   useEffect(() => {
     if (formData.NOMBRE && formData.NOMBRE.trim().length > 0 && !medico) {
@@ -151,6 +166,9 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         DNI: medico.DNI || "",
         EESS: medico.EESS || "00000005947",
         MEDICO: medico.MEDICO || "",
+        NOMBRES: medico.NOMBRES || "",
+        APATERNO: medico.APATERNO || "",
+        AMATERNO: medico.AMATERNO || "",
         NOMBRE: medico.NOMBRE || "",
         ABREVIATURA: medico.ABREVIATURA || "MED",
         COLEGIO: medico.COLEGIO || "",
@@ -166,7 +184,10 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         GENERO: medico.GENERO || "",
         ESPECIALIDAD2: especialidad2,
         CONSULTORIO2: consultorio2,
-        PROFESION_COLEGIO2: medico.PROFESION_COLEGIO2 || ""
+        PROFESION_COLEGIO2: medico.PROFESION_COLEGIO2 || "",
+        TIPO_DOCUMENTO: medico.TIPO_DOCUMENTO || "D",
+        PAIS: medico.PAIS || "146",
+        USUARIO: medico.USUARIO || extractDocumentFromToken() || ""
       });
 
       // Cargar consultorios para mostrar el nombre
@@ -320,13 +341,10 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Obtener el DNI del usuario desde el JWT
-      const usuarioDni = extractDocumentFromToken();
-      
-      // Agregar el DNI del usuario al formData
+      // El campo USUARIO ya está inicializado en el estado con extractDocumentFromToken()
+      // No es necesario agregarlo nuevamente aquí
       const dataToSend = {
-        ...formData,
-        USUARIO: usuarioDni
+        ...formData
       };
       
       let result;
@@ -381,33 +399,88 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <Input id="EESS" name="EESS" value={formData.EESS} disabled className="bg-gray-100" />
         </div>
 
-        <div className="space-y-2 mb-4">
-          <Label htmlFor="NOMBRE" className="flex items-center">
-            <User className="mr-2 h-4 w-4" /> Apellidos y Nombres *
-          </Label>
-          <Input
-            id="NOMBRE"
-            name="NOMBRE"
-            value={formData.NOMBRE}
-            onChange={handleChange}
-            placeholder="Ej: HOLGUIN CUCALON JORGE"
-            maxLength={100}
-            required
-          />
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="space-y-2">
+            <Label htmlFor="APATERNO" className="flex items-center">
+              <User className="mr-2 h-4 w-4" /> Apellido Paterno *
+            </Label>
+            <Input
+              id="APATERNO"
+              name="APATERNO"
+              value={formData.APATERNO}
+              onChange={handleChange}
+              placeholder="Ej: HOLGUIN"
+              maxLength={80}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="AMATERNO" className="flex items-center">
+              <User className="mr-2 h-4 w-4" /> Apellido Materno *
+            </Label>
+            <Input
+              id="AMATERNO"
+              name="AMATERNO"
+              value={formData.AMATERNO}
+              onChange={handleChange}
+              placeholder="Ej: CUCALON"
+              maxLength={80}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="NOMBRES" className="flex items-center">
+              <User className="mr-2 h-4 w-4" /> Nombres *
+            </Label>
+            <Input
+              id="NOMBRES"
+              name="NOMBRES"
+              value={formData.NOMBRES}
+              onChange={handleChange}
+              placeholder="Ej: JORGE"
+              maxLength={100}
+              required
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="TIPO_DOCUMENTO" className="flex items-center">
+              <Fingerprint className="mr-2 h-4 w-4" /> Tipo Documento *
+            </Label>
+            <select
+              id="TIPO_DOCUMENTO"
+              name="TIPO_DOCUMENTO"
+              value={formData.TIPO_DOCUMENTO}
+              onChange={(e) => {
+                handleChange(e);
+                // Si cambia a DNI (D), establecer país a Perú automáticamente
+                if (e.target.value === "D") {
+                  setFormData(prev => ({ ...prev, PAIS: "146" }));
+                }
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              required
+            >
+              <option value="D">DNI</option>
+              <option value="CE">CE - Carnet de Extranjería</option>
+            </select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="DNI" className="flex items-center">
-              <Fingerprint className="mr-2 h-4 w-4" /> DNI *
+              <Fingerprint className="mr-2 h-4 w-4" /> Número Documento *
             </Label>
             <Input
               id="DNI"
               name="DNI"
               value={formData.DNI}
               onChange={handleChange}
-              placeholder="Solo números"
-              maxLength={8}
+              placeholder={formData.TIPO_DOCUMENTO === "D" ? "8 dígitos" : "Número de documento"}
+              maxLength={formData.TIPO_DOCUMENTO === "D" ? 8 : 20}
               required
             />
           </div>
@@ -450,6 +523,18 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             )}
           </div>
         </div>
+
+        {/* Selector de País (solo visible si es CE) */}
+        {formData.TIPO_DOCUMENTO === "CE" && (
+          <div className="mt-4">
+            <PaisSelector
+              value={formData.PAIS}
+              onChange={(value) => setFormData(prev => ({ ...prev, PAIS: value }))}
+              label="País de Origen"
+              required
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
