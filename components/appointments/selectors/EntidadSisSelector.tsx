@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -39,7 +39,6 @@ export function EntidadSisSelector({
   const [isLoading, setIsLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
-  const [hasManualChange, setHasManualChange] = useState(false)
 
   useEffect(() => {
     loadEntidadesIniciales()
@@ -52,24 +51,71 @@ export function EntidadSisSelector({
     }
   }, [initialValue, value, onChange])
 
+  // Refs para trackear el último código procesado y la función onChange
+  const lastProcessedCode = useRef<string | null>(null)
+  const onChangeRef = useRef(onChange)
+  
+  // Mantener onChangeRef actualizado
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  // Resetear lastProcessedCode cuando value se limpia
+  useEffect(() => {
+    if (!value && lastProcessedCode.current) {
+      console.log('🏥 EntidadSisSelector: Reseteando lastProcessedCode (value limpiado)')
+      lastProcessedCode.current = null
+    }
+  }, [value])
+
   // Efecto para manejar el establecimiento SIS
   useEffect(() => {
-    if (sisEstablecimiento && sisEstablecimiento.codigo && !hasManualChange) {
-      // Solo actualizar automáticamente si el usuario NO ha hecho cambios manuales
-      onChange(sisEstablecimiento.codigo)
-      
-      // Si no existe en los items, agregarlo temporalmente
-      if (!items.some(item => item.ENTIDADSIS === sisEstablecimiento.codigo)) {
-        setItems(prevItems => [
-          ...prevItems,
-          {
-            ENTIDADSIS: sisEstablecimiento.codigo,
-            NOMBRE: sisEstablecimiento.nombre || ''
+    if (sisEstablecimiento?.codigo) {
+      // Solo actualizar si el código cambió o si es la primera vez
+      if (lastProcessedCode.current !== sisEstablecimiento.codigo) {
+        console.log('🏥 EntidadSisSelector: Actualizando establecimiento:', sisEstablecimiento)
+        lastProcessedCode.current = sisEstablecimiento.codigo
+        
+        // Actualizar automáticamente con el nuevo código
+        onChangeRef.current(sisEstablecimiento.codigo)
+        
+        // Agregar a items si no existe (usando callback para evitar dependencia de items)
+        setItems(prevItems => {
+          const existeEnItems = prevItems.some(item => item.ENTIDADSIS === sisEstablecimiento.codigo)
+          if (!existeEnItems) {
+            console.log('🏥 EntidadSisSelector: Agregando establecimiento a items:', sisEstablecimiento)
+            return [
+              {
+                ENTIDADSIS: sisEstablecimiento.codigo,
+                NOMBRE: sisEstablecimiento.nombre || ''
+              },
+              ...prevItems
+            ]
           }
-        ])
+          return prevItems
+        })
+      } else {
+        // El código es el mismo pero podría haber llegado el nombre actualizado
+        if (sisEstablecimiento.nombre) {
+          setItems(prevItems => {
+            let changed = false
+            const updated = prevItems.map(item => {
+              if (item.ENTIDADSIS === sisEstablecimiento.codigo && item.NOMBRE !== (sisEstablecimiento.nombre || '')) {
+                changed = true
+                return { ...item, NOMBRE: sisEstablecimiento.nombre || '' }
+              }
+              return item
+            })
+            return changed ? updated : prevItems
+          })
+        }
       }
+    } else if (!sisEstablecimiento && lastProcessedCode.current) {
+      // Si sisEstablecimiento se limpia, resetear el tracking
+      console.log('🏥 EntidadSisSelector: Reseteando lastProcessedCode (sisEstablecimiento limpiado)')
+      lastProcessedCode.current = null
     }
-  }, [sisEstablecimiento, onChange, hasManualChange, items])
+  }, [sisEstablecimiento?.codigo, sisEstablecimiento?.nombre])
 
   const loadEntidadesIniciales = async () => {
     try {
@@ -123,7 +169,7 @@ export function EntidadSisSelector({
   }
 
   const buildDisplayText = (entidad: EntidadSis) => {
-    return `${entidad.ENTIDADSIS} - ${entidad.NOMBRE}`
+    return `EESS: ${entidad.ENTIDADSIS} - ${entidad.NOMBRE}`
   }
 
   const getSelectedText = () => {
@@ -172,7 +218,6 @@ export function EntidadSisSelector({
                         value={displayText}
                         onSelect={() => {
                           onChange(entidad.ENTIDADSIS)
-                          setHasManualChange(true) // Marcar que hubo cambio manual
                           setOpen(false)
                         }}
                       >

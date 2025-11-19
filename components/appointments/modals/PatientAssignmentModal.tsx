@@ -11,9 +11,10 @@ import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer, Ed
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
+import { ReferenciaSelector } from "../selectors/ReferenciaSelector"
 import { useTipoCita } from "@/contexts/TipoCitaContext"
 import { useSegurosCita } from "@/contexts/SegurosCitaContext"
-import { Input } from "@/components/ui/input"
+import { ReferenciaProvider } from "@/contexts/ReferenciaContext"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
@@ -22,7 +23,9 @@ import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY }
 import { extractNombreCompletoFromToken, extractDocumentFromToken } from "@/utils/jwtUtils"
 import { datetimeService } from '@/services/datetimeService'
 import { convertTo12HourFormat } from "@/utils/timeUtils"
+import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS } from "@/services/appointments/refconSyncService"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
+import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 
 interface Patient {
   HISTORIA: string
@@ -86,7 +89,8 @@ interface PatientAssignmentModalProps {
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
 
-export function PatientAssignmentModal({ 
+// Componente interno que usa el contexto de referencias
+function PatientAssignmentModalContent({ 
   isOpen, 
   onClose, 
   patient, 
@@ -104,6 +108,9 @@ export function PatientAssignmentModal({
   const [selectedSeguro, setSelectedSeguro] = useState("")
   const [selectedEntidadSis, setSelectedEntidadSis] = useState("")
   const [referencia, setReferencia] = useState("")
+  const [referenciaIdSeleccionada, setReferenciaIdSeleccionada] = useState("")
+  const [eessOrigenReferencia, setEessOrigenReferencia] = useState("")
+  const [eessNombreOrigen, setEessNombreOrigen] = useState("")
   const [showPatientEditModal, setShowPatientEditModal] = useState(false)
   const [fullPatientData, setFullPatientData] = useState<any>(null)
   const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
@@ -410,7 +417,7 @@ export function PatientAssignmentModal({
         horaOtorga: serverDateTime.time,
         usuario: usuarioDni,
         numRef: referencia || '',
-        entidadSis: selectedEntidadSis || ''
+        entidadSis: eessOrigenReferencia || selectedEntidadSis || ''
       }
       
       console.log('📤 Enviando solicitud de asignación:', requestBody)
@@ -547,6 +554,53 @@ export function PatientAssignmentModal({
       setAssignedCitaId(appointment.id)
       setShowSuccess(true)
       
+      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS
+      if (referenciaIdSeleccionada && appointment && esSeguroSIS(selectedSeguro)) {
+        try {
+          console.log('🔄 Iniciando sincronización con REFCON (Seguro SIS detectado)...')
+          
+          // 1. Obtener datos de la cita desde REFCON
+          const citaRefconResult = await obtenerDatosCitaRefcon(appointment.id, usuarioDni)
+          
+          if (!citaRefconResult.success || !citaRefconResult.data) {
+            console.warn('⚠️ No se pudieron obtener datos de REFCON:', citaRefconResult.error)
+          } else {
+            const datosRefcon = citaRefconResult.data
+            console.log('📋 Datos obtenidos de REFCON:', datosRefcon)
+            
+            // 2. Construir payload con datos obtenidos + idReferencia
+            const refconPayload = {
+              codUnicoDestino: datosRefcon.codUnicoDestino || "00005947",
+              idReferencia: referenciaIdSeleccionada,
+              datosCita: datosRefcon.datosCita || {},
+              datosMedico: datosRefcon.datosMedico || {},
+              personalRegistra: datosRefcon.personalRegistra || {}
+            }
+            
+            console.log('📦 Payload para sincronización:', refconPayload)
+            
+            // 3. Sincronizar con REFCON
+            const syncResult = await sincronizarCitaConRefcon(refconPayload)
+            
+            if (syncResult.success) {
+              console.log('✅ Cita sincronizada exitosamente con REFCON')
+              toast({
+                title: "✅ Sincronizado con REFCON",
+                description: "La cita ha sido sincronizada con el sistema de referencias.",
+                className: "bg-blue-50 border-blue-200 text-blue-800"
+              })
+            } else {
+              console.warn('⚠️ Error al sincronizar con REFCON (no crítico):', syncResult.error)
+            }
+          }
+        } catch (refconError) {
+          console.error('❌ Error al sincronizar con REFCON:', refconError)
+          // No interrumpir el flujo si falla la sincronización con REFCON
+        }
+      } else if (referenciaIdSeleccionada && !esSeguroSIS(selectedSeguro)) {
+        console.log('ℹ️ Sincronización REFCON omitida: Seguro no es SIS (código:', selectedSeguro, ')')
+      }
+      
       // Notificar al componente padre sobre la asignación exitosa
       const assignmentData = {
         ...requestBody,
@@ -577,11 +631,17 @@ export function PatientAssignmentModal({
     setSelectedSeguro("")
     setSelectedEntidadSis("")
     setReferencia("")
+    setReferenciaIdSeleccionada("")
+    setEessOrigenReferencia("")
+    setEessNombreOrigen("")
     setShowSuccess(false)
     setAssignedCitaId("")
     setSisVerificationResult(null)
     setEnhancedPatient(null)
     setIsLoadingPatientData(false)
+    setShowErrorDialog(false)
+    setErrorMessage("")
+    setErrorTitle("")
   }
 
   const isSisSeguro = () => {
@@ -608,7 +668,7 @@ export function PatientAssignmentModal({
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
         className="max-w-6xl max-h-[90vh] overflow-y-auto" 
         aria-describedby="patient-assignment-description"
@@ -833,12 +893,14 @@ export function PatientAssignmentModal({
                   initialValue={patient?.SEGURO}
                 />
 
-                {/* Verificación SIS - Solo mostrar si el seguro seleccionado es SIS */}
+                {/* Verificación SIS - Automática cuando se selecciona un seguro SIS */}
                 {isSisSeguro() && (
                   <div className="mt-4">
                     <SimpleSISVerification
                       patientId={patient.HISTORIA}
                       documento={patient.DOCUMENTO}
+                      autoVerify={true}
+                      showButton={true}
                       onVerificationComplete={(result) => {
                         setSisVerificationResult(result)
                         if (result.isSuccess) {
@@ -865,29 +927,60 @@ export function PatientAssignmentModal({
 
                 {isSisSeguro() && (
                   <>
-                    <EntidadSisSelector
-                      key={sisVerificationResult?.eess || 'entidad-sis-selector'} // Reset cuando cambia verificación SIS
-                      value={selectedEntidadSis}
-                      onChange={setSelectedEntidadSis}
-                      required={true}
-                      sisEstablecimiento={sisVerificationResult?.isSuccess ? {
-                        codigo: sisVerificationResult.eess?.replace(/^0+/, '') || '',
-                        nombre: sisVerificationResult.descEESS || ''
-                      } : undefined}
+                    <ReferenciaSelector
+                      numeroDocumento={patient?.DOCUMENTO || ''}
+                      tipoDocumento={patient?.TIPO_DOCUMENTO === 'D' || patient?.TIPO_DOCUMENTO === 'DNI' ? '1' : '2'}
+                      especialidadCodigo={(appointment as any)?.especialidadSolicitud}
+                      value={referenciaIdSeleccionada}
+                      onChange={async (refData) => {
+                        console.log('📋 Referencia seleccionada:', refData)
+                        setReferencia(refData.numeroReferencia)
+                        setReferenciaIdSeleccionada(refData.idReferencia)
+                        
+                        // Obtener nombre de la entidad SIS desde la API
+                        if (refData.codigoestablecimientoOrigen) {
+                          console.log('🔍 Obteniendo nombre de entidad SIS para código:', refData.codigoestablecimientoOrigen)
+                          const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
+                          if (result.success && result.data) {
+                            console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
+                            setEessNombreOrigen(result.data.NOMBRE)
+                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                            // Actualizar entidad SIS después de obtener el nombre
+                            console.log('🏥 Actualizando selectedEntidadSis a:', refData.codigoestablecimientoOrigen)
+                            setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                          } else {
+                            console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
+                            setEessNombreOrigen(refData.establecimientoOrigen)
+                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                            setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                          }
+                        } else {
+                          setEessNombreOrigen(refData.establecimientoOrigen)
+                          setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                        }
+                      }}
+                      onEessChange={(eess) => {
+                        console.log('🏥 EESS origen actualizado:', eess)
+                        setEessOrigenReferencia(eess)
+                      }}
                     />
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">
-                        Referencia <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        type="number"
-                        placeholder="Ingrese número de referencia..."
-                        value={referencia}
-                        onChange={(e) => setReferencia(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
+                    <EntidadSisSelector
+                      key={sisVerificationResult?.eess || eessOrigenReferencia || 'entidad-sis-selector'}
+                      value={selectedEntidadSis}
+                      onChange={(value) => {
+                        console.log('🏥 EntidadSisSelector onChange:', value)
+                        setSelectedEntidadSis(value)
+                      }}
+                      sisEstablecimiento={
+                        eessOrigenReferencia ? {
+                          codigo: eessOrigenReferencia,
+                          nombre: eessNombreOrigen
+                        } : sisVerificationResult?.isSuccess ? {
+                          codigo: sisVerificationResult.eess || '',
+                          nombre: sisVerificationResult.descEESS || ''
+                        } : undefined
+                      }
+                    />
                   </>
                 )}
               </CardContent>
@@ -930,9 +1023,10 @@ export function PatientAssignmentModal({
           </Button>
         </div>
       </DialogContent>
+    </Dialog>
 
-      {/* Diálogo de confirmación de impresión */}
-      <Dialog open={showPrintConfirmation} onOpenChange={setShowPrintConfirmation}>
+    {/* Diálogo de confirmación de impresión */}
+    <Dialog open={showPrintConfirmation} onOpenChange={setShowPrintConfirmation}>
         <DialogContent 
           className="sm:max-w-md" 
           onInteractOutside={(e) => e.preventDefault()}
@@ -995,7 +1089,6 @@ export function PatientAssignmentModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Dialog>
 
     {/* Dialog de confirmación de asignación */}
     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
@@ -1194,5 +1287,14 @@ export function PatientAssignmentModal({
       </Dialog>
     )}
     </>
+  )
+}
+
+// Componente wrapper con ReferenciaProvider
+export function PatientAssignmentModal(props: PatientAssignmentModalProps) {
+  return (
+    <ReferenciaProvider>
+      <PatientAssignmentModalContent {...props} />
+    </ReferenciaProvider>
   )
 }

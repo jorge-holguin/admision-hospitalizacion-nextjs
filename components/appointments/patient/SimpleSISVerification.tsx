@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // API del BACKEND
 const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
@@ -13,6 +14,8 @@ interface SimpleSISVerificationProps {
   documento: string;
   className?: string;
   onVerificationComplete?: (result: SimpleSISVerificationResult) => void;
+  autoVerify?: boolean; // Nuevo: Verificar automáticamente al montar
+  showButton?: boolean; // Nuevo: Mostrar o no el botón (por defecto true)
 }
 
 export interface SimpleSISVerificationResult {
@@ -26,14 +29,24 @@ export function SimpleSISVerification({
   patientId, 
   documento, 
   className = "", 
-  onVerificationComplete 
+  onVerificationComplete,
+  autoVerify = false,
+  showButton = true
 }: SimpleSISVerificationProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<SimpleSISVerificationResult | null>(null);
+
+  // Verificación automática cuando autoVerify es true
+  useEffect(() => {
+    if (autoVerify && documento) {
+      console.log('🔄 Verificación SIS automática iniciada para documento:', documento)
+      handleVerifySIS(true) // true indica que es automática
+    }
+  }, [autoVerify, documento])
   
   // Función para verificar SIS
-  const handleVerifySIS = async () => {
+  const handleVerifySIS = async (isAutomatic = false) => {
     if (!documento) {
       toast({
         title: "Error",
@@ -93,20 +106,22 @@ export function SimpleSISVerification({
           onVerificationComplete(result);
         }
 
-        // Mostrar toast con el resultado simplificado
-        if (resultado === "DATOS EXITOSOS") {
-          toast({
-            title: "SIS Activo",
-            description: "Verificación exitosa",
-            variant: "default",
-            className: "bg-green-50 border-green-200 text-green-800"
-          });
-        } else {
-          toast({
-            title: "SIS No Activo",
-            description: "No se encontró afiliación SIS para el DNI consultado",
-            variant: "destructive"
-          });
+        // Mostrar toast con el resultado simplificado (solo si no es automático)
+        if (!isAutomatic) {
+          if (resultado === "DATOS EXITOSOS") {
+            toast({
+              title: "SIS Activo",
+              description: "Verificación exitosa",
+              variant: "default",
+              className: "bg-green-50 border-green-200 text-green-800"
+            });
+          } else {
+            toast({
+              title: "SIS No Activo",
+              description: "No se encontró afiliación SIS para el DNI consultado",
+              variant: "destructive"
+            });
+          }
         }
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
@@ -126,11 +141,13 @@ export function SimpleSISVerification({
             onVerificationComplete(result);
           }
           
-          toast({
-            title: "Error",
-            description: "El servicio de verificación SIS no responde",
-            variant: "destructive"
-          });
+          if (!isAutomatic) {
+            toast({
+              title: "Error",
+              description: "El servicio de verificación SIS no responde",
+              variant: "destructive"
+            });
+          }
           
           return;
         }
@@ -155,56 +172,77 @@ export function SimpleSISVerification({
         onVerificationComplete(result);
       }
       
-      // Mostrar mensaje de error
-      toast({
-        title: "Error",
-        description: is500Error 
-          ? "El servicio de verificación SIS está temporalmente inactivo" 
-          : "No se pudo conectar con el servicio de verificación SIS",
-        variant: "destructive"
-      });
+      // Mostrar mensaje de error (solo si no es automático)
+      if (!isAutomatic) {
+        toast({
+          title: "Error",
+          description: is500Error 
+            ? "El servicio de verificación SIS está temporalmente inactivo" 
+            : "No se pudo conectar con el servicio de verificación SIS",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={`flex flex-col space-y-2 ${className}`}>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="border-green-500 text-green-600 hover:bg-green-50" 
-        onClick={handleVerifySIS}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...
-          </>
-        ) : (
-          <>
-            <CheckCircle className="mr-2 h-4 w-4" /> Verificar SIS
-          </>
-        )}
-      </Button>
-      
-      {/* Mensaje simplificado de estado SIS */}
+    <div className={`space-y-3 ${className}`}>
+      {/* Alert de estado de verificación - Mostrar arriba */}
       {verificationResult && !isLoading && (
-        <div className="text-sm">
+        <Alert 
+          variant={verificationResult.isServerError ? "destructive" : verificationResult.isSuccess ? "default" : "destructive"}
+          className={verificationResult.isSuccess ? "bg-green-50 border-green-200" : verificationResult.isServerError ? "bg-orange-50 border-orange-200" : ""}
+        >
           {verificationResult.isServerError ? (
-            <div className="text-orange-600">
-              ⚠️ Problemas con el servidor del SIS
-            </div>
+            <AlertCircle className="h-4 w-4" />
           ) : verificationResult.isSuccess ? (
-            <div className="text-green-600">
-              ✅ SIS válido - Establecimiento: {verificationResult.eess?.replace(/^0+/, '') || verificationResult.eess} - {verificationResult.descEESS}
-            </div>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           ) : (
-            <div className="text-red-600">
-              ❌ SIS no válido
-            </div>
+            <AlertCircle className="h-4 w-4" />
           )}
-        </div>
+          <AlertDescription className={verificationResult.isSuccess ? "text-green-800" : verificationResult.isServerError ? "text-orange-800" : ""}>
+            {verificationResult.isServerError ? (
+              <span>⚠️ Problemas con el servidor del SIS</span>
+            ) : verificationResult.isSuccess ? (
+              <span>✅ <strong>SIS validado exitosamente</strong> </span>
+            ) : (
+              <span>❌ SIS no válido - No se encontró afiliación SIS</span>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Loading state */}
+      {isLoading && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            Verificando afiliación SIS...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Botón de verificación manual (opcional) */}
+      {showButton && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="border-green-500 text-green-600 hover:bg-green-50" 
+          onClick={() => handleVerifySIS(false)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" /> Verificar SIS
+            </>
+          )}
+        </Button>
       )}
     </div>
   );

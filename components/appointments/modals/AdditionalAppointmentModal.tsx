@@ -19,7 +19,11 @@ import { toast } from "@/hooks/use-toast"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 import { SimpleSISVerification } from "../patient/SimpleSISVerification"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
+import { ReferenciaSelector } from "../selectors/ReferenciaSelector"
+import { ReferenciaProvider } from "@/contexts/ReferenciaContext"
 import { extractDocumentFromToken, extractNombreCompletoFromToken, extractPuestoFromToken } from "@/utils/jwtUtils"
+import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS } from "@/services/appointments/refconSyncService"
+import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { AppointmentCalendar } from "../utils/AppointmentCalendar"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -35,7 +39,8 @@ interface AdditionalAppointmentModalProps {
   onAppointmentCreated?: (appointment: any) => void  // Callback para posicionar en la cita creada
 }
 
-export function AdditionalAppointmentModal({
+// Componente interno
+function AdditionalAppointmentModalContent({
   isOpen,
   onClose,
   onBack,
@@ -61,6 +66,9 @@ export function AdditionalAppointmentModal({
   const [tipoSeguro, setTipoSeguro] = useState<string>("")
   const [observacion, setObservacion] = useState<string>("")
   const [referencia, setReferencia] = useState<string>("")
+  const [referenciaIdSeleccionada, setReferenciaIdSeleccionada] = useState<string>("")
+  const [eessOrigenReferencia, setEessOrigenReferencia] = useState<string>("")
+  const [eessNombreOrigen, setEessNombreOrigen] = useState<string>("")
   const [selectedEntidadSis, setSelectedEntidadSis] = useState<string>("")
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
   const [especialidadConsultorio, setEspecialidadConsultorio] = useState<string | null>(null)
@@ -113,6 +121,9 @@ export function AdditionalAppointmentModal({
       // setTipoCita("")
       setObservacion("")
       setReferencia("")
+      setReferenciaIdSeleccionada("")
+      setEessOrigenReferencia("")
+      setEessNombreOrigen("")
       setSelectedEntidadSis("")
       setSisVerificationResult(null)
       setShowSuccess(false)
@@ -336,7 +347,7 @@ export function AdditionalAppointmentModal({
         observacion: observacion || '',
         seguro: tipoSeguro,
         numRef: referencia || '',
-        entidadSis: selectedEntidadSis || ''
+        entidadSis: eessOrigenReferencia || selectedEntidadSis || ''
       }
       
       console.log('🚀 Enviando cita adicional:', requestBody)
@@ -402,6 +413,55 @@ export function AdditionalAppointmentModal({
       setShowSuccess(true)
       
       console.log('✅ showSuccess establecido, el modal debería aparecer')
+      
+      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS
+      if (referenciaIdSeleccionada && citaId && esSeguroSIS(tipoSeguro)) {
+        try {
+          console.log('🔄 Iniciando sincronización con REFCON (Seguro SIS detectado)...')
+          
+          const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
+          
+          // 1. Obtener datos de la cita desde REFCON
+          const citaRefconResult = await obtenerDatosCitaRefcon(citaId, usuarioDni)
+          
+          if (!citaRefconResult.success || !citaRefconResult.data) {
+            console.warn('⚠️ No se pudieron obtener datos de REFCON:', citaRefconResult.error)
+          } else {
+            const datosRefcon = citaRefconResult.data
+            console.log('📋 Datos obtenidos de REFCON:', datosRefcon)
+            
+            // 2. Construir payload con datos obtenidos + idReferencia
+            const refconPayload = {
+              codUnicoDestino: datosRefcon.codUnicoDestino || "00005947",
+              idReferencia: referenciaIdSeleccionada,
+              datosCita: datosRefcon.datosCita || {},
+              datosMedico: datosRefcon.datosMedico || {},
+              personalRegistra: datosRefcon.personalRegistra || {}
+            }
+            
+            console.log('📦 Payload para sincronización:', refconPayload)
+            
+            // 3. Sincronizar con REFCON
+            const syncResult = await sincronizarCitaConRefcon(refconPayload)
+            
+            if (syncResult.success) {
+              console.log('✅ Cita sincronizada exitosamente con REFCON')
+              toast({
+                title: "✅ Sincronizado con REFCON",
+                description: "La cita ha sido sincronizada con el sistema de referencias.",
+                className: "bg-blue-50 border-blue-200 text-blue-800"
+              })
+            } else {
+              console.warn('⚠️ Error al sincronizar con REFCON (no crítico):', syncResult.error)
+            }
+          }
+        } catch (refconError) {
+          console.error('❌ Error al sincronizar con REFCON:', refconError)
+          // No interrumpir el flujo si falla la sincronización con REFCON
+        }
+      } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {
+        console.log('ℹ️ Sincronización REFCON omitida: Seguro no es SIS (código:', tipoSeguro, ')')
+      }
       
       // Imprimir la cita automáticamente si tenemos el ID
       if (citaId) {
@@ -664,7 +724,7 @@ export function AdditionalAppointmentModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="max-w-6xl max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => e.preventDefault()}
@@ -980,12 +1040,14 @@ export function AdditionalAppointmentModal({
                     </div>
                   </div>
 
-                  {/* Verificación SIS - Solo mostrar si el seguro seleccionado es SIS */}
+                  {/* Verificación SIS - Automática cuando se selecciona un seguro SIS */}
                   {isSisSeguro() && (
                     <div className="mt-4">
                       <SimpleSISVerification
                         patientId={patient.HISTORIA}
                         documento={patient.DOCUMENTO}
+                        autoVerify={true}
+                        showButton={true}
                         onVerificationComplete={(result) => {
                           setSisVerificationResult(result)
                           if (result.isSuccess) {
@@ -1010,29 +1072,58 @@ export function AdditionalAppointmentModal({
 
                   {isSisSeguro() && (
                     <>
+                      <ReferenciaSelector
+                        numeroDocumento={patient?.DOCUMENTO || ''}
+                        tipoDocumento={patient?.TIPO_DOCUMENTO === 'D' || patient?.TIPO_DOCUMENTO === 'DNI' ? '1' : '2'}
+                        especialidadCodigo={especialidadConsultorio || undefined}
+                        value={referenciaIdSeleccionada}
+                        onChange={async (refData) => {
+                          console.log('📋 Referencia seleccionada:', refData)
+                          setReferencia(refData.numeroReferencia)
+                          setReferenciaIdSeleccionada(refData.idReferencia)
+                          
+                          // Obtener nombre de la entidad SIS desde la API
+                          if (refData.codigoestablecimientoOrigen) {
+                            console.log('🔍 Obteniendo nombre de entidad SIS para código:', refData.codigoestablecimientoOrigen)
+                            const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
+                            if (result.success && result.data) {
+                              console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
+                              setEessNombreOrigen(result.data.NOMBRE)
+                              setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                              // Actualizar entidad SIS después de obtener el nombre
+                              console.log('🏥 Actualizando selectedEntidadSis a:', refData.codigoestablecimientoOrigen)
+                              setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                            } else {
+                              console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
+                              setEessNombreOrigen(refData.establecimientoOrigen)
+                              setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                              setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                            }
+                          } else {
+                            setEessNombreOrigen(refData.establecimientoOrigen)
+                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                          }
+                        }}
+                        onEessChange={(eess) => {
+                          console.log('🏥 EESS origen actualizado:', eess)
+                          setEessOrigenReferencia(eess)
+                        }}
+                      />
                       <EntidadSisSelector
-                        key={sisVerificationResult?.eess || 'entidad-sis-selector'} // Reset cuando cambia verificación SIS
+                        key={sisVerificationResult?.eess || eessOrigenReferencia || 'entidad-sis-selector'}
                         value={selectedEntidadSis}
                         onChange={setSelectedEntidadSis}
                         required={true}
-                        sisEstablecimiento={sisVerificationResult?.isSuccess ? {
-                          codigo: sisVerificationResult.eess?.replace(/^0+/, '') || '',
-                          nombre: sisVerificationResult.descEESS || ''
-                        } : undefined}
+                        sisEstablecimiento={
+                          eessOrigenReferencia ? {
+                            codigo: eessOrigenReferencia,
+                            nombre: eessNombreOrigen
+                          } : sisVerificationResult?.isSuccess ? {
+                            codigo: sisVerificationResult.eess?.replace(/^0+/, '') || '',
+                            nombre: sisVerificationResult.descEESS || ''
+                          } : undefined
+                        }
                       />
-                      
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Referencia <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          type="number"
-                          placeholder="Ingrese número de referencia..."
-                          value={referencia}
-                          onChange={(e) => setReferencia(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
                     </>
                   )}
                 </div>
@@ -1223,7 +1314,16 @@ export function AdditionalAppointmentModal({
             </Button>
           </DialogFooter>
         </DialogContent>
+        </Dialog>
       </Dialog>
-    </Dialog>
+  )
+}
+
+// Componente wrapper con ReferenciaProvider
+export function AdditionalAppointmentModal(props: AdditionalAppointmentModalProps) {
+  return (
+    <ReferenciaProvider>
+      <AdditionalAppointmentModalContent {...props} />
+    </ReferenciaProvider>
   )
 }
