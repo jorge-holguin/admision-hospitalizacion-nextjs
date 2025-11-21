@@ -14,6 +14,7 @@ import { ConsultorioCitasSelector } from "../selectors/ConsultorioCitasSelector"
 import { MedicoSelector } from "../selectors/MedicoSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { TurnoSelector } from "../selectors/TurnoSelector"
+import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { ArrowLeft, Loader2, CheckCircle, Edit, AlertCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
@@ -62,7 +63,7 @@ function AdditionalAppointmentModalContent({
   const [consultorio, setConsultorio] = useState<string>("")
   const [medico, setMedico] = useState<string>("")
   const [turno, setTurno] = useState<string>("")
-  // const [tipoCita, setTipoCita] = useState<string>("")
+  const [tipoCita, setTipoCita] = useState<string>("A") // A = Adicional (valor por defecto)
   const [tipoSeguro, setTipoSeguro] = useState<string>("")
   const [observacion, setObservacion] = useState<string>("")
   const [referencia, setReferencia] = useState<string>("")
@@ -155,11 +156,13 @@ function AdditionalAppointmentModalContent({
     }
   }, [tipoSeguro])
 
-  // Cargar fechas disponibles cuando se selecciona consultorio
+  // Cargar fechas disponibles cuando se selecciona consultorio Y turno
   useEffect(() => {
     const fetchAvailableDates = async () => {
-      if (!consultorio || !especialidadConsultorio || !selectedCalendarDate) {
+      // Requiere consultorio, especialidad Y turno para cargar fechas
+      if (!consultorio || !especialidadConsultorio || !turno || !selectedCalendarDate) {
         setDatesWithAppointments([])
+        setDatesWithoutAppointments([])
         return
       }
 
@@ -180,13 +183,17 @@ function AdditionalAppointmentModalContent({
         const fechaInicio = formatDateForAPI(monthStart)
         const fechaFin = formatDateForAPI(monthEnd)
         
-        console.log('📅 Cargando fechas disponibles - Especialidad:', especialidadConsultorio, 'desde:', fechaInicio, 'hasta:', fechaFin)
+        // Convertir turno a formato API (M o T)
+        const turnoConsulta = turno === 'MAÑANA' ? 'M' : 'T'
         
-        // Usar el servicio availableDatesService
+        console.log('📅 Cargando fechas disponibles - Especialidad:', especialidadConsultorio, 'Turno:', turnoConsulta, 'desde:', fechaInicio, 'hasta:', fechaFin)
+        
+        // Usar el servicio availableDatesService con turno
         const availableDates = await availableDatesService.fetchAvailableDates({
           fechaInicio,
           fechaFin,
-          idEspecialidad: especialidadConsultorio
+          idEspecialidad: especialidadConsultorio,
+          turnoConsulta  // ✅ Agregar turno al servicio
         })
         
         // Filtrar solo las fechas del consultorio seleccionado
@@ -195,17 +202,18 @@ function AdditionalAppointmentModalContent({
         
         setDatesWithAppointments(available)
         setDatesWithoutAppointments(unavailable)
-        console.log('✅ Fechas cargadas:', available.length, 'con citas (verdes),', unavailable.length, 'sin citas (rojas), para consultorio:', consultorioCode)
+        console.log('✅ Fechas cargadas:', available.length, 'con citas (verdes),', unavailable.length, 'sin citas (rojas), para consultorio:', consultorioCode, 'turno:', turnoConsulta)
       } catch (error) {
         console.error('Error al cargar fechas disponibles:', error)
         setDatesWithAppointments([])
+        setDatesWithoutAppointments([])
       } finally {
         setLoadingDates(false)
       }
     }
 
     fetchAvailableDates()
-  }, [consultorio, especialidadConsultorio, selectedCalendarDate])
+  }, [consultorio, especialidadConsultorio, turno, selectedCalendarDate])
 
   // Actualizar fecha cuando se selecciona en el calendario
   const handleCalendarDateSelect = (date: Date | undefined) => {
@@ -350,6 +358,7 @@ function AdditionalAppointmentModalContent({
         medico: medico,
         fecha: fechaISO,
         turnoConsulta: turno === 'MAÑANA' ? 'M' : 'T',
+        tipoCita: tipoCita, // ✅ Tipo de cita (A = Adicional por defecto)
         paciente: patient.PACIENTE,  // ✅ Código del paciente (sin HISTORIA)
         nombre: patient.NOMBRES || patient.NOMBRE || '',
         observacion: observacion || '',
@@ -920,12 +929,83 @@ function AdditionalAppointmentModalContent({
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
                     Información de la Cita
+                    <span className="ml-2 text-xs text-gray-500 font-normal">(Siga el orden: Consultorio → Turno → Fecha → Médico)</span>
                   </h3>
                   
-                  {/* Calendario de Fechas */}
+                  {/* PASO 1: Consultorio */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Consultorio <span className="text-red-500">*</span>
+                      </Label>
+                    </div>
+                    <ConsultorioCitasSelector
+                      label=""
+                      value={consultorio}
+                      onChange={(value) => {
+                        setConsultorio(value)
+                        // Resetear campos dependientes
+                        setTurno("")
+                        setFecha("")
+                        setMedico("")
+                        setDatesWithAppointments([])
+                        setDatesWithoutAppointments([])
+                      }}
+                      onConsultorioDataChange={(data) => {
+                        console.log('🏭 Consultorio seleccionado:', data)
+                        if (data && data.ESPECIALIDAD) {
+                          console.log('👨‍⚕️ Especialidad del consultorio:', data.ESPECIALIDAD)
+                          setEspecialidadConsultorio(data.ESPECIALIDAD)
+                          if (data.NOMBRE) setConsultorioNombreSel(data.NOMBRE)
+                        } else {
+                          setEspecialidadConsultorio(null)
+                          setConsultorioNombreSel("")
+                        }
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* PASO 2: Turno */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        consultorio ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
+                      }`}>2</div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Turno <span className="text-red-500">*</span>
+                      </Label>
+                    </div>
+                    {!consultorio ? (
+                      <div className="border rounded-lg p-3 bg-gray-100">
+                        <p className="text-sm text-gray-500 text-center">Primero seleccione un consultorio</p>
+                      </div>
+                    ) : (
+                      <TurnoSelector
+                        label=""
+                        value={turno}
+                        onChange={(value) => {
+                          setTurno(value)
+                          // Resetear campos dependientes
+                          setFecha("")
+                          setMedico("")
+                          setDatesWithAppointments([])
+                          setDatesWithoutAppointments([])
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* PASO 3: Calendario de Fechas */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700">Fecha de la Cita</Label>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          consultorio && turno ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
+                        }`}>3</div>
+                        <Label className="text-sm font-medium text-gray-700">Fecha de la Cita <span className="text-red-500">*</span></Label>
+                      </div>
                       <div className="flex items-center gap-2">
                         {isDevOps && (
                           <div className="flex items-center space-x-2">
@@ -948,55 +1028,66 @@ function AdditionalAppointmentModalContent({
                           size="sm"
                           onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
                           className="h-7 text-xs"
+                          disabled={!consultorio || !turno}
                         >
                           {isCalendarExpanded ? 'Contraer' : 'Expandir'}
                         </Button>
                       </div>
                     </div>
                     
-                    {/* Vista compacta: solo fecha seleccionada */}
-                    {!isCalendarExpanded && (
-                      <div className="border rounded-lg p-3 bg-gray-50">
-                        <div className="text-sm text-gray-700">
-                          <span className="font-medium">Fecha seleccionada:</span>
-                          <div className="mt-1 text-base font-semibold text-blue-600">
-                            {selectedCalendarDate ? selectedCalendarDate.toLocaleDateString('es-PE', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            }) : 'No seleccionada'}
-                          </div>
-                        </div>
+                    {!consultorio || !turno ? (
+                      <div className="border rounded-lg p-3 bg-gray-100">
+                        <p className="text-sm text-gray-500 text-center">
+                          Primero seleccione consultorio y turno
+                        </p>
                       </div>
+                    ) : (
+                      <>
+                        {/* Vista compacta: solo fecha seleccionada */}
+                        {!isCalendarExpanded && (
+                          <div className="border rounded-lg p-2.5 bg-gray-50">
+                            <div className="text-sm text-gray-700">
+                              <span className="font-medium">Fecha:</span>
+                              <div className="mt-0.5 text-sm font-semibold text-blue-600">
+                                {selectedCalendarDate ? selectedCalendarDate.toLocaleDateString('es-PE', { 
+                                  weekday: 'short', 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                }) : 'No seleccionada'}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                     
                     {/* Vista expandida: calendario completo */}
-                    {isCalendarExpanded && (
+                    {isCalendarExpanded && consultorio && turno && (
                       <>
                         <div className="border rounded-lg overflow-hidden">
                           <AppointmentCalendar
                             selectedDate={selectedCalendarDate}
                             onDateSelect={handleCalendarDateSelect}
-                            className="h-full border-0 rounded-none"
+                            className="border-0 rounded-none"
                             datesWithAppointments={datesWithAppointments}
                             datesWithoutAvailability={datesWithoutAppointments}
                             disablePastDates={!showPastDates}
                           />
                         </div>
                         
-                        {consultorio && (datesWithAppointments.length > 0 || datesWithoutAppointments.length > 0) && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 space-y-1">
+                        {consultorio && turno && (datesWithAppointments.length > 0 || datesWithoutAppointments.length > 0) && (
+                          <div className="mt-2 p-1.5 bg-gray-50 rounded text-xs text-gray-600 space-y-0.5">
                             {datesWithAppointments.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
-                                <span>Días con citas disponibles ({datesWithAppointments.length})</span>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 bg-green-100 border border-green-300 rounded"></div>
+                                <span>Días con citas ({datesWithAppointments.length})</span>
                               </div>
                             )}
                             {datesWithoutAppointments.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-                                <span>Días sin citas disponibles - Adicional permitido ({datesWithoutAppointments.length})</span>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 bg-red-100 border border-red-300 rounded"></div>
+                                <span>Sin citas - Adicional permitido ({datesWithoutAppointments.length})</span>
                               </div>
                             )}
                           </div>
@@ -1004,59 +1095,44 @@ function AdditionalAppointmentModalContent({
                       </>
                     )}
                     
-                    {loadingDates && (
+                    {loadingDates && consultorio && turno && (
                       <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Cargando fechas disponibles...
+                        Cargando fechas disponibles para turno {turno}...
                       </div>
                     )}
                   </div>
 
-                  {/* Consultorio */}
-                  <div className="grid grid-cols-1 gap-4 mb-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">
-                        Consultorio <span className="text-red-500">*</span>
-                      </Label>
-                      <ConsultorioCitasSelector
-                        label=""
-                        value={consultorio}
-                        onChange={setConsultorio}
-                        onConsultorioDataChange={(data) => {
-                          console.log('🏭 Consultorio seleccionado:', data)
-                          if (data && data.ESPECIALIDAD) {
-                            console.log('👨‍⚕️ Especialidad del consultorio:', data.ESPECIALIDAD)
-                            setEspecialidadConsultorio(data.ESPECIALIDAD)
-                            if (data.NOMBRE) setConsultorioNombreSel(data.NOMBRE)
-                          } else {
-                            setEspecialidadConsultorio(null)
-                            setConsultorioNombreSel("")
-                          }
-                        }}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Médico */}
-                  <div className="grid grid-cols-1 gap-4 mb-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
+                  {/* PASO 4: Médico */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          consultorio && turno && fecha ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
+                        }`}>4</div>
                         <Label className="text-sm font-medium text-gray-700">
                           Médico <span className="text-red-500">*</span>
                         </Label>
+                      </div>
+                      <div>
                         {loadingMedicos && (
                           <span className="text-xs text-gray-500 flex items-center gap-1">
                             <Loader2 className="h-3 w-3 animate-spin" />
-                            Cargando médicos...
+                            Cargando...
                           </span>
                         )}
                         {!loadingMedicos && availableMedicos.length > 0 && (
                           <span className="text-xs text-green-600">
-                            {availableMedicos.length} médico{availableMedicos.length !== 1 ? 's' : ''} disponible{availableMedicos.length !== 1 ? 's' : ''}
+                            {availableMedicos.length} disponible{availableMedicos.length !== 1 ? 's' : ''}
                           </span>
                         )}
                       </div>
+                    </div>
+                    {(!consultorio || !turno || !fecha) ? (
+                      <div className="border rounded-lg p-3 bg-gray-100">
+                        <p className="text-sm text-gray-500 text-center">Primero complete consultorio, turno y fecha</p>
+                      </div>
+                    ) : (
                       <MedicoSelector
                         label=""
                         value={medico}
@@ -1065,21 +1141,7 @@ function AdditionalAppointmentModalContent({
                         availableMedicos={availableMedicos.length > 0 ? availableMedicos : undefined}
                         className="w-full"
                       />
-                    </div>
-                  </div>
-                  
-                  {/* Turno */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">
-                        Turno <span className="text-red-500">*</span>
-                      </Label>
-                      <TurnoSelector
-                        label=""
-                        value={turno}
-                        onChange={setTurno}
-                      />
-                    </div>
+                    )}
                   </div>
 
                   {/* Botón para ver citas pendientes del paciente */}
@@ -1102,8 +1164,25 @@ function AdditionalAppointmentModalContent({
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4">Datos de Asignación</h3>
                   
-                  <div className="grid grid-cols-1 gap-4">
-                    {/* Tipo de Cita oculto - no es necesario para citas adicionales */}
+                  <div className="space-y-4">
+                    {/* Tipo de Cita */}
+                    {/* <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Tipo de Cita <span className="text-red-500">*</span>
+                      </Label>
+                      <TipoCitaSelector
+                        label=""
+                        value={tipoCita}
+                        onChange={setTipoCita}
+                        initialValue="A"
+                        placeholder="A - ADICIONAL"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Por defecto: A - ADICIONAL (cita adicional fuera del cupo regular)
+                      </p>
+                    </div> */}
+
+                    {/* Tipo de Seguro */}
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
                         Tipo de Seguro <span className="text-red-500">*</span>
@@ -1114,6 +1193,8 @@ function AdditionalAppointmentModalContent({
                         onChange={setTipoSeguro}
                       />
                     </div>
+
+                    {/* Observación */}
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
                         Observación
@@ -1247,7 +1328,7 @@ function AdditionalAppointmentModalContent({
                 handleSave()
               }
             }}
-            disabled={isLoading || !consultorio || !medico || !turno || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia)) || hasConsultorioMatch || hasEspecialidadMatch}
+            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia)) || hasConsultorioMatch || hasEspecialidadMatch}
             className="bg-cyan-600 hover:bg-cyan-700 text-white"
             title={
               hasConsultorioMatch 
