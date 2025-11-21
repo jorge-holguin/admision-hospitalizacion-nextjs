@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Home, Table, Calendar } from "lucide-react";
+import { Home, Table, Calendar, Loader2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -14,6 +14,8 @@ export default function Dashboard() {
   const [canAccessTablasMaestras, setCanAccessTablasMaestras] = useState(false);
   const [canAccessHospitalizacion, setCanAccessHospitalizacion] = useState(false);
   const [userPuesto, setUserPuesto] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string>("");
 
   useEffect(() => {
     // Verificar permisos cuando el componente se monta
@@ -30,14 +32,20 @@ export default function Dashboard() {
   }, []);
 
   const handleFiliacionClick = () => {
+    setIsNavigating(true);
+    setNavigatingTo("Hospitalización / Emergencia");
     router.push("/filiation");
   };
 
   const handleTablasMaestrasClick = () => {
+    setIsNavigating(true);
+    setNavigatingTo("Tablas Maestras");
     router.push("/master-tables");
   };
 
   const handleCitasClick = () => {
+    setIsNavigating(true);
+    setNavigatingTo("Citas");
     router.push("/appointments");
   };
 
@@ -128,6 +136,28 @@ export default function Dashboard() {
 
         </div>
       </main>
+
+      {/* Loading Overlay */}
+      {isNavigating && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Cargando módulo...
+                </h3>
+                <p className="text-gray-600">
+                  {navigatingTo}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Por favor espere mientras se carga el módulo
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </ProtectedRoute>
   );

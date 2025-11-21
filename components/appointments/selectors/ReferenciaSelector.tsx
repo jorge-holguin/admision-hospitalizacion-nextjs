@@ -57,6 +57,7 @@ export function ReferenciaSelector({
   const [manualMode, setManualMode] = useState(false)
   const [manualReferencia, setManualReferencia] = useState('')
   const [manualConfirmed, setManualConfirmed] = useState(false)
+  const [open, setOpen] = useState(true); // <- abierto por defecto
 
   // Auto-buscar cuando cambian los parámetros clave
   useEffect(() => {
@@ -78,6 +79,11 @@ export function ReferenciaSelector({
   const handleBuscar = async () => {
     if (!numeroDocumento || !tipoDocumento) {
       return
+    }
+
+    // Si estaba en modo manual, cerrarlo al buscar referencias
+    if (manualMode) {
+      setManualMode(false)
     }
 
     console.log('🔍 Buscando referencias para:', {
@@ -107,7 +113,9 @@ export function ReferenciaSelector({
       especialidadCodigo
     })
 
+    // Marcar que ya se buscó y abrir el listado de referencias
     setHasSearched(true)
+    setOpen(true)
   }
 
   const handleManualSubmit = () => {
@@ -272,7 +280,11 @@ export function ReferenciaSelector({
         <Button
           type="button"
           variant="outline"
-          onClick={() => setManualMode(!manualMode)}
+          onClick={() => {
+            // Al entrar en modo manual, cerrar el listado de referencias
+            setOpen(false)
+            setManualMode(!manualMode)
+          }}
           disabled={disabled}
           className="flex items-center gap-2 border-gray-900 text-gray-900 hover:bg-gray-100 h-10 px-4"
         >
@@ -381,6 +393,8 @@ export function ReferenciaSelector({
             value={value || ''}
             onValueChange={handleSelectReferencia}
             disabled={disabled}
+            open={open}
+            onOpenChange={setOpen}
           >
             <SelectTrigger className="w-full h-auto min-h-[40px]">
               {selectedReferencia ? (
@@ -402,8 +416,8 @@ export function ReferenciaSelector({
               ) : (
                 <SelectValue placeholder="Seleccione una referencia..." />
               )}
-            </SelectTrigger>
-            <SelectContent className="max-h-[240px]">
+      </SelectTrigger>
+      <SelectContent className="max-h-[240px]">
               {sortedReferencias.map((ref) => {
                 const data = ref.data
                 const estado = data.estado?.toUpperCase() || ''
