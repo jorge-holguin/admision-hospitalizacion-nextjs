@@ -78,6 +78,10 @@ export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode 
     })
 
     try {
+      // Crear AbortController para timeout de 5 segundos
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
       const response = await fetch(`${API_REFCON_URL}/referencia/consultar-referencias`, {
         method: 'POST',
         headers: {
@@ -90,37 +94,50 @@ export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode 
           numerodocumento: params.numerodocumento,
           pagina: "1",
           tipodocumento: params.tipodocumento
-        })
+        }),
+        signal: controller.signal
       })
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
+      clearTimeout(timeoutId)
 
+      // Siempre intentar leer el cuerpo JSON, incluso si el status HTTP es 4xx/5xx,
+      // porque el servicio REFCON envía "codigo" y "mensaje" útiles (6000, 9000, etc.)
       const data: ReferenciaAPIResponse = await response.json()
 
       console.log('📋 Respuesta de API de referencias:', data)
 
       if (data.codigo === '0000' && data.datos?.datos) {
-        // Filtrar solo referencias ACEPTADAS (codigoEstado = "3")
-        let referenciasAceptadas = data.datos.datos.filter(ref => 
-          ref.data.codigoEstado === '3'
-        )
+        // Mostrar todas las referencias (ACEPTADAS, CITADAS, PENDIENTES)
+        console.log(`✅ Referencias encontradas: ${data.datos.datos.length}`)
 
-        console.log(`✅ Referencias ACEPTADAS encontradas: ${referenciasAceptadas.length}/${data.datos.datos.length}`)
+        setReferencias(data.datos.datos)
 
-        setReferencias(referenciasAceptadas)
-
-        if (referenciasAceptadas.length === 0) {
-          setError('No se encontraron referencias aceptadas para este documento')
+        if (data.datos.datos.length === 0) {
+          setError('No se encontraron referencias para este documento')
         }
+      } else if (data.codigo === '6000') {
+        // Error específico: No existe registros (sin referencias activas)
+        setReferencias([])
+        setError(`${data.codigo}|${data.mensaje || 'No existe registros'}`)
+      } else if (data.codigo === '9000') {
+        // Error de servicio REFCON
+        setReferencias([])
+        setError('Error del servicio REFCON. Intente nuevamente más tarde.')
       } else {
         setReferencias([])
-        setError(data.mensaje || 'No se encontraron referencias')
+        // Si vino un HTTP 400/500 sin código conocido, mostrar detalle básico
+        setError(data.mensaje || `Error al consultar referencias (código ${data.codigo ?? 'desconocido'})`)
       }
     } catch (err) {
       console.error('❌ Error al consultar referencias:', err)
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      
+      // Detectar timeout
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Tiempo de espera agotado (5 segundos). El servicio REFCON no responde.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      }
+      
       setReferencias([])
     } finally {
       setIsLoading(false)

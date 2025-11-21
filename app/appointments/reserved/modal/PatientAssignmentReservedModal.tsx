@@ -21,7 +21,7 @@ import { SimpleSISVerification } from "../../../../components/appointments/patie
 import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { datetimeService } from '@/services/datetimeService'
-import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS } from "@/services/appointments/refconSyncService"
+import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS, actualizarEstadoRefcon } from "@/services/appointments/refconSyncService"
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
@@ -220,8 +220,14 @@ function PatientAssignmentReservedModalContent({
   const [referenciaIdSeleccionada, setReferenciaIdSeleccionada] = useState("")
   const [eessOrigenReferencia, setEessOrigenReferencia] = useState("")
   const [eessNombreOrigen, setEessNombreOrigen] = useState("")
+  const [skipRefconSync, setSkipRefconSync] = useState(false) // Flag para omitir sincronización con REFCON (estados 5, 7, manual)
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [pendingAssignmentData, setPendingAssignmentData] = useState<any>(null) // Datos para notificar al padre después de confirmar
+  
+  // Estados para el resultado de sincronización REFCON
+  const [refconSyncSuccess, setRefconSyncSuccess] = useState(false)
+  const [refconSyncError, setRefconSyncError] = useState<string | null>(null)
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
   const [showPatientEditModal, setShowPatientEditModal] = useState(false)
   const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
@@ -251,8 +257,13 @@ function PatientAssignmentReservedModalContent({
       setReferenciaIdSeleccionada("")
       setEessOrigenReferencia("")
       setEessNombreOrigen("")
+      setSkipRefconSync(false)
       setShowSuccess(false)
       setSisVerificationResult(null)
+      setRefconSyncSuccess(false)
+      setRefconSyncError(null)
+      setPendingAssignmentData(null)
+      console.log('🧹 Estados de referencia limpiados al abrir modal')
     }
   }, [isOpen, patient])
 
@@ -378,6 +389,9 @@ function PatientAssignmentReservedModalContent({
       // Obtener fecha y hora del servidor para evitar desfase de zona horaria
       const serverDateTime = await datetimeService.getCurrentDateTime();
       
+      // Determinar si la referencia es manual o de REFCON
+      const esReferenciaManual = referenciaIdSeleccionada?.startsWith('manual-')
+      
       const requestBody = {
         fechaOtorga: `${serverDateTime.date}T${serverDateTime.time}:00`,
         tipoCita: selectedTipoCita,
@@ -389,7 +403,12 @@ function PatientAssignmentReservedModalContent({
         horaOtorga: serverDateTime.time,
         usuario: usuarioApellido,
         numRef: referencia || '',
-        entidadSis: eessOrigenReferencia || selectedEntidadSis || ''
+        entidadSis: eessOrigenReferencia || selectedEntidadSis || '',
+        // Campos REFCON
+        idRefcon: esReferenciaManual ? 0 : (referenciaIdSeleccionada ? parseInt(referenciaIdSeleccionada) || 0 : 0),
+        // recibidoRefcon: 0=manual, 1=pendiente sync (fallido), 2=synced OK (por defecto), 3=reutilizada (estado 5 o 7)
+        // Inicialmente asumimos éxito (2), solo cambiamos a 1 si REFCON falla
+        recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2)
       }
       
       console.log('📤 Enviando solicitud de asignación:', requestBody)
@@ -546,18 +565,19 @@ function PatientAssignmentReservedModalContent({
         console.warn('⚠️ No se encontró idSolicitudCita, no se puede actualizar el estado de la reserva')
       }
       
-      // Notificar al componente padre sobre la asignación exitosa
+      // Guardar datos de asignación para notificar al padre DESPUÉS de que el usuario confirme
       const assignmentData = {
         ...requestBody,
         appointmentId: appointment.citaId,
         success: true,
         responseData
       }
-
-      await onApprove(assignmentData)
+      setPendingAssignmentData(assignmentData)
       
-      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS
-      if (referenciaIdSeleccionada && appointment && esSeguroSIS(selectedSeguro)) {
+      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
+      const esReferenciaManualSync = referenciaIdSeleccionada?.startsWith('manual-')
+      
+      if (referenciaIdSeleccionada && appointment && esSeguroSIS(selectedSeguro) && !esReferenciaManualSync && !skipRefconSync) {
         try {
           console.log('🔄 Iniciando sincronización con REFCON (Seguro SIS detectado)...')
           
@@ -581,48 +601,63 @@ function PatientAssignmentReservedModalContent({
             personalRegistra: datosRefcon.personalRegistra || {}
           }
           
-          console.log('📦 Payload para sincronización:', refconPayload)
+          console.log(' Payload para sincronización:', refconPayload)
           
           // 3. Sincronizar con REFCON
           const syncResult = await sincronizarCitaConRefcon(refconPayload)
-          
           if (syncResult.success) {
-            console.log('✅ Cita sincronizada exitosamente con REFCON')
-            toast({
-              title: "✅ Sincronizado con REFCON",
-              description: "La cita ha sido sincronizada exitosamente con el sistema de referencias.",
-              className: "bg-blue-50 border-blue-200 text-blue-800"
-            })
+            console.log(' Cita sincronizada exitosamente con REFCON')
+            setRefconSyncSuccess(true)
+            setRefconSyncError(null)
+            // Estado REFCON 2 ya fue establecido al asignar la cita, no se requiere actualización
           } else {
-            console.warn('⚠️ Error al sincronizar con REFCON (no crítico):', syncResult.error)
+            console.warn(' Error al sincronizar con REFCON (no crítico):', syncResult.error)
+            setRefconSyncSuccess(false)
+            setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
+            
+            // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló
+            console.log('🔄 Actualizando estado REFCON a 1 (sincronización fallida)...')
+            const estadoRefconResult = await actualizarEstadoRefcon(appointment.citaId, 1)
+            if (estadoRefconResult.success) {
+              console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
+            } else {
+              console.warn('⚠️ No se pudo actualizar estado REFCON a 1:', estadoRefconResult.error)
+            }
           }
         } catch (refconError) {
           console.error('❌ Error al sincronizar con REFCON:', refconError)
-          // No interrumpir el flujo si falla la sincronización con REFCON
+          setRefconSyncSuccess(false)
+          setRefconSyncError(refconError instanceof Error ? refconError.message : 'Error desconocido')
+          
+          // Actualizar estado REFCON a 1 por error
+          try {
+            console.log('🔄 Actualizando estado REFCON a 1 (error en sincronización)...')
+            const estadoRefconResult = await actualizarEstadoRefcon(appointment.citaId, 1)
+            if (estadoRefconResult.success) {
+              console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
+            }
+          } catch (updateError) {
+            console.warn('⚠️ No se pudo actualizar estado REFCON:', updateError)
+          }
         }
+      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {
+        console.log('ℹ️ Sincronización REFCON omitida: Referencia ingresada manualmente')
+      } else if (referenciaIdSeleccionada && skipRefconSync) {
+        console.log('ℹ️ Sincronización REFCON omitida: Referencia con estado RECIBIDO o CITADO (no requiere sincronización)')
       } else if (referenciaIdSeleccionada && !esSeguroSIS(selectedSeguro)) {
         console.log('ℹ️ Sincronización REFCON omitida: Seguro no es SIS (código:', selectedSeguro, ')')
       }
       
-      // Mostrar modal de éxito primero
+      // Mostrar modal de éxito
       setShowSuccess(true)
       
-      // Mostrar toast de éxito
+      // Mostrar toast de éxito (solo informativo, el cierre será manual con el botón del dialog)
       toast({
         title: "¡Asignación Exitosa!",
         description: `La cita ha sido asignada correctamente al paciente ${patient.NOMBRES}`,
         className: "bg-green-50 border-green-200 text-green-800",
         duration: 5000
       })
-      
-      // Cerrar después de 3 segundos
-      setTimeout(() => {
-        setShowSuccess(false)
-        onClose()
-        if (onSuccess) {
-          onSuccess(appointment.citaId)
-        }
-      }, 3000)
     } catch (error: any) {
       console.error('Error al aprobar:', error)
       toast({
@@ -679,14 +714,81 @@ function PatientAssignmentReservedModalContent({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              ¡Solicitud Aprobada!
-            </h3>
-            <p className="text-gray-600">
-              La solicitud ha sido procesada correctamente
-            </p>
+          <div className="flex flex-col items-center justify-center py-4 text-center space-y-4">
+            <CheckCircle className="h-14 w-14 text-green-500" />
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                ¡Solicitud Aprobada!
+              </h3>
+              <p className="text-gray-600 mt-1">
+                La solicitud de reserva ha sido aprobada y la cita fue asignada correctamente.
+              </p>
+            </div>
+
+            {/* Información básica de la cita asignada */}
+            <div className="w-full bg-green-50 border border-green-200 rounded-lg p-4 text-left space-y-1 text-sm">
+              <p className="font-semibold text-green-800 mb-1">Información de la Cita Asignada</p>
+              <p><span className="font-medium">Paciente:</span> {patient.NOMBRES}</p>
+              <p><span className="font-medium">Consultorio:</span> {(appointment as any)?.consultorioNombre || appointment.consultorio || 'N/A'}</p>
+              <p><span className="font-medium">Médico:</span> {(appointment as any)?.medicoNombre || appointment.medico || 'N/A'}</p>
+              <p><span className="font-medium">Fecha:</span> {(appointment as any)?.fecha || 'N/A'}</p>
+              <p><span className="font-medium">Hora:</span> {(appointment as any)?.hora || 'N/A'}</p>
+            </div>
+
+            {/* Resultado de sincronización con REFCON */}
+            {refconSyncSuccess && (
+              <div className="w-full bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 text-sm text-left">
+                <p className="font-semibold mb-1">Sincronización con REFCON</p>
+                <p>✅ La cita fue registrada exitosamente en el sistema de referencias (REFCON).</p>
+              </div>
+            )}
+
+            {!refconSyncSuccess && refconSyncError && (
+              <div className="w-full bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left space-y-1">
+                <p className="font-semibold flex items-center gap-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  Sincronización con REFCON incompleta
+                </p>
+                <p>
+                  ✅ La cita fue asignada correctamente en el sistema local, pero REFCON devolvió un error y no se pudo registrar allí.
+                </p>
+                <p className="text-xs text-orange-900">
+                  Por favor, informe al área responsable para que realicen la sincronización manual.
+                </p>
+                <details className="text-xs text-orange-900 mt-1">
+                  <summary className="cursor-pointer hover:text-orange-700">Ver detalles técnicos del error</summary>
+                  <pre className="mt-2 p-2 bg-orange-100 rounded overflow-auto max-h-32 whitespace-pre-wrap">
+                    {refconSyncError}
+                  </pre>
+                </details>
+              </div>
+            )}
+
+            <Button
+              onClick={async () => {
+                // Notificar al padre sobre la asignación exitosa
+                if (pendingAssignmentData) {
+                  await onApprove(pendingAssignmentData)
+                }
+                
+                // Limpiar estados
+                setShowSuccess(false)
+                setRefconSyncSuccess(false)
+                setRefconSyncError(null)
+                setPendingAssignmentData(null)
+                
+                // Cerrar modal
+                onClose()
+                
+                // Callback de éxito
+                if (onSuccess) {
+                  onSuccess(appointment.citaId)
+                }
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
+            >
+              Entendido
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -696,7 +798,7 @@ function PatientAssignmentReservedModalContent({
   return (
       <>
         <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div className="flex items-center gap-3">
               {onBack && (
@@ -720,7 +822,7 @@ function PatientAssignmentReservedModalContent({
             </div>
        
           </DialogHeader>
-
+          <div className="flex-1 overflow-y-auto min-h-0">
           {/* Advertencias */}
           <div className="space-y-3 mb-4">
             {(hasConsultorioMatch || hasEspecialidadMatch) && (
@@ -944,7 +1046,9 @@ function PatientAssignmentReservedModalContent({
                     <>
                       <ReferenciaSelector
                         numeroDocumento={patient?.DOCUMENTO || ''}
-                        tipoDocumento={patient?.TIPO_DOCUMENTO === 'D' || patient?.TIPO_DOCUMENTO === 'DNI' ? '1' : '2'}
+                        tipoDocumento={
+                          patient?.TIPO_DOCUMENTO === 'CE' || patient?.TIPO_DOCUMENTO === 'C' ? '2' : '1'
+                        }
                         especialidadCodigo={appointment?.especialidad}
                         value={referenciaIdSeleccionada}
                         onChange={async (refData) => {
@@ -952,26 +1056,30 @@ function PatientAssignmentReservedModalContent({
                           setReferencia(refData.numeroReferencia)
                           setReferenciaIdSeleccionada(refData.idReferencia)
                           
+                          // Guardar flag de sincronización con REFCON
+                          setSkipRefconSync(refData.skipRefconSync || false)
+                          console.log('🔄 Skip REFCON Sync:', refData.skipRefconSync, '(Estado:', refData.codigoEstado, ')')
+                          
                           // Obtener nombre de la entidad SIS desde la API
                           if (refData.codigoestablecimientoOrigen) {
                             console.log('🔍 Obteniendo nombre de entidad SIS para código:', refData.codigoestablecimientoOrigen)
+                            
+                            // Actualizar inmediatamente el código del establecimiento
+                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                            
                             const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                             if (result.success && result.data) {
                               console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
                               setEessNombreOrigen(result.data.NOMBRE)
-                              setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
-                              // Actualizar entidad SIS después de obtener el nombre
-                              console.log('🏥 Actualizando selectedEntidadSis a:', refData.codigoestablecimientoOrigen)
-                              setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                              console.log('🏥 Estados actualizados - eessOrigenReferencia:', refData.codigoestablecimientoOrigen, 'eessNombreOrigen:', result.data.NOMBRE)
                             } else {
                               console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
-                              setEessNombreOrigen(refData.establecimientoOrigen)
-                              setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
-                              setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                              setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
                             }
                           } else {
-                            setEessNombreOrigen(refData.establecimientoOrigen)
-                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                            // Si no hay código, usar el nombre que viene de la referencia
+                            setEessNombreOrigen(refData.establecimientoOrigen || '')
+                            setEessOrigenReferencia('')
                           }
                         }}
                         onEessChange={(eess) => {
@@ -980,7 +1088,6 @@ function PatientAssignmentReservedModalContent({
                         }}
                       />
                       <EntidadSisSelector
-                        key={sisVerificationResult?.eess || eessOrigenReferencia || 'entidad-sis-selector'}
                         value={selectedEntidadSis}
                         onChange={setSelectedEntidadSis}
                         required={true}
@@ -1000,9 +1107,10 @@ function PatientAssignmentReservedModalContent({
               </Card>
             </div>
           </div>
+          </div>
 
           {/* Botones de acción - Solo Aprobar y Denegar */}
-          <div className="flex justify-center gap-4 pt-6 border-t">
+          <div className="flex justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
             <Button 
               onClick={() => {
                 // Si hay conflicto de horario, mostrar diálogo de advertencia primero

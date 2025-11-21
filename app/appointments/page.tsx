@@ -8,6 +8,7 @@ import { extractDocumentFromToken, extractPuestoFromToken, extractNombreCompleto
 import { availableDatesService } from "@/services/appointments/availableDatesService"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { TicketPreviewModal, type TicketData } from "@/components/appointments/modals/TicketPreviewModal"
+import ReleaseAppointmentModal from "@/components/appointments/modals/ReleaseAppointmentModal"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -552,7 +553,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
     }
     
     // Función para liberar una cita
-    const handleReleaseAppointment = async (citaId: string) => {
+    const handleReleaseAppointment = useCallback(async (citaId: string, motivo: string) => {
       if (!citaId) {
         toast({
           title: "Error",
@@ -562,17 +563,28 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         return
       }
       
+      // Validar que se haya ingresado un motivo
+      if (!motivo.trim()) {
+        toast({
+          title: "Campo requerido",
+          description: "Debe ingresar un motivo para liberar la cita",
+          variant: "destructive"
+        })
+        return
+      }
+      
       try {
         // Obtener el usuario del token JWT
         const usuario = extractDocumentFromToken()
         
-        // Llamar al endpoint para liberar la cita
+        // Llamar al endpoint para liberar la cita con el motivo en el body
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}/liberar`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'usuario': usuario
-          }
+          },
+          body: JSON.stringify(motivo.trim())
         })
         
         // El backend puede devolver texto plano o JSON
@@ -601,23 +613,25 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         
         // Cerrar el modal de confirmación
         setShowReleaseModal(false)
+        setSelectedAppointment(null)
         
         // Guardar ID de cita liberada y mostrar dialog de éxito
         setReleasedCitaId(citaId)
         setShowReleaseSuccessDialog(true)
         
-        // Buscar específicamente la cita liberada para mostrarla
-        setShowSearchById(true)
-        setSearchQuery(citaId)
-        await searchAppointmentById(citaId)
-        
+        // Recargar la lista de citas
+        searchAppointmentsByParams()
       } catch (error: any) {
-        console.error('Error al liberar la cita:', error)
+        console.error('Error al liberar cita:', error)
         setShowReleaseModal(false)
         setReleaseErrorMessage(error.message || 'No se pudo liberar la cita. Intente nuevamente.')
         setShowReleaseErrorDialog(true)
       }
-    }
+    }, [searchAppointmentsByParams])
+    
+    const handleCloseReleaseModal = useCallback(() => {
+      setShowReleaseModal(false)
+    }, [])
     
     const handleShiftChange = (shift: 'MAÑANA' | 'TARDE' | 'ALL') => {
       setFilters({ ...filters, turno: shift })
@@ -1163,34 +1177,13 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               }}
             />
 
-            {/* Release Modal */}
-            <Dialog open={showReleaseModal} onOpenChange={setShowReleaseModal}>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-blue-800 font-semibold">Liberar Cita</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    ¿Está seguro que desea liberar la cita <strong>{selectedAppointment?.id}</strong>?
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Esta acción no se puede deshacer y la cita quedará disponible para otros pacientes.
-                  </p>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setShowReleaseModal(false)}>
-                      Cancelar
-                    </Button>
-                    <Button 
-                      variant="destructive"
-                      onClick={() => handleReleaseAppointment(selectedAppointment?.id)}
-                      disabled={!selectedAppointment?.id}
-                    >
-                      Liberar Cita
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            {/* Release Modal - Optimizado */}
+            <ReleaseAppointmentModal
+              isOpen={showReleaseModal}
+              appointmentId={selectedAppointment?.id}
+              onClose={handleCloseReleaseModal}
+              onConfirm={handleReleaseAppointment}
+            />
 
             {/* Release Success Dialog */}
             <Dialog open={showReleaseSuccessDialog} onOpenChange={setShowReleaseSuccessDialog}>

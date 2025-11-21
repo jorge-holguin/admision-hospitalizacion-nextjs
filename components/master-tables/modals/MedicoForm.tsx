@@ -57,7 +57,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     DNI: "",
-    EESS: "00000005947",
+    EESS: "0000005947",
     MEDICO: "",
     NOMBRES: "",
     APATERNO: "",
@@ -164,7 +164,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
       setFormData({
         DNI: medico.DNI || "",
-        EESS: medico.EESS || "00000005947",
+        EESS: medico.EESS || "0000005947",
         MEDICO: medico.MEDICO || "",
         NOMBRES: medico.NOMBRES || "",
         APATERNO: medico.APATERNO || "",

@@ -23,6 +23,7 @@ export interface SimpleSISVerificationResult {
   isServerError?: boolean;
   eess?: string;
   descEESS?: string;
+  manualOverride?: boolean; // Indica que el usuario decidió continuar sin validación
 }
 
 export function SimpleSISVerification({ 
@@ -36,6 +37,25 @@ export function SimpleSISVerification({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<SimpleSISVerificationResult | null>(null);
+
+  const handleContinueWithoutValidation = () => {
+    console.log('⚠️ Usuario decidió continuar sin validación SIS')
+    const result: SimpleSISVerificationResult = {
+      isSuccess: false,
+      isServerError: true,
+      manualOverride: true
+    }
+    setVerificationResult(result)
+    if (onVerificationComplete) {
+      onVerificationComplete(result)
+    }
+    toast({
+      title: "Continuar sin validación",
+      description: "Se registrará la cita sin validación SIS",
+      variant: "default",
+      className: "bg-orange-50 border-orange-200 text-orange-800"
+    })
+  }
 
   // Verificación automática cuando autoVerify es true
   useEffect(() => {
@@ -203,13 +223,30 @@ export function SimpleSISVerification({
             <AlertCircle className="h-4 w-4" />
           )}
           <AlertDescription className={verificationResult.isSuccess ? "text-green-800" : verificationResult.isServerError ? "text-orange-800" : ""}>
-            {verificationResult.isServerError ? (
-              <span>⚠️ Problemas con el servidor del SIS</span>
-            ) : verificationResult.isSuccess ? (
-              <span>✅ <strong>SIS validado exitosamente</strong> </span>
-            ) : (
-              <span>❌ SIS no válido - No se encontró afiliación SIS</span>
-            )}
+            <div className="flex items-center justify-between">
+              <span>
+                {verificationResult.manualOverride ? (
+                  <span>⚠️ Continuando sin validación SIS</span>
+                ) : verificationResult.isServerError ? (
+                  <span>⚠️ Problemas con el servidor del SIS</span>
+                ) : verificationResult.isSuccess ? (
+                  <span>✅ <strong>SIS validado exitosamente</strong> </span>
+                ) : (
+                  <span>❌ SIS no válido - No se encontró afiliación SIS</span>
+                )}
+              </span>
+              {verificationResult.isServerError && !verificationResult.manualOverride && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleContinueWithoutValidation}
+                  className="ml-2 h-7 text-xs border-orange-400 text-orange-700 hover:bg-orange-100"
+                >
+                  Continuar sin validación
+                </Button>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -229,7 +266,7 @@ export function SimpleSISVerification({
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-green-500 text-green-600 hover:bg-green-50" 
+          className="w-full justify-center border-green-500 text-green-600 hover:bg-green-50" 
           onClick={() => handleVerifySIS(false)}
           disabled={isLoading}
         >

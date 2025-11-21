@@ -22,7 +22,7 @@ import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
 import { ReferenciaSelector } from "../selectors/ReferenciaSelector"
 import { ReferenciaProvider } from "@/contexts/ReferenciaContext"
 import { extractDocumentFromToken, extractNombreCompletoFromToken, extractPuestoFromToken } from "@/utils/jwtUtils"
-import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS } from "@/services/appointments/refconSyncService"
+import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS, actualizarEstadoRefcon } from "@/services/appointments/refconSyncService"
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { AppointmentCalendar } from "../utils/AppointmentCalendar"
@@ -69,8 +69,13 @@ function AdditionalAppointmentModalContent({
   const [referenciaIdSeleccionada, setReferenciaIdSeleccionada] = useState<string>("")
   const [eessOrigenReferencia, setEessOrigenReferencia] = useState<string>("")
   const [eessNombreOrigen, setEessNombreOrigen] = useState<string>("")
+  const [skipRefconSync, setSkipRefconSync] = useState(false) // Flag para omitir sincronización con REFCON (estados 5, 7, manual)
   const [selectedEntidadSis, setSelectedEntidadSis] = useState<string>("")
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
+  
+  // Estados para el resultado de sincronización REFCON
+  const [refconSyncSuccess, setRefconSyncSuccess] = useState(false)
+  const [refconSyncError, setRefconSyncError] = useState<string | null>(null)
   const [especialidadConsultorio, setEspecialidadConsultorio] = useState<string | null>(null)
   
   // Estados para el calendario
@@ -82,6 +87,9 @@ function AdditionalAppointmentModalContent({
   
   // Estado para el dialog de confirmación de conflicto de horario
   const [showTimeConflictDialog, setShowTimeConflictDialog] = useState(false)
+  // Estado para el dialog de error cuando no hay citas registradas en la fecha seleccionada
+  const [showNoSlotsDialog, setShowNoSlotsDialog] = useState(false)
+  const [noSlotsMessage, setNoSlotsMessage] = useState<string>("")
   
   // Estados para médicos disponibles
   const [availableMedicos, setAvailableMedicos] = useState<Array<{codigo: string, nombre: string}>>([])
@@ -336,6 +344,9 @@ function AdditionalAppointmentModalContent({
       // Ejemplo: "2025-11-15T00:00:00.000Z"
       const fechaISO = new Date(`${fecha}T00:00:00.000Z`).toISOString();
       
+      // Determinar si la referencia es manual o de REFCON
+      const esReferenciaManual = referenciaIdSeleccionada?.startsWith('manual-')
+      
       // Prepare request body
       const requestBody = {
         consultorio: consultorio,
@@ -347,10 +358,18 @@ function AdditionalAppointmentModalContent({
         observacion: observacion || '',
         seguro: tipoSeguro,
         numRef: referencia || '',
-        entidadSis: eessOrigenReferencia || selectedEntidadSis || ''
+        entidadSis: eessOrigenReferencia || selectedEntidadSis || '',
+        // Campos REFCON
+        idRefcon: esReferenciaManual ? 0 : (referenciaIdSeleccionada ? parseInt(referenciaIdSeleccionada) || 0 : 0),
+        // recibidoRefcon: 0=manual, 1=pendiente sync (fallido), 2=synced OK (por defecto), 3=reutilizada (estado 5 o 7)
+        // Inicialmente asumimos éxito (2), solo cambiamos a 1 si REFCON falla
+        recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2)
       }
       
       console.log('🚀 Enviando cita adicional:', requestBody)
+      
+      // Extraer el ID de la cita creada primero para poder actualizar REFCON después
+      // (En citas adicionales, necesitamos crear primero y luego actualizar REFCON)
       
       // Call the API
       const response = await fetch(`${apiBaseUrl}/cita/adicional`, {
@@ -381,15 +400,12 @@ function AdditionalAppointmentModalContent({
       if (!response.ok) {
         // Manejar errores específicos
         if (response.status === 409 && responseData.message) {
-          // Error de conflicto - Cita con solicitud pendiente
-          toast({
-            title: "Cita No Disponible",
-            description: responseData.message,
-            variant: "destructive"
-          })
+          // Error de conflicto - No hay citas registradas en la fecha seleccionada / no procede la cita adicional
+          setNoSlotsMessage(responseData.message)
+          setShowNoSlotsDialog(true)
           return
         }
-        
+
         // Otros errores
         const errorMessage = responseData.message || `Error al crear la cita: ${response.status}`
         toast({
@@ -414,8 +430,10 @@ function AdditionalAppointmentModalContent({
       
       console.log('✅ showSuccess establecido, el modal debería aparecer')
       
-      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS
-      if (referenciaIdSeleccionada && citaId && esSeguroSIS(tipoSeguro)) {
+      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
+      const esReferenciaManualSync = referenciaIdSeleccionada?.startsWith('manual-')
+      
+      if (referenciaIdSeleccionada && citaId && esSeguroSIS(tipoSeguro) && !esReferenciaManualSync && !skipRefconSync) {
         try {
           console.log('🔄 Iniciando sincronización con REFCON (Seguro SIS detectado)...')
           
@@ -446,19 +464,46 @@ function AdditionalAppointmentModalContent({
             
             if (syncResult.success) {
               console.log('✅ Cita sincronizada exitosamente con REFCON')
-              toast({
-                title: "✅ Sincronizado con REFCON",
-                description: "La cita ha sido sincronizada con el sistema de referencias.",
-                className: "bg-blue-50 border-blue-200 text-blue-800"
-              })
+              setRefconSyncSuccess(true)
+              setRefconSyncError(null)
+              // Estado REFCON 2 ya fue establecido al crear la cita, no se requiere actualización
             } else {
               console.warn('⚠️ Error al sincronizar con REFCON (no crítico):', syncResult.error)
+              setRefconSyncSuccess(false)
+              setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
+              
+              // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló
+              console.log('🔄 Actualizando estado REFCON a 1 (sincronización fallida)...')
+              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
+              if (estadoRefconResult.success) {
+                console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
+              } else {
+                console.warn('⚠️ No se pudo actualizar estado REFCON a 1:', estadoRefconResult.error)
+              }
             }
           }
         } catch (refconError) {
           console.error('❌ Error al sincronizar con REFCON:', refconError)
-          // No interrumpir el flujo si falla la sincronización con REFCON
+          setRefconSyncSuccess(false)
+          setRefconSyncError(refconError instanceof Error ? refconError.message : 'Error desconocido')
+          
+          // Actualizar estado REFCON a 1 por error
+          if (citaId) {
+            try {
+              console.log('🔄 Actualizando estado REFCON a 1 (error en sincronización)...')
+              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
+              if (estadoRefconResult.success) {
+                console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
+              }
+            } catch (updateError) {
+              console.warn('⚠️ No se pudo actualizar estado REFCON:', updateError)
+            }
+          }
         }
+      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {
+        console.log('ℹ️ Sincronización REFCON omitida: Referencia ingresada manualmente')
+      } else if (referenciaIdSeleccionada && skipRefconSync) {
+        console.log('ℹ️ Sincronización REFCON omitida: Referencia con estado RECIBIDO o CITADO (no requiere sincronización)')
       } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {
         console.log('ℹ️ Sincronización REFCON omitida: Seguro no es SIS (código:', tipoSeguro, ')')
       }
@@ -563,11 +608,19 @@ function AdditionalAppointmentModalContent({
   }
 
   const handleClose = () => {
-    if (showSuccess) {
-      // Reset form and close
-      setShowSuccess(false)
-      setCreatedAppointment(null)
-    }
+    // Limpiar todos los estados
+    setShowSuccess(false)
+    setCreatedAppointment(null)
+    setReferencia('')
+    setReferenciaIdSeleccionada('')
+    setSelectedEntidadSis('')
+    setEessOrigenReferencia('')
+    setEessNombreOrigen('')
+    setSkipRefconSync(false)
+    setSisVerificationResult(null)
+    setRefconSyncSuccess(false)
+    setRefconSyncError(null)
+    console.log('🧹 Estados de referencia limpiados al cerrar modal')
     onClose()
   }
 
@@ -695,6 +748,8 @@ function AdditionalAppointmentModalContent({
             <p className="text-gray-700">
               La cita adicional ha sido guardada correctamente.
             </p>
+
+            {/* Bloque con información de la cita creada */}
             {createdAppointment && (
               <div className="bg-green-50 p-4 rounded-lg space-y-2">
                 <p className="font-semibold text-green-800 text-lg mb-3">
@@ -714,19 +769,54 @@ function AdditionalAppointmentModalContent({
                 </div>
               </div>
             )}
-            <Button onClick={handleClose} className="w-full bg-green-600 hover:bg-green-700">
-              Aceptar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    )
+
+            {/* Resultado de sincronización con REFCON */}
+            {refconSyncSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 text-sm text-left">
+                <p className="font-semibold mb-1">Sincronización con REFCON</p>
+                <p>✅ La cita fue registrada exitosamente en el sistema de referencias (REFCON).</p>
+              </div>
+            )}
+
+            {!refconSyncSuccess && refconSyncError && (
+              <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left space-y-1">
+                <p className="font-semibold flex items-center gap-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  Sincronización con REFCON incompleta
+                </p>
+                <p>
+                  ✅ La cita fue creada correctamente en el sistema local, pero REFCON devolvió un error y no se pudo registrar allí.
+                </p>
+                <p className="text-xs text-orange-900">
+                  Por favor, informe al área responsable para que realicen la sincronización manual.
+                </p>
+                <details className="text-xs text-orange-900 mt-1">
+                  <summary className="cursor-pointer hover:text-orange-700">Ver detalles técnicos del error</summary>
+                  <pre className="mt-2 p-2 bg-orange-100 rounded overflow-auto max-h-32 whitespace-pre-wrap">
+                    {refconSyncError}
+                  </pre>
+                </details>
+              </div>
+            )}
+
+            {showNoSlotsDialog && (
+              <Dialog open={true} onOpenChange={() => setShowNoSlotsDialog(false)}>
+                <DialogContent className="sm:max-w-md">
+                  <div className="flex flex-col items-center justify-center py-4 text-center space-y-4">
+                    <AlertCircle className="h-14 w-14 text-orange-500" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {noSlotsMessage}
+                      </h3>
+                      <p className="text-gray-600 mt-1">
+                        No hay citas registradas en la fecha seleccionada. No procede la cita adicional.
+                      </p>
   }
 
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-6xl max-h-[90vh] overflow-y-auto"
+        className="max-w-6xl h-[90vh] overflow-hidden flex flex-col"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -747,6 +837,8 @@ function AdditionalAppointmentModalContent({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Contenido con scroll */}
+        <div className="flex-1 overflow-y-auto min-h-0">
         {/* Advertencias */}
         <div className="space-y-3 mb-4">
           {(hasConsultorioMatch || hasEspecialidadMatch) && (
@@ -1074,7 +1166,9 @@ function AdditionalAppointmentModalContent({
                     <>
                       <ReferenciaSelector
                         numeroDocumento={patient?.DOCUMENTO || ''}
-                        tipoDocumento={patient?.TIPO_DOCUMENTO === 'D' || patient?.TIPO_DOCUMENTO === 'DNI' ? '1' : '2'}
+                        tipoDocumento={
+                          patient?.TIPO_DOCUMENTO === 'CE' || patient?.TIPO_DOCUMENTO === 'C' ? '2' : '1'
+                        }
                         especialidadCodigo={especialidadConsultorio || undefined}
                         value={referenciaIdSeleccionada}
                         onChange={async (refData) => {
@@ -1082,26 +1176,32 @@ function AdditionalAppointmentModalContent({
                           setReferencia(refData.numeroReferencia)
                           setReferenciaIdSeleccionada(refData.idReferencia)
                           
+                          // Guardar flag de sincronización con REFCON
+                          setSkipRefconSync(refData.skipRefconSync || false)
+                          console.log('🔄 Skip REFCON Sync:', refData.skipRefconSync, '(Estado:', refData.codigoEstado, ')')
+                          
                           // Obtener nombre de la entidad SIS desde la API
                           if (refData.codigoestablecimientoOrigen) {
                             console.log('🔍 Obteniendo nombre de entidad SIS para código:', refData.codigoestablecimientoOrigen)
+                            
+                            // Actualizar inmediatamente el código del establecimiento
+                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                            setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                            console.log('✅ selectedEntidadSis actualizado a:', refData.codigoestablecimientoOrigen)
+                            
                             const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                             if (result.success && result.data) {
                               console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
                               setEessNombreOrigen(result.data.NOMBRE)
-                              setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
-                              // Actualizar entidad SIS después de obtener el nombre
-                              console.log('🏥 Actualizando selectedEntidadSis a:', refData.codigoestablecimientoOrigen)
-                              setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
                             } else {
                               console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
-                              setEessNombreOrigen(refData.establecimientoOrigen)
-                              setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
-                              setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
+                              setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
                             }
                           } else {
-                            setEessNombreOrigen(refData.establecimientoOrigen)
-                            setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
+                            // Si no hay código, usar el nombre que viene de la referencia
+                            setEessNombreOrigen(refData.establecimientoOrigen || '')
+                            setEessOrigenReferencia('')
+                            setSelectedEntidadSis('')
                           }
                         }}
                         onEessChange={(eess) => {
@@ -1110,7 +1210,6 @@ function AdditionalAppointmentModalContent({
                         }}
                       />
                       <EntidadSisSelector
-                        key={sisVerificationResult?.eess || eessOrigenReferencia || 'entidad-sis-selector'}
                         value={selectedEntidadSis}
                         onChange={setSelectedEntidadSis}
                         required={true}
@@ -1133,9 +1232,10 @@ function AdditionalAppointmentModalContent({
             {/* Botón para ver citas pendientes del paciente - removido desde aquí, ahora está dentro de la tarjeta de info */}
           </div>
         </div>
+        </div>
 
         {/* Action Buttons - Below both panels */}
-        <div className="flex justify-end space-x-3 pt-6 mt-4 border-t">
+        <div className="flex justify-end space-x-3 pt-4 mt-4 border-t flex-shrink-0">
           <Button
             variant="outline"
             onClick={onClose}
@@ -1315,6 +1415,7 @@ function AdditionalAppointmentModalContent({
           </DialogFooter>
         </DialogContent>
         </Dialog>
+
       </Dialog>
   )
 }

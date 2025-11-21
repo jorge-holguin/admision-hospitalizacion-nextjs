@@ -384,7 +384,7 @@ export const medicoServerService = {
       const colesp = String(data.COLESP || "").substring(0, 50); // COLESP varchar(50)
       const dni = String(data.DNI).substring(0, 8); // DNI varchar(8)
       const codhis = String(data.CODHIS || "").substring(0, 11); // CODHIS varchar(11)
-      const eess = String(data.EESS || "00000005947").substring(0, 10); // EESS char(10)
+      const eess = String(data.EESS || "0000005947").substring(0, 10); // EESS char(10)
       const contrato = String(data.CONTRATO || "NINGUNO").substring(0, 100); // CONTRATO varchar(100)
       const impcita = String(data.IMPCITA || "N").substring(0, 1); // IMPCITA varchar(1)
       const profesionColegio = (data.PROFESION_COLEGIO && String(data.PROFESION_COLEGIO).trim() !== "") 
@@ -561,7 +561,7 @@ export const medicoServerService = {
       // Aplicar límites exactos de la tabla MEDICO
       const nombre = String(data.NOMBRE || existing.NOMBRE).substring(0, 50); // varchar(50)
       const dni = String(data.DNI || existing.DNI || "").substring(0, 8); // varchar(8)
-      const eess = String(data.EESS || existing.EESS || "00000005947").substring(0, 10); // char(10)
+      const eess = String(data.EESS || existing.EESS || "0000005947").substring(0, 10); // char(10)
       const abreviatura = String(data.ABREVIATURA || existing.ABREVIATURA || "MED").substring(0, 3); // varchar(3)
       const colegio = String(data.COLEGIO || existing.COLEGIO || "").substring(0, 10); // varchar(10)
       const colesp = String(data.COLESP || existing.COLESP || "").substring(0, 50); // varchar(50)

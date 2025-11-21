@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { extractPuestoFromToken } from "@/utils/jwtUtils";
 
@@ -24,40 +24,59 @@ export default function RoleBasedRoute({
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Memoizar roles permitidos para evitar recalcular en cada render
+  const allowedRolesSet = useMemo(() => 
+    new Set(allowedRoles.map(r => r.toUpperCase())),
+    [allowedRoles]
+  );
 
   useEffect(() => {
+    // Solo ejecutar verificación una vez al montar el componente
+    let isMounted = true;
+    
     const checkAccess = () => {
       const puesto = extractPuestoFromToken();
       
-      console.log('🔐 Verificando acceso a ruta protegida:');
-      console.log('   - Módulo:', moduleName);
-      console.log('   - Puesto del usuario:', puesto);
-      console.log('   - Roles permitidos:', allowedRoles);
+      // Solo logear en desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 Verificando acceso a ruta protegida:', moduleName);
+      }
       
       if (!puesto) {
-        console.warn('⚠️ No se pudo obtener el puesto del usuario');
-        router.push(redirectTo);
+        if (isMounted) {
+          console.warn('⚠️ No se pudo obtener el puesto del usuario');
+          router.push(redirectTo);
+        }
         return;
       }
 
-      const hasAccess = allowedRoles.some(role => 
-        role.toUpperCase() === puesto.toUpperCase()
-      );
+      const hasAccess = allowedRolesSet.has(puesto.toUpperCase());
 
       if (!hasAccess) {
-        console.error(`❌ Acceso denegado. El puesto "${puesto}" no tiene permisos para ${moduleName}`);
-        alert(`Acceso Denegado\n\nNo tiene permisos para acceder a ${moduleName}.\n\nPuesto actual: ${puesto}\nPuestos autorizados: ${allowedRoles.join(', ')}`);
-        router.push(redirectTo);
+        if (isMounted) {
+          console.error(`❌ Acceso denegado. El puesto "${puesto}" no tiene permisos para ${moduleName}`);
+          alert(`Acceso Denegado\n\nNo tiene permisos para acceder a ${moduleName}.\n\nPuesto actual: ${puesto}\nPuestos autorizados: ${allowedRoles.join(', ')}`);
+          router.push(redirectTo);
+        }
         return;
       }
 
-      console.log(`✅ Acceso autorizado para ${moduleName}`);
-      setIsAuthorized(true);
-      setIsLoading(false);
+      if (isMounted) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Acceso autorizado para ${moduleName}`);
+        }
+        setIsAuthorized(true);
+        setIsLoading(false);
+      }
     };
 
     checkAccess();
-  }, [router, allowedRoles, redirectTo, moduleName]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);  // ✅ Solo ejecutar al montar, sin dependencias
 
   if (isLoading) {
     return (

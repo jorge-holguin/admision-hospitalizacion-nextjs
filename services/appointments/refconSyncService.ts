@@ -180,3 +180,48 @@ export function getTipoDocumentoRefcon(tipoDoc: string): string {
   if (tipoDoc === 'CE' || tipoDoc === 'C') return '2'
   return tipoDoc
 }
+
+/**
+ * Actualiza el estado de REFCON para una cita
+ * Estados:
+ * 0 — Validación manual: La referencia no fue validada con REFCON
+ * 1 — API consultada, pendiente: Se consumió la API, pero el estado aún no se actualiza (REFCON falló)
+ * 2 — Validado y actualizado: REFCON validó correctamente y el estado de la referencia fue cambiado
+ * 3 — Validado pero con referencia reutilizada: REFCON validó, pero la referencia ya estaba CITADA o RECIBIDA
+ */
+export async function actualizarEstadoRefcon(citaId: string, estadoRefcon: number): Promise<{
+  success: boolean
+  error?: string
+  data?: any
+}> {
+  try {
+    console.log(`🔄 Actualizando estado REFCON para cita ${citaId} a estado: ${estadoRefcon}`)
+
+    const response = await fetch(`${API_REFCON_CITA_URL}/cita/${citaId}/refcon-estado?estadoRefcon=${estadoRefcon}`, {
+      method: 'PUT',
+      headers: {
+        'accept': '*/*',
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Error actualizando estado REFCON:', errorText)
+      throw new Error(`Error ${response.status}: ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('✅ Estado REFCON actualizado exitosamente:', data)
+
+    return {
+      success: true,
+      data
+    }
+  } catch (error) {
+    console.error('❌ Error al actualizar estado REFCON:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido al actualizar estado REFCON'
+    }
+  }
+}

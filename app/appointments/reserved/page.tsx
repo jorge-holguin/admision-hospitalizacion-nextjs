@@ -656,7 +656,8 @@ export default function ReservedAppointmentsPage() {
             headers: {
               'Content-Type': 'application/json',
               'usuario': usuarioApellido
-            }
+            },
+            body: JSON.stringify(`Reversión de solicitud: ${motivoReversion}`)
           })
           
           if (!liberarResponse.ok) {
