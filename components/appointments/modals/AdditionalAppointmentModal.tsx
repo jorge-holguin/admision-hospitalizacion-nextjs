@@ -87,9 +87,6 @@ function AdditionalAppointmentModalContent({
   
   // Estado para el dialog de confirmación de conflicto de horario
   const [showTimeConflictDialog, setShowTimeConflictDialog] = useState(false)
-  // Estado para el dialog de error cuando no hay citas registradas en la fecha seleccionada
-  const [showNoSlotsDialog, setShowNoSlotsDialog] = useState(false)
-  const [noSlotsMessage, setNoSlotsMessage] = useState<string>("")
   
   // Estados para médicos disponibles
   const [availableMedicos, setAvailableMedicos] = useState<Array<{codigo: string, nombre: string}>>([])
@@ -400,12 +397,15 @@ function AdditionalAppointmentModalContent({
       if (!response.ok) {
         // Manejar errores específicos
         if (response.status === 409 && responseData.message) {
-          // Error de conflicto - No hay citas registradas en la fecha seleccionada / no procede la cita adicional
-          setNoSlotsMessage(responseData.message)
-          setShowNoSlotsDialog(true)
+          // Error de conflicto - Cita con solicitud pendiente
+          toast({
+            title: "Cita No Disponible",
+            description: responseData.message,
+            variant: "destructive"
+          })
           return
         }
-
+        
         // Otros errores
         const errorMessage = responseData.message || `Error al crear la cita: ${response.status}`
         toast({
@@ -799,18 +799,13 @@ function AdditionalAppointmentModalContent({
               </div>
             )}
 
-            {showNoSlotsDialog && (
-              <Dialog open={true} onOpenChange={() => setShowNoSlotsDialog(false)}>
-                <DialogContent className="sm:max-w-md">
-                  <div className="flex flex-col items-center justify-center py-4 text-center space-y-4">
-                    <AlertCircle className="h-14 w-14 text-orange-500" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {noSlotsMessage}
-                      </h3>
-                      <p className="text-gray-600 mt-1">
-                        No hay citas registradas en la fecha seleccionada. No procede la cita adicional.
-                      </p>
+            <Button onClick={handleClose} className="w-full bg-green-600 hover:bg-green-700">
+              Aceptar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
