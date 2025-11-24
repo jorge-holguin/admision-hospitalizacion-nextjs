@@ -96,6 +96,9 @@ function AdditionalAppointmentModalContent({
   // Estado para expandir/contraer calendario
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false)
   
+  // Estado para controlar si la fecha está confirmada (desbloquea PASO 4)
+  const [isFechaConfirmed, setIsFechaConfirmed] = useState(false)
+  
   // Verificar si el usuario es DEVOPS
   const userPuesto = extractPuestoFromToken()
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
@@ -108,9 +111,9 @@ function AdditionalAppointmentModalContent({
     if (isOpen && patient) {
       // Set today's date
       const today = new Date()
-      const todayString = today.toISOString().split('T')[0]
-      setFecha(todayString)
       setSelectedCalendarDate(today)
+      setIsFechaConfirmed(true) // Fecha inicial confirmada
+      setFecha(today.toISOString().split('T')[0])
       
       // Set default seguro from patient data
       if (patient.SEGURO) {
@@ -221,6 +224,7 @@ function AdditionalAppointmentModalContent({
       setSelectedCalendarDate(date)
       const dateString = date.toISOString().split('T')[0]
       setFecha(dateString)
+      setIsFechaConfirmed(true) // ✅ Auto-confirmar cuando se selecciona del calendario
     }
   }
 
@@ -945,9 +949,8 @@ function AdditionalAppointmentModalContent({
                       value={consultorio}
                       onChange={(value) => {
                         setConsultorio(value)
-                        // Resetear campos dependientes
+                        // Resetear campos dependientes (mantener fecha seleccionada)
                         setTurno("")
-                        setFecha("")
                         setMedico("")
                         setDatesWithAppointments([])
                         setDatesWithoutAppointments([])
@@ -987,8 +990,7 @@ function AdditionalAppointmentModalContent({
                         value={turno}
                         onChange={(value) => {
                           setTurno(value)
-                          // Resetear campos dependientes
-                          setFecha("")
+                          // Resetear campos dependientes (mantener fecha seleccionada)
                           setMedico("")
                           setDatesWithAppointments([])
                           setDatesWithoutAppointments([])
@@ -997,12 +999,12 @@ function AdditionalAppointmentModalContent({
                     )}
                   </div>
 
-                  {/* PASO 3: Calendario de Fechas */}
+                  {/* PASO 3: Fecha de la Cita (Calendario + Entrada Manual) */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          consultorio && turno ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
+                          consultorio && turno && isFechaConfirmed ? 'bg-blue-600 text-white' : consultorio && turno ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
                         }`}>3</div>
                         <Label className="text-sm font-medium text-gray-700">Fecha de la Cita <span className="text-red-500">*</span></Label>
                       </div>
@@ -1034,7 +1036,7 @@ function AdditionalAppointmentModalContent({
                         </Button>
                       </div>
                     </div>
-                    
+
                     {!consultorio || !turno ? (
                       <div className="border rounded-lg p-3 bg-gray-100">
                         <p className="text-sm text-gray-500 text-center">
@@ -1043,54 +1045,81 @@ function AdditionalAppointmentModalContent({
                       </div>
                     ) : (
                       <>
-                        {/* Vista compacta: solo fecha seleccionada */}
+                        {/* Vista compacta: entrada manual rápida (sin botón de confirmación) */}
                         {!isCalendarExpanded && (
                           <div className="border rounded-lg p-2.5 bg-gray-50">
-                            <div className="text-sm text-gray-700">
-                              <span className="font-medium">Fecha:</span>
-                              <div className="mt-0.5 text-sm font-semibold text-blue-600">
-                                {selectedCalendarDate ? selectedCalendarDate.toLocaleDateString('es-PE', { 
-                                  weekday: 'short', 
-                                  year: 'numeric', 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                }) : 'No seleccionada'}
-                              </div>
-                            </div>
+                            <Input
+                              type="date"
+                              value={fecha}
+                              onChange={(e) => {
+                                const newDate = e.target.value
+                                setFecha(newDate)
+                                if (newDate) {
+                                  const dateObj = new Date(newDate + 'T00:00:00')
+                                  setSelectedCalendarDate(dateObj)
+                                  setIsFechaConfirmed(true) // Auto-confirmar al cambiar fecha manualmente
+                                } else {
+                                  setIsFechaConfirmed(false)
+                                }
+                              }}
+                              className="w-full"
+                              min={showPastDates ? undefined : new Date().toISOString().split('T')[0]}
+                            />
                           </div>
                         )}
-                      </>
-                    )}
-                    
-                    {/* Vista expandida: calendario completo */}
-                    {isCalendarExpanded && consultorio && turno && (
-                      <>
-                        <div className="border rounded-lg overflow-hidden">
-                          <AppointmentCalendar
-                            selectedDate={selectedCalendarDate}
-                            onDateSelect={handleCalendarDateSelect}
-                            className="border-0 rounded-none"
-                            datesWithAppointments={datesWithAppointments}
-                            datesWithoutAvailability={datesWithoutAppointments}
-                            disablePastDates={!showPastDates}
-                          />
-                        </div>
-                        
-                        {consultorio && turno && (datesWithAppointments.length > 0 || datesWithoutAppointments.length > 0) && (
-                          <div className="mt-2 p-1.5 bg-gray-50 rounded text-xs text-gray-600 space-y-0.5">
-                            {datesWithAppointments.length > 0 && (
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 bg-green-100 border border-green-300 rounded"></div>
-                                <span>Días con citas ({datesWithAppointments.length})</span>
+
+                        {/* Vista expandida: calendario completo + entrada manual */}
+                        {isCalendarExpanded && (
+                          <>
+                            <div className="border rounded-lg overflow-hidden">
+                              <AppointmentCalendar
+                                selectedDate={selectedCalendarDate}
+                                onDateSelect={handleCalendarDateSelect}
+                                className="border-0 rounded-none"
+                                datesWithAppointments={datesWithAppointments}
+                                datesWithoutAvailability={datesWithoutAppointments}
+                                disablePastDates={!showPastDates}
+                              />
+                            </div>
+
+                            {/* Input manual vinculado a la misma fecha (sin botón de confirmación) */}
+                            <div className="mt-3">
+                              <Input
+                                type="date"
+                                value={fecha}
+                                onChange={(e) => {
+                                  const newDate = e.target.value
+                                  setFecha(newDate)
+                                  if (newDate) {
+                                    const dateObj = new Date(newDate + 'T00:00:00')
+                                    setSelectedCalendarDate(dateObj)
+                                    setIsFechaConfirmed(true) // Auto-confirmar también en modo expandido
+                                  } else {
+                                    setIsFechaConfirmed(false)
+                                  }
+                                }}
+                                className="w-full"
+                                min={showPastDates ? undefined : new Date().toISOString().split('T')[0]}
+                              />
+                            </div>
+
+                            {consultorio && turno && (datesWithAppointments.length > 0 || datesWithoutAppointments.length > 0) && (
+                              <div className="mt-2 p-1.5 bg-gray-50 rounded text-xs text-gray-600 space-y-0.5">
+                                {datesWithAppointments.length > 0 && (
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 bg-green-100 border border-green-300 rounded"></div>
+                                    <span>Días con citas ({datesWithAppointments.length})</span>
+                                  </div>
+                                )}
+                                {datesWithoutAppointments.length > 0 && (
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 bg-red-100 border border-red-300 rounded"></div>
+                                    <span>Sin citas - Adicional permitido ({datesWithoutAppointments.length})</span>
+                                  </div>
+                                )}
                               </div>
                             )}
-                            {datesWithoutAppointments.length > 0 && (
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 bg-red-100 border border-red-300 rounded"></div>
-                                <span>Sin citas - Adicional permitido ({datesWithoutAppointments.length})</span>
-                              </div>
-                            )}
-                          </div>
+                          </>
                         )}
                       </>
                     )}
@@ -1108,7 +1137,7 @@ function AdditionalAppointmentModalContent({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          consultorio && turno && fecha ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
+                          consultorio && turno && isFechaConfirmed ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
                         }`}>4</div>
                         <Label className="text-sm font-medium text-gray-700">
                           Médico <span className="text-red-500">*</span>
@@ -1128,7 +1157,7 @@ function AdditionalAppointmentModalContent({
                         )}
                       </div>
                     </div>
-                    {(!consultorio || !turno || !fecha) ? (
+                    {(!consultorio || !turno || !isFechaConfirmed) ? (
                       <div className="border rounded-lg p-3 bg-gray-100">
                         <p className="text-sm text-gray-500 text-center">Primero complete consultorio, turno y fecha</p>
                       </div>
