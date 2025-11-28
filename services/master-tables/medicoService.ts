@@ -42,6 +42,10 @@ function normalizeMedico(row: any): Medico {
     TIPO_DOCUMENTO: row.TIPO_DOCUMENTO?.toString?.() ?? row.TIPO_DOCUMENTO,
     PAIS: row.PAIS?.toString?.() ?? row.PAIS,
     USUARIO: row.USUARIO?.toString?.() ?? row.USUARIO,
+    CORREO: row.CORREO?.toString?.() ?? row.CORREO,
+    TELEFONO: row.TELEFONO?.toString?.() ?? row.TELEFONO,
+    COLESP2: row.COLESP2?.toString?.() ?? row.COLESP2,
+    COLESP3: row.COLESP3?.toString?.() ?? row.COLESP3,
   } as Medico;
 }
 
@@ -81,6 +85,10 @@ export interface Medico {
   TIPO_DOCUMENTO?: string;
   PAIS?: string;
   USUARIO?: string;
+  CORREO?: string;
+  TELEFONO?: string;
+  COLESP2?: string;
+  COLESP3?: string;
   [key: string]: any;
 }
 
@@ -130,6 +138,7 @@ export const medicoServerService = {
               M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
               M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               M.NOMBRES, M.APATERNO, M.AMATERNO, M.TIPO_DOCUMENTO, M.PAIS, M.USUARIO,
+              M.CORREO, M.TELEFONO, M.COLESP2, M.COLESP3,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
@@ -164,6 +173,7 @@ export const medicoServerService = {
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
               M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               M.NOMBRES, M.APATERNO, M.AMATERNO, M.TIPO_DOCUMENTO, M.PAIS, M.USUARIO,
+              M.CORREO, M.TELEFONO, M.COLESP2, M.COLESP3,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
@@ -196,6 +206,7 @@ export const medicoServerService = {
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
               M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               M.NOMBRES, M.APATERNO, M.AMATERNO, M.TIPO_DOCUMENTO, M.PAIS, M.USUARIO,
+              M.CORREO, M.TELEFONO, M.COLESP2, M.COLESP3,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
@@ -228,6 +239,7 @@ export const medicoServerService = {
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
               M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               M.NOMBRES, M.APATERNO, M.AMATERNO, M.TIPO_DOCUMENTO, M.PAIS, M.USUARIO,
+              M.CORREO, M.TELEFONO, M.COLESP2, M.COLESP3,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
@@ -258,6 +270,7 @@ export const medicoServerService = {
               M.ID_MEDICO, M.MEDICO, M.NOMBRE, M.DNI, M.EESS, M.ABREVIATURA, M.COLEGIO, M.COLESP,
               M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO, M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2,
               M.NOMBRES, M.APATERNO, M.AMATERNO, M.TIPO_DOCUMENTO, M.PAIS, M.USUARIO,
+              M.CORREO, M.TELEFONO, M.COLESP2, M.COLESP3,
               C.NOMBRE AS CONSULTORIO_NOMBRE,
               E.NOMBRE AS ESPECIALIDAD_NOMBRE,
               P.Profesion AS PROFESION_NOMBRE,
@@ -306,6 +319,7 @@ export const medicoServerService = {
           M.ESPECIALIDAD, M.CONSULTORIO, M.CODHIS, M.CONTRATO, M.ACTIVO, M.IMPCITA, M.PROFESION_COLEGIO,
           M.FECHNAC, M.GENERO, M.ESPECIALIDAD2, M.CONSULTORIO2, M.PROFESION_COLEGIO2, M.USUARIO,
           M.NOMBRES, M.APATERNO, M.AMATERNO, M.TIPO_DOCUMENTO, M.PAIS,
+          M.CORREO, M.TELEFONO, M.COLESP2, M.COLESP3,
           C.NOMBRE AS CONSULTORIO_NOMBRE,
           E.NOMBRE AS ESPECIALIDAD_NOMBRE,
           P.Profesion AS PROFESION_NOMBRE,
@@ -449,11 +463,17 @@ export const medicoServerService = {
       const tipoDocumento = data.TIPO_DOCUMENTO ? String(data.TIPO_DOCUMENTO).substring(0, 3) : "D"; // TIPO_DOCUMENTO varchar(3) - "D" para DNI, "CE" para Carnet de Extranjería
       const pais = data.PAIS ? String(data.PAIS).substring(0, 3) : "146"; // PAIS char(3) - 146 = Perú
       
+      // Nuevos campos
+      const correo = data.CORREO ? String(data.CORREO).substring(0, 150) : null; // CORREO varchar(150)
+      const telefono = data.TELEFONO ? String(data.TELEFONO).substring(0, 20) : null; // TELEFONO varchar(20)
+      const colesp2 = data.COLESP2 ? String(data.COLESP2).substring(0, 50) : null; // COLESP2 varchar(50)
+      const colesp3 = data.COLESP3 ? String(data.COLESP3).substring(0, 50) : null; // COLESP3 varchar(50)
+      
       // Try inserting fields one by one to identify which one causes truncation
       try {
         // Insert the new medico with more conservative field lengths
         await prisma.$executeRaw`
-          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO,FECHNAC,GENERO,ESPECIALIDAD2,CONSULTORIO2,PROFESION_COLEGIO2,USUARIO,NOMBRES,APATERNO,AMATERNO,TIPO_DOCUMENTO,PAIS) 
+          INSERT INTO Medico(MEDICO,NOMBRE,COLEGIO,ESPECIALIDAD,ABREVIATURA,CONSULTORIO,ACTIVO,COLESP,DNI,CODHIS,EESS,CONTRATO,IMPCITA,PROFESION_COLEGIO,FECHNAC,GENERO,ESPECIALIDAD2,CONSULTORIO2,PROFESION_COLEGIO2,USUARIO,NOMBRES,APATERNO,AMATERNO,TIPO_DOCUMENTO,PAIS,CORREO,TELEFONO,COLESP2,COLESP3) 
           VALUES(
             ${medicoCode}, 
             ${nombre}, 
@@ -479,7 +499,11 @@ export const medicoServerService = {
             ${apaterno},
             ${amaterno},
             ${tipoDocumento},
-            ${pais}
+            ${pais},
+            ${correo},
+            ${telefono},
+            ${colesp2},
+            ${colesp3}
           )
         `;
       } catch (error) {
@@ -527,7 +551,11 @@ export const medicoServerService = {
         APATERNO: apaterno || "",
         AMATERNO: amaterno || "",
         TIPO_DOCUMENTO: tipoDocumento || "D",
-        PAIS: pais || "146"
+        PAIS: pais || "146",
+        CORREO: correo || "",
+        TELEFONO: telefono || "",
+        COLESP2: colesp2 || "",
+        COLESP3: colesp3 || ""
       };
     } catch (error) {
       console.error('Error in medicoServerService.createMedico:', error);
@@ -640,6 +668,20 @@ export const medicoServerService = {
         ? String(data.PAIS).substring(0, 3)
         : (existing.PAIS ? String(existing.PAIS).substring(0, 3) : "146"); // PAIS char(3)
       
+      // Nuevos campos
+      const correo = data.CORREO !== undefined
+        ? (data.CORREO ? String(data.CORREO).substring(0, 150) : null)
+        : (existing.CORREO ? String(existing.CORREO).substring(0, 150) : null); // CORREO varchar(150)
+      const telefono = data.TELEFONO !== undefined
+        ? (data.TELEFONO ? String(data.TELEFONO).substring(0, 20) : null)
+        : (existing.TELEFONO ? String(existing.TELEFONO).substring(0, 20) : null); // TELEFONO varchar(20)
+      const colesp2 = data.COLESP2 !== undefined
+        ? (data.COLESP2 ? String(data.COLESP2).substring(0, 50) : null)
+        : (existing.COLESP2 ? String(existing.COLESP2).substring(0, 50) : null); // COLESP2 varchar(50)
+      const colesp3 = data.COLESP3 !== undefined
+        ? (data.COLESP3 ? String(data.COLESP3).substring(0, 50) : null)
+        : (existing.COLESP3 ? String(existing.COLESP3).substring(0, 50) : null); // COLESP3 varchar(50)
+      
       // Update the medico
       await prisma.$executeRaw`
         UPDATE MEDICO 
@@ -666,7 +708,11 @@ export const medicoServerService = {
             APATERNO = ${apaterno},
             AMATERNO = ${amaterno},
             TIPO_DOCUMENTO = ${tipoDocumento},
-            PAIS = ${pais}
+            PAIS = ${pais},
+            CORREO = ${correo},
+            TELEFONO = ${telefono},
+            COLESP2 = ${colesp2},
+            COLESP3 = ${colesp3}
         WHERE MEDICO = ${id}
       `;
 

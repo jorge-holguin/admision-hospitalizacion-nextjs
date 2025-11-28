@@ -80,7 +80,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     PROFESION_COLEGIO2: "",
     TIPO_DOCUMENTO: "D",
     PAIS: "146",
-    USUARIO: extractDocumentFromToken() || ""
+    USUARIO: extractDocumentFromToken() || "",
+    CORREO: "",
+    TELEFONO: "",
+    COLESP2: "",
+    COLESP3: ""
   });
 
   // Catálogos / UI
@@ -100,6 +104,10 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const [especialidad2Open, setEspecialidad2Open] = useState(false);
   const [consultorio2Open, setConsultorio2Open] = useState(false);
   const [loadingConsultorios2, setLoadingConsultorios2] = useState(false);
+
+  // Checkboxes para especialidades adicionales
+  const [tieneSegundaEspecialidadColegio, setTieneSegundaEspecialidadColegio] = useState(false);
+  const [tieneTerceraEspecialidadColegio, setTieneTerceraEspecialidadColegio] = useState(false);
 
   // Mount: cargar especialidades
   useEffect(() => {
@@ -187,8 +195,20 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         PROFESION_COLEGIO2: medico.PROFESION_COLEGIO2 || "",
         TIPO_DOCUMENTO: medico.TIPO_DOCUMENTO || "D",
         PAIS: medico.PAIS || "146",
-        USUARIO: medico.USUARIO || extractDocumentFromToken() || ""
+        USUARIO: medico.USUARIO || extractDocumentFromToken() || "",
+        CORREO: medico.CORREO || "",
+        TELEFONO: medico.TELEFONO || "",
+        COLESP2: medico.COLESP2 || "",
+        COLESP3: medico.COLESP3 || ""
       });
+
+      // Detectar si hay segunda o tercera especialidad de colegio
+      if (medico.COLESP2 && medico.COLESP2.trim() !== "") {
+        setTieneSegundaEspecialidadColegio(true);
+      }
+      if (medico.COLESP3 && medico.COLESP3.trim() !== "") {
+        setTieneTerceraEspecialidadColegio(true);
+      }
 
       // Cargar consultorios para mostrar el nombre
       if (medico.ESPECIALIDAD) {
@@ -334,6 +354,25 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     setTieneSegundaEspecialidad(isChecked);
     if (!isChecked) {
       setFormData(prev => ({ ...prev, ESPECIALIDAD2: "0", CONSULTORIO2: "0", PROFESION_COLEGIO2: "" }));
+    }
+  };
+
+  const handleSegundaEspecialidadColegioChange = (checked: boolean | "indeterminate") => {
+    const isChecked = checked === true;
+    setTieneSegundaEspecialidadColegio(isChecked);
+    if (!isChecked) {
+      setFormData(prev => ({ ...prev, COLESP2: "" }));
+      // Si se desmarca la segunda, también desmarcar la tercera
+      setTieneTerceraEspecialidadColegio(false);
+      setFormData(prev => ({ ...prev, COLESP3: "" }));
+    }
+  };
+
+  const handleTerceraEspecialidadColegioChange = (checked: boolean | "indeterminate") => {
+    const isChecked = checked === true;
+    setTieneTerceraEspecialidadColegio(isChecked);
+    if (!isChecked) {
+      setFormData(prev => ({ ...prev, COLESP3: "" }));
     }
   };
 
@@ -568,6 +607,37 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             </select>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="CORREO" className="flex items-center">
+              <User className="mr-2 h-4 w-4" /> Correo Electrónico
+            </Label>
+            <Input
+              id="CORREO"
+              name="CORREO"
+              type="email"
+              value={formData.CORREO}
+              onChange={handleChange}
+              placeholder="ejemplo@correo.com"
+              maxLength={150}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="TELEFONO" className="flex items-center">
+              <User className="mr-2 h-4 w-4" /> Teléfono
+            </Label>
+            <Input
+              id="TELEFONO"
+              name="TELEFONO"
+              type="tel"
+              value={formData.TELEFONO}
+              onChange={handleChange}
+              placeholder="999999999"
+              maxLength={20}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Información Profesional */}
@@ -576,6 +646,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <Award className="mr-2 h-5 w-5" /> Información Profesional
         </h3>
 
+        {/* Fila 1: Abreviatura, Colegiatura, Profesión */}
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="ABREVIATURA" className="flex items-center">
@@ -625,6 +696,21 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
+            <Label className="flex items-center">
+              <Briefcase className="mr-2 h-4 w-4" /> Profesión
+            </Label>
+            <ProfesionColegioSelector
+              value={formData.PROFESION_COLEGIO}
+              onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO: value }))}
+              label=""
+              required={false}
+            />
+          </div>
+        </div>
+
+        {/* Fila 2: Col. Especialidad, 2da y 3ra Especialidad */}
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="space-y-2">
             <Label htmlFor="COLESP" className="flex items-center">
               <Stethoscope className="mr-2 h-4 w-4" /> Col. Especialidad
             </Label>
@@ -634,8 +720,61 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               value={formData.COLESP}
               onChange={handleChange}
               placeholder="Ej: 787878"
-              maxLength={20}
+              maxLength={50}
             />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="tieneSegundaEspecialidadColegio"
+                checked={tieneSegundaEspecialidadColegio}
+                onCheckedChange={handleSegundaEspecialidadColegioChange}
+              />
+              <Label
+                htmlFor="tieneSegundaEspecialidadColegio"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                2da Especialidad
+              </Label>
+            </div>
+            {tieneSegundaEspecialidadColegio && (
+              <Input
+                id="COLESP2"
+                name="COLESP2"
+                value={formData.COLESP2}
+                onChange={handleChange}
+                placeholder="Ej: 787879"
+                maxLength={50}
+              />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="tieneTerceraEspecialidadColegio"
+                checked={tieneTerceraEspecialidadColegio}
+                onCheckedChange={handleTerceraEspecialidadColegioChange}
+                disabled={!tieneSegundaEspecialidadColegio}
+              />
+              <Label
+                htmlFor="tieneTerceraEspecialidadColegio"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                3ra Especialidad
+              </Label>
+            </div>
+            {tieneTerceraEspecialidadColegio && (
+              <Input
+                id="COLESP3"
+                name="COLESP3"
+                value={formData.COLESP3}
+                onChange={handleChange}
+                placeholder="Ej: 787880"
+                maxLength={50}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -646,8 +785,8 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <Stethoscope className="mr-2 h-5 w-5" /> Especialidad y Área
         </h3>
 
-        {/* === Fila de 3 columnas (principal) === */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* === Fila de 2 columnas (principal) === */}
+        <div className="grid grid-cols-2 gap-4">
           {/* Especialidad principal */}
           <div className="space-y-2">
             <Label className="flex items-center">
@@ -757,17 +896,6 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               </PopoverContent>
             </Popover>
           </div>
-
-          {/* Profesión principal (3ra columna) */}
-          <div className="space-y-2">
-            <Label className="flex items-center">Profesión</Label>
-            <ProfesionColegioSelector
-              value={formData.PROFESION_COLEGIO}
-              onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO: value }))}
-              label=""
-              required={false}
-            />
-          </div>
         </div>
 
         {/* Checkbox segunda especialidad */}
@@ -785,9 +913,9 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </Label>
         </div>
 
-        {/* === Fila de 3 columnas (segunda especialidad) === */}
+        {/* === Fila de 2 columnas (segunda especialidad) === */}
         {tieneSegundaEspecialidad && (
-          <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-2 gap-4 mt-4">
             {/* Segunda especialidad */}
             <div className="space-y-2">
               <Label className="flex items-center">
@@ -898,16 +1026,21 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               </Popover>
             </div>
 
-            {/* Profesión 2 (3ra columna) */}
-            <div className="space-y-2">
-              <Label className="flex items-center">Profesión para 2da Especialidad</Label>
-              <ProfesionColegioSelector
-                value={formData.PROFESION_COLEGIO2}
-                onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO2: value }))}
-                label=""
-                required={false}
-              />
-            </div>
+          </div>
+        )}
+
+        {/* Profesión para 2da Especialidad (fila separada) */}
+        {tieneSegundaEspecialidad && (
+          <div className="mt-4">
+            <Label className="flex items-center mb-2">
+              <Briefcase className="mr-2 h-4 w-4" /> Profesión para 2da Especialidad
+            </Label>
+            <ProfesionColegioSelector
+              value={formData.PROFESION_COLEGIO2}
+              onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO2: value }))}
+              label=""
+              required={false}
+            />
           </div>
         )}
       </div>

@@ -1465,6 +1465,7 @@ model ECO_ATENCION {
   @@index([FECHA_CITA], map: "FECHA_CITA")
   @@index([ID_ATENCION], map: "ID_ATENCION")
   @@index([RANGO_EDAD], map: "RANGO_EDAD")
+  @@index([ID_ORIGEN, ID_ATENCION], map: "IX_ECO_ATENCION_IDORIGEN_IDATENCION")
 }
 
 model ECO_EXAMEN {
@@ -3385,6 +3386,7 @@ model LABO_CITAS {
   @@index([ID_ORIGEN], map: "index9")
   @@index([NOMBRES], map: "NOMB_LABO")
   @@index([ORDENID], map: "ORDENID")
+  @@index([ID_ORIGEN, ID_CITA], map: "IX_LABO_CITAS_IDORIGEN_IDCITA")
 }
 
 model LABO_CITAS_ANTIGUA {
@@ -3604,6 +3606,10 @@ model MEDICO {
   CONSULTORIO2                                       String              @default("0", map: "DF_MEDICO_CONSULTORIO2") @db.Char(6)
   PROFESION_COLEGIO2                                 String?             @db.Char(2)
   USUARIO                                            String?             @db.Char(15)
+  CORREO                                             String?             @db.VarChar(150)
+  TELEFONO                                           String?             @db.VarChar(20)
+  COLESP2                                            String?             @db.VarChar(50)
+  COLESP3                                            String?             @db.VarChar(50)
   ATENCIONC_ATENCIONC_MEDICOToMEDICO                 ATENCIONC[]         @relation("ATENCIONC_MEDICOToMEDICO")
   CITA_CITA_MEDICOToMEDICO                           CITA[]              @relation("CITA_MEDICOToMEDICO")
   ROLREPROGRAMACION_ROLREPROGRAMACION_MEDICOToMEDICO ROLREPROGRAMACION[] @relation("ROLREPROGRAMACION_MEDICOToMEDICO")
@@ -4380,7 +4386,7 @@ model PATRON_LABO {
   ID_GPATRON        Int?
   UPS               String?            @db.VarChar(10)
   ORDEN             Int?
-  CPT_LABORATORIO   CPT_LABORATORIO[]  @ignore
+  CPT_LABORATORIO   CPT_LABORATORIO[] @ignore
   GRUPO_PATRON_LABO GRUPO_PATRON_LABO? @relation(fields: [ID_GPATRON], references: [ID_GPATRON], onDelete: NoAction, onUpdate: NoAction, map: "ID_GPATRON")
 }
 
@@ -4797,6 +4803,7 @@ model RAYOSX {
   RAYOSX_DETALLE_RAYOSX_DETALLE_RAYOSXToRAYOSX RAYOSX_DETALLE[] @relation("RAYOSX_DETALLE_RAYOSXToRAYOSX") @ignore
 
   @@index([FECHA, UPS], map: "IX_RAYOSX_ups_fecha")
+  @@index([ID_ORIGEN, RAYOSX], map: "IX_RAYOSX_IDORIGEN_RAYOSX")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.

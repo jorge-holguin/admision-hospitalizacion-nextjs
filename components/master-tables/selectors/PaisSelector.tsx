@@ -44,12 +44,31 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Cargar países cuando se abre el selector o cuando hay búsqueda
+  // Cargar países cuando se abre el selector
   useEffect(() => {
-    if (open || searchTerm) {
-      void loadPaises(searchTerm);
+    if (open) {
+      void loadPaises("");
     }
-  }, [open, searchTerm]);
+  }, [open]);
+
+  // Buscar países cuando cambia el término de búsqueda
+  useEffect(() => {
+    if (searchTerm) {
+      const timeoutId = setTimeout(() => {
+        void loadPaises(searchTerm);
+      }, 300); // Debounce de 300ms
+      return () => clearTimeout(timeoutId);
+    } else if (open) {
+      void loadPaises("");
+    }
+  }, [searchTerm, open]);
+
+  // Cargar automáticamente el país actual por código cuando haya un value inicial
+  useEffect(() => {
+    if (value) {
+      void loadPaises("");
+    }
+  }, [value]);
 
   const loadPaises = async (search: string = "") => {
     setLoading(true);
@@ -57,9 +76,10 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
       const baseUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
       
       // Si hay búsqueda, usar endpoint de búsqueda por nombre
+      // Si no hay búsqueda, obtener por código de país: /maestro/pais/{codigo}
       const url = search 
         ? `${baseUrl}/maestro/pais/buscar?nombre=${encodeURIComponent(search)}`
-        : `${baseUrl}/maestro/pais/listar`;
+        : `${baseUrl}/maestro/pais/${value || ""}`;
       
       console.log('🔍 Cargando países desde:', url);
       
@@ -68,8 +88,11 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
       
       console.log('✅ Países cargados:', data);
       
+      // El backend puede devolver un solo objeto (para /{codigo}) o un arreglo (para /buscar)
       if (Array.isArray(data)) {
         setPaises(data);
+      } else if (data) {
+        setPaises([data]);
       }
     } catch (error) {
       console.error('❌ Error al cargar países:', error);
@@ -112,7 +135,7 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" onWheel={(e) => e.stopPropagation()}>
-          <Command>
+          <Command shouldFilter={false}>
             <CommandInput 
               placeholder="Buscar país..." 
               value={searchTerm}

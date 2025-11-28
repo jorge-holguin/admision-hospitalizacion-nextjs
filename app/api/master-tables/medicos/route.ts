@@ -100,6 +100,10 @@ export async function POST(request: NextRequest) {
       CONSULTORIO2: body.CONSULTORIO2 ?? "0",
       PROFESION_COLEGIO2: body.PROFESION_COLEGIO2 ?? "",
       USUARIO: body.USUARIO ?? "",
+      CORREO: body.CORREO ?? "",
+      TELEFONO: body.TELEFONO ?? "",
+      COLESP2: body.COLESP2 ?? "",
+      COLESP3: body.COLESP3 ?? "",
     };
     
     console.log('API POST - Payload to service:', {
