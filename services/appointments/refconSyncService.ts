@@ -1,7 +1,7 @@
 // Servicio para sincronizar citas con REFCON
 
 const API_REFCON_URL = process.env.NEXT_PUBLIC_API_REFCON_URL || 'http://192.168.0.31:9011/api'
-const API_REFCON_CITA_URL = 'http://192.168.0.252:9011/api'
+const API_CITA_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL 
 
 // Códigos de seguros SIS
 const SEGUROS_SIS = ['20', '21', '22', '23', '24', '25']
@@ -62,7 +62,7 @@ export async function obtenerDatosCitaRefcon(citaId: string, usuarioAsigna: stri
   try {
     console.log('🔍 Obteniendo datos de cita desde REFCON:', citaId)
 
-    const response = await fetch(`${API_REFCON_CITA_URL}/cita/refcon/recibir-cita/${citaId}`, {
+    const response = await fetch(`${API_CITA_URL}/cita/refcon/recibir-cita/${citaId}`, {
       method: 'GET',
       headers: {
         'accept': '*/*',
