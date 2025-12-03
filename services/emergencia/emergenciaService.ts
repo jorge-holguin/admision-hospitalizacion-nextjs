@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { format } from 'date-fns';
 import { cuentaService } from './cuentaService';
+import { calculateAgeFormatted } from '@/lib/ageCalculator';
 
 const prisma = new PrismaClient();
 
@@ -400,6 +401,13 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         console.log('Nuevo EMERGENCIA_ID generado:', emergenciaId);
       }
       
+      // Calcular la edad actualizada si hay fecha de nacimiento
+      let edadCalculada = data.EDAD || '';
+      if (data.FECHA_NACIMIENTO) {
+        edadCalculada = calculateAgeFormatted(data.FECHA_NACIMIENTO);
+        console.log(`📅 Edad calculada para emergencia: ${edadCalculada} (desde ${data.FECHA_NACIMIENTO})`);
+      }
+      
       // Preparar datos para la creación
       const emergenciaData: any = {
         EMERGENCIA_ID: emergenciaId,
@@ -412,7 +420,7 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         NOMBRES: data.NOMBRES || '',
         PACIENTE: data.PACIENTE || '',
         FECHA_NACIMIENTO: data.FECHA_NACIMIENTO || '',
-        EDAD: data.EDAD || '',
+        EDAD: edadCalculada,
         SEXO: data.SEXO || '',
         ESTADO_CIVIL: data.ESTADO_CIVIL || '',
         // Limitar DIRECCION a 60 caracteres para evitar problemas con la vista de BD
@@ -500,6 +508,18 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         )
       `;
       
+      // Actualizar también la edad en la tabla PACIENTE si hay paciente y fecha de nacimiento
+      if (data.PACIENTE && data.FECHA_NACIMIENTO && edadCalculada) {
+        try {
+          await prisma.$executeRaw`
+            UPDATE PACIENTE SET EDAD = ${edadCalculada} WHERE PACIENTE = ${data.PACIENTE}
+          `;
+          console.log(`✅ Edad actualizada en tabla PACIENTE para paciente ${data.PACIENTE}: ${edadCalculada}`);
+        } catch (updateError) {
+          console.warn(`⚠️ No se pudo actualizar la edad en tabla PACIENTE:`, updateError);
+        }
+      }
+      
       // Obtener la emergencia recién creada
       const emergencia = await prisma.$queryRaw`
         SELECT TOP 1 * FROM EMERGENCIA 
@@ -559,8 +579,23 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
       }
       if (data.FECHA_NACIMIENTO !== undefined) {
         await prisma.$executeRaw`UPDATE EMERGENCIA SET FECHA_NACIMIENTO = ${data.FECHA_NACIMIENTO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
-      }
-      if (data.EDAD !== undefined) {
+        
+        // Calcular y actualizar la edad automáticamente cuando se actualiza la fecha de nacimiento
+        const edadCalculada = calculateAgeFormatted(data.FECHA_NACIMIENTO);
+        console.log(`📅 Edad recalculada en update emergencia: ${edadCalculada} (desde ${data.FECHA_NACIMIENTO})`);
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET EDAD = ${edadCalculada} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+        
+        // Actualizar también la edad en la tabla PACIENTE
+        if (data.PACIENTE) {
+          try {
+            await prisma.$executeRaw`UPDATE PACIENTE SET EDAD = ${edadCalculada} WHERE PACIENTE = ${data.PACIENTE}`;
+            console.log(`✅ Edad actualizada en tabla PACIENTE (update): ${edadCalculada}`);
+          } catch (updateError) {
+            console.warn(`⚠️ No se pudo actualizar la edad en tabla PACIENTE:`, updateError);
+          }
+        }
+      } else if (data.EDAD !== undefined) {
+        // Si no hay fecha de nacimiento pero sí edad, usar la edad proporcionada
         await prisma.$executeRaw`UPDATE EMERGENCIA SET EDAD = ${data.EDAD} WHERE EMERGENCIA_ID = ${emergenciaId}`;
       }
       if (data.SEXO !== undefined) {

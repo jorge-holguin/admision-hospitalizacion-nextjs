@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { User, FileText, Calendar, Home, Phone, Users, Heart, Printer } from "lucide-react"
 import { useDocumentPrinter } from "@/components/hospitalization/DocumentPrinter"
+import { calculateAge, formatAgeReadable } from "@/lib/ageCalculator"
 
 interface Patient {
   id?: string
@@ -142,7 +143,8 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     hc: patient.HISTORIA?.trim() || patient.hc || '',
     tipoDocumento: typeof patient.tipoDocumento === 'object' ? patient.tipoDocumento?.nombre : patient.NOMBRE_DOCUMENTO || 'DNI',
     dni: patient.DOCUMENTO || patient.dni || '',
-    edad: patient.EDAD || '',
+    // Edad: priorizar siempre la edad calculada por el backend (mayúsculas o minúsculas)
+    edad: patient.EDAD || patient.edad || '',
     codigoPaciente: patient.PACIENTE || patient.id || '',
     // Fecha y Hora de Apertura: formatear la fecha completa
     fechaApertura: patient.fechaApertura ? new Date(patient.fechaApertura).toLocaleString('es-PE', { 
@@ -218,16 +220,17 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     telefonoAcompanante: patient.RESPONSABLE_TELEFONO || '',
   };
 
-  const calculateAge = (birthDate: string) => {
-    if (!birthDate) return "N/A"
-    const birth = new Date(birthDate)
-    const today = new Date()
-    let age = today.getFullYear() - birth.getFullYear()
-    const monthDiff = today.getMonth() - birth.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--
+  // Obtener edad en formato legible priorizando la edad que viene del backend
+  const getReadableAge = (edadBackend: string | undefined, birthDate: string) => {
+    // 1) Si el backend envía edad en formato 000a00m00d, usamos esa edad tal cual
+    if (edadBackend && typeof edadBackend === 'string') {
+      return formatAgeReadable(edadBackend)
     }
-    return `${age} años`
+
+    // 2) Si no hay edad en el backend, calculamos desde la fecha de nacimiento
+    if (!birthDate) return 'N/A'
+    const ageResult = calculateAge(birthDate)
+    return formatAgeReadable(ageResult.formatted)
   }
   
   return (
@@ -283,7 +286,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Edad</p>
-                  <p className="font-medium">{mappedPatient.edad || calculateAge(mappedPatient.fechaNacimiento || '')}</p>
+                  <p className="font-medium">{getReadableAge(mappedPatient.edad, mappedPatient.fechaNacimiento || '')}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Código de Paciente</p>

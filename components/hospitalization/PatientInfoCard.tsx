@@ -9,6 +9,7 @@ import { User, Calendar, Phone, MapPin, FileText, Heart, VenusAndMars, House, Ho
 import { Spinner } from '@/components/ui/spinner';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
 import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
+import { calculateAgeFormatted, formatAgeReadable } from '@/lib/ageCalculator';
 
 interface PatientInfoCardProps {
   patientId: string;
@@ -316,7 +317,9 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Edad:</strong> {patientData.age || 'No especificado'}
+              <strong>Edad:</strong> {patientData.birthDate 
+                ? formatAgeReadable(calculateAgeFormatted(patientData.birthDate))
+                : (patientData.age || 'No especificado')}
             </span>
           </div>
 

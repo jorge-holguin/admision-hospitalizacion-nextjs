@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { calculateAge, calculateAgeFormatted } from '@/lib/ageCalculator';
+
+const prisma = new PrismaClient();
 
 /**
  * API para calcular la edad actual de un paciente basado en su fecha de nacimiento
  * Formato de salida: 000a00m00d (años, meses, días)
+ * 
+ * Opciones:
+ * - Solo calcular: POST { fechaNacimiento: "1995-04-15" }
+ * - Calcular y actualizar PACIENTE: POST { fechaNacimiento: "1995-04-15", pacienteId: "12345", updateDatabase: true }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { fechaNacimiento } = body;
+    const { fechaNacimiento, pacienteId, updateDatabase } = body;
 
     if (!fechaNacimiento) {
       return NextResponse.json(
@@ -20,6 +28,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('📅 Calculando edad para fecha de nacimiento:', fechaNacimiento);
+    if (pacienteId) {
+      console.log('👤 Paciente ID:', pacienteId);
+    }
 
     // Parsear la fecha de nacimiento
     let birthDate: Date;
@@ -89,6 +100,20 @@ export async function POST(request: NextRequest) {
     console.log('✅ Edad calculada:', formattedAge);
     console.log(`   Años: ${years}, Meses: ${months}, Días: ${days}`);
 
+    // Si se solicita actualizar la base de datos y hay pacienteId
+    let databaseUpdated = false;
+    if (updateDatabase && pacienteId) {
+      try {
+        await prisma.$executeRaw`
+          UPDATE PACIENTE SET EDAD = ${formattedAge} WHERE PACIENTE = ${pacienteId}
+        `;
+        console.log(`✅ Edad actualizada en BD para paciente ${pacienteId}: ${formattedAge}`);
+        databaseUpdated = true;
+      } catch (dbError) {
+        console.error('❌ Error al actualizar edad en BD:', dbError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -97,7 +122,8 @@ export async function POST(request: NextRequest) {
         months,
         days,
         fechaNacimiento: birthDate.toISOString().split('T')[0],
-        fechaCalculo: today.toISOString().split('T')[0]
+        fechaCalculo: today.toISOString().split('T')[0],
+        databaseUpdated
       }
     });
 

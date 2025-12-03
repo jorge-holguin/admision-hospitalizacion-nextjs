@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
 import { User, Calendar, Phone, MapPin, CreditCard, Heart, House } from 'lucide-react';
 import { usePatientData } from '@/contexts/PatientDataContext';
+import { calculateAgeFormatted, formatAgeReadable } from '@/lib/ageCalculator';
 
 interface PatientInfoCardEmergencyProps {
   patientId: string;
@@ -239,7 +240,9 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Edad:</strong> {patientData.edad || 'No especificado'}
+              <strong>Edad:</strong> {patientData.fechaNacimiento 
+                ? formatAgeReadable(calculateAgeFormatted(patientData.fechaNacimiento))
+                : (patientData.edad || 'No especificado')}
             </span>
           </div>
 

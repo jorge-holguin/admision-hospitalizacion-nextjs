@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { cuentaValidationService } from './cuentaValidationService';
+import { calculateAgeFormatted } from '@/lib/ageCalculator';
 
 const prisma = new PrismaClient();
 
@@ -127,6 +128,31 @@ class HospitalizaService {
       const fieldsStr = fields.join(', ');
       const placeholders = fields.map(() => '?').join(', ');
       
+      // Calcular la edad actualizada si es posible
+      // Intentar obtener la fecha de nacimiento del paciente para calcular edad actualizada
+      let edadCalculada = data.EDAD;
+      if (data.PACIENTE) {
+        try {
+          const pacienteResult = await prisma.$queryRaw`
+            SELECT TOP 1 FECHA_NACIMIENTO FROM PACIENTE WHERE PACIENTE = ${data.PACIENTE}
+          ` as any[];
+          
+          if (pacienteResult && pacienteResult.length > 0 && pacienteResult[0].FECHA_NACIMIENTO) {
+            edadCalculada = calculateAgeFormatted(pacienteResult[0].FECHA_NACIMIENTO);
+            console.log(`📅 Edad calculada para hospitalización: ${edadCalculada} (desde ${pacienteResult[0].FECHA_NACIMIENTO})`);
+            
+            // Actualizar también la edad en la tabla PACIENTE
+            await prisma.$executeRaw`
+              UPDATE PACIENTE SET EDAD = ${edadCalculada} WHERE PACIENTE = ${data.PACIENTE}
+            `;
+            console.log(`✅ Edad actualizada en tabla PACIENTE para paciente ${data.PACIENTE}: ${edadCalculada}`);
+          }
+        } catch (ageError) {
+          console.warn(`⚠️ No se pudo calcular/actualizar la edad:`, ageError);
+          edadCalculada = data.EDAD; // Usar la edad original si falla el cálculo
+        }
+      }
+      
       // Preparar los valores en el mismo orden que los campos
       const values = [
         data.IDHOSPITALIZACION,
@@ -142,7 +168,7 @@ class HospitalizaService {
         data.USUARIO,
         data.USUARIO_IMP || data.USUARIO, // Usar USUARIO como valor predeterminado si USUARIO_IMP no está definido
         data.DIAGNOSTICO,
-        data.EDAD,
+        edadCalculada, // Usar la edad calculada
         data.ORIGENID
       ];
       

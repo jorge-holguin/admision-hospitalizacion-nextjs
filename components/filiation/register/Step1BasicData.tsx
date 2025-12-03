@@ -18,6 +18,7 @@ import {
 import ImageWithLoader from "@/components/ui/ImageWithLoader"
 import { UbigeoSelector, EstadoCivilSelector, PaisSelector } from "@/components/filiation/selectors"
 import { TipoDocumentoSelector } from "@/components/filiation/selectors/TipoDocumentoSelector"
+import { calculateAgeFormatted, formatAgeReadable } from "@/lib/ageCalculator"
 
 interface Step1BasicDataProps {
   formData: any
@@ -148,40 +149,10 @@ export function Step1BasicData({
       .padStart(4, "0")}`
   }
 
-  // Calcular edad en formato 000a00m00d
+  // Calcular edad usando el helper centralizado
   const calculateAge = (birthDate: string) => {
     if (!birthDate) return ""
-    
-    try {
-      const birth = new Date(birthDate)
-      const today = new Date()
-      
-      let years = today.getFullYear() - birth.getFullYear()
-      let months = today.getMonth() - birth.getMonth()
-      let days = today.getDate() - birth.getDate()
-      
-      // Ajustar si los días son negativos
-      if (days < 0) {
-        months--
-        const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0)
-        days = prevMonth.getDate() + days
-      }
-      
-      // Ajustar si los meses son negativos
-      if (months < 0) {
-        years--
-        months = 12 + months
-      }
-      
-      // Formato: "029a08m01d" con padding de ceros
-      const yearsStr = years.toString().padStart(3, '0')
-      const monthsStr = months.toString().padStart(2, '0')
-      const daysStr = days.toString().padStart(2, '0')
-      
-      return `${yearsStr}a${monthsStr}m${daysStr}d`
-    } catch (error) {
-      return ""
-    }
+    return calculateAgeFormatted(birthDate)
   }
 
   return (
