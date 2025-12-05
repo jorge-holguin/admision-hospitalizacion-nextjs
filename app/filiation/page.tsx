@@ -178,12 +178,8 @@ export default function FiliationPage() {
 
   // Cuando no se encuentra y se obtienen datos de RENIEC (o null para llenado manual)
   const handleSearchComplete = (reniecSearchData: any, sisSearchData: any) => {
-    console.log('📥 handleSearchComplete recibió:', { reniecSearchData, sisSearchData });
-    console.log('   - sisSearchData:', sisSearchData);
-    console.log('   - sisSearchData.tipoSeguro:', sisSearchData?.tipoSeguro);
     setReniecData(reniecSearchData);
     setSisData(sisSearchData);
-    console.log('✅ Estados actualizados - sisData:', sisSearchData);
     setDocumentType(reniecSearchData?.documentType || "DNI");
     setDocumentNumber(reniecSearchData?.document || "");
     setIsPatientRegistrationModalOpen(true);
@@ -296,7 +292,6 @@ export default function FiliationPage() {
       }
       
       const historyData = await response.json();
-      console.log('📋 Datos de historia clínica obtenidos:', historyData);
       
       // Aplanar objetos anidados para evitar errores de React
       const flattenedData = { ...historyData };
@@ -309,7 +304,6 @@ export default function FiliationPage() {
         if (flattenedData[key] && typeof flattenedData[key] === 'object' && !Array.isArray(flattenedData[key])) {
           // Si es un campo que necesita mantener el objeto completo, no aplanarlo
           if (camposConObjeto.includes(key)) {
-            console.log(`🔧 Manteniendo objeto completo para ${key}:`, flattenedData[key]);
             // No hacer nada, mantener el objeto
           } else {
             // Para otros campos, intentar extraer el código o nombre
@@ -326,7 +320,6 @@ export default function FiliationPage() {
         }
       });
       
-      console.log('📋 Datos aplanados:', flattenedData);
       return flattenedData;
     } catch (error) {
       console.error('❌ Error al cargar historia clínica:', error);
@@ -775,9 +768,6 @@ export default function FiliationPage() {
             {isPatientRegistrationModalOpen && (
               <Dialog open={isPatientRegistrationModalOpen} onOpenChange={setIsPatientRegistrationModalOpen}>
                 {(() => {
-                  console.log('🎯 Renderizando PatientRegistrationModal con:');
-                  console.log('   - sisData desde estado:', sisData);
-                  console.log('   - sisData.tipoSeguro:', sisData?.tipoSeguro);
                   return null;
                 })()}
                 <PatientRegistrationModal

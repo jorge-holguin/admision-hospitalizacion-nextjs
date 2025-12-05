@@ -33,20 +33,23 @@ export function TiposDocumentoProvider({ children }: { children: React.ReactNode
   const loadTiposDocumento = async () => {
     try {
       setLoading(true)
-      console.log('🔍 Cargando tipos de documento desde contexto...')
       
-      const response = await fetch('/api/utils/document-types')
+      // Usar la API externa directamente (misma que usa filiation)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/tipoDocumento`)
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
       
       const data = await response.json()
-      console.log('✅ Tipos de documento cargados en contexto:', data)
       
-      // Extraer los items de la respuesta - Corregido para manejar array directo
-      const tiposDocumentoData = Array.isArray(data) ? data : (data.items || data.data || [])
-      console.log('📄 Datos procesados de tipos de documento:', tiposDocumentoData)
+      // Mapear datos de la API externa al formato esperado
+      const tiposDocumentoData = Array.isArray(data) 
+        ? data.map((item: any) => ({
+            TIPO_DOCUMENTO: item.tipoDocumento || item.TIPO_DOCUMENTO || '',
+            NOMBRE: item.nombre || item.NOMBRE || ''
+          }))
+        : []
       setTiposDocumento(tiposDocumentoData)
       
     } catch (error) {
@@ -58,7 +61,6 @@ export function TiposDocumentoProvider({ children }: { children: React.ReactNode
         { TIPO_DOCUMENTO: 'PP ', NOMBRE: 'Pasaporte' },
         { TIPO_DOCUMENTO: '0  ', NOMBRE: '*Ninguno' }
       ];
-      console.log('📄 Usando datos de fallback para tipos de documento')
       setTiposDocumento(fallbackData)
     } finally {
       setLoading(false)

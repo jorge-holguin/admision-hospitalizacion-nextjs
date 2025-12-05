@@ -27,10 +27,8 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
     try {
       setLoading(true)
       setErrorMessage(null)
-      console.log('URLs de PDFs a cargar:', pdfUrls)
       
       const pdfDataPromises = pdfUrls.map(async (url) => {
-        console.log(`Intentando obtener PDF desde: ${url}`)
         try {
           const response = await fetch(url, {
             cache: 'no-cache', // Evitar caché que podría devolver respuestas antiguas
@@ -49,10 +47,8 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
           
           // Verificar que el tipo de contenido sea PDF
           const contentType = response.headers.get('content-type')
-          console.log(`Tipo de contenido recibido: ${contentType}`)
           
           const blob = await response.blob()
-          console.log(`PDF recibido correctamente, tamaño: ${blob.size} bytes`)
           
           if (blob.size === 0) {
             console.error('El PDF recibido está vacío')

@@ -36,7 +36,6 @@ export function TipoDocumentoProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json()
-        console.log('✅ TipoDocumentoContext: Tipos de documento cargados:', data.length)
         
         // Filtrar solo los activos
         const activos = data.filter((tipo: TipoDocumento) => tipo.activo === 1)

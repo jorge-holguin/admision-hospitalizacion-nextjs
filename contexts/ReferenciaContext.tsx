@@ -71,12 +71,6 @@ export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode 
     setIsLoading(true)
     setError(null)
 
-    console.log('🔍 Consultando referencias:', {
-      numerodocumento: params.numerodocumento,
-      tipodocumento: params.tipodocumento,
-      especialidadCodigo: params.especialidadCodigo
-    })
-
     try {
       // Crear AbortController para timeout de 5 segundos
       const controller = new AbortController()
@@ -104,12 +98,7 @@ export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode 
       // porque el servicio REFCON envía "codigo" y "mensaje" útiles (6000, 9000, etc.)
       const data: ReferenciaAPIResponse = await response.json()
 
-      console.log('📋 Respuesta de API de referencias:', data)
-
       if (data.codigo === '0000' && data.datos?.datos) {
-        // Mostrar todas las referencias (ACEPTADAS, CITADAS, PENDIENTES)
-        console.log(`✅ Referencias encontradas: ${data.datos.datos.length}`)
-
         setReferencias(data.datos.datos)
 
         if (data.datos.datos.length === 0) {

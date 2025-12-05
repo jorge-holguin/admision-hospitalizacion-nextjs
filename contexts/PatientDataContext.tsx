@@ -172,7 +172,6 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
         setLoading(currentPatientId, true);
         setError(currentPatientId, null);
 
-        console.log(`Fetching patient data for ID: ${currentPatientId}`);
         const response = await fetch(`/api/filiation/${currentPatientId}`);
         
         if (!response.ok) {

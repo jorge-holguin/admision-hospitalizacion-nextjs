@@ -47,7 +47,6 @@ export function HospitalizationViewModal({
     try {
       setLoading(true)
       setError(null)
-      console.log('🏥 Cargando datos de hospitalización:', hospitalizationId)
 
       const response = await fetch(`/api/hospitalization/${hospitalizationId}`)
       
@@ -57,26 +56,16 @@ export function HospitalizationViewModal({
 
       const data = await response.json()
       
-      console.log('📦 Respuesta RAW de la API:', data);
-      console.log('📦 Campos de acompañante en respuesta RAW:', {
-        ACOMPANANTE_NOMBRE: data.ACOMPANANTE_NOMBRE,
-        ACOMPANANTE_TELEFONO: data.ACOMPANANTE_TELEFONO,
-        ACOMPANANTE_DIRECCION: data.ACOMPANANTE_DIRECCION,
-        ORIGENID: data.ORIGENID
-      });
-      
       // Verificar el formato de la respuesta
       if (data.success && data.data) {
         // Formato con wrapper {success: true, data: {...}}
         setHospitalizationData(data.data)
-        console.log('✅ Datos de hospitalización cargados (formato success/data):', data.data)
       } else if (data.error || data.message) {
         // Formato de error {error: '...', message: '...'}
         throw new Error(data.error || data.message || 'Error al cargar los datos')
       } else if (data.IDHOSPITALIZACION) {
         // Respuesta directa del objeto de hospitalización
         setHospitalizationData(data)
-        console.log('✅ Datos de hospitalización cargados (formato directo):', data)
       } else {
         // Formato desconocido
         console.warn('Formato de respuesta desconocido:', data)
@@ -93,7 +82,6 @@ export function HospitalizationViewModal({
   // Cargar consultorios de hospitalización cuando se abre el modal
   useEffect(() => {
     if (isOpen && consultoriosHospitalizacion.length === 0) {
-      console.log('🏥 Cargando consultorios de hospitalización...')
       loadConsultoriosHospitalizacion()
     }
   }, [isOpen, consultoriosHospitalizacion.length, loadConsultoriosHospitalizacion])
@@ -111,20 +99,12 @@ export function HospitalizationViewModal({
       return
     }
     
-    console.log('🔴 HospitalizationViewModal useEffect ejecutado:', {
-      isOpen,
-      hospitalizationId,
-      hasInitialData: !!initialData
-    });
-    
     // Si ya tenemos initialData, usarlo directamente
     if (initialData) {
-      console.log('🏥 HospitalizationViewModal: Usando initialData proporcionado')
       setHospitalizationData(initialData)
       setLoading(false)
     } else {
       // Si no hay initialData, cargar desde la API
-      console.log('🏥 HospitalizationViewModal: Cargando desde API')
       loadHospitalizationData()
     }
   }, [isOpen, hospitalizationId]) // ✅ Removido initialData de dependencias
@@ -250,27 +230,14 @@ export function HospitalizationViewModal({
             </div>
           ) : (
             hospitalizationData && (
-              <>
-                {(() => {
-                  console.log('🔵 Renderizando HospitalizationViewRefactored con hospitalizationData:', {
-                    IDHOSPITALIZACION: hospitalizationData.IDHOSPITALIZACION,
-                    ACOMPANANTE_NOMBRE: hospitalizationData.ACOMPANANTE_NOMBRE,
-                    ACOMPANANTE_TELEFONO: hospitalizationData.ACOMPANANTE_TELEFONO,
-                    ACOMPANANTE_DIRECCION: hospitalizationData.ACOMPANANTE_DIRECCION,
-                    ORIGENID: hospitalizationData.ORIGENID,
-                    fullData: hospitalizationData
-                  });
-                  return null;
-                })()}
-                <HospitalizationViewRefactored 
-                  hospitalizationId={hospitalizationId}
-                  initialData={hospitalizationData}
-                  readOnly={isReadOnly}
-                  onSave={handleSave}
-                  onError={handleError}
-                  onCancel={handleBack}
-                />
-              </>
+              <HospitalizationViewRefactored 
+                hospitalizationId={hospitalizationId}
+                initialData={hospitalizationData}
+                readOnly={isReadOnly}
+                onSave={handleSave}
+                onError={handleError}
+                onCancel={handleBack}
+              />
             )
           )}
         </div>

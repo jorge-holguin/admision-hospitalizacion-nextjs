@@ -69,13 +69,11 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
     // Verificar si ya tenemos los datos en el contexto con esta combinación específica
     const existingData = getAccountData(patientId, tipoSeguro);
     if (existingData) {
-      console.log(`🚨 [CACHE HIT] Usando datos de cuenta en caché para paciente: ${patientId}, seguro: ${tipoSeguro}`);
       return existingData;
     }
     
     // Verificar si ya hay una solicitud en vuelo para este paciente
     if (cacheKey in inFlightRequests) {
-      console.log(`🚨 Reutilizando solicitud en vuelo para cuenta de emergencia: ${patientId}`);
       return inFlightRequests[cacheKey];
     }
 
@@ -85,14 +83,10 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
         setLoading(patientId, true);
         setError(patientId, null);
 
-        console.log(`🚨 [EMERGENCIA] Obteniendo cuenta para paciente: ${patientId} con seguro: ${tipoSeguro}`);
-        console.log(`🚨 [EMERGENCIA] Endpoint: /api/accounts/search-by-insurance/${patientId}?seguro=${tipoSeguro}`);
-        
         const response = await fetch(`/api/accounts/search-by-insurance/${patientId}?seguro=${tipoSeguro}`);
         
         if (!response.ok) {
           if (response.status === 404) {
-            console.log(`🚨 [EMERGENCIA] No se encontró cuenta para paciente ${patientId} con seguro ${tipoSeguro}`);
             return null;
           }
           throw new Error(`Error al obtener cuenta de emergencia: ${response.status}`);
@@ -102,7 +96,6 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
         
         // El endpoint buscar-por-seguro devuelve: { success, message, cuentaId }
         if (data?.success && data?.cuentaId) {
-          console.log(`✅ [EMERGENCIA] Cuenta encontrada: ${data.cuentaId}`);
           const accountInfo: EmergencyAccountData = {
             cuentaId: data.cuentaId
           };
@@ -110,12 +103,10 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
           setAccountData(patientId, accountInfo, tipoSeguro);
           return accountInfo;
         } else {
-          console.log(`❌ [EMERGENCIA] No se encontró cuenta activa para paciente ${patientId}`);
           setAccountData(patientId, null, tipoSeguro);
           return null;
         }
       } catch (err: any) {
-        console.error('❌ [EMERGENCIA] Error al obtener cuenta del paciente:', err);
         setError(patientId, err.message || 'Error al obtener cuenta del paciente');
         setAccountData(patientId, null, tipoSeguro);
         return null;

@@ -141,19 +141,10 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI';
       const dni = patient.DOCUMENTO || patient.dni || patient.documento;
       
-      console.log('🔍 Verificando necesidad de consulta RENIEC automática:', {
-        noTieneFoto,
-        esDNI,
-        dni,
-        reniecButtonUsed,
-        STRING_FOTO: fotoBase64 ? 'Tiene foto' : 'Sin foto'
-      });
-      
       if (patient && noTieneFoto && esDNI && dni && !reniecButtonUsed) {
         console.log('📸 STRING_FOTO es null/vacío, consultando RENIEC automáticamente...');
         await handleUpdateFromReniec();
       } else {
-        console.log('⏭️ No se consulta RENIEC automáticamente (tiene foto o ya se consultó)');
       }
     };
     
@@ -268,7 +259,6 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           const codigo = typeof patient.distrito === 'object' 
             ? patient.distrito?.ubigeo?.trim() 
             : mapDistritoValue(patient.Distrito_Dir || patient.DISTRITO_RENIEC || patient.distritoProcedencia || patient.district);
-          console.log('📍 Distrito cargado:', codigo, 'desde:', patient.distrito);
           return codigo;
         })(),
 
@@ -281,7 +271,6 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           const codigo = typeof patient.gradoInstruccion === 'object' 
             ? patient.gradoInstruccion?.gradoInstruccion?.trim() 
             : patient.GRADO_INSTRUCCION?.trim() || patient.gradoInstruccion || "";
-          console.log('🎓 Grado Instrucción cargado:', codigo, 'desde:', patient.gradoInstruccion);
           return codigo;
         })(),
         // Ocupación: extraer código del objeto
@@ -289,7 +278,6 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           const codigo = typeof patient.ocupacion === 'object' 
             ? patient.ocupacion?.ocupacion?.trim() 
             : patient.OCUPACION?.trim() || patient.ocupacion || "";
-          console.log('💼 Ocupación cargada:', codigo, 'desde:', patient.ocupacion);
           return codigo;
         })(),
         // Religión: usar código directo
@@ -299,7 +287,6 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           const codigo = typeof patient.codEtnia === 'object' 
             ? patient.codEtnia?.codEtnia?.trim() 
             : patient.COD_ETNIA?.trim() || patient.etnia || "58"; // ✅ Default: 58 = Mestizo
-          console.log('🌍 Etnia cargada:', codigo, 'desde:', patient.codEtnia);
           return codigo;
         })(),
         // Localidad: usar código directo

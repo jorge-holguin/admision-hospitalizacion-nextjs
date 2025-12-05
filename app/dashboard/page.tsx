@@ -23,12 +23,6 @@ export default function Dashboard() {
     setCanAccessTablasMaestras(hasAccessToTablasMaestras());
     setCanAccessHospitalizacion(hasAccessToHospitalizacion());
     setUserPuesto(extractPuestoFromToken());
-    
-    console.log('🔐 Permisos de acceso verificados:');
-    console.log('   - Puesto:', extractPuestoFromToken());
-    console.log('   - Acceso a Citas:', hasAccessToCitas());
-    console.log('   - Acceso a Tablas Maestras:', hasAccessToTablasMaestras());
-    console.log('   - Acceso a Hospitalización:', hasAccessToHospitalizacion());
   }, []);
 
   const handleFiliacionClick = () => {

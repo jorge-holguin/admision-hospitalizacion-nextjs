@@ -41,7 +41,6 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
   const loadConsultoriosEmergencia = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('🏥 Cargando consultorios de emergencia desde contexto...')
       
       const response = await fetch('/api/master-tables/consultorios/search?tipo=E')
       
@@ -50,7 +49,6 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
       }
       
       const data = await response.json()
-      console.log('✅ Consultorios de emergencia cargados en contexto:', data)
       
       // Extraer los items de la respuesta
       const consultoriosData = data.items || data.data || []
@@ -67,7 +65,6 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
   const loadConsultoriosHospitalizacion = useCallback(async () => {
     try {
       setLoadingHospitalizacion(true)
-      console.log('🏥 Cargando consultorios de hospitalización desde contexto...')
       
       const response = await fetch('/api/master-tables/consultorios/search?tipo=H')
       
@@ -76,7 +73,6 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
       }
       
       const data = await response.json()
-      console.log('✅ Consultorios de hospitalización cargados en contexto:', data)
       
       // Extraer los items de la respuesta
       const consultoriosData = data.items || data.data || []

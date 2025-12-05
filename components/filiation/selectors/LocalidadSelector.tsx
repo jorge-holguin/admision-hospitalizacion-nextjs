@@ -40,14 +40,12 @@ export function LocalidadSelector({
     const loadSelectedLocalidadData = async () => {
       if (value && value.trim()) {
         try {
-          console.log(`🔍 Cargando datos de la localidad seleccionada: ${value.trim()}`)
           const response = await fetch(
             `${API_BASE_URL}/maestro/localidad/${value.trim()}`
           )
           
           if (response.ok) {
             const data: Localidad = await response.json()
-            console.log(`✅ Datos de la localidad cargados:`, data)
             setSelectedLocalidadData(data)
           }
         } catch (error) {

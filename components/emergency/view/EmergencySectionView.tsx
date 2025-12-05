@@ -270,38 +270,11 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     };
   }, []);
 
-  // ===== Cargas remotas - Ya no necesarias porque usamos contextos =====
-  const loadMotivos = async (search: string = "") => {
-    // Ya no hacemos llamadas directas porque usamos el contexto
-    console.log('🚨 loadMotivos llamado - usando contexto en su lugar');
-    console.log('📋 Motivos disponibles desde contexto:', motivos?.length || 0);
-  };
-
-  const loadConsultorios = async (search: string = "") => {
-    // Ya no hacemos llamadas directas porque usamos el contexto
-    console.log('🚨 loadConsultorios llamado - usando contexto en su lugar');
-    console.log('🏥 Consultorios disponibles desde contexto:', consultorios?.length || 0);
-  };
-
-  const loadFormasIngreso = async (search: string = "") => {
-    // Ya no hacemos llamadas directas porque usamos el contexto
-    console.log('🚨 loadFormasIngreso llamado - usando contexto en su lugar');
-    console.log('🚪 Formas de ingreso disponibles desde contexto:', formasIngreso?.length || 0);
-  };
-
-  const loadSeguros = async (search: string = "") => {
-    // Ya no hacemos llamadas directas porque usamos el contexto
-    console.log('🚨 loadSeguros llamado - usando contexto en su lugar');
-    console.log('🛡️ Seguros disponibles desde contexto:', seguros?.length || 0);
-  };
+  // Los datos se cargan desde los contextos, no se necesitan funciones de carga locales
 
   // Cargar datos iniciales
   useEffect(() => {
     if (initialData) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Cargando datos iniciales:', initialData);
-      }
-      
       // Función para limpiar strings de la API
       const cleanApiString = (value: string | null | undefined): string => {
         if (value === null || value === undefined) return "";
@@ -316,15 +289,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         // Preservar el código exactamente como viene, incluyendo ceros iniciales
         return trimmed;
       };
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Datos originales:', {
-          MOTIVO_EMERGENCIA: initialData.MOTIVO_EMERGENCIA,
-          CONSULTORIO: initialData.CONSULTORIO,
-          FORMA_INGRESO: initialData.FORMA_INGRESO,
-          SEGURO: initialData.SEGURO
-        });
-      }
       
       setFormData({
         tipoAtencion: cleanApiString(initialData.TIPOATENCION),
@@ -357,14 +321,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         numeroCuenta: initialData.CUENTAID || '',
       });
     }
-
-    // Cargar datos desde contextos
-    console.log('📊 Datos disponibles desde contextos:');
-    console.log('  - Motivos:', motivos?.length || 0);
-    console.log('  - Consultorios:', consultorios?.length || 0);
-    console.log('  - Formas de ingreso:', formasIngreso?.length || 0);
-    console.log('  - Seguros:', seguros?.length || 0);
-  }, [motivos, consultorios, formasIngreso, seguros]);
+  }, [initialData]);
 
   // Función para validar el formulario
   interface ValidationResult {
@@ -403,10 +360,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
   // Manejar cambios en el formulario
   const handleFormChange = async (field: string, value: string) => {
-    if (process.env.NODE_ENV === 'development' && field === 'seguroLiq') {
-      console.log(`handleFormChange - Campo: ${field}, Valor: ${value}`);
-    }
-    
     setFormData((prev: FormDataType) => ({
       ...prev,
       [field]: value,
@@ -421,14 +374,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       });
     }
 
-    // Si se cambió el tipo de seguro, NO hacer nada aquí
-    // La cuenta se mantendrá y solo se actualizará el tipo de seguro al guardar
-    if (field === 'seguroLiq' && value && initialData?.PACIENTE) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🚨 [EMERGENCIA] Cambio de seguro detectado - Paciente: ${initialData.PACIENTE}, Nuevo valor: ${value}`);
-        console.log(`ℹ️ La cuenta ${initialData.CUENTAID} se actualizará con el nuevo seguro al guardar`);
-      }
-    }
   };
 
 
@@ -474,13 +419,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         formattedDate = initialData.FECHA;
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Formato de fecha:', {
-          original: formData.fecha,
-          paraPrisma: formattedDate
-        });
-      }
-      
       // Función auxiliar para limitar la longitud de los campos
       const limitLength = (value: string | null | undefined, maxLength: number): string => {
         if (value === null || value === undefined) return '';
@@ -490,14 +428,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       // Verificar si es PAGANTE o SOAT para bypass de validación de cuenta
       const paganteOrSoatInsuranceCodes = ['0', '00', '02'];
       const isPayingOrSoat = Boolean(formData.seguroLiq && paganteOrSoatInsuranceCodes.includes(formData.seguroLiq.trim()));
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Validación de cuenta:', {
-          seguroLiq: formData.seguroLiq,
-          isPayingOrSoat,
-          numeroCuenta: formData.numeroCuenta
-        });
-      }
       
       // Validar que haya una cuenta válida antes de actualizar (excepto para PAGANTE y SOAT)
       if (!isPayingOrSoat && (!formData.numeroCuenta || formData.numeroCuenta === 'No disponible')) {
@@ -518,24 +448,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       const seguroNuevo = seguroLiqValue.trim();
       const seguroHaCambiado = seguroOriginal !== seguroNuevo;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Verificación de cambio de seguro:', {
-          original: seguroOriginal,
-          nuevo: seguroNuevo,
-          haCambiado: seguroHaCambiado
-        });
-      }
-      
       // Si el seguro ha cambiado, actualizar la tabla CUENTA
       // IMPORTANTE: Siempre usar la cuenta original (CUENTAID) del registro
       // NO crear nuevas cuentas, solo actualizar el tipo de seguro de la cuenta existente
       const cuentaParaActualizar = initialData?.CUENTAID;
         
       if (seguroHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Actualizando cuenta ${cuentaParaActualizar} con nuevo seguro: ${seguroNuevo}`);
-        }
-        
         try {
           const cuentaResponse = await fetch(`/api/accounts/update/${cuentaParaActualizar}`, {
             method: 'PUT',
@@ -551,9 +469,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
           }
           
           const cuentaResult = await cuentaResponse.json();
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Cuenta actualizada exitosamente');
-          }
           
           toast({
             title: 'Cuenta actualizada',
@@ -589,23 +504,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       // Si el seguro ha cambiado y tenemos un nuevo CUENTAID, incluirlo en la actualización
       if (seguroHaCambiado && formData.cuentaId && formData.cuentaId !== 'No disponible') {
         updateData.CUENTAID = formData.cuentaId;
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🔄 Actualizando CUENTAID en EMERGENCIA: ${formData.cuentaId}`);
-        }
-      }
-      
-      // Log para verificar que SEGURO = SEGUROLIQ
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Datos de actualización:', {
-          SEGURO: updateData.SEGURO,
-          SEGUROLIQ: updateData.SEGUROLIQ,
-          sonIguales: updateData.SEGURO === updateData.SEGUROLIQ,
-          longitudes: Object.fromEntries(
-            Object.entries(updateData)
-              .filter(([_, v]) => typeof v === 'string')
-              .map(([k, v]) => [k, `${(v as string).length} caracteres`])
-          )
-        });
       }
       
       // Llamar a la API para actualizar
@@ -1008,10 +906,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     options={formatConsultorios}
                     loading={loadingConsultorios}
                     search={searchConsultorio}
-                    onSearchChange={(v: string) => {
-                      setSearchConsultorio(v);
-                      loadConsultorios(v);
-                    }}
+                    onSearchChange={(v: string) => setSearchConsultorio(v)}
                     onSelect={(value: string, data: any) => handleFormChange("consultorio", value)}
                     selectName="consultorio"
                     required
@@ -1027,10 +922,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     options={formatFormas}
                     loading={loadingFormas}
                     search={searchForma}
-                    onSearchChange={(v: string) => {
-                      setSearchForma(v);
-                      loadFormasIngreso(v);
-                    }}
+                    onSearchChange={(v: string) => setSearchForma(v)}
                     onSelect={(value: string, data: any) => handleFormChange("formaIngreso", value)}
                     selectName="formaIngreso"
                     required
@@ -1046,10 +938,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     options={formatSeguros}
                     loading={loadingSeguros}
                     search={searchSeguro}
-                    onSearchChange={(v: string) => {
-                      setSearchSeguro(v);
-                      loadSeguros(v);
-                    }}
+                    onSearchChange={(v: string) => setSearchSeguro(v)}
                     onSelect={(value: string, data: any) => handleFormChange("seguroLiq", value)}
                     selectName="seguroLiq"
                     required
@@ -1065,10 +954,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     options={formatMotivos}
                     loading={loadingMotivos}
                     search={searchMotivo}
-                    onSearchChange={(v: string) => {
-                      setSearchMotivo(v);
-                      loadMotivos(v);
-                    }}
+                    onSearchChange={(v: string) => setSearchMotivo(v)}
                     onSelect={(value: string, data: any) => handleFormChange("motivoEmergencia", value)}
                     selectName="motivo"
                     required

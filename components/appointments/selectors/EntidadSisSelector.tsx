@@ -63,7 +63,6 @@ export function EntidadSisSelector({
   // Resetear lastProcessedCode cuando value se limpia
   useEffect(() => {
     if (!value && lastProcessedCode.current) {
-      console.log('🏥 EntidadSisSelector: Reseteando lastProcessedCode (value limpiado)')
       lastProcessedCode.current = null
     }
   }, [value])
@@ -73,7 +72,6 @@ export function EntidadSisSelector({
     if (sisEstablecimiento?.codigo) {
       // Solo actualizar si el código cambió o si es la primera vez
       if (lastProcessedCode.current !== sisEstablecimiento.codigo) {
-        console.log('🏥 EntidadSisSelector: Actualizando establecimiento:', sisEstablecimiento)
         lastProcessedCode.current = sisEstablecimiento.codigo
         
         // Actualizar automáticamente con el nuevo código
@@ -83,7 +81,6 @@ export function EntidadSisSelector({
         setItems(prevItems => {
           const existeEnItems = prevItems.some(item => item.ENTIDADSIS === sisEstablecimiento.codigo)
           if (!existeEnItems) {
-            console.log('🏥 EntidadSisSelector: Agregando establecimiento a items:', sisEstablecimiento)
             return [
               {
                 ENTIDADSIS: sisEstablecimiento.codigo,
@@ -112,7 +109,6 @@ export function EntidadSisSelector({
       }
     } else if (!sisEstablecimiento && lastProcessedCode.current) {
       // Si sisEstablecimiento se limpia, resetear el tracking
-      console.log('🏥 EntidadSisSelector: Reseteando lastProcessedCode (sisEstablecimiento limpiado)')
       lastProcessedCode.current = null
     }
   }, [sisEstablecimiento?.codigo, sisEstablecimiento?.nombre])

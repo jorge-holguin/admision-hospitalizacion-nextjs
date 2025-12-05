@@ -86,11 +86,6 @@ export function ReferenciaSelector({
       setManualMode(false)
     }
 
-    console.log('🔍 Buscando referencias para:', {
-      numeroDocumento,
-      tipoDocumento,
-      especialidadCodigo
-    })
 
     // Limpiar selección anterior al buscar nuevas referencias
     setSelectedReferencia(null)
@@ -123,9 +118,6 @@ export function ReferenciaSelector({
       return
     }
 
-    console.log('✍️ Ingreso manual de referencia:', {
-      numeroReferencia: manualReferencia
-    })
 
     // Notificar al componente padre con datos manuales
     if (onChange) {
@@ -166,13 +158,6 @@ export function ReferenciaSelector({
     if (referenciaSeleccionada) {
       const refData = referenciaSeleccionada.data
       setSelectedReferencia(refData)
-
-      console.log('✅ Referencia seleccionada:', {
-        idReferencia: refData.idReferencia,
-        numeroReferencia: refData.numeroReferencia,
-        eessOrigen: refData.codigoestablecimientoOrigen,
-        establecimiento: refData.establecimientoOrigen
-      })
 
       // Notificar cambios al componente padre
       if (onChange) {

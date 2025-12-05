@@ -86,9 +86,7 @@ export function HospitalizationViewRefactored({
   });
   
   // Función para procesar los datos iniciales recibidos del padre
-  const processInitialData = (data: any) => {
-    console.log('🔄 Procesando initialData:', data);
-    
+  const processInitialData = (data: any) => {    
     // Asegurar que orderData incluya TODOS los campos
     const completeOrderData = {
       ...data,
@@ -185,17 +183,10 @@ export function HospitalizationViewRefactored({
   // Efecto para procesar datos iniciales cuando están disponibles
   useEffect(() => {
     if (!initialData) {
-      console.log('⚠️ No hay initialData disponible');
       setError('No se proporcionaron datos de hospitalización');
       setLoading(false);
       return;
     }
-    
-    console.log('✅ InitialData recibido, procesando...', {
-      IDHOSPITALIZACION: initialData.IDHOSPITALIZACION,
-      ACOMPANANTE_NOMBRE: initialData.ACOMPANANTE_NOMBRE,
-      ORIGENID: initialData.ORIGENID
-    });
     
     // Procesar los datos recibidos del padre
     processInitialData(initialData);
@@ -255,7 +246,6 @@ export function HospitalizationViewRefactored({
     
     // Convertir la hora de formato 24h a formato 12h para guardar en la base de datos
     const time12h = convertTo12HourFormat(serverTime);
-    console.log('Hora convertida a formato 12h para guardar:', time12h);
     
     try {
       // Obtener los valores de los campos de acompañante
@@ -337,7 +327,6 @@ export function HospitalizationViewRefactored({
       
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Hospitalización actualizada exitosamente:', result);
         
         // Si tenemos callback onSave (modo modal), usarlo
         if (onSave) {

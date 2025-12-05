@@ -30,14 +30,11 @@ export function EtniaProvider({ children }: { children: ReactNode }) {
   const loadEtnias = async () => {
     try {
       setLoading(true)
-      console.log('🔍 EtniaContext: Cargando etnias desde:', `${API_BASE_URL}/maestro/etnia/obtener-todos`)
       const response = await fetch(`${API_BASE_URL}/maestro/etnia/obtener-todos`)
       
       if (!response.ok) throw new Error('Error al cargar etnias')
       
       const data = await response.json()
-      console.log('✅ EtniaContext: Etnias cargadas:', data?.length || 0, 'registros')
-      console.log('📋 EtniaContext: Datos:', data)
       setEtnias(data || [])
       setError(null)
     } catch (err) {

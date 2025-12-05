@@ -251,7 +251,6 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     }));
 
   const formatSeguros = useMemo(() => {
-    console.log('Datos de seguros disponibles:', seguros);
     return seguros
       .filter(
         (s) => {

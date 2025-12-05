@@ -52,8 +52,6 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
   // Usar el contexto de seguros de citas (SegurosCitaContext) para evitar duplicar contextos
   const { seguros, loading } = useSegurosCita();
   
-  console.log('🏥 SeguroSelector: Usando SegurosCitaContext, seguros disponibles:', seguros?.length || 0);
-
   // Buscar el seguro seleccionado, considerando diferentes formatos posibles
   const selectedSeguro = seguros.find(seguro => {
     // Puede venir como "25" o como "25 - SIS TEMPORAL"

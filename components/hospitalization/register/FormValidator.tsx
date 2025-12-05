@@ -69,9 +69,7 @@ export function validateHospitalizationForm(formData: FormData): ValidationResul
       }
     });
   } else {
-    // Para otros casos, validamos todos los campos normalmente
-    console.log('Procedencia no es RN - aplicando validación normal');
-    
+    // Para otros casos, validamos todos los campos normalmente    
     const requiredFields = [
       { key: 'hospitalizationOrigin', label: 'Código de Origen de Atención' },
       { key: 'hospitalizedIn', label: 'Hospitalizado en' },

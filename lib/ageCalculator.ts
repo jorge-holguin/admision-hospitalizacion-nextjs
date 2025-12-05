@@ -115,8 +115,6 @@ export function calculateAge(
   // Formatear como 000a00m00d
   const formatted = `${years.toString().padStart(3, '0')}a${months.toString().padStart(2, '0')}m${days.toString().padStart(2, '0')}d`;
 
-  console.log(`📅 Edad calculada para ${fechaNacimiento}: ${formatted} (${years} años, ${months} meses, ${days} días)`);
-
   return {
     formatted,
     years,

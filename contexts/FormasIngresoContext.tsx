@@ -33,7 +33,6 @@ export function FormasIngresoProvider({ children }: { children: React.ReactNode 
   const loadFormasIngreso = async () => {
     try {
       setLoading(true)
-      console.log('🚪 Cargando formas de ingreso desde contexto...')
       
       const response = await fetch('/api/emergency/admission-types')
       
@@ -42,7 +41,6 @@ export function FormasIngresoProvider({ children }: { children: React.ReactNode 
       }
       
       const data = await response.json()
-      console.log('✅ Formas de ingreso cargadas en contexto:', data)
       
       // Extraer los items de la respuesta
       const formasData = data.items || data.data || []

@@ -39,7 +39,6 @@ export function SimpleSISVerification({
   const [verificationResult, setVerificationResult] = useState<SimpleSISVerificationResult | null>(null);
 
   const handleContinueWithoutValidation = () => {
-    console.log('⚠️ Usuario decidió continuar sin validación SIS')
     const result: SimpleSISVerificationResult = {
       isSuccess: false,
       isServerError: true,
@@ -60,7 +59,6 @@ export function SimpleSISVerification({
   // Verificación automática cuando autoVerify es true
   useEffect(() => {
     if (autoVerify && documento) {
-      console.log('🔄 Verificación SIS automática iniciada para documento:', documento)
       handleVerifySIS(true) // true indica que es automática
     }
   }, [autoVerify, documento])
@@ -87,7 +85,6 @@ export function SimpleSISVerification({
       try {
         // Determinar el tipo de documento: 9 dígitos = Carné de Extranjería (tipo "3"), sino DNI (tipo "1")
         const tipoDocumento = documento.length === 9 ? "3" : "1";
-        console.log(`📋 Verificando SIS - Documento: ${documento} (${documento.length} dígitos) - Tipo: ${tipoDocumento === "3" ? "Carné de Extranjería" : "DNI"}`);
         
         const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
           method: 'POST',

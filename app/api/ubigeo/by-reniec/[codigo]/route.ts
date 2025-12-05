@@ -38,7 +38,6 @@ export async function GET(
     }
 
     const ubigeo = result[0].UBIGEO?.trim();
-    console.log(`✅ UBIGEO encontrado: ${ubigeo} para RENIEC: ${codigoReniec}`);
 
     return NextResponse.json({ 
       ubigeo,

@@ -31,8 +31,6 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
   
   // Usar consultorios de HOSPITALIZACIÓN (TIPO='H') en lugar de emergencia
   const { consultoriosHospitalizacion, loadingHospitalizacion } = useConsultorios();
-  
-  console.log('🏥 ConsultorioSelector (Hospitalización): Consultorios disponibles:', consultoriosHospitalizacion?.length || 0);
 
   const handleSelect = (selectedValue: string) => {
     const selected = consultoriosHospitalizacion.find(consultorio => 

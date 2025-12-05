@@ -72,12 +72,8 @@ export function useReniec() {
 
       // Obtener datos necesarios para la consulta
       const usuario = getUserDNI();
-      console.log('🔑 Token encontrado, DNI del usuario:', usuario);
       
-      if (!usuario) {
-        console.warn('⚠️ No se pudo obtener DNI del usuario, usando DNI del paciente como usuario');
-        // Si no hay usuario en el token, usar el DNI del paciente como usuario
-      }
+      // Si no hay usuario en el token, usar el DNI del paciente como usuario
 
       const ip = getClientIP();
       const usuarioFinal = usuario || dni; // Usar el DNI del paciente si no hay usuario
@@ -90,10 +86,6 @@ export function useReniec() {
       // URL de RENIEC desde variable de entorno
       const reniecBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
       const reniecUrl = `${reniecBaseUrl}/reniec/datos-completos?dni=${dni}&usuario=${usuarioFinal}&app=${app}&ip=${ip}&urlAplicativo=${urlAplicativo}&moduloAplicativo=${moduloAplicativo}`;
-
-      console.log(`🔍 Consultando RENIEC para DNI: ${dni}`);
-      console.log(`👤 Usuario: ${usuarioFinal}, IP: ${ip}`);
-      console.log(`📡 URL: ${reniecUrl}`);
 
       // Llamar directamente a la API de RENIEC
       const response = await fetch(reniecUrl, {
@@ -109,22 +101,16 @@ export function useReniec() {
 
       const reniecData: ReniecData = await response.json();
 
-      console.log('📋 Respuesta de RENIEC - Código:', reniecData.codigoRespuesta);
-
       // Verificar si la respuesta es exitosa
       // 0000 = Éxito
       // 5114 = DNI no existe en base de datos RENIEC
       if (reniecData.codigoRespuesta === '5114') {
-        console.warn('⚠️ DNI no existe en base de datos RENIEC (código 5114)');
         throw new Error('DNI_NO_EXISTE: El DNI consultado no existe en la base de datos de RENIEC');
       }
       
       if (reniecData.codigoRespuesta !== '0000') {
-        console.error('❌ Error RENIEC - Código:', reniecData.codigoRespuesta, 'Error:', reniecData.codigoError);
         throw new Error(reniecData.codigoError || `Error RENIEC (código ${reniecData.codigoRespuesta})`);
       }
-
-      console.log('✅ Datos obtenidos de RENIEC:', reniecData);
 
       // Detectar caso degradado: 200 pero campos importantes nulos/vacíos
       const primaryFields = [
@@ -138,9 +124,6 @@ export function useReniec() {
         reniecData?.imagenFoto,
       ];
       const isDegraded = primaryFields.every((v) => v === null || v === undefined || String(v).trim() === '');
-      if (isDegraded) {
-        console.warn('⚠️ RENIEC respondió 200 pero sin datos útiles (modo degradado). Se solicitará ingreso manual.');
-      }
 
       // Mapear datos de RENIEC al formato del formulario (ahora es async)
       const mappedData = await mapReniecToPatientForm(reniecData);
@@ -155,7 +138,6 @@ export function useReniec() {
 
     } catch (err: any) {
       const errorMessage = err.message || 'Error al consultar RENIEC';
-      console.error('❌ Error en consulta RENIEC:', errorMessage);
       setError(errorMessage);
       
       return {

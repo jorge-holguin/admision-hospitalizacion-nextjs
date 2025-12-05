@@ -40,7 +40,6 @@ export default function RoleBasedRoute({
       
       // Solo logear en desarrollo
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔐 Verificando acceso a ruta protegida:', moduleName);
       }
       
       if (!puesto) {

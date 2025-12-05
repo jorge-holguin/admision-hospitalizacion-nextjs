@@ -43,14 +43,12 @@ export function PaisSelector({
     const loadSelectedPaisData = async () => {
       if (value?.trim()) {
         try {
-          console.log(`🔍 Cargando datos del país seleccionado: ${value.trim()}`)
           const response = await fetch(
             `${API_BASE_URL}/maestro/pais/${value.trim()}`
           )
           
           if (response.ok) {
             const data: Pais = await response.json()
-            console.log(`✅ Datos del país cargados:`, data)
             setSelectedPaisData(data)
           }
         } catch (error) {

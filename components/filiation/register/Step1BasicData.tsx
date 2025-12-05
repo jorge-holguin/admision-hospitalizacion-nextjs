@@ -46,38 +46,25 @@ export function Step1BasicData({
   const [photoTimestamp, setPhotoTimestamp] = useState<number>(Date.now())
   const [distritoReniecNombre, setDistritoReniecNombre] = useState<string>('')
   
-  console.log('📋 Step1BasicData recibido:')
-  console.log('   - documentType:', documentType)
-  console.log('   - documentNumber:', documentNumber)
-  console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
-  console.log('   - patientData:', patientData ? 'Presente' : 'Ausente')
-  if (patientData?.STRING_FOTO) {
-    console.log('   - patientData.STRING_FOTO:', patientData.STRING_FOTO.substring(0, 50) + '...')
-  }
   
   // Actualizar foto cuando cambien los datos
   useEffect(() => {
     let newPhotoUrl: string | null = null
     
-    // Prioridad 1: Foto de RENIEC (más reciente)
     if (reniecData?.photoReniec) {
       newPhotoUrl = `data:image/jpeg;base64,${reniecData.photoReniec}`
-      console.log('📸 Usando foto de RENIEC')
     }
-    // Prioridad 2: Foto del paciente (de filiación)
     else if (patientData?.STRING_FOTO || patientData?.stringFoto) {
-      // Asegurar que sea base64 válido (sin espacios ni saltos de línea)
       const rawBase64 = patientData.STRING_FOTO || patientData.stringFoto
       const cleanBase64 = String(rawBase64).replace(/\s/g, '')
       newPhotoUrl = cleanBase64.startsWith('data:') 
         ? cleanBase64 
         : `data:image/jpeg;base64,${cleanBase64}`
-      console.log('📸 Usando foto de patientData (STRING_FOTO)')
     }
     
     if (newPhotoUrl) {
       setPhotoUrl(newPhotoUrl)
-      setPhotoTimestamp(Date.now()) // Actualizar timestamp para forzar recarga
+      setPhotoTimestamp(Date.now())
     }
   }, [reniecData?.photoReniec, patientData?.STRING_FOTO, patientData?.stringFoto])
   
@@ -92,35 +79,37 @@ export function Step1BasicData({
         const esCodigoReniec = codigoTrimmed.length === 6 || (codigoTrimmed.length < 7 && !codigoTrimmed.includes(' '))
         
         if (esCodigoReniec) {
-          // Caso 1: Es código RENIEC → mostrar código RENIEC con nombre del distrito
           try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/reniec/${codigoTrimmed}`)
             if (response.ok) {
-              const data = await response.json()
-              // Mostrar el código RENIEC original (no el ubigeo BD) con el nombre del distrito
-              setDistritoReniecNombre(`${codigoTrimmed} - ${data.distrito}`)
-              console.log('✅ Código RENIEC encontrado:', `${codigoTrimmed} (${data.distrito}) [Ubigeo BD: ${data.ubigeo?.trim()}]`)
+              const text = await response.text()
+              if (text && text.trim()) {
+                const data = JSON.parse(text)
+                setDistritoReniecNombre(`${codigoTrimmed} - ${data.distrito}`)
+              } else {
+                setDistritoReniecNombre(codigoTrimmed)
+              }
             } else {
               setDistritoReniecNombre(codigoTrimmed)
-              console.warn('⚠️ No se pudo mapear código RENIEC:', codigoTrimmed)
             }
           } catch (error) {
-            console.error('Error al mapear código RENIEC:', error)
             setDistritoReniecNombre(codigoTrimmed)
           }
         } else {
-          // Caso 2: Ya es ubigeo BD → obtener solo el nombre
           try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/${codigoTrimmed}`)
             if (response.ok) {
-              const data = await response.json()
-              setDistritoReniecNombre(`${codigoTrimmed} - ${data.distrito}`)
-              console.log('✅ Ubigeo BD encontrado:', `${codigoTrimmed} (${data.distrito})`)
+              const text = await response.text()
+              if (text && text.trim()) {
+                const data = JSON.parse(text)
+                setDistritoReniecNombre(`${codigoTrimmed} - ${data.distrito}`)
+              } else {
+                setDistritoReniecNombre(codigoTrimmed)
+              }
             } else {
               setDistritoReniecNombre(codigoTrimmed)
             }
           } catch (error) {
-            console.error('Error al obtener nombre de ubigeo:', error)
             setDistritoReniecNombre(codigoTrimmed)
           }
         }
@@ -419,7 +408,6 @@ export function Step1BasicData({
         <UbigeoSelector
           value={formData.distritoProcedencia}
           onChange={(value, ubigeoreniec) => {
-            console.log(`📍 UbigeoSelector onChange - distrito:`, value, `ubigeoreniec:`, ubigeoreniec)
             onInputChange("distritoProcedencia", value)
             if (ubigeoreniec) onInputChange("ubigeoReniec", ubigeoreniec)
           }}

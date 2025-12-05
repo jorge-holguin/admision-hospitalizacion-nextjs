@@ -27,11 +27,6 @@ export function EtniaSelector({
   // Usar contexto en lugar de estado local
   const { etnias, loading } = useEtnia()
 
-  console.log('🔍 EtniaSelector: etnias desde contexto:', etnias?.length || 0)
-  console.log('📋 EtniaSelector: loading:', loading)
-  console.log('🔎 EtniaSelector: search:', search)
-  console.log('📊 EtniaSelector: datos etnias:', etnias)
-
   // Filtrar etnias solo si hay búsqueda, sino mostrar todas
   const filteredEtnias = search 
     ? (etnias || []).filter(e =>
@@ -40,8 +35,6 @@ export function EtniaSelector({
       )
     : (etnias || [])
   
-  console.log('✅ EtniaSelector: filteredEtnias:', filteredEtnias?.length || 0)
-
   const selectedEtnia = (etnias || []).find(e => e?.codEtnia === value)
   const displayValue = selectedEtnia 
     ? `${selectedEtnia.codEtnia} - ${selectedEtnia.etPueInd}`

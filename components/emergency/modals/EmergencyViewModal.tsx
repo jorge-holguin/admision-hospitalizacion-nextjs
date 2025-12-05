@@ -49,7 +49,6 @@ export function EmergencyViewModal({
   // Cargar consultorios de emergencia cuando se abre el modal
   useEffect(() => {
     if (isOpen && consultorios.length === 0) {
-      console.log('🏥 Cargando consultorios de emergencia...')
       loadConsultoriosEmergencia()
     }
   }, [isOpen, consultorios.length, loadConsultoriosEmergencia])

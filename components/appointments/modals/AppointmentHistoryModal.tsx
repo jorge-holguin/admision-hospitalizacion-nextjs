@@ -198,9 +198,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
         qs.set('nombres', searchTerm.trim())
         apiUrl = `/api/appointments/search-by-name?${qs.toString()}`
       }
-      
-      console.log('Searching with URL:', apiUrl)
-      
+            
       const response = await fetch(apiUrl)
       
       if (!response.ok) {

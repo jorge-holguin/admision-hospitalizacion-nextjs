@@ -50,7 +50,6 @@ export function HospitalizationRegistrationModal({
   // Cargar datos del paciente si no están disponibles
   useEffect(() => {
     if (isOpen && patientId && !patientData) {
-      console.log('🏥 Cargando datos del paciente para hospitalización:', patientId)
       fetchPatientData()
     }
   }, [isOpen, patientId, patientData, fetchPatientData])
@@ -58,7 +57,6 @@ export function HospitalizationRegistrationModal({
   // Cargar consultorios de hospitalización cuando se abre el modal
   useEffect(() => {
     if (isOpen && consultoriosHospitalizacion.length === 0) {
-      console.log('🏥 Cargando consultorios de hospitalización...')
       loadConsultoriosHospitalizacion()
     }
   }, [isOpen, consultoriosHospitalizacion.length, loadConsultoriosHospitalizacion])
@@ -81,7 +79,6 @@ export function HospitalizationRegistrationModal({
   } : null
 
   const handleSuccess = (data: any) => {
-    console.log('✅ Hospitalización guardada exitosamente:', data)
     setSubmitSuccess(true)
     
     toast({

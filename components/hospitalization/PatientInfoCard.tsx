@@ -83,9 +83,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
 
       // Si tenemos initialData, aún así cargar los datos completos desde la API de filiación
       // para tener toda la información del paciente (foto, datos completos, etc.)
-      if (initialData) {
-        console.log('🏥 PatientInfoCard: initialData recibido, pero cargando datos completos desde API de filiación');
-      }
 
       try {
         // Intentar obtener datos del contexto primero
@@ -93,7 +90,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
         
         // Si no hay datos en el contexto, cargarlos
         if (!contextData) {
-          console.log(`[PatientInfoCard] Fetching patient data for ID: ${patientId} via context`);
           await fetchPatientData();
           contextData = getPatientData(patientId);
         }
@@ -164,7 +160,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
 
     // Si tenemos initialData, extraer el diagnóstico de ahí
     if (initialData && initialData.DIAGNOSTICO) {
-      console.log('🏥 PatientInfoCard: Usando diagnóstico de initialData');
       setDiagnosisData({
         code: initialData.DIAGNOSTICO.trim(),
         description: initialData.DIAGNOSTICONOMBRE || 'Descripción no disponible'

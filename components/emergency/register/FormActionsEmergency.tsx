@@ -52,26 +52,20 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
 
 
   const handleSaveClick = async () => {
-    console.log('handleSaveClick ejecutado');
     
     // Ejecutar validaciones previas si existen
     if (onBeforeSave) {
-      console.log('Ejecutando validaciones previas');
       const canProceed = await onBeforeSave();
-      console.log('Resultado de validaciones:', canProceed);
       if (!canProceed) {
-        console.log('No se puede proceder, validaciones fallidas');
         return;
       }
     }
     
     // Mostrar diálogo de confirmación
-    console.log('Mostrando diálogo de confirmación');
     setShowConfirmDialog(true);
   };
 
   const handleConfirmSave = async () => {
-    console.log('handleConfirmSave ejecutado');
     setShowConfirmDialog(false);
     
     await onSave();
@@ -96,7 +90,6 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
           <Button
             type="button"
             onClick={() => {
-              console.log('Botón de guardar clickeado');
               handleSaveClick();
             }}
             disabled={submitting || !isEditable || (isUpdate && !hasValidAccount)}

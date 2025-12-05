@@ -156,40 +156,9 @@ function PatientAssignmentModalContent({
       setShowRefconResultDialog(false)
       setRefconSyncSuccess(false)
       setRefconSyncError(null)
-      console.log('🧹 Estados de referencia limpiados al cerrar modal')
     }
   }, [isOpen])
   
-  // Console.log para rastrear datos del appointment cuando se abre el modal
-  useEffect(() => {
-    if (isOpen && appointment) {
-      console.log('🔍 PatientAssignmentModal - Datos del appointment recibidos:', {
-        consultorio: appointment.consultorio,
-        consultorioNombre: appointment.consultorioNombre,
-        medico: appointment.medico,
-        medicoNombre: appointment.medicoNombre,
-        especialidadSolicitud: (appointment as any)?.especialidadSolicitud,
-        appointmentCompleto: appointment
-      })
-    }
-  }, [isOpen, appointment])
-  
-  // 🐛 DEBUG: Log de estados para diagnosticar problema de referencia manual
-  useEffect(() => {
-    if (isOpen && selectedSeguro) {
-      const isSIS = ['20', '21', '22', '23', '24', '25'].includes(selectedSeguro?.toString().trim())
-      console.log('🐛 DEBUG - Estados de validación:', {
-        selectedTipoCita,
-        selectedSeguro,
-        isSIS: isSIS,
-        selectedEntidadSis,
-        referencia,
-        referenciaIdSeleccionada,
-        isManual: referenciaIdSeleccionada?.startsWith('manual-'),
-        validationPass: isSIS ? (selectedEntidadSis && referencia.trim()) : true
-      })
-    }
-  }, [selectedTipoCita, selectedSeguro, selectedEntidadSis, referencia, referenciaIdSeleccionada, isOpen])
 
   // Determinar si hay coincidencias con citas pendientes
   const hasConsultorioMatch = pendingAppointments?.some((apt) => {
@@ -291,12 +260,10 @@ function PatientAssignmentModalContent({
     
     setIsLoadingPatientData(true)
     try {
-      console.log('🔍 Cargando datos adicionales para paciente ID:', pacienteId)
       const response = await fetch(`${apiBaseUrl}/cita/paciente-foto/${pacienteId}`)
       
       if (response.ok) {
         const additionalData = await response.json()
-        console.log('📋 Datos adicionales recibidos:', additionalData)
         
         // Combinar datos originales con datos adicionales
         const enhancedPatientData: Patient = {
@@ -312,13 +279,10 @@ function PatientAssignmentModalContent({
         }
         
         setEnhancedPatient(enhancedPatientData)
-        console.log('✅ Datos del paciente mejorados:', enhancedPatientData)
       } else {
-        console.warn('⚠️ No se pudieron cargar datos adicionales, usando datos originales')
         setEnhancedPatient(patient)
       }
     } catch (error) {
-      console.error('❌ Error cargando datos adicionales:', error)
       setEnhancedPatient(patient)
     } finally {
       setIsLoadingPatientData(false)
@@ -330,15 +294,12 @@ function PatientAssignmentModalContent({
     
     setIsLoadingFullPatient(true)
     try {
-      console.log('🔍 Precargando historia clínica completa para paciente ID:', pacienteId)
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}`)
       
       if (response.ok) {
         const fullData = await response.json()
-        console.log('📋 Historia clínica completa recibida:', fullData)
         setFullPatientData(fullData)
       } else {
-        console.warn('⚠️ No se pudo cargar historia clínica completa')
         toast({
           title: "Advertencia",
           description: "No se pudo cargar la historia clínica completa del paciente",
@@ -346,7 +307,6 @@ function PatientAssignmentModalContent({
         })
       }
     } catch (error) {
-      console.error('❌ Error cargando historia clínica completa:', error)
       toast({
         title: "Error",
         description: "Error al cargar la historia clínica del paciente",
@@ -359,8 +319,6 @@ function PatientAssignmentModalContent({
 
   const imprimirCitaAsignada = async (citaId: string) => {
     try {
-      console.log('🖨️ Obteniendo datos de la cita para imprimir:', citaId)
-      
       // Obtener datos completos de la cita
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
       
@@ -369,7 +327,6 @@ function PatientAssignmentModalContent({
       }
       
       const citaData = await response.json()
-      console.log('📋 Datos de cita recibidos para impresión:', citaData)
       
       // Obtener el DNI del usuario desde el JWT
       const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
@@ -390,7 +347,6 @@ function PatientAssignmentModalContent({
             const entidadData = await entidadResponse.json()
             if (entidadData.success && entidadData.data) {
               eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadData.data.NOMBRE}`
-              console.log('✅ EESS formateado:', eessFormatted)
             } else {
               eessFormatted = citaData.entidadSis.trim()
             }
@@ -398,7 +354,6 @@ function PatientAssignmentModalContent({
             eessFormatted = citaData.entidadSis.trim()
           }
         } catch (error) {
-          console.warn('⚠️ Error al obtener nombre de entidad SIS, usando solo código:', error)
           eessFormatted = citaData.entidadSis.trim()
         }
       }
@@ -422,12 +377,8 @@ function PatientAssignmentModalContent({
         ...(eessFormatted && { eess: eessFormatted })
       }
       
-      console.log('🖨️ Enviando cita a imprimir:', citaDto)
       await imprimirCita(citaDto)
-      
-      console.log('✅ Cita enviada a imprimir correctamente')
     } catch (error) {
-      console.error('❌ Error al imprimir cita:', error)
       // No mostrar error al usuario ya que la asignación fue exitosa
     }
   }
@@ -469,11 +420,8 @@ function PatientAssignmentModalContent({
         recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2)
       }
       
-      console.log('📤 Enviando solicitud de asignación:', requestBody)
-      
       // Construir la URL usando la variable de entorno
       const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${appointment.id}/asignar`;
-      console.log('🔗 URL de asignación:', apiUrl);
       
       // Realizar la solicitud PUT
       const response = await fetch(apiUrl, {
@@ -504,8 +452,6 @@ function PatientAssignmentModalContent({
         setShowErrorDialog(true)
         return
       }
-      
-      console.log('✅ Asignación exitosa:', responseData)
       
       /* ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' (COMENTADA - Ahora se maneja en backend) =====
       const seguroTrimmed = selectedSeguro.trim()
@@ -608,16 +554,13 @@ function PatientAssignmentModalContent({
       
       if (referenciaIdSeleccionada && appointment && esSeguroSIS(selectedSeguro) && !esReferenciaManualSync && !skipRefconSync) {
         try {
-          console.log('🔄 Iniciando sincronización con REFCON (Seguro SIS detectado)...')
-          
           // 1. Obtener datos de la cita desde REFCON
           const citaRefconResult = await obtenerDatosCitaRefcon(appointment.id, usuarioDni)
           
           if (!citaRefconResult.success || !citaRefconResult.data) {
-            console.warn('⚠️ No se pudieron obtener datos de REFCON:', citaRefconResult.error)
+            // No se pudieron obtener datos de REFCON
           } else {
             const datosRefcon = citaRefconResult.data
-            console.log('📋 Datos obtenidos de REFCON:', datosRefcon)
             
             // 2. Construir payload con datos obtenidos + idReferencia
             const refconPayload = {
@@ -628,53 +571,32 @@ function PatientAssignmentModalContent({
               personalRegistra: datosRefcon.personalRegistra || {}
             }
             
-            console.log('📦 Payload para sincronización:', refconPayload)
-            
             // 3. Sincronizar con REFCON
             const syncResult = await sincronizarCitaConRefcon(refconPayload)
             
             if (syncResult.success) {
-              console.log('✅ Cita sincronizada exitosamente con REFCON')
               setRefconSyncSuccess(true)
               setRefconSyncError(null)
               // Estado REFCON 2 ya fue establecido al asignar la cita, no se requiere actualización
             } else {
-              console.warn('⚠️ Error al sincronizar con REFCON (no crítico):', syncResult.error)
               setRefconSyncSuccess(false)
               setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
               
               // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló
-              console.log('🔄 Actualizando estado REFCON a 1 (sincronización fallida)...')
-              const estadoRefconResult = await actualizarEstadoRefcon(appointment.id, 1)
-              if (estadoRefconResult.success) {
-                console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
-              } else {
-                console.warn('⚠️ No se pudo actualizar estado REFCON a 1:', estadoRefconResult.error)
-              }
+              await actualizarEstadoRefcon(appointment.id, 1)
             }
           }
         } catch (refconError) {
-          console.error('❌ Error al sincronizar con REFCON:', refconError)
           setRefconSyncSuccess(false)
           setRefconSyncError(refconError instanceof Error ? refconError.message : 'Error desconocido')
           
           // Actualizar estado REFCON a 1 por error
           try {
-            console.log('🔄 Actualizando estado REFCON a 1 (error en sincronización)...')
-            const estadoRefconResult = await actualizarEstadoRefcon(appointment.id, 1)
-            if (estadoRefconResult.success) {
-              console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
-            }
+            await actualizarEstadoRefcon(appointment.id, 1)
           } catch (updateError) {
-            console.warn('⚠️ No se pudo actualizar estado REFCON:', updateError)
+            // Ignorar error de actualización
           }
         }
-      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {
-        console.log('ℹ️ Sincronización REFCON omitida: Referencia ingresada manualmente')
-      } else if (referenciaIdSeleccionada && skipRefconSync) {
-        console.log('ℹ️ Sincronización REFCON omitida: Referencia con estado RECIBIDO o CITADO (no requiere sincronización)')
-      } else if (referenciaIdSeleccionada && !esSeguroSIS(selectedSeguro)) {
-        console.log('ℹ️ Sincronización REFCON omitida: Seguro no es SIS (código:', selectedSeguro, ')')
       }
       
       // Notificar al componente padre sobre la asignación exitosa
@@ -840,20 +762,12 @@ function PatientAssignmentModalContent({
                 <Button
                   variant="outline"
                   onClick={async () => {
-                    console.log('🔘 Click en Actualizar Historia Clínica')
-                    console.log('   - patient:', patient)
-                    console.log('   - patient?.PACIENTE:', patient?.PACIENTE)
-                    console.log('   - patient?.HISTORIA:', patient?.HISTORIA)
-                    
                     const pacienteId = patient?.PACIENTE || patient?.HISTORIA
-                    console.log('   - pacienteId seleccionado:', pacienteId)
                     
                     if (pacienteId) {
                       await loadFullPatientData(pacienteId)
-                      console.log('✅ Abriendo modal de edición')
                       setShowPatientEditModal(true)
                     } else {
-                      console.error('❌ No se encontró pacienteId')
                       toast({
                         title: "Error",
                         description: "No se pudo identificar al paciente",
@@ -1014,17 +928,14 @@ function PatientAssignmentModalContent({
                       especialidadCodigo={(appointment as any)?.especialidadSolicitud}
                       value={referenciaIdSeleccionada}
                       onChange={async (refData) => {
-                        console.log('📋 Referencia seleccionada:', refData)
                         setReferencia(refData.numeroReferencia)
                         setReferenciaIdSeleccionada(refData.idReferencia)
                         
                         // Guardar flag de sincronización con REFCON
                         setSkipRefconSync(refData.skipRefconSync || false)
-                        console.log('🔄 Skip REFCON Sync:', refData.skipRefconSync, '(Estado:', refData.codigoEstado, ')')
                         
                         // Obtener nombre de la entidad SIS desde la API
                         if (refData.codigoestablecimientoOrigen) {
-                          console.log('🔍 Obteniendo nombre de entidad SIS para código:', refData.codigoestablecimientoOrigen)
                           
                           // Actualizar inmediatamente el código del establecimiento
                           setEessOrigenReferencia(refData.codigoestablecimientoOrigen)

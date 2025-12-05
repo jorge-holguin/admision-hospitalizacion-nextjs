@@ -45,14 +45,8 @@ export interface SISValidationResponse {
  * @returns Código del seguro para el selector
  */
 export function mapSISSeguroToLocal(tipoSeguroSIS: string, nombresPaciente: string = ''): string {
-  // Detectar RN solo cuando aparece como palabra separada (ej: "RN PEREZ" o "PEREZ RN")
-  // No debe detectar RN dentro de palabras como "FERNANDEZ"
   const nombreUpper = nombresPaciente.toUpperCase()
-  const esRN = /\bRN\b/.test(nombreUpper) // \b = word boundary (límite de palabra)
-  
-  console.log(`🔍 Detectando RN en nombre: "${nombresPaciente}"`)
-  console.log(`   - Nombre en mayúsculas: "${nombreUpper}"`)
-  console.log(`   - ¿Es RN?: ${esRN}`)
+  const esRN = /\bRN\b/.test(nombreUpper)
   
   switch (tipoSeguroSIS) {
     case '05':
@@ -81,8 +75,6 @@ export async function consultarSIS(documentNumber: string): Promise<{
   error?: string
 }> {
   try {
-    console.log(`🏥 Consultando SIS para documento: ${documentNumber}`)
-    
     // Crear un AbortController para el timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos
@@ -90,7 +82,6 @@ export async function consultarSIS(documentNumber: string): Promise<{
     try {
       // Determinar el tipo de documento: 9 dígitos = Carné de Extranjería (tipo "3"), sino DNI (tipo "1")
       const tipoDocumento = documentNumber.length === 9 ? "3" : "1";
-      console.log(`📋 Verificando SIS - Documento: ${documentNumber} (${documentNumber.length} dígitos) - Tipo: ${tipoDocumento === "3" ? "Carné de Extranjería" : "DNI"}`);
       
       // Usar POST con la estructura correcta requerida por la API
       const response = await fetch(`${SIS_API_URL}/sis/validar`, {
@@ -118,17 +109,11 @@ export async function consultarSIS(documentNumber: string): Promise<{
 
       // Verificar si la respuesta fue exitosa
       if (data.idError === '0' && data.resultado === 'DATOS EXITOSOS') {
-        console.log(`✅ Datos del SIS obtenidos exitosamente`)
-        console.log(`📋 Tipo de seguro SIS: ${data.tipoSeguro} - ${data.descTipoSeguro}`)
-        console.log(`👤 Paciente: ${data.nombres} ${data.apePaterno} ${data.apeMaterno}`)
-        console.log(`📅 Estado: ${data.estado}`)
-        
         return {
           success: true,
           data
         }
       } else {
-        console.warn(`⚠️ SIS no encontró datos: ${data.resultado}`)
         return {
           success: false,
           data: null,
@@ -140,7 +125,6 @@ export async function consultarSIS(documentNumber: string): Promise<{
       
       // Verificar si fue un timeout
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('⏱️ Timeout al consultar SIS (5 segundos)')
         return {
           success: false,
           data: null,
@@ -151,7 +135,6 @@ export async function consultarSIS(documentNumber: string): Promise<{
       throw fetchError
     }
   } catch (error) {
-    console.error('❌ Error al consultar SIS:', error)
     return {
       success: false,
       data: null,

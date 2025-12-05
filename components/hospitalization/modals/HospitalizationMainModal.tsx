@@ -32,7 +32,6 @@ export function HospitalizationMainModal({
   }
 
   const handleView = (hospitalizationId: string, hospitalizationData: any) => {
-    console.log('🏥 HospitalizationMainModal: Ver hospitalización ID:', hospitalizationId)
     setSelectedHospitalizationId(hospitalizationId)
     // NO pasar hospitalizationData porque viene de la lista y no tiene todos los campos
     // HospitalizationViewModal cargará los datos completos desde la API
@@ -42,7 +41,6 @@ export function HospitalizationMainModal({
   }
 
   const handleEdit = (hospitalizationId: string, hospitalizationData: any) => {
-    console.log('🏥 HospitalizationMainModal: Editar hospitalización ID:', hospitalizationId)
     setSelectedHospitalizationId(hospitalizationId)
     // NO pasar hospitalizationData porque viene de la lista y no tiene todos los campos
     // HospitalizationViewModal cargará los datos completos desde la API
@@ -58,7 +56,6 @@ export function HospitalizationMainModal({
   }
 
   const handleSuccess = (data: any) => {
-    console.log('✅ Operación exitosa en hospitalización:', data)
     // Volver a la lista después de una operación exitosa
     handleBackToList()
   }

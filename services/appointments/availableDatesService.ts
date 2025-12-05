@@ -27,10 +27,7 @@ export const availableDatesService = {
       let url = `${baseUrl}/cita/fechas-consultorios-solicitud?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&idEspecialidad=${idEspecialidad}`;
       if (turnoConsulta) {
         url += `&turnoConsulta=${turnoConsulta}`;
-      }
-      
-      console.log(`🔍 Consultando fechas disponibles: ${url}`);
-      
+      }      
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -39,7 +36,6 @@ export const availableDatesService = {
       }
       
       const data: AvailableDate[] = await response.json();
-      console.log(`✅ Fechas obtenidas: ${data.length} registros${turnoConsulta ? ` para turno ${turnoConsulta}` : ' (todos los turnos)'}`);
       return data;
     } catch (error) {
       console.error('❌ Error en fetchAvailableDates:', error);

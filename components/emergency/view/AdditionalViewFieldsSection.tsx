@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect, OptionItem } from '@/components/ui/SearchableSelect';
-import { useTiposDocumento } from '@/contexts/TiposDocumentoContext';
+import { useTipoDocumento } from '@/contexts/filiation/TipoDocumentoContext';
 
 interface AdditionalViewFieldsSectionProps {
   formData: any;
@@ -19,42 +19,27 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
   disabled,
   readOnly = false
 }) => {
-  // Tipo para los documentos de la API
-  interface TipoDocumento {
-    TIPO_DOCUMENTO: string;
-    NOMBRE: string;
-    ACTIVO: number;
-  }
-
-  // Usar contexto en lugar de estado local
-  const { tiposDocumento, loading: loadingTiposDocumento } = useTiposDocumento();
+  // Usar contexto global de tipos de documento
+  const { tiposDocumento, isLoading: loadingTiposDocumento } = useTipoDocumento();
   const [searchTipoDocumento, setSearchTipoDocumento] = useState<string>('');
 
-  // Ya no necesitamos cargar datos manualmente, usamos el contexto
-  console.log('📄 Tipos de documento disponibles desde contexto (view):', tiposDocumento?.length || 0);
-
-  // Formato para el SearchableSelect
+  // Formato para el SearchableSelect - mapear campos del contexto global
   const formatTiposDocumento = useMemo(() => {
-    // Validar que tiposDocumento sea un array válido
     if (!Array.isArray(tiposDocumento)) {
-      console.warn('📄 tiposDocumento no es un array válido (view):', tiposDocumento);
       return [];
     }
     
-    const formatted = tiposDocumento
-      .filter(t => t && t.TIPO_DOCUMENTO && t.NOMBRE) // Validar que los objetos tengan las propiedades necesarias
+    return tiposDocumento
+      .filter(t => t && t.tipoDocumento && t.nombre)
       .filter(t => !searchTipoDocumento || 
-        t.NOMBRE?.toLowerCase().includes(searchTipoDocumento.toLowerCase()) ||
-        t.TIPO_DOCUMENTO?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
+        t.nombre?.toLowerCase().includes(searchTipoDocumento.toLowerCase()) ||
+        t.tipoDocumento?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
       .map(t => ({
-        value: t.TIPO_DOCUMENTO,
-        display: `(${t.TIPO_DOCUMENTO}) - ${t.NOMBRE}`,
+        value: t.tipoDocumento,
+        display: `(${t.tipoDocumento}) - ${t.nombre}`,
         description: '',
-        data: t
+        data: { TIPO_DOCUMENTO: t.tipoDocumento, NOMBRE: t.nombre }
       }));
-      
-    console.log('📄 Opciones formateadas para SearchableSelect (view):', formatted);
-    return formatted;
   }, [tiposDocumento, searchTipoDocumento]);
   
   // Manejar cambio de tipo de documento
@@ -70,12 +55,12 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
     if ((!initialized || !formData.tipoDocumentoADisplay) && formData.tipoDocumentoA && tiposDocumento.length > 0) {
       const tipoDoc = formData.tipoDocumentoA.trim();
       
-      // Buscar el tipo de documento en los datos cargados desde la API
-      const tipoDocEncontrado = tiposDocumento.find(t => t.TIPO_DOCUMENTO === tipoDoc);
+      // Buscar el tipo de documento en los datos cargados desde el contexto global
+      const tipoDocEncontrado = tiposDocumento.find(t => t.tipoDocumento === tipoDoc);
       
       if (tipoDocEncontrado) {
-        // Si se encuentra en la API, usar el nombre de la API
-        const displayValue = `(${tipoDocEncontrado.TIPO_DOCUMENTO}) - ${tipoDocEncontrado.NOMBRE}`;
+        // Si se encuentra en el contexto, usar el nombre
+        const displayValue = `(${tipoDocEncontrado.tipoDocumento}) - ${tipoDocEncontrado.nombre}`;
         onFormChange('tipoDocumentoADisplay', displayValue);
       } else {
         // Fallback para códigos que no están en la API

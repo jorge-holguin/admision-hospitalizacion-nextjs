@@ -38,12 +38,6 @@ export async function POST(
       nrofua, 
       presta 
     } = body;
-    
-    console.log('Datos extraídos del cuerpo:');
-    console.log(`- paciente: ${paciente}`);
-    console.log(`- seguro: ${seguro}`);
-    console.log(`- usuario: ${usuario}`);
-    console.log(`- nombre: ${nombre}`);
 
     // Validar que todos los campos requeridos estén presentes
     if (!paciente || !usuario) {

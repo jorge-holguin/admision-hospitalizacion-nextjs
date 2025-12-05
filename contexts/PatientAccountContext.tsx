@@ -127,7 +127,6 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
     
     // Verificar si ya hay una solicitud en vuelo para esta combinación
     if (cacheKey in inFlightRequests) {
-      console.log(`Reutilizando solicitud en vuelo para cuenta de paciente: ${patientId} con seguro: ${tipoSeguro}`);
       return inFlightRequests[cacheKey];
     }
 
@@ -137,14 +136,12 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setLoading(patientId, true);
         setError(patientId, null);
 
-        console.log(`🏥 Validando cuenta para paciente: ${patientId} con seguro: ${tipoSeguro}`);
         // ✅ Usar endpoint correcto de validación
         const response = await fetch(`/api/accounts/validate?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
         
         if (!response.ok) {
           // Si es un 404, no es un error crítico, simplemente no hay cuenta para ese seguro
           if (response.status === 404) {
-            console.log(`No se encontró cuenta para el paciente ${patientId} con seguro ${tipoSeguro} (404)`);
             return null;
           }
           // Para otros errores, lanzar excepción
@@ -155,7 +152,6 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         
         // ✅ La API de validate devuelve: { isValid, cuentaId, fuaId, message, tipoValidacion }
         if (data?.isValid && data?.cuentaId) {
-          console.log(`✅ Cuenta válida encontrada para seguro ${tipoSeguro}: ${data.cuentaId}`);
           const accountInfo: PatientAccountData = {
             cuentaId: data.cuentaId
           };
@@ -164,7 +160,6 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
           setAccountData(patientId, accountInfo);
           return accountInfo;
         } else {
-          console.log(`❌ No se encontró cuenta válida para paciente ${patientId} con seguro ${tipoSeguro}`);
           return null;
         }
       } catch (err: any) {

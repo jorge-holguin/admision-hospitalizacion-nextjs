@@ -44,17 +44,14 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
 
     setIsVerifyingSIS(true);
     try {
-      console.log('🏥 Verificando SIS para DNI:', dni);
       const result = await consultarSIS(dni);
 
       if (result.success && result.data) {
-        // Mapear tipoSeguro (CODSIS) a SEGURO usando el servicio
         const nombreCompleto = formData.nombres || patientData?.nombres || patientData?.NOMBRES || '';
         const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);
         
-        console.log(`✅ Seguro SIS detectado: ${seguroId} (CODSIS: ${result.data.tipoSeguro})`);
         onInputChange("tipoSeguro", seguroId);
-        setSisButtonUsed(true); // ✅ Marcar botón como usado
+        setSisButtonUsed(true);
         
         toast({
           title: "✅ Verificación SIS Exitosa",
@@ -62,10 +59,9 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
           variant: "default"
         });
       } else {
-        // ✅ Si no se encontró afiliación, marcar como PAGANTE (0)
-        console.log('⚠️ No se encontró seguro SIS - estableciendo como PAGANTE');
+        // Si no se encontró afiliación, marcar como PAGANTE (0)
         onInputChange("tipoSeguro", "0");
-        setSisButtonUsed(true); // ✅ Marcar botón como usado
+        setSisButtonUsed(true);
         
         toast({
           title: "ℹ️ Sin seguro SIS",
@@ -74,7 +70,6 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         });
       }
     } catch (error) {
-      console.error('❌ Error validando SIS:', error);
       toast({
         title: "⚠️ Error",
         description: "No se pudo verificar el seguro SIS en este momento.",

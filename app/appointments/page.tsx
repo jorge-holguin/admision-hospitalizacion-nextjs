@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 import { extractDocumentFromToken, extractPuestoFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
@@ -64,6 +65,8 @@ import {
   AppointmentHistoryModal
 } from "@/components/appointments"
 import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
+import { PatientSearchModal as FiliationPatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
+import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
 
   // Lista vacía para almacenar citas
   const emptyAppointments: any[] = []
@@ -110,6 +113,14 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
     const [showReservaActivaDialog, setShowReservaActivaDialog] = useState(false)
     const [isValidatingReserva, setIsValidatingReserva] = useState(false)
 
+    // Estados para modales de filiación (Nuevo Paciente)
+    const [isNewPatientSearchModalOpen, setIsNewPatientSearchModalOpen] = useState(false)
+    const [isNewPatientRegistrationModalOpen, setIsNewPatientRegistrationModalOpen] = useState(false)
+    const [reniecData, setReniecData] = useState<any>(null)
+    const [sisData, setSisData] = useState<any>(null)
+    const [documentType, setDocumentType] = useState("DNI")
+    const [documentNumber, setDocumentNumber] = useState("")
+
     // Parámetros de paginación para búsqueda remota
     const [pageParam, setPageParam] = useState<number>(0)
     const [sizeParam, setSizeParam] = useState<number>(50) // Por defecto 50 items
@@ -136,19 +147,11 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
     const loadAvailableDates = useCallback(async (currentMonth: Date) => {
       // Solo cargar si hay un consultorio seleccionado (que tenga especialidad)
       if (filters.consultorio === 'all' || !selectedConsultorioData?.ESPECIALIDAD) {
-        console.log('⏸️ No se cargan fechas: consultorio =', filters.consultorio, 'especialidad =', selectedConsultorioData?.ESPECIALIDAD)
         setDatesWithAppointments([])
         setDatesWithoutAvailability([])
         return
       }
       
-      console.log('🔄 Cargando fechas disponibles para:', {
-        consultorio: filters.consultorio,
-        especialidad: selectedConsultorioData.ESPECIALIDAD,
-        turno: filters.turno,
-        mes: format(currentMonth, 'yyyy-MM')
-      })
-
       try {
         setLoadingDates(true)
         
@@ -164,7 +167,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         const isCurrentOrFutureMonth = monthStart >= currentMonthStart
         
         if (!isCurrentOrFutureMonth && !showPastAppointments) {
-          console.log('⏸️ Mes pasado detectado - No se cargan fechas disponibles')
           setDatesWithAppointments([])
           setLoadingDates(false)
           return
@@ -188,8 +190,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         const fechaFin = format(monthEnd, 'yyyy-MM-dd')
         const idEspecialidad = selectedConsultorioData.ESPECIALIDAD.trim()
         
-        console.log(`📅 Consultando fechas: ${fechaInicio} a ${fechaFin}`)
-
         let availableDates: any[] = []
 
         // ✅ Llamar al API según el turno seleccionado
@@ -217,8 +217,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         const { available, unavailable } = availableDatesService.getDatesWithAvailability(availableDates, consultorioCode)
         setDatesWithAppointments(available)
         setDatesWithoutAvailability(unavailable)
-        console.log(`✅ Fechas cargadas: ${available.length} disponibles (verde), ${unavailable.length} sin disponibilidad (rojo)`)
-        console.log(`   Rango consultado: ${fechaInicio} a ${fechaFin}`)
       } catch (error) {
         console.error('Error al cargar fechas disponibles:', error)
         setDatesWithAppointments([])
@@ -272,9 +270,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         const list = Array.isArray(data) ? data : 
                      Array.isArray(data?.content) ? data.content : 
                      Array.isArray(data?.items) ? data.items : []
-        
-        console.log('API response:', list)
-        
+                
         const mapped = list.map((it: any, idx: number) => ({
           id: it.citaId || it.id || it.ID || `R${idx}`,
           estado: Number(it.estado ?? it.ESTADO ?? 1),
@@ -353,7 +349,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${encodeURIComponent(id)}`)
         if (!res.ok) {
           // Si no encuentra la cita, mostrar lista vacía en lugar de aplicar filtros
-          console.log(`❌ No se encontró la cita con ID: ${id}`)
           setFilteredAppointments([])
           setTotalCount(0)
           return
@@ -362,7 +357,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         
         // Verificar si realmente se encontró una cita válida
         if (!data || (Array.isArray(data) && data.length === 0)) {
-          console.log(`❌ No se encontró la cita con ID: ${id}`)
           setFilteredAppointments([])
           setTotalCount(0)
           return
@@ -396,11 +390,9 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           fechaPago: it.fechaPago ?? it.FECHA_PAGO ?? it.FECHAPAGO ?? null,
         }))
         
-        console.log(`✅ Cita encontrada con ID: ${id}`)
         setFilteredAppointments(mapped)
         setTotalCount(mapped.length)
       } catch (e) {
-        console.log(`❌ Error al buscar la cita con ID: ${id}`, e)
         setFilteredAppointments([])
         setTotalCount(0)
       } finally {
@@ -436,7 +428,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
         }
         
         const tieneReservaActiva = await response.json()
-        console.log('🔍 Validación de reserva activa:', { citaId, tieneReservaActiva })
         return tieneReservaActiva
       } catch (error) {
         console.error('❌ Error validando reserva:', error)
@@ -452,29 +443,16 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
     }
 
     const handleAction = async (action: string, appointment: any) => {
-      console.log('🎯 handleAction - Acción:', action, 'Appointment:', {
-        id: appointment.id,
-        consultorio: appointment.consultorio,
-        consultorioNombre: appointment.consultorioNombre,
-        medico: appointment.medico,
-        medicoNombre: appointment.medicoNombre,
-        estado: appointment.estado,
-        seguro: appointment.seguro
-      })
-      
       setSelectedAppointment(appointment)
       switch (action) {
         case "assign":
-          console.log('📋 Validando reserva activa antes de asignar...')
           const tieneReserva = await validarReservaActiva(appointment.id)
           
           if (tieneReserva) {
-            console.log('⚠️ Cita tiene reserva activa')
             setShowReservaActivaDialog(true)
             return
           }
           
-          console.log('✅ Cita sin reserva activa, abriendo modal de asignación')
           setShowAssignModal(true)
           break
         case "reschedule":
@@ -497,7 +475,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           setShowDetailsModal(true)
           break
         case "reassign":
-          console.log('🔄 Abriendo modal de reasignación con appointment:', appointment)
           setShowReassignModal(true)
           break
         case "print":
@@ -536,8 +513,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
           entidadSis: appointment.entidadSis || appointment.eess || '',
           codigoSeguro: appointment.seguro?.trim() || ''  // Código del seguro para validar si es SIS
         }
-        
-        console.log('📋 Abriendo previsualización de ticket:', ticket)
         
         // Abrir modal de previsualización
         setTicketData(ticket)
@@ -638,6 +613,40 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
       setPageParam(0) // Reset to page 0 when filter changes
     }
 
+    // Funciones para manejar los modales de filiación (Nuevo Paciente)
+    const handleNewPatientClick = () => {
+      setIsNewPatientSearchModalOpen(true)
+    }
+
+    // Cuando se encuentra un paciente existente en filiación
+    const handleNewPatientFound = (patientData: any) => {
+      setIsNewPatientSearchModalOpen(false)
+      toast({
+        title: "Paciente encontrado",
+        description: `Paciente ${patientData.NOMBRES || patientData.nombres} ya existe en el sistema.`,
+      })
+    }
+
+    // Cuando no se encuentra y se obtienen datos de RENIEC (o null para llenado manual)
+    const handleNewPatientSearchComplete = (reniecSearchData: any, sisSearchData: any) => {
+      setReniecData(reniecSearchData)
+      setSisData(sisSearchData)
+      setDocumentType(reniecSearchData?.documentType || "DNI")
+      setDocumentNumber(reniecSearchData?.document || "")
+      setIsNewPatientRegistrationModalOpen(true)
+      setIsNewPatientSearchModalOpen(false)
+    }
+
+    const handleNewPatientRegistrationSuccess = () => {
+      setIsNewPatientRegistrationModalOpen(false)
+      setReniecData(null)
+      setSisData(null)
+      toast({
+        title: "Paciente registrado",
+        description: "La historia clínica ha sido creada exitosamente.",
+      })
+    }
+
     // Cargar citas del día actual al iniciar y cuando cambien los filtros
   // Use a ref to track if this is the first render
   const isFirstRender = React.useRef(true);
@@ -670,6 +679,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                 <div className="flex flex-col min-h-screen bg-gray-50">
                 {/* Navbar fijo arriba */}
                 <Navbar />
+                <Toaster />
     
             {/* Main Content */}
             <main className="container mx-auto px-6 py-8">
@@ -697,6 +707,17 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
                     Reasignar Médico
                   </Button> */}
                   
+                  {/* Botón Nuevo Paciente */}
+                  <Button
+                    onClick={handleNewPatientClick}
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                    title="Registrar nuevo paciente"
+                  >
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Nuevo Paciente
+                  </Button>
+
                   <Button
                     variant="outline"
                     size="lg"
@@ -1130,7 +1151,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               isOpen={showAssignModal}
               onClose={() => setShowAssignModal(false)}
               onPatientSelect={(patient, searchType) => {
-                console.log('🔍 Tipo de búsqueda:', searchType)
                 setSelectedPatient(patient)
                 setShowAssignModal(false)
                 setShowPatientAssignmentModal(true)
@@ -1154,7 +1174,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               appointment={selectedAppointment}
               searchType={selectedPatient?._searchType || 'document'}
               onAssign={async (assignmentData) => {
-                console.log('Assignment data:', assignmentData)
               }}
               onSuccess={(citaId) => {
                 // Buscar automáticamente la cita asignada
@@ -1170,9 +1189,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               onClose={() => setShowRescheduleModal(false)}
               appointment={selectedAppointment}
               onConfirm={async (data) => {
-                console.log('Reprogramando cita:', data)
                 // TODO: Implement API call for appointment rescheduling
-                // For now, just close the modal
                 setShowRescheduleModal(false)
               }}
             />
@@ -1265,9 +1282,7 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               onClose={() => setShowReassignModal(false)}
               appointment={null}
               onConfirm={async (data) => {
-                console.log('Reasignando médico:', data)
                 // TODO: Implement API call for medico reassignment
-                // For now, just close the modal
                 setShowReassignModal(false)
               }}
             />
@@ -1277,7 +1292,6 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               isOpen={showAdditionalPatientSearchModal}
               onClose={() => setShowAdditionalPatientSearchModal(false)}
               onPatientSelect={(patient, searchType) => {
-                console.log('🔍 Paciente seleccionado para cita adicional:', patient)
                 setSelectedPatientForAdditional(patient)
                 setShowAdditionalPatientSearchModal(false)
                 setShowAdditionalAppointmentModal(true)
@@ -1298,11 +1312,9 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               }}
               patient={selectedPatientForAdditional}
               onAppointmentCreated={(appointment) => {
-                console.log('✅ Cita adicional creada:', appointment)
                 // Obtener el ID de la cita creada
                 const citaId = appointment?.citaId || appointment?.id || appointment?.data?.citaId
                 if (citaId) {
-                  console.log('🔍 Buscando cita recién creada con ID:', citaId)
                   // Enfocar búsqueda por ID para posicionarse en la cita creada
                   setShowSearchById(true)
                   setSearchQuery(String(citaId))
@@ -1338,6 +1350,31 @@ import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
               }}
               ticketData={ticketData}
             />
+
+            {/* Modales de Filiación - Nuevo Paciente */}
+            {isNewPatientSearchModalOpen && (
+              <Dialog open={isNewPatientSearchModalOpen} onOpenChange={setIsNewPatientSearchModalOpen}>
+                <FiliationPatientSearchModal 
+                  onSearchComplete={handleNewPatientSearchComplete}
+                  onPatientFound={handleNewPatientFound}
+                  onCancel={() => setIsNewPatientSearchModalOpen(false)}
+                  prefilledDocument={documentNumber}
+                />
+              </Dialog>
+            )}
+
+            {isNewPatientRegistrationModalOpen && (
+              <Dialog open={isNewPatientRegistrationModalOpen} onOpenChange={setIsNewPatientRegistrationModalOpen}>
+                <PatientRegistrationModal
+                  reniecData={reniecData}
+                  sisData={sisData}
+                  documentType={documentType}
+                  documentNumber={documentNumber}
+                  onCancel={() => setIsNewPatientRegistrationModalOpen(false)}
+                  onSuccess={handleNewPatientRegistrationSuccess}
+                />
+              </Dialog>
+            )}
 
             {/* Dialog de Reserva Activa */}
             <Dialog open={showReservaActivaDialog} onOpenChange={setShowReservaActivaDialog}>

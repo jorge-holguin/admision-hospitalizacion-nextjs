@@ -106,7 +106,6 @@ export function calculateAge(birthDateStr: string): string {
 
     return `${yearsStr}a${monthsStr}m${daysStr}d`;
   } catch (error) {
-    console.error('Error al calcular edad:', error);
     return '000a00m00d';
   }
 }
@@ -119,7 +118,6 @@ export function convertDateFormat(dateStr: string): string {
     const [day, month, year] = dateStr.split('/');
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   } catch (error) {
-    console.error('Error al convertir fecha:', error);
     return '';
   }
 }
@@ -228,28 +226,17 @@ export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Pa
     reniecData.codUbigeoDistrito
   );
 
-  console.log('🗺️ Ubigeo RENIEC nacimiento construido:', ubigeoReniecNacimiento);
-  console.log('🗺️ Ubigeo RENIEC procedencia construido:', ubigeoReniecProcedencia);
-
   // Mapear grado de instrucción de RENIEC a código de BD
   let gradoInstruccionBD: string | undefined = undefined;
   const codigoReniec = reniecData.gradoInstruccionCod || reniecData.nivelEstudios;
   if (codigoReniec) {
-    console.log('🎓 Nivel de estudios RENIEC:', codigoReniec);
     gradoInstruccionBD = await getGradoInstruccionByReniecCode(codigoReniec);
   }
 
   // Mapear ubigeo RENIEC de procedencia a código de BD
   let distritoReniecBD: string | undefined = undefined;
   if (ubigeoReniecProcedencia) {
-    console.log('🗺️ Transformando ubigeo RENIEC procedencia:', ubigeoReniecProcedencia);
     distritoReniecBD = await getUbigeoByReniecCode(ubigeoReniecProcedencia);
-    if (distritoReniecBD) {
-      console.log('✅ Ubigeo BD encontrado:', distritoReniecBD);
-    } else {
-      console.warn(`⚠️ No se encontró ubigeo en BD para código RENIEC: ${ubigeoReniecProcedencia}`);
-      console.warn(`   → Complete manualmente el distrito de procedencia`);
-    }
   }
 
   // Construir dirección RENIEC
@@ -320,25 +307,19 @@ export function getClientIP(request: Request): string {
 export async function getUbigeoByReniecCode(codigoReniec: string): Promise<string | undefined> {
   try {
     if (!codigoReniec || codigoReniec.length !== 6) {
-      console.warn(`⚠️ Código RENIEC inválido: ${codigoReniec}`);
       return undefined;
     }
-
-    console.log(`🔍 Consultando UBIGEO para código RENIEC: ${codigoReniec}`);
     
     const response = await fetch(`/api/ubigeo/by-reniec/${codigoReniec}`);
     
     if (!response.ok) {
-      console.warn(`⚠️ No se encontró UBIGEO para código RENIEC: ${codigoReniec}`);
       return undefined;
     }
 
     const data = await response.json();
-    console.log(`✅ UBIGEO encontrado: ${data.ubigeo} para RENIEC: ${codigoReniec}`);
     
     return data.ubigeo;
   } catch (error) {
-    console.error(`❌ Error al consultar UBIGEO para código RENIEC ${codigoReniec}:`, error);
     return undefined;
   }
 }
@@ -351,18 +332,14 @@ export async function getUbigeoByReniecCode(codigoReniec: string): Promise<strin
 export async function getGradoInstruccionByReniecCode(codigoReniec: string): Promise<string | undefined> {
   try {
     if (!codigoReniec) {
-      console.warn(`⚠️ Código RENIEC de grado de instrucción inválido`);
       return undefined;
     }
-
-    console.log(`🎓 Consultando grado de instrucción para código RENIEC: ${codigoReniec}`);
     
     // Consultar todos los grados de instrucción
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
     const response = await fetch(`${API_BASE_URL}/maestro/grado-instruccion/buscar?limite=50`);
     
     if (!response.ok) {
-      console.warn(`⚠️ Error al consultar grados de instrucción`);
       return undefined;
     }
 
@@ -377,14 +354,11 @@ export async function getGradoInstruccionByReniecCode(codigoReniec: string): Pro
     );
     
     if (gradoEncontrado) {
-      console.log(`✅ Grado de instrucción encontrado: ${gradoEncontrado.gradoInstruccion} (${gradoEncontrado.nombre}) para RENIEC: ${codigoReniec}`);
       return gradoEncontrado.gradoInstruccion;
     } else {
-      console.warn(`⚠️ No se encontró grado de instrucción para código RENIEC: ${codigoReniec}`);
       return undefined;
     }
   } catch (error) {
-    console.error(`❌ Error al consultar grado de instrucción para código RENIEC ${codigoReniec}:`, error);
     return undefined;
   }
 }

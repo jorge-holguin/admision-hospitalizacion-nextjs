@@ -47,17 +47,11 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const [openSelect, setOpenSelect] = useState<boolean>(false);
   
   const openDropdown = (e: React.MouseEvent) => {
-    // Prevent event propagation
     e.stopPropagation();
     e.preventDefault();
     
-    console.log(`DEBUG ${selectName} - openDropdown called, disabled:`, disabled, 'current openSelect:', openSelect);
-    
     if (!disabled) {
-      setOpenSelect((prev) => {
-        console.log(`DEBUG ${selectName} - toggling from`, prev, 'to', !prev);
-        return !prev;
-      });
+      setOpenSelect((prev) => !prev);
     }
   };
 
@@ -144,9 +138,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               </div>
             </div>
             <div className="max-h-48 overflow-y-auto">
-              {(() => {
-                console.log(`DEBUG SearchableSelect ${selectName} - loading:`, loading, 'options.length:', options.length, 'options:', options);
-                return loading ? (
+              {loading ? (
                   <div className="flex items-center justify-center p-4">
                     <Spinner size="sm" />
                     <span className="ml-2">Cargando...</span>
@@ -176,8 +168,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   <div className="px-3 py-2 text-gray-500 text-sm font-normal">
                     No se encontraron resultados
                   </div>
-                );
-              })()}
+                )}
             </div>
           </div>
         )}

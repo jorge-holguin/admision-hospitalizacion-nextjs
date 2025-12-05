@@ -72,7 +72,6 @@ export function PatientPendingAppointmentsModal({
       }
       
       const data = await response.json()
-      console.log('📋 Citas pendientes del paciente:', data)
       setAppointments(data || [])
       
       if (onAppointmentsLoaded) {

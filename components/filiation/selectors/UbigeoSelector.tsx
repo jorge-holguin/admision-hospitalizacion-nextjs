@@ -46,18 +46,19 @@ export function UbigeoSelector({
     const loadSelectedUbigeoData = async () => {
       if (value && value.trim().length >= 6 && /^\d+/.test(value.trim())) {
         try {
-          console.log(`🔍 Cargando datos del ubigeo seleccionado: ${value.trim()}`)
           const response = await fetch(
             `${API_BASE_URL}/maestro/ubigeo/${value.trim()}`
           )
           
           if (response.ok) {
-            const data: Ubigeo = await response.json()
-            console.log(`✅ Datos del ubigeo cargados:`, data)
-            setSelectedUbigeoData(data)
+            const text = await response.text()
+            if (text && text.trim()) {
+              const data: Ubigeo = JSON.parse(text)
+              setSelectedUbigeoData(data)
+            }
           }
         } catch (error) {
-          console.error('❌ Error al cargar datos del ubigeo:', error)
+          // Silenciar errores de ubigeo no encontrado
         }
       }
     }
@@ -72,35 +73,38 @@ export function UbigeoSelector({
     const isValidUbigeoCode = value && value.length === 7 && /^\d+/.test(value.trim())
     
     if (ubigeoReniecInitial && !initialLoaded && !isValidUbigeoCode) {
-      console.log(`🔄 Cargando ubigeo desde RENIEC porque valor actual no es código válido: "${value}"`)
       loadUbigeoFromReniec(ubigeoReniecInitial)
     }
   }, [ubigeoReniecInitial, initialLoaded, value])
 
   const loadUbigeoFromReniec = async (ubigeoReniecCode: string) => {
-    console.log(`🗺️ Cargando ubigeo desde RENIEC: ${ubigeoReniecCode}`)
     setLoading(true)
     try {
-      // Llamar directamente a la API externa (CORS habilitado)
       const response = await fetch(
         `${API_BASE_URL}/maestro/ubigeo/reniec/${ubigeoReniecCode}`
       )
-      if (!response.ok) throw new Error('Error al cargar ubigeo desde RENIEC')
       
-      const data: Ubigeo = await response.json()
-      console.log(`✅ Ubigeo cargado desde RENIEC:`, data)
-      console.log(`   - ubigeo: "${data.ubigeo}" (length: ${data.ubigeo?.length})`)
-      console.log(`   - distrito: "${data.distrito}"`)
-      console.log(`   - ubigeoreniec: "${data.ubigeoreniec}"`)
+      if (!response.ok) {
+        // Silenciar error - ubigeo RENIEC no encontrado
+        setInitialLoaded(true)
+        return
+      }
+      
+      const text = await response.text()
+      if (!text || !text.trim()) {
+        setInitialLoaded(true)
+        return
+      }
+      
+      const data: Ubigeo = JSON.parse(text)
       
       if (data?.ubigeo && data?.distrito) {
-        // Actualizar el valor con ubigeo (7 caracteres) - NO hacer trim, mantener espacios
-        console.log(`✅ Llamando onChange con ubigeo: "${data.ubigeo}" (length: ${data.ubigeo.length})`)
         onChange(data.ubigeo, data.ubigeoreniec)
         setInitialLoaded(true)
       }
     } catch (error) {
-      console.error('❌ Error al cargar ubigeo desde RENIEC:', error)
+      // Silenciar errores - continuar sin ubigeo
+      setInitialLoaded(true)
     } finally {
       setLoading(false)
     }
@@ -114,43 +118,36 @@ export function UbigeoSelector({
 
     setLoading(true)
     try {
-      // ✅ Detectar si el filtro es un código numérico (ubigeo)
       const isNumericCode = /^\d+$/.test(filtro.trim())
-      
       let resultData: Ubigeo[] = []
       
       if (isNumericCode && filtro.trim().length >= 6) {
-        // ✅ Buscar por código de ubigeo usando endpoint directo
-        console.log(`🔍 Buscando ubigeo por código: ${filtro}`)
         const response = await fetch(
           `${API_BASE_URL}/maestro/ubigeo/${filtro.trim()}`
         )
         
         if (response.ok) {
-          const ubigeoData: Ubigeo = await response.json()
-          console.log(`✅ Ubigeo encontrado por código:`, ubigeoData)
-          resultData = [ubigeoData] // Convertir a array
-        } else {
-          console.warn(`⚠️ No se encontró ubigeo con código: ${filtro}`)
-          resultData = []
+          const text = await response.text()
+          if (text && text.trim()) {
+            const ubigeoData: Ubigeo = JSON.parse(text)
+            resultData = [ubigeoData]
+          }
         }
       } else {
-        // ✅ Buscar por nombre usando endpoint de búsqueda
-        console.log(`🔍 Buscando ubigeos por nombre: ${filtro}`)
         const response = await fetch(
           `${API_BASE_URL}/maestro/ubigeo/buscar?filtro=${encodeURIComponent(filtro)}`
         )
         
-        if (!response.ok) throw new Error('Error al buscar ubigeos')
-        
-        const data = await response.json()
-        console.log(`✅ Ubigeos encontrados por nombre:`, data?.length || 0)
-        resultData = data || []
+        if (response.ok) {
+          const text = await response.text()
+          if (text && text.trim()) {
+            resultData = JSON.parse(text) || []
+          }
+        }
       }
       
       setUbigeos(resultData)
     } catch (error) {
-      console.error('❌ Error al buscar ubigeos:', error)
       setUbigeos([])
     } finally {
       setLoading(false)

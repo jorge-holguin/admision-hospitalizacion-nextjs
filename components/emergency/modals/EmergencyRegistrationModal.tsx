@@ -49,7 +49,6 @@ export function EmergencyRegistrationModal({
   // Cargar consultorios de emergencia cuando se abre el modal
   useEffect(() => {
     if (isOpen && consultorios.length === 0) {
-      console.log('🏥 Cargando consultorios de emergencia...')
       loadConsultoriosEmergencia()
     }
   }, [isOpen, consultorios.length, loadConsultoriosEmergencia])
@@ -57,23 +56,18 @@ export function EmergencyRegistrationModal({
   // Cargar datos del paciente desde PatientDataContext
   useEffect(() => {
     const loadPatientData = async () => {
-      console.log('🔍 Cargando datos del paciente desde PatientDataContext para ID:', patientId)
-      
       // Primero intentar obtener datos del contexto PatientDataContext
       let patientInfo = getPatientData(patientId)
       
       if (!patientInfo) {
         // Si no está en el contexto, hacer la llamada a la API para obtener datos completos
-        console.log('📡 Obteniendo datos desde la API de filiación...')
         patientInfo = await fetchPatientData()
       }
       
       if (patientInfo) {
-        console.log('✅ Datos completos del paciente cargados desde PatientDataContext:', patientInfo)
         setEnhancedPatient(patientInfo)
       } else if (patient) {
         // Fallback a los datos proporcionados como prop
-        console.log('⚠️ Usando datos proporcionados como prop')
         setEnhancedPatient(patient)
       }
     }

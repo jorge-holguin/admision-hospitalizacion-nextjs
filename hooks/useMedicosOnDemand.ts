@@ -32,13 +32,10 @@ export function useMedicosOnDemand(): UseMedicosOnDemandReturn {
       
       // Si ya tenemos datos en caché para los mismos parámetros, no hacer nueva llamada
       if (currentSearchParams === lastSearchParams && medicosCache.length > 0) {
-        console.log('🏥 useMedicosOnDemand: Usando caché de médicos');
         setMedicos(medicosCache);
         return;
       }
-      
-      console.log('🏥 useMedicosOnDemand: Cargando médicos desde API');
-      
+            
       let url = '/api/master-tables/medicos/search';
       if (currentSearchParams) {
         url += `?${currentSearchParams}`;

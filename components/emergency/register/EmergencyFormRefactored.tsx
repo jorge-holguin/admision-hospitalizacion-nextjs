@@ -134,7 +134,6 @@ export function EmergencyFormRefactored({
 
   // Memoized callback for FUA validation
   const handleFuaValidationChange = useCallback((isValid: boolean) => {
-    console.log('Estado de validación FUA en formulario principal:', isValid);
     setMainFormFuaValidationPassed(isValid);
   }, []);
   const [mainFormFuaValidationPassed, setMainFormFuaValidationPassed] = useState<boolean>(false);
@@ -143,11 +142,6 @@ export function EmergencyFormRefactored({
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25'];
   const requiresFuaValidation = Boolean(insuranceCode && sisInsuranceCodes.includes(insuranceCode.trim()));
   
-  // Monitorear cambios en el código de seguro
-  useEffect(() => {
-    console.log('Código de seguro actualizado:', insuranceCode);
-    console.log('Requiere validación FUA:', requiresFuaValidation);
-  }, [insuranceCode, requiresFuaValidation]);
   
   // Estado para motivos de emergencia
   const [motivos, setMotivos] = useState<MotivoEmergencia[]>([]);
@@ -241,12 +235,10 @@ export function EmergencyFormRefactored({
     // Primero verificar si ya tenemos los datos en el contexto
     const existingData = getPatientData(patientId);
     if (existingData) {
-      console.log('Datos del paciente ya disponibles en contexto');
       return existingData as PatientDataExtended;
     }
 
     // Si no hay datos, usar fetchPatientData que ya tiene deduplicación
-    console.log('Cargando datos del paciente desde API...');
     const fetchedData = await fetchPatientData();
     return fetchedData as PatientDataExtended | null;
   }, [getPatientData, fetchPatientData]);
@@ -348,10 +340,8 @@ export function EmergencyFormRefactored({
       // Aplicar conversión de ESSALUD (06) a PAGANTE (0)
       if (seguroCode === '06') {
         seguroCode = '0';
-        console.log('Código de seguro convertido de 06 a 0 (PAGANTE) para insuranceCode');
       }
       setInsuranceCode(seguroCode);
-      console.log('Código de seguro actualizado:', seguroCode);
     }
     
     // Si no hay emergencyId (modo creación), actualizar el seguro desde los datos del paciente
@@ -361,7 +351,6 @@ export function EmergencyFormRefactored({
       
       // Si el seguro es ESSALUD (06), convertir a PAGANTE (0)
       if (data.seguro.trim() === '06') {
-        console.log('Convirtiendo seguro de ESSALUD (06) a PAGANTE (0) en formData');
         seguroEncontrado = seguros.find(s => s.Seguro === '0');
         if (seguroEncontrado) {
           seguroToUse = `${seguroEncontrado.Seguro} - ${seguroEncontrado.Nombre}`;
@@ -390,7 +379,6 @@ export function EmergencyFormRefactored({
       try {
         // Priorizar datos del prop patient si están disponibles
         if (patient) {
-          console.log('📋 Usando datos del paciente desde prop:', patient);
           handlePatientDataLoaded(patient);
           return;
         }
@@ -478,7 +466,6 @@ export function EmergencyFormRefactored({
         throw new Error('Error al obtener el siguiente ID de emergencia');
       }
       const result = await response.json();
-      console.log('Datos obtenidos de la API next-id:', result);
       
       if (!result.success || !result.data) {
         throw new Error('Formato de respuesta inválido');
@@ -518,7 +505,6 @@ export function EmergencyFormRefactored({
           return;
         }
         
-        console.log('IDs obtenidos para usar en el formulario:', nextIds);
         emergencyIdToUse = nextIds.emergenciaId;
         ordenToUse = nextIds.orden;
       }
@@ -526,22 +512,17 @@ export function EmergencyFormRefactored({
       // Obtener la cuenta activa del paciente si no la tenemos
       // Para emergencias, necesitamos el tipo de seguro
       if (!cuentaIdToUse && formData.seguro) {
-        console.log('🚨 [EMERGENCIA] Obteniendo cuenta con seguro:', formData.seguro);
         const accountData = await fetchEmergencyAccount(patientId, formData.seguro);
         cuentaIdToUse = accountData?.cuentaId || '';
-        console.log('🚨 [EMERGENCIA] Cuenta obtenida para el paciente:', cuentaIdToUse);
       }
       
       // Obtener datos de filiación del contexto (ya cargados previamente)
       const filiacionData = getPatientFiliation(patientId);
       
       if (filiacionData) {
-        console.log('Datos de filiación obtenidos del contexto:', filiacionData);
         
         // Actualizar el formulario con los datos de filiación
         setFormData(prev => {
-          console.log('Actualizando formulario con datos de filiación:', filiacionData);
-          console.log('📍 [DEBUG] COD_DISTRITO desde filiación:', filiacionData.COD_DISTRITO);
           return {
             ...prev,
             emergenciaId: emergencyIdToUse,
@@ -566,8 +547,6 @@ export function EmergencyFormRefactored({
           };
         });
       } else {
-        console.log('No se encontraron datos de filiación para el paciente');
-        
         // Actualizar el formulario solo con los IDs
         setFormData(prev => ({
           ...prev,
@@ -601,28 +580,17 @@ export function EmergencyFormRefactored({
       
       // Si el seguro mostrado en el formulario es PAGANTE, usar código 0 para ambos campos
       if (formData.seguro.includes('PAGANTE') || seguroCode === '0') {
-        console.log('Estableciendo SEGURO y SEGUROLIQ como PAGANTE (0)');
         seguroValue = '0';
         seguroLiqValue = '0';
       } else if (seguroCode === '06') {
-        console.log('Convirtiendo SEGURO y SEGUROLIQ de ESSALUD (06) a PAGANTE (0) en datos de API');
         seguroValue = '0';
         seguroLiqValue = '0';
       }
-      
-      console.log('Seguro seleccionado en formulario:', formData.seguro);
-      console.log('Código de seguro extraído:', seguroCode);
-      console.log('Valor SEGURO final:', seguroValue);
-      console.log('Valor SEGUROLIQ final:', seguroLiqValue);
       
       // Formatear fecha como YYYYMMDD
       const fechaFormateada = formData.fecha.replace(/-/g, '');
       
       // Los datos de filiación ya están disponibles desde arriba
-      
-      // Verificar que tenemos los datos necesarios
-      console.log('Datos de filiación para envío a API:', filiacionData);
-      console.log('Cuenta ID que se usará en el envío:', cuentaIdToUse);
       
       // Preparar datos para enviar al servidor con límites de longitud adecuados
       const emergencyData = {
@@ -647,7 +615,14 @@ export function EmergencyFormRefactored({
         TIPO_DOCUMENTO: (filiacionData?.tipoDocumento || formData.tipoDocumento || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         DOCUMENTO: (formData.documento || '').substring(0, 15), // Limitar a 15 caracteres
         FECHA_NACIMIENTO: formData.fechaNacimiento ? formData.fechaNacimiento.replace(/-/g, '').substring(0, 8) : '', // Limitar a 8 caracteres
-        EDAD: (filiacionData?.edad || formData.edad || '').substring(0, 10), // Limitar a 10 caracteres
+        EDAD: (() => {
+          // Obtener edad y asegurar mínimo 1 día si es 000a00m00d
+          let edad = (filiacionData?.edad || formData.edad || '').substring(0, 10);
+          if (edad === '000a00m00d') {
+            edad = '000a00m01d';
+          }
+          return edad;
+        })(), // Limitar a 10 caracteres, mínimo 1 día
         SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1), // Limitar a 1 caracter
         ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100), // Limitar a 100 caracteres
@@ -655,9 +630,7 @@ export function EmergencyFormRefactored({
         DISTRITO: (() => {
           // Priorizar COD_DISTRITO sobre distrito
           const codigoDistrito = filiacionData?.COD_DISTRITO || formData.COD_DISTRITO || '';
-          const distrito = codigoDistrito.trim().substring(0, 7);
-          console.log('📍 [DEBUG SQL] DISTRITO a enviar:', `"${distrito}"`, '| COD_DISTRITO filiacion:', filiacionData?.COD_DISTRITO, '| COD_DISTRITO formData:', formData.COD_DISTRITO);
-          return distrito;
+          return codigoDistrito.trim().substring(0, 7);
         })(), // Limitar a 7 caracteres
         TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20), // Limitar a 20 caracteres
         TELEFONO2: (filiacionData?.telefono2 || formData.telefono2 || '').substring(0, 20), // Limitar a 20 caracteres
@@ -673,39 +646,9 @@ export function EmergencyFormRefactored({
         CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7) // Ajustar a Char(7) exactamente
       };
       
-      // Log de los datos de filiación que se están usando
-      console.log('Datos de filiación aplicados al envío:', filiacionData);
-      
-      // Imprimir longitudes de cada campo para depuración
-      console.log('Longitudes de campos enviados a la API:');
-      Object.entries(emergencyData).forEach(([key, value]) => {
-        console.log(`${key}: ${value ? value.length : 0} caracteres - Valor: "${value}"`); 
-      });
-      
-      // Logging específico para SEGURO y SEGUROLIQ
-      console.log('VALORES FINALES DE SEGURO:');
-      console.log(`SEGURO original del paciente: ${filiacionData?.seguro || 'No disponible'}`);
-      console.log(`SEGURO seleccionado en formulario (código): ${seguroCode}`);
-      console.log(`SEGURO convertido para API: ${seguroValue}`);
-      console.log(`SEGUROLIQ convertido para API: ${seguroLiqValue}`);
-      console.log(`SEGURO enviado a API: ${emergencyData.SEGURO}`);
-      console.log(`SEGUROLIQ enviado a API: ${emergencyData.SEGUROLIQ}`);
-      console.log(`¿SEGURO y SEGUROLIQ son iguales?: ${emergencyData.SEGURO === emergencyData.SEGUROLIQ ? 'SÍ' : 'NO'}`);
-      
       // Determinar si es creación o actualización
       const method = emergencyId ? 'PATCH' : 'POST';
       const url = emergencyId ? `/api/emergency/${emergencyId}` : '/api/emergency';
-      
-      console.log('Enviando datos a la API:', { url, method, emergencyData });
-      console.log('Valores finales para la emergencia:', { 
-        emergenciaId: emergencyIdToUse, 
-        orden: ordenToUse, 
-        fecha: formData.fecha, 
-        hora: formData.hora 
-      });
-      
-      // Agregar un log detallado de los datos que se envían
-      console.log('Datos completos enviados a la API:', JSON.stringify(emergencyData, null, 2));
       
       const response = await fetch(url, {
         method,
@@ -714,12 +657,6 @@ export function EmergencyFormRefactored({
         },
         body: JSON.stringify(emergencyData),
       });
-      
-      // Log de la respuesta
-      console.log('Respuesta de la API - Status:', response.status);
-      if (!response.ok) {
-        console.log('Error en la respuesta de la API');
-      }
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -733,7 +670,6 @@ export function EmergencyFormRefactored({
       }
       
       const result = await response.json();
-      console.log('Emergencia procesada exitosamente:', result);
       
       // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
       // Extraer el código de seguro del resultado o de los datos del formulario
@@ -742,23 +678,13 @@ export function EmergencyFormRefactored({
                                    emergencyData?.SEGUROLIQ?.trim() ||
                                    formData.seguroLiq?.split(' - ')[0]?.trim();
       
-      console.log('Código de seguro extraído para asegurar cuenta:', seguroCodeForAccount);
-      
       if (seguroCodeForAccount && ["0", "02", "17"].includes(seguroCodeForAccount)) {
         try {
-          console.log(`Asegurando cuenta para emergencia ${emergencyIdToUse} con seguro ${seguroCodeForAccount}...`);
           const pacienteData = result.data?.PACIENTE || result.PACIENTE || patientId;
           const nombreData = result.data?.NOMBRES?.trim() || 
                            result.NOMBRES?.trim() || 
                            formData.nombres || 
                            formData.nombre || '';
-          
-          console.log('Datos que se envían al endpoint:', {
-            paciente: pacienteData,
-            seguro: seguroCodeForAccount,
-            usuario: primerApellido,
-            nombre: nombreData
-          });
           
           const asegurarResponse = await fetch(`/api/emergency/${emergencyIdToUse}/assign-account`, {
             method: 'POST',
@@ -774,10 +700,8 @@ export function EmergencyFormRefactored({
           });
 
           const asegurarResult = await asegurarResponse.json();
-          console.log('Resultado de asegurar cuenta:', asegurarResult);
           
           if (asegurarResult.ok) {
-            console.log(`Cuenta asegurada correctamente: ${asegurarResult.cuentaId || 'ID no disponible'}`);
             
             // Actualizar el registro de emergencia con el cuentaId si está disponible
             if (asegurarResult.cuentaId) {
@@ -793,16 +717,12 @@ export function EmergencyFormRefactored({
                 });
                 
                 const updateResult = await updateResponse.json();
-                if (updateResult.success) {
-                  console.log(`Emergencia actualizada con CUENTAID: ${asegurarResult.cuentaId}`);
-                } else {
+                if (!updateResult.success) {
                   console.error('Error al actualizar la emergencia con el CUENTAID:', updateResult.message);
                 }
               } catch (updateError) {
                 console.error('Error al actualizar la emergencia con el CUENTAID:', updateError);
               }
-            } else {
-              console.log('Cuenta asegurada pero no se retornó CUENTAID para actualizar');
             }
           } else {
             console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
@@ -810,8 +730,6 @@ export function EmergencyFormRefactored({
         } catch (error) {
           console.error('Error al asegurar la cuenta:', error);
         }
-      } else {
-        console.log(`No se requiere asegurar cuenta para seguro: ${seguroCodeForAccount}`);
       }
       
       // Mostrar mensaje de éxito
@@ -1075,10 +993,8 @@ export function EmergencyFormRefactored({
                     // Aplicar conversión de ESSALUD (06) a PAGANTE (0)
                     if (seguroCode === '06') {
                       seguroCode = '0';
-                      console.log('Código de seguro convertido de 06 a 0 (PAGANTE) para insuranceCode desde selector');
                     }
                     setInsuranceCode(seguroCode);
-                    console.log('Código de seguro actualizado desde selector:', seguroCode);
                     
                     // NOTA: La búsqueda de cuenta ahora se maneja automáticamente en FormHeaderEmergency
                     // cuando cambia insuranceCode, para evitar llamadas duplicadas a la API
@@ -1118,16 +1034,12 @@ export function EmergencyFormRefactored({
         formData={formData}
         insuranceCode={insuranceCode}
         onBeforeSave={async () => {
-          console.log('Datos del formulario a validar:', formData);
           const validation = validateEmergencyForm(formData);
-          console.log('Resultado de validación:', validation);
           if (!validation.isValid) {
             setValidationErrors(validation.errors);
             
             // Mostrar errores de validación más específicos
             const errorCount = Object.keys(validation.errors).length;
-            console.log('Errores de validación encontrados:', errorCount);
-            console.log('Campos con error:', validation.errors);
             const errorFields = Object.keys(validation.errors).map(field => {
               // Convertir nombres de campos a formato legible
               const fieldMap: Record<string, string> = {

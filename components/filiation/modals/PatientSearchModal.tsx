@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { TipoDocumentoSelector } from "@/components/appointments/selectors"
 import { useReniec } from "@/hooks/useReniec"
 import { toast } from "@/components/ui/use-toast"
 import { consultarSIS } from "@/services/sisService"
+import { AlertCircle } from "lucide-react"
 
 interface PatientSearchModalProps {
   onSearchComplete: (patientData: any, sisData?: any) => void
@@ -21,6 +22,8 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
   const [documentType, setDocumentType] = useState("D") // D = DNI (valor por defecto)
   const [documentNumber, setDocumentNumber] = useState(prefilledDocument || "")
   const [isLoadingReniec, setIsLoadingReniec] = useState(false)
+  const [showExistsDialog, setShowExistsDialog] = useState(false)
+  const [existingPatient, setExistingPatient] = useState<any>(null)
   const { consultarReniec } = useReniec()
 
   // Actualizar el número de documento cuando cambie el prop
@@ -44,25 +47,21 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
 
     try {
       // 1. Primero buscar en la API de filiación
-      console.log(`🔍 Buscando paciente en BD local: ${documentNumber}`)
       const filiacionResponse = await fetch(
         `/api/filiation/search?page=1&pageSize=10&documento=${documentNumber}`
       );
       const filiacionData = await filiacionResponse.json();
 
-      // 2. Si encuentra datos en filiación, mostrar ese registro
+      // 2. Si encuentra datos en filiación, mostrar diálogo de paciente existente
       if (filiacionData.data && filiacionData.data.length > 0) {
-        console.log(`✅ Paciente encontrado en BD local`)
         setIsLoadingReniec(false);
-        onPatientFound(filiacionData.data[0]);
+        setExistingPatient(filiacionData.data[0]);
+        setShowExistsDialog(true);
         return;
       }
 
-      console.log(`⚠️ Paciente no encontrado en BD local`)
-
       // 3. Consultar APIs externas según tipo de documento
       const isDNI = documentType.trim() === 'D'
-      console.log(`📋 Tipo de documento: "${documentType}" (trimmed: "${documentType.trim()}"), Es DNI: ${isDNI}`)
       
       // Procesar resultados
       let hasData = false
@@ -72,24 +71,13 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
 
       // RENIEC: Solo para DNI de 8 dígitos
       if (isDNI && documentNumber.length === 8) {
-        console.log(`🌐 Consultando RENIEC para DNI: ${documentNumber}`)
         const reniecResult = await consultarReniec(documentNumber)
         
         if (reniecResult.success && reniecResult.data) {
-          console.log(`✅ Datos obtenidos de RENIEC`)
           reniecData = reniecResult.data
           hasData = true
-          
-          // ✅ Verificar si hay advertencias de UBIGEO
-          if (reniecResult.data.ubigeoReniecNacimiento || reniecResult.data.ubigeoReniecProcedencia) {
-            // Mostrar mensaje informativo si algún UBIGEO no se pudo convertir
-            // (esto se detecta cuando el código RENIEC existe pero no hay ubigeo en BD)
-            console.log('ℹ️ Verificando UBIGEOs de RENIEC...')
-          }
         } else if (reniecResult.error) {
-          // ✅ Manejar errores específicos de RENIEC
           if (reniecResult.error.includes('DNI_NO_EXISTE')) {
-            console.warn('⚠️ DNI no existe en RENIEC')
             reniecError = 'DNI_NO_EXISTE'
             toast({
               title: "⚠️ DNI no encontrado",
@@ -103,7 +91,6 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
               variant: "default"
             })
           } else {
-            console.error('❌ Error RENIEC:', reniecResult.error)
             toast({
               title: "Error RENIEC",
               description: reniecResult.error,
@@ -113,8 +100,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
         }
       }
 
-      // SIS: Para TODOS los tipos de documento (DNI, CE, Pasaporte, etc.) con timeout de 2 segundos
-      console.log(`🏥 Consultando SIS para documento: ${documentNumber}`)
+      // SIS: Para TODOS los tipos de documento con timeout de 2 segundos
       try {
         const sisResult: any = await Promise.race([
           consultarSIS(documentNumber),
@@ -123,24 +109,12 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
           )
         ])
         
-        console.log('🔍 Resultado de consultarSIS:', sisResult)
-        console.log('   - sisResult.success:', sisResult.success)
-        console.log('   - sisResult.data:', sisResult.data)
-        
         if (sisResult.success && sisResult.data) {
-          console.log(`✅ Datos obtenidos del SIS`)
-          console.log(`📋 Tipo de seguro SIS: ${sisResult.data.tipoSeguro} - ${sisResult.data.descTipoSeguro}`)
-          console.log(`📦 Objeto sisData completo:`, sisResult.data)
           sisData = sisResult.data
           hasData = true
-          console.log('✅ sisData asignado correctamente:', sisData)
-        } else {
-          console.warn(`⚠️ SIS no retornó datos válidos:`, sisResult)
-          console.warn(`   - success: ${sisResult.success}`)
-          console.warn(`   - data: ${sisResult.data}`)
         }
       } catch (error: any) {
-        console.warn(`⏱️ Timeout o error en consulta SIS (2s):`, error?.message || error)
+        // Timeout SIS - continuar sin datos
       }
 
       // Mostrar resultados
@@ -149,11 +123,10 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
         if (reniecData) sources.push('RENIEC')
         if (sisData) sources.push('SIS')
         
-        // Mensaje especial si no tiene SIS activo
         if (reniecData && !sisData) {
           toast({
             title: "Datos encontrados en RENIEC",
-            description: "⚠️ El paciente no cuenta con SIS activo. Complete el registro manualmente.",
+            description: "⚠️ El paciente no cuenta con SIS activo. Se establecerá como PAGANTE.",
             variant: "default",
           })
         } else {
@@ -163,21 +136,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
           })
         }
         
-        // Abrir modal de registro con datos disponibles
-        console.log(`🚀 Pasando datos al modal de registro:`)
-        console.log(`   - reniecData:`, reniecData ? 'Sí' : 'No')
-        console.log(`   - sisData:`, sisData ? 'Sí' : 'No')
-        console.log(`   - documentType:`, documentType)
-        console.log(`   - documentNumber:`, documentNumber)
-        if (sisData) {
-          console.log(`   - sisData.tipoSeguro:`, sisData.tipoSeguro)
-          console.log(`   - sisData COMPLETO antes de pasar:`, JSON.stringify(sisData, null, 2))
-        } else {
-          console.error(`   ❌ sisData es falsy antes de pasar al modal:`, sisData)
-        }
-        
-        // ✅ Agregar documentType y documentNumber al reniecData
-        // Si no hay reniecData (CE, Pasaporte), crear objeto mínimo con tipo y número
+        // Crear objeto con datos de RENIEC o datos manuales
         const enhancedReniecData = reniecData ? {
           ...reniecData,
           documentType: reniecData.documentType || documentType,
@@ -189,31 +148,22 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
           reniecError: reniecError || undefined
         }
         
-        console.log('🔄 Llamando onSearchComplete con:', { 
-          reniecData: !!enhancedReniecData, 
-          sisData: !!sisData,
-          documentType: enhancedReniecData.documentType,
-          documentNumber: enhancedReniecData.document
-        })
         onSearchComplete(enhancedReniecData, sisData)
       } else {
-        console.warn(`⚠️ No se encontraron datos en ${isDNI ? 'RENIEC ni ' : ''}SIS`)
         toast({
           title: "No encontrado",
-          description: `⚠️ El paciente no cuenta con SIS activo. Puede registrar manualmente.`,
+          description: `⚠️ El paciente no cuenta con SIS activo. Se establecerá como PAGANTE.`,
         })
         
-        // ✅ Abrir modal de registro con tipo y número de documento (llenado manual)
+        // Abrir modal de registro con tipo y número de documento (llenado manual)
         const manualData = {
           documentType: documentType,
           document: documentNumber,
           reniecError: reniecError || undefined
         }
-        console.log('📋 Abriendo modal con datos manuales:', manualData)
         onSearchComplete(manualData, null)
       }
     } catch (error) {
-      console.error('❌ Error al buscar paciente:', error);
       toast({
         title: "Error",
         description: "Error al buscar paciente",
@@ -222,6 +172,64 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
     } finally {
       setIsLoadingReniec(false);
     }
+  }
+
+  // Si se muestra el diálogo de paciente existente
+  if (showExistsDialog && existingPatient) {
+    return (
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
+            <AlertCircle className="h-6 w-6" />
+            Paciente ya existe
+          </DialogTitle>
+          <DialogDescription>
+            No es posible crear una nueva historia clínica
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-gray-700 mb-3">
+              El documento <strong>{documentNumber}</strong> ya está registrado en la base de datos.
+            </p>
+            <div className="bg-white rounded border p-3 space-y-1">
+              <p className="text-sm"><strong>Historia:</strong> {existingPatient.HISTORIA || existingPatient.historia || 'N/A'}</p>
+              <p className="text-sm"><strong>Nombre:</strong> {existingPatient.NOMBRES || existingPatient.nombres || 'N/A'}</p>
+              <p className="text-sm"><strong>Documento:</strong> {existingPatient.DOCUMENTO || existingPatient.documento || documentNumber}</p>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              ℹ️ Si necesita actualizar los datos del paciente, utilice la opción de <strong>Editar</strong> desde el módulo de Filiación.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowExistsDialog(false)
+                setExistingPatient(null)
+              }}
+            >
+              Buscar otro
+            </Button>
+            <Button 
+              onClick={() => {
+                onPatientFound(existingPatient)
+                setShowExistsDialog(false)
+                setExistingPatient(null)
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Cerrar
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    )
   }
 
   return (

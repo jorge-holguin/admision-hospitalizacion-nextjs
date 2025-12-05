@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import type { OptionItem } from '@/components/ui/SearchableSelect';
-import { useTiposDocumento } from '@/contexts/TiposDocumentoContext';
+import { useTipoDocumento } from '@/contexts/filiation/TipoDocumentoContext';
 
 interface TipoDocumento {
   TIPO_DOCUMENTO: string;
@@ -24,36 +24,26 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
   validationErrors,
   disabled
 }) => {
-  // Usar contexto en lugar de estado local
-  const { tiposDocumento, loading: loadingTiposDocumento } = useTiposDocumento();
+  // Usar contexto global de tipos de documento
+  const { tiposDocumento, isLoading: loadingTiposDocumento } = useTipoDocumento();
   const [searchTipoDocumento, setSearchTipoDocumento] = useState('');
-
-  // Ya no necesitamos cargar datos manualmente, usamos el contexto
-  console.log('📄 Tipos de documento disponibles desde contexto:', tiposDocumento?.length || 0);
-  console.log('📄 Datos de tipos de documento:', tiposDocumento);
-  console.log('📄 Loading tipos documento:', loadingTiposDocumento);
   
-  // Formato para el SearchableSelect
+  // Formato para el SearchableSelect - mapear campos del contexto global
   const formatTiposDocumento = useMemo(() => {
-    // Validar que tiposDocumento sea un array válido
     if (!Array.isArray(tiposDocumento)) {
-      console.warn('📄 tiposDocumento no es un array válido:', tiposDocumento);
       return [];
     }
     
-    const formatted = tiposDocumento
-      .filter(t => t && t.TIPO_DOCUMENTO && t.NOMBRE) // Validar que los objetos tengan las propiedades necesarias
+    return tiposDocumento
+      .filter(t => t && t.tipoDocumento && t.nombre)
       .filter(t => !searchTipoDocumento || 
-        t.NOMBRE?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
+        t.nombre?.toLowerCase().includes(searchTipoDocumento.toLowerCase()))
       .map(t => ({
-        value: t.TIPO_DOCUMENTO,
-        display: `(${t.TIPO_DOCUMENTO}) - ${t.NOMBRE}`,
+        value: t.tipoDocumento,
+        display: `(${t.tipoDocumento}) - ${t.nombre}`,
         description: '',
-        data: t
+        data: { TIPO_DOCUMENTO: t.tipoDocumento, NOMBRE: t.nombre }
       }));
-    
-    console.log('📄 Opciones formateadas para SearchableSelect:', formatted);
-    return formatted;
   }, [tiposDocumento, searchTipoDocumento]);
   
     
@@ -64,9 +54,7 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
   
   // Establecer valor por defecto para tipo de documento si no está definido
   useEffect(() => {
-    // Solo establecer el valor por defecto si no hay un valor existente
     if (tiposDocumento.length > 0) {
-      // Si no hay valor o si el valor es '0 - Ninguno', establecer a DNI
       const shouldSetDefault = 
         !formData.tipoDocumentoA || 
         !formData.tipoDocumentoADisplay || 
@@ -74,12 +62,12 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
         formData.tipoDocumentoADisplay?.includes('Ninguno');
       
       if (shouldSetDefault) {
-        // Buscar DNI en los tipos de documento
-        const defaultDoc = tiposDocumento.find(t => t.TIPO_DOCUMENTO === 'D');
+        // Buscar DNI en los tipos de documento (código 'D')
+        const defaultDoc = tiposDocumento.find(t => t.tipoDocumento === 'D');
         
         if (defaultDoc) {
-          onFormChange('tipoDocumentoA', defaultDoc.TIPO_DOCUMENTO);
-          onFormChange('tipoDocumentoADisplay', `(${defaultDoc.TIPO_DOCUMENTO}) - ${defaultDoc.NOMBRE}`);
+          onFormChange('tipoDocumentoA', defaultDoc.tipoDocumento);
+          onFormChange('tipoDocumentoADisplay', `(${defaultDoc.tipoDocumento}) - ${defaultDoc.nombre}`);
         }
       }
     }

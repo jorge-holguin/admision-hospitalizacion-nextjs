@@ -1,23 +1,24 @@
 # Sistema de Gestión Hospitalaria
 
-[![Next.js](https://img.shields.io/badge/Next.js-13.5+-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.0+-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-4.0+-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0+-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
 ## Descripción General
 
-Sistema integral de gestión hospitalaria desarrollado con Next.js, diseñado para administrar los procesos de emergencia y hospitalización en centros médicos. La plataforma ofrece una solución modular y escalable para la gestión de pacientes, personal médico y recursos hospitalarios.
+Sistema integral de gestión hospitalaria desarrollado con Next.js 15, diseñado para administrar los procesos de admisión, emergencia y hospitalización en centros médicos. La plataforma ofrece una solución modular y escalable para la gestión de pacientes, personal médico y recursos hospitalarios.
 
 ## Características Principales
 
+- **Módulo de Filiación**: Registro y gestión de datos de pacientes
 - **Módulo de Emergencias**: Registro y seguimiento de atenciones de emergencia
 - **Módulo de Hospitalización**: Gestión completa de ingresos y altas hospitalarias
 - **Módulo de Citas**: Programación y gestión de citas médicas
-- **Pacientes**: Registro centralizado de historias clínicas
 - **Tablas Maestras**: Administración de recursos médicos y referenciales
-- **Autenticación**: Control de acceso basado en roles
+- **Gestión de Cuentas**: Validación de cuentas y FUAs por tipo de seguro
 - **API RESTful**: Arquitectura modular con endpoints bien definidos
+- **Contextos Optimizados**: Sistema de contextos para evitar llamadas API redundantes
 
 ## Estructura del Proyecto
 
@@ -25,41 +26,47 @@ Sistema integral de gestión hospitalaria desarrollado con Next.js, diseñado pa
 
 ```
 api/
-├── consultorio/               # Endpoints de consultorios
-│   ├── check-codigo/          # Verificación de códigos únicos
-│   └── [id]/                  # Operaciones por ID de consultorio
-├── citas/                     # Módulo de citas médicas
-│   ├── disponibilidad/        # Verificación de disponibilidad
-│   ├── calendario/            # Vista de calendario
-│   ├── reprogramar/           # Reprogramación de citas
-│   └── [id]/                  # Operaciones por ID de cita
-├── cuenta/                    # Gestión de cuentas de pacientes
-│   ├── buscar-por-seguro/     # Búsqueda por tipo de seguro
+├── accounts/                  # Gestión de cuentas de pacientes
+│   ├── search-by-insurance/   # Búsqueda por tipo de seguro
 │   ├── validate/              # Validación de cuentas y FUAs
-│   ├── deactivate/            # Desactivación lógica
 │   └── update/                # Actualización de cuentas
-├── dashboard/                 # Datos para el dashboard
-│   └── kpis/                  # Métricas principales
-├── emergencia/                # Módulo de emergencias
-│   ├── active/                # Emergencias activas
+├── appointments/              # Módulo de citas médicas
+│   ├── [id]/                  # Operaciones por ID de cita
+│   ├── archivo-mov/           # Archivo de movimientos
+│   ├── doctor-by-date/        # Médicos disponibles por fecha
+│   ├── insurances/            # Seguros para citas
+│   ├── search-by-document/    # Búsqueda por documento
+│   ├── search-by-name/        # Búsqueda por nombre
+│   ├── sis-entities/          # Entidades SIS
+│   └── types/                 # Tipos de cita
+├── emergency/                 # Módulo de emergencias
+│   ├── [id]/                  # Operaciones por ID (GET, PATCH, DELETE)
+│   ├── admission-types/       # Formas de ingreso
 │   ├── patient/               # Emergencias por paciente
-│   └── [id]/                  # Operaciones por ID de emergencia
-├── hospitaliza/               # Módulo de hospitalización
-│   ├── orden-hospitalizacion/ # Gestión de órdenes
-│   └── origen-hospitalizacion/ # Orígenes de hospitalización
-├── medicos/                   # Gestión de médicos
-│   ├── sugerir-codigo/        # Generación automática de códigos
-│   └── [id]/                  # Operaciones por ID de médico
-├── especialidad/              # Gestión de especialidades médicas
-├── seguros/                   # Gestión de seguros médicos
-├── tipo/                      # Catálogo de tipos (tabla T)
-└── master-tables/             # Tablas de referencia
-    ├── consultorios/          # Gestión de consultorios
-    │   └── [id]/              # Operaciones por ID
-    ├── localidades/           # Gestión de localidades
-    │   └── [id]/              # Operaciones por ID
-    └── medicos/               # Gestión de médicos
-        └── [id]/              # Operaciones por ID
+│   └── reasons/               # Motivos de emergencia
+├── filiation/                 # Módulo de filiación
+│   ├── [id]/                  # Operaciones por ID de paciente
+│   ├── patient/               # Datos del paciente
+│   ├── save/                  # Guardar filiación
+│   └── search/                # Búsqueda de pacientes
+├── historia-clinica/          # Historia clínica
+├── hospitalization/           # Módulo de hospitalización
+│   ├── [id]/                  # Operaciones por ID
+│   ├── accounts/              # Cuentas de hospitalización
+│   ├── attentions/            # Atenciones hospitalarias
+│   ├── diagnostics/           # Diagnósticos (search, [id])
+│   ├── hospitalization-order/ # Órdenes de hospitalización
+│   ├── origins/               # Orígenes de hospitalización
+│   └── patient/               # Hospitalizaciones por paciente
+├── master-tables/             # Tablas maestras
+│   ├── consultorio-types/     # Tipos de consultorio
+│   ├── consultorios/          # Gestión de consultorios
+│   ├── localidades/           # Gestión de localidades
+│   ├── medicos/               # Gestión de médicos
+│   ├── profesiones-colegio/   # Profesiones y colegios
+│   └── specialties/           # Especialidades médicas
+├── ubigeo/                    # Gestión de ubigeos
+└── utils/                     # Utilidades de API
 ```
 
 ### Frontend (app/)
@@ -91,58 +98,98 @@ app/
 ```
 components/                   # Componentes reutilizables
 ├── appointments/             # Componentes de citas médicas
-│   ├── AppointmentCalendar.tsx # Calendario de citas
-│   ├── AppointmentDetailsModal.tsx # Modal de detalles
-│   └── AppointmentsTable.tsx # Tabla de citas
+│   ├── AppointmentCalendar.tsx
+│   ├── AppointmentDetailsModal.tsx
+│   └── AppointmentsTable.tsx
 ├── dashboard/                # Componentes del dashboard
 ├── emergency/                # Componentes de emergencias
+│   ├── modals/               # Modales de emergencia
+│   │   ├── EmergencyMainModal.tsx
+│   │   ├── EmergencyModalProvider.tsx
+│   │   ├── EmergencyRegistrationModal.tsx
+│   │   └── EmergencyListModal.tsx
 │   ├── register/             # Registro de emergencias
+│   │   ├── EmergencyFormRefactored.tsx
+│   │   ├── EmergencySection.tsx
+│   │   ├── AdditionalFieldsSection.tsx
+│   │   ├── FormHeaderEmergency.tsx
+│   │   └── FuaEmergencyStatusAlert.tsx
+│   ├── selectors/            # Selectores reutilizables
 │   └── view/                 # Visualización de emergencias
 ├── hospitalization/          # Componentes de hospitalización
+│   ├── modals/               # Modales de hospitalización
 │   ├── register/             # Registro de hospitalizaciones
 │   └── view/                 # Visualización de hospitalizaciones
 ├── master-tables/            # Componentes para tablas maestras
 │   ├── modals/               # Formularios modales
 │   └── tables/               # Tablas de datos
 └── ui/                       # Componentes de interfaz base
+    ├── SearchableSelect.tsx  # Select con búsqueda
+    ├── dialog.tsx            # Modal dialog
+    └── ...                   # Componentes shadcn/ui
 
 contexts/                     # Contextos de React
 ├── ConsultoriosContext.tsx   # Gestión de consultorios
+├── DiagnosticosContext.tsx   # Gestión de diagnósticos
+├── EmergencyAccountContext.tsx # Cuentas de emergencia (con caché)
+├── EmergencyProvider.tsx     # Provider unificado de emergencias
+├── FormasIngresoContext.tsx  # Formas de ingreso
 ├── MedicosContext.tsx        # Gestión de médicos
-├── PatientAccountContext.tsx # Cuentas de pacientes
+├── MotivosEmergenciaContext.tsx # Motivos de emergencia
+├── OrigenHospitalizacionContext.tsx # Orígenes de hospitalización
+├── PatientAccountContext.tsx # Cuentas de pacientes (con caché)
 ├── PatientContext.tsx        # Datos de pacientes
-└── PatientDataContext.tsx    # Datos clínicos
+├── PatientDataContext.tsx    # Datos clínicos del paciente
+├── ReferenciaContext.tsx     # Referencias médicas
+├── SeguroContext.tsx         # Seguro individual
+├── SegurosCitaContext.tsx    # Seguros para citas
+├── SegurosContext.tsx        # Gestión de seguros
+├── ServerDateTimeContext.tsx # Fecha/hora del servidor
+├── TipoCitaContext.tsx       # Tipos de cita
+├── TiposDocumentoContext.tsx # Tipos de documento (local)
+└── filiation/                # Contextos de filiación
+    ├── EstadoCivilContext.tsx
+    ├── EtniaContext.tsx
+    ├── FiliationProvider.tsx # Provider unificado de filiación
+    ├── GradoInstruccionContext.tsx
+    ├── OcupacionContext.tsx
+    ├── PaisContext.tsx
+    ├── ReligionContext.tsx
+    ├── TipoDocumentoContext.tsx # Tipos de documento (global)
+    └── index.ts
 
 hooks/                        # Hooks personalizados
 ├── master-tables/            # Hooks para tablas maestras
-│   ├── useConsultorios.ts    # Hook para consultorios
-│   ├── useConsultorioById.ts # Hook para un consultorio específico
-│   ├── useMedicos.ts         # Hook para médicos
-│   └── useMedicoById.ts      # Hook para un médico específico
+│   ├── useConsultorios.ts
+│   ├── useConsultorioById.ts
+│   ├── useMedicos.ts
+│   └── useMedicoById.ts
 ├── use-mobile.tsx            # Detección móvil
 └── use-toast.ts              # Notificaciones
 
 services/                     # Lógica de negocio
 ├── citas/                    # Servicios de citas
-│   └── entidadSisService.ts  # Validación de entidades SIS
+│   └── entidadSisService.ts
 ├── emergencia/               # Servicios de emergencia
-│   ├── consultorioService.ts # Gestión de consultorios
-│   ├── emergenciaService.ts  # Gestión de emergencias
-│   └── cuentaService.ts      # Gestión de cuentas
+│   ├── consultorioService.ts
+│   ├── emergenciaService.ts
+│   └── cuentaService.ts
 ├── hospitalizacion/          # Servicios de hospitalización
-│   ├── consultorioService.ts # Gestión de consultorios
-│   ├── cuentaFuaService.ts   # Gestión de FUAs
-│   └── cuentaValidationService.ts # Validación de cuentas
+│   ├── consultorioService.ts
+│   ├── cuentaFuaService.ts
+│   └── cuentaValidationService.ts
 └── master-tables/            # Servicios de tablas maestras
-    ├── consultorioService.ts # Servicio de consultorios
-    ├── localidadService.ts   # Servicio de localidades
-    └── medicoService.ts      # Servicio de médicos
+    ├── consultorioService.ts
+    ├── localidadService.ts
+    └── medicoService.ts
 
-utils/                        # Utilidades
-├── civilStatusUtils.ts       # Estados civiles
-├── dateFormatUtils.ts        # Formato de fechas
-├── debuggerUtils.ts          # Herramientas de depuración
-└── jwtUtils.ts               # Manejo de JWT
+lib/                          # Librerías y utilidades core
+├── ageCalculator.ts          # Cálculo de edad (formato: 000a00m00d)
+├── auth.ts                   # Autenticación
+├── constants/                # Constantes del sistema
+├── env.ts                    # Variables de entorno
+├── prisma.ts                 # Cliente Prisma
+└── utils.ts                  # Utilidades generales
 ```
 
 ## Base de Datos
@@ -183,6 +230,13 @@ npm run dev
 
 ## Módulos Principales
 
+### Filiación de Pacientes
+- Registro y búsqueda de pacientes
+- Datos demográficos completos
+- Gestión de documentos de identidad
+- Datos de ubigeo y localización
+- Contextos optimizados para evitar llamadas API redundantes
+
 ### Citas Médicas
 - Programación de citas con médicos
 - Calendario de disponibilidad
@@ -193,39 +247,54 @@ npm run dev
 
 ### Emergencias
 - Registro de pacientes en emergencia
-- Asignación de consultorios
-- Validación de seguros
-- Generación de FUA
+- Formulario refactorizado con validaciones
+- Asignación de consultorios y médicos
+- Validación de seguros y FUA
+- Formas de ingreso y motivos de emergencia
+- Gestión de acompañantes
+- Cálculo automático de edad (mínimo 1 día: `000a00m01d`)
 
 ### Hospitalización
 - Órdenes de hospitalización
-- Gestión de camas
+- Gestión de camas y consultorios
 - Control de altas
 - Seguimiento clínico
+- Validación de cuentas por tipo de seguro
 
 ### Tablas Maestras
-- Gestión de recursos médicos
-- Catálogos del sistema
-- Datos de referencia
+- Gestión de médicos y especialidades
+- Gestión de consultorios y tipos
+- Gestión de localidades
+- Profesiones y colegios
+
+## Optimización de Data Fetching
+
+El sistema implementa un patrón de contextos optimizados para evitar llamadas API redundantes:
+
+### Providers Unificados
+- **EmergencyProvider**: Agrupa contextos de emergencia (Seguros, Médicos, Consultorios, etc.)
+- **FiliationProvider**: Agrupa contextos de filiación (TipoDocumento, EstadoCivil, etc.)
+
+### Caché de Datos
+- Los contextos implementan caché por `patientId` y `tipoSeguro`
+- Prevención de solicitudes duplicadas con `inFlightRequests`
+- Reutilización de datos ya cargados entre componentes
+
+### Contextos Globales vs Locales
+- **TipoDocumentoContext** (global): Disponible en `layout.tsx` para toda la app
+- **SegurosContext**: Cargado en `EmergencyProvider` para el módulo de emergencias
 
 ## Tecnologías
 
-- **Frontend**: Next.js 13+, React 18+, TypeScript
-- **Estilos**: Tailwind CSS, Shadcn UI
-- **Backend**: Next.js API Routes
-- **Base de Datos**: PostgreSQL con Prisma ORM
+- **Frontend**: Next.js 15+, React 19+, TypeScript 5+
+- **Estilos**: Tailwind CSS 3+, Shadcn UI
+- **Backend**: Next.js API Routes (App Router)
+- **Base de Datos**: SQL Server con Prisma ORM
 - **Autenticación**: NextAuth.js
 - **Validación**: Zod
 - **Iconos**: Lucide React
 - **Documentación API**: Swagger UI
-
-## Licencia
-
-Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
----
-
-Desarrollado por [Tu Organización] - 2025
+- **Testing**: Jest, Playwright
 
 ## Servicios
 
@@ -244,13 +313,31 @@ La lógica de negocio está organizada en servicios modulares:
 
 # Documentación de Endpoints API
 
-## Módulo de Citas
+## Módulo de Cuentas (`/api/accounts`)
 
-El módulo de citas proporciona funcionalidades para la gestión completa de citas médicas, incluyendo programación, reprogramación, cancelación y validación de seguros.
+### `GET /api/accounts/validate`
+Valida cuentas y FUAs según el tipo de seguro.
 
-### Endpoints de Citas
+**Parámetros de consulta:**
+- `patientId`: ID del paciente
+- `tipoSeguro`: Código de seguro
 
-#### `GET /api/citas`
+### `GET /api/accounts/search-by-insurance/[patientId]`
+Busca cuenta activa por paciente y tipo de seguro.
+
+**Parámetros de consulta:**
+- `seguro`: Código de seguro
+
+### `PATCH /api/accounts/update`
+Actualiza el estado de una cuenta.
+
+---
+
+## Módulo de Citas (`/api/appointments`)
+
+El módulo de citas proporciona funcionalidades para la gestión completa de citas médicas.
+
+### `GET /api/appointments`
 Obtiene un listado paginado de citas médicas.
 
 **Parámetros de consulta:**
@@ -286,7 +373,28 @@ Obtiene un listado paginado de citas médicas.
 }
 ```
 
-#### `GET /api/citas/[id]`
+### `GET /api/appointments/insurances`
+Obtiene la lista de seguros disponibles para citas.
+
+**Parámetros de consulta:**
+- `codCita`: Código de tipo de cita (default: 1)
+
+### `GET /api/appointments/types`
+Obtiene los tipos de cita disponibles.
+
+### `GET /api/appointments/search-by-document`
+Busca pacientes por documento.
+
+**Parámetros de consulta:**
+- `documento`: Número de documento
+
+### `GET /api/appointments/search-by-name`
+Busca pacientes por nombre.
+
+**Parámetros de consulta:**
+- `nombre`: Nombre a buscar
+
+### `GET /api/appointments/[id]`
 Obtiene los detalles de una cita específica por su ID.
 
 **Parámetros de ruta:**
@@ -434,31 +542,102 @@ Obtiene las citas programadas para visualización en calendario.
 }
 ```
 
-#### `POST /api/citas/reprogramar`
-Reprograma una cita existente.
+---
+
+## Módulo de Emergencias (`/api/emergency`)
+
+### `GET /api/emergency`
+Obtiene listado de emergencias.
+
+### `POST /api/emergency`
+Crea una nueva emergencia.
 
 **Cuerpo de la solicitud:**
 ```json
 {
-  "ID_CITA": "123456",
-  "FECHA": "2025-09-16",
-  "HORA": "10:30",
+  "PACIENTE": "2008083192",
+  "FECHA": "20250915",
+  "HORA": "08:30 AM",
   "MEDICO": "ABC",
   "CONSULTORIO": "C123",
-  "OBSERVACIONES": "Cita reprogramada por disponibilidad"
+  "MOTIVO": "01",
+  "DIAGNOSTICO": "A000",
+  "SEGURO": "20",
+  "FORMA_INGRESO": "1",
+  "EDAD": "029a08m01d"
 }
 ```
 
-**Respuesta:**
-```json
-{
-  "success": true,
-  "message": "Cita reprogramada correctamente",
-  "data": {
-    "ID_CITA": "123456"
-  }
-}
-```
+### `GET /api/emergency/[id]`
+Obtiene los detalles de una emergencia específica.
+
+### `PATCH /api/emergency/[id]`
+Actualiza una emergencia existente.
+
+### `DELETE /api/emergency/[id]`
+Elimina (borrado lógico) una emergencia.
+
+### `GET /api/emergency/patient/[patientId]`
+Obtiene las emergencias de un paciente específico.
+
+### `GET /api/emergency/reasons`
+Obtiene los motivos de emergencia disponibles.
+
+### `GET /api/emergency/admission-types`
+Obtiene las formas de ingreso disponibles.
+
+---
+
+## Módulo de Hospitalización (`/api/hospitalization`)
+
+### `GET /api/hospitalization`
+Obtiene listado de hospitalizaciones.
+
+### `POST /api/hospitalization`
+Crea una nueva hospitalización.
+
+### `GET /api/hospitalization/[id]`
+Obtiene los detalles de una hospitalización específica.
+
+### `PATCH /api/hospitalization/[id]`
+Actualiza una hospitalización existente.
+
+### `GET /api/hospitalization/patient/[patientId]`
+Obtiene las hospitalizaciones de un paciente específico.
+
+### `GET /api/hospitalization/origins`
+Obtiene los orígenes de hospitalización disponibles.
+
+### `GET /api/hospitalization/diagnostics/search`
+Busca diagnósticos CIE-10.
+
+**Parámetros de consulta:**
+- `q`: Término de búsqueda
+
+### `GET /api/hospitalization/accounts/[patientId]`
+Obtiene las cuentas de hospitalización de un paciente.
+
+---
+
+## Módulo de Filiación (`/api/filiation`)
+
+### `GET /api/filiation/search`
+Busca pacientes en el sistema.
+
+**Parámetros de consulta:**
+- `documento`: Número de documento
+- `nombre`: Nombre del paciente
+
+### `GET /api/filiation/patient/[id]`
+Obtiene datos completos de filiación de un paciente.
+
+### `POST /api/filiation/save`
+Guarda o actualiza datos de filiación.
+
+### `GET /api/filiation/[id]`
+Obtiene datos de filiación por ID de paciente.
+
+---
 
 # Servicio de Validación de Cuentas y FUAs
 
@@ -672,29 +851,6 @@ Para acceder a la documentación, inicie el servidor de desarrollo y navegue a `
 docker-compose up -d
 ```
 
-## Soporte
-
-Para reportar problemas o solicitar características, por favor abre un [issue](https://github.com/tu-organizacion/hospital-management-system/issues).
-
-## Licencia
-
-Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
-
----
-
-Desarrollado por Jorge Holguin - 2025
-## Docker
-
-El proyecto incluye configuración para Docker Compose. Para iniciar la aplicación con Docker:
-
-1. Crear un archivo `.env` basado en `.env.example`
-2. Ejecutar:
-   ```bash
-   docker-compose up -d
-   ```
-
-La aplicación estará disponible en `http://localhost:3000`
-
 ## Pruebas
 
 Para ejecutar las pruebas unitarias:
@@ -709,14 +865,14 @@ Para ejecutar pruebas de extremo a extremo:
 npm run test:e2e
 ```
 
-## Contribución
+## Soporte
 
-1. Crear una rama para tu característica (`git checkout -b feature/amazing-feature`)
-2. Realizar cambios y pruebas
-3. Confirmar cambios (`git commit -m 'Add some amazing feature'`)
-4. Enviar a la rama (`git push origin feature/amazing-feature`)
-5. Abrir un Pull Request
+Para reportar problemas o solicitar características, por favor abre un [issue](https://github.com/jorge-holguin/hospital-management-system/issues).
 
 ## Licencia
 
-Este proyecto está licenciado bajo [Licencia Privada] - ver el archivo LICENSE para más detalles.
+Este proyecto está licenciado bajo Licencia Privada - ver el archivo LICENSE para más detalles.
+
+---
+
+Desarrollado por Jorge Holguin - 2025

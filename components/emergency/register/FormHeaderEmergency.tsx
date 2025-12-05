@@ -57,7 +57,6 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
     
     // Si ya se buscó esta combinación o está en proceso, no hacer nada
     if (lastFetchRef.current === fetchKey || isFetchingRef.current) {
-      console.log(`⏭️ [FormHeaderEmergency] Saltando búsqueda duplicada para ${fetchKey}`);
       return;
     }
     
@@ -66,12 +65,10 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
         isFetchingRef.current = true;
         lastFetchRef.current = fetchKey;
         setIsLoadingLocal(true);
-        console.log(`🚨 [FormHeaderEmergency] Buscando cuenta para paciente ${patientId} con seguro ${insuranceCode}`);
         
         const accountData = await fetchEmergencyAccount(patientId, insuranceCode);
         
         if (accountData?.cuentaId) {
-          console.log(`✅ [FormHeaderEmergency] Cuenta encontrada: ${accountData.cuentaId}`);
           setDisplayCuentaId(accountData.cuentaId);
           
           // Notificar al formulario padre sobre la cuenta encontrada SOLO UNA VEZ
@@ -80,11 +77,9 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
             onFormChange('numeroCuenta', accountData.cuentaId);
           }
         } else {
-          console.log(`❌ [FormHeaderEmergency] No se encontró cuenta`);
           setDisplayCuentaId("No disponible");
         }
       } catch (error) {
-        console.error('Error al buscar cuenta:', error);
         setDisplayCuentaId("No disponible");
       } finally {
         setIsLoadingLocal(false);
@@ -98,10 +93,8 @@ export const FormHeaderEmergency: React.FC<FormHeaderEmergencyProps> = ({
   // Actualizar displayCuentaId cuando cambian las props directas
   useEffect(() => {
     if (cuentaId) {
-      console.log(`🚨 [FormHeaderEmergency] Actualizando con cuentaId desde props: ${cuentaId}`);
       setDisplayCuentaId(cuentaId);
     } else if (isViewMode && emergencyCuentaId) {
-      console.log(`🚨 [FormHeaderEmergency] Actualizando con emergencyCuentaId: ${emergencyCuentaId}`);
       setDisplayCuentaId(emergencyCuentaId);
     }
   }, [cuentaId, emergencyCuentaId, isViewMode]);

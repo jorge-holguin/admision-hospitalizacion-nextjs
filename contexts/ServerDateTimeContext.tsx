@@ -32,9 +32,7 @@ export function ServerDateTimeProvider({ children }: { children: React.ReactNode
 
   const fetchServerDateTime = async (): Promise<ServerDateTime> => {
     try {
-      setLoading(true)
-      console.log('🕒 Obteniendo fecha y hora del servidor...')
-      
+      setLoading(true)      
       const response = await fetch('/api/utils/datetime')
       
       if (!response.ok) {
@@ -42,7 +40,6 @@ export function ServerDateTimeProvider({ children }: { children: React.ReactNode
       }
       
       const data = await response.json()
-      console.log('✅ Fecha y hora del servidor obtenidas:', data)
       
       const dateTime = {
         date: data.date || '',

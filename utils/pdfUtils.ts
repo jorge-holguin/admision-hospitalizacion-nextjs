@@ -78,7 +78,6 @@ export async function mergePDFs(pdfUrls: string[]): Promise<string> {
     // Procesar cada URL de PDF
     for (const url of pdfUrls) {
       try {
-        console.log(`Intentando obtener PDF desde: ${url}`);
         // Obtener el PDF como ArrayBuffer
         const response = await fetch(url);
         
@@ -92,7 +91,6 @@ export async function mergePDFs(pdfUrls: string[]): Promise<string> {
         
         // Verificar que el tipo de contenido sea PDF
         const contentType = response.headers.get('content-type');
-        console.log(`Tipo de contenido recibido: ${contentType}`);
         
         if (!contentType || !contentType.includes('application/pdf')) {
           console.warn(`El tipo de contenido no es PDF: ${contentType}`);
@@ -106,9 +104,7 @@ export async function mergePDFs(pdfUrls: string[]): Promise<string> {
           console.error('El PDF recibido está vacío');
           throw new Error('El PDF recibido está vacío');
         }
-        
-        console.log(`PDF recibido correctamente, tamaño: ${pdfBytes.byteLength} bytes`);
-        
+                
         // Cargar el PDF
         const pdf = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
         

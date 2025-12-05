@@ -117,7 +117,6 @@ function AdditionalAppointmentModalContent({
       
       // Set default seguro from patient data
       if (patient.SEGURO) {
-        console.log('📋 Estableciendo seguro desde paciente:', patient.SEGURO)
         setTipoSeguro(patient.SEGURO)
       } else {
         console.warn('⚠️ Paciente no tiene SEGURO definido:', patient)
@@ -145,7 +144,6 @@ function AdditionalAppointmentModalContent({
   // Actualizar tipo de seguro cuando se recarga el paciente
   useEffect(() => {
     if (refreshedPatient && refreshedPatient.SEGURO) {
-      console.log('🔄 Actualizando tipo de seguro desde paciente recargado:', refreshedPatient.SEGURO)
       setTipoSeguro(refreshedPatient.SEGURO)
     }
   }, [refreshedPatient])
@@ -188,9 +186,7 @@ function AdditionalAppointmentModalContent({
         
         // Convertir turno a formato API (M o T)
         const turnoConsulta = turno === 'MAÑANA' ? 'M' : 'T'
-        
-        console.log('📅 Cargando fechas disponibles - Especialidad:', especialidadConsultorio, 'Turno:', turnoConsulta, 'desde:', fechaInicio, 'hasta:', fechaFin)
-        
+                
         // Usar el servicio availableDatesService con turno
         const availableDates = await availableDatesService.fetchAvailableDates({
           fechaInicio,
@@ -205,7 +201,6 @@ function AdditionalAppointmentModalContent({
         
         setDatesWithAppointments(available)
         setDatesWithoutAppointments(unavailable)
-        console.log('✅ Fechas cargadas:', available.length, 'con citas (verdes),', unavailable.length, 'sin citas (rojas), para consultorio:', consultorioCode, 'turno:', turnoConsulta)
       } catch (error) {
         console.error('Error al cargar fechas disponibles:', error)
         setDatesWithAppointments([])
@@ -249,9 +244,7 @@ function AdditionalAppointmentModalContent({
         }
         
         const fechaConsulta = formatDateForAPI(selectedCalendarDate)
-        
-        console.log('👨‍⚕️ Cargando médicos disponibles para fecha:', fechaConsulta, 'consultorio:', consultorio)
-        
+                
         // Llamar al nuevo endpoint de médicos por fecha
         // El consultorio es opcional, si no se envía, retorna todos los médicos del día
         const url = consultorio 
@@ -273,7 +266,6 @@ function AdditionalAppointmentModalContent({
         })) : []
         
         setAvailableMedicos(medicos)
-        console.log('✅ Médicos disponibles cargados:', medicos.length, medicos)
       } catch (error) {
         console.error('Error al cargar médicos disponibles:', error)
         setAvailableMedicos([])
@@ -289,7 +281,6 @@ function AdditionalAppointmentModalContent({
   const isSisSeguro = () => {
     const sisSegurosCodes = ['20', '21', '22', '23', '24', '25']
     const isSis = sisSegurosCodes.includes(tipoSeguro?.toString().trim())
-    console.log('🔍 isSisSeguro check:', { tipoSeguro, tipoSeguroTrimmed: tipoSeguro?.toString().trim(), isSis, sisSegurosCodes })
     return isSis
   }
 
@@ -633,7 +624,6 @@ function AdditionalAppointmentModalContent({
     setSisVerificationResult(null)
     setRefconSyncSuccess(false)
     setRefconSyncError(null)
-    console.log('🧹 Estados de referencia limpiados al cerrar modal')
     onClose()
   }
 
@@ -735,15 +725,7 @@ function AdditionalAppointmentModalContent({
 
   const timeValidation = validateTimeWindow()
 
-  // Log para depuración
-  console.log('🔍 Estado del componente:', { 
-    showSuccess, 
-    createdAppointment: !!createdAppointment,
-    isOpen 
-  })
-
   if (showSuccess) {
-    console.log('✅ Renderizando modal de éxito')
     return (
       <Dialog open={true} onOpenChange={handleClose}>
         <DialogContent
@@ -956,9 +938,7 @@ function AdditionalAppointmentModalContent({
                         setDatesWithoutAppointments([])
                       }}
                       onConsultorioDataChange={(data) => {
-                        console.log('🏭 Consultorio seleccionado:', data)
                         if (data && data.ESPECIALIDAD) {
-                          console.log('👨‍⚕️ Especialidad del consultorio:', data.ESPECIALIDAD)
                           setEspecialidadConsultorio(data.ESPECIALIDAD)
                           if (data.NOMBRE) setConsultorioNombreSel(data.NOMBRE)
                         } else {
@@ -1247,9 +1227,7 @@ function AdditionalAppointmentModalContent({
                         showButton={true}
                         onVerificationComplete={(result) => {
                           setSisVerificationResult(result)
-                          if (result.isSuccess) {
-                            console.log('✅ SIS verificado exitosamente')
-                            
+                          if (result.isSuccess) {   
                             if (result.eess) {
                               // Hacer trim a los ceros del código de establecimiento
                               const trimmedEess = result.eess.replace(/^0+/, '') || result.eess
@@ -1258,7 +1236,6 @@ function AdditionalAppointmentModalContent({
                               
                               // Forzar un retraso para asegurar que el estado se actualice
                               setTimeout(() => {
-                                console.log('Establecimiento autocompletado:', trimmedEess)
                               }, 100)
                             }
                           }
@@ -1277,26 +1254,21 @@ function AdditionalAppointmentModalContent({
                         especialidadCodigo={especialidadConsultorio || undefined}
                         value={referenciaIdSeleccionada}
                         onChange={async (refData) => {
-                          console.log('📋 Referencia seleccionada:', refData)
                           setReferencia(refData.numeroReferencia)
                           setReferenciaIdSeleccionada(refData.idReferencia)
                           
                           // Guardar flag de sincronización con REFCON
                           setSkipRefconSync(refData.skipRefconSync || false)
-                          console.log('🔄 Skip REFCON Sync:', refData.skipRefconSync, '(Estado:', refData.codigoEstado, ')')
                           
                           // Obtener nombre de la entidad SIS desde la API
                           if (refData.codigoestablecimientoOrigen) {
-                            console.log('🔍 Obteniendo nombre de entidad SIS para código:', refData.codigoestablecimientoOrigen)
                             
                             // Actualizar inmediatamente el código del establecimiento
                             setEessOrigenReferencia(refData.codigoestablecimientoOrigen)
                             setSelectedEntidadSis(refData.codigoestablecimientoOrigen)
-                            console.log('✅ selectedEntidadSis actualizado a:', refData.codigoestablecimientoOrigen)
                             
                             const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                             if (result.success && result.data) {
-                              console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
                               setEessNombreOrigen(result.data.NOMBRE)
                             } else {
                               console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
@@ -1310,7 +1282,6 @@ function AdditionalAppointmentModalContent({
                           }
                         }}
                         onEessChange={(eess) => {
-                          console.log('🏥 EESS origen actualizado:', eess)
                           setEessOrigenReferencia(eess)
                         }}
                       />

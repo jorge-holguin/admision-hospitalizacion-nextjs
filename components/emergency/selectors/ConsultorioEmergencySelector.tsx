@@ -31,16 +31,7 @@ export function ConsultorioEmergencySelector({
   // Usar contexto en lugar de estado local
   const { consultorios: items, loading: isLoading } = useConsultorios()
 
-  // Ya no necesitamos cargar consultorios porque usamos el contexto
-  const loadConsultorios = async (searchTerm: string = "") => {
-    console.log('🚨 loadConsultorios llamado - usando contexto en su lugar');
-    console.log('🏥 Consultorios disponibles desde contexto:', items?.length || 0);
-  }
-
-  // Ya no necesitamos cargar consultorios porque usamos el contexto
-  useEffect(() => {
-    console.log('🏥 Consultorios disponibles desde contexto:', items?.length || 0);
-  }, [items])
+  // Los consultorios se cargan desde el contexto, no necesitamos llamada local
 
   // Establecer valor inicial cuando se cargan los datos
   useEffect(() => {

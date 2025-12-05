@@ -271,12 +271,9 @@ export function HospitalizationFormRefactored({
       
       // La validación ya se realizó en handleSubmit, pero verificamos nuevamente
       // para asegurarnos de que todo esté en orden antes de enviar
-      console.log('Validando formulario antes de enviar', { procedencia: formData.procedencia });
       const validation = validateHospitalizationForm(formData);
-      console.log('Resultado de validación:', validation);
       
       if (!validation.isValid) {
-        console.log('Errores de validación:', validation.errors);
         setValidationErrors(validation.errors);
         toast({
           title: "Error de validación",
@@ -294,14 +291,11 @@ export function HospitalizationFormRefactored({
       let origenCode;
       if (formData.procedencia === 'RN') {
         origenCode = 'RN'; // Si la procedencia es RN, el origen debe ser RN (2 caracteres)
-        console.log('Procedencia es RN, estableciendo origenCode a RN');
       } else {
         const origenText = formData.attentionOrigin || '';
         origenCode = origenText.toUpperCase().includes('EMERGENCIA') ? 'EM' : 'CE';
-        console.log('Procedencia no es RN, origenCode:', origenCode);
       }
       const origenId = formData.procedencia === 'RN' ? '' : (formData.hospitalizationOrigin ? formData.hospitalizationOrigin.split(' [')[0] : '');
-      console.log('Valores de origen:', { origenCode, origenId, procedencia: formData.procedencia });
       
       // Extraer los códigos de los valores seleccionados
       // Formato esperado: "Código - Descripción" o solo "Código"
@@ -311,13 +305,6 @@ export function HospitalizationFormRefactored({
       
       // Extraer el código del diagnóstico (antes del primer espacio o guion)
       const diagnosticoCode = formData.diagnosis.split(/[ -]/)[0] || '';
-      
-      console.log('Códigos extraidos:', { 
-        consultorioCode, 
-        diagnosticoCode, 
-        seguroCode, 
-        medicoCode 
-      });
       
       // Formatear fecha como YYYYMMDD (formato requerido por SQL Server)
       const fechaFormateada = formData.date.replace(/-/g, ''); // Convertir YYYY-MM-DD a YYYYMMDD
@@ -331,14 +318,9 @@ export function HospitalizationFormRefactored({
       
       // Obtener la edad directamente desde la API de paciente
       const getEdad = async () => {
-        console.log('Obteniendo edad desde pacienteApiService para paciente:', patientId);
-        
         try {
           // Usar el servicio de pacienteApiService para obtener la edad formateada
           const formattedAge = await pacienteApiService.getFormattedAge(patientId);
-          
-          // El servicio ahora siempre devuelve un valor válido (nunca null)
-          console.log('Edad formateada obtenida:', formattedAge);
           return formattedAge;
         } catch (error) {
           console.error('Error al obtener la edad desde la API:', error);
@@ -348,9 +330,6 @@ export function HospitalizationFormRefactored({
       };
       
       const edadCalculada = await getEdad();
-      console.log('🎯 ===== EDAD CALCULADA FINAL =====');
-      console.log('🎯 Edad que se usará:', edadCalculada);
-      console.log('🎯 ================================');
       
       // Asegurar que el nombre completo esté correctamente formateado
       // Usar los datos del formulario directamente
@@ -377,9 +356,6 @@ export function HospitalizationFormRefactored({
       
       // Obtener el primer apellido solo si estamos en el navegador
       const primerApellido = typeof window !== 'undefined' ? extractDocumentFromToken() : 'SUPERVISOR';
-      
-      // Obtener datos adicionales del contexto de paciente para completar todos los campos
-      console.log('📋 Datos del paciente desde contexto:', patientData);
       
       // Preparar datos para enviar al servidor en el formato esperado por la API
       const hospitalData = {
@@ -422,13 +398,6 @@ export function HospitalizationFormRefactored({
         return;
       }
       
-      console.log('🚀 ===== ENVIANDO DATOS A LA API =====');
-      console.log('🚀 URL:', url);
-      console.log('🚀 Método:', method);
-      console.log('🚀 EDAD que se enviará:', hospitalData.EDAD);
-      console.log('🚀 Datos completos:', hospitalData);
-      console.log('🚀 ====================================');
-      
       try {
         const response = await fetch(url, {
           method,
@@ -436,12 +405,6 @@ export function HospitalizationFormRefactored({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(hospitalData),
-        });
-        
-        console.log('Respuesta de la API recibida:', { 
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok
         });
         
         // Procesar la respuesta
@@ -458,21 +421,16 @@ export function HospitalizationFormRefactored({
         }
         
         const result = await response.json();
-        console.log('Hospitalización creada exitosamente:', result);
         
         // Verificar que realmente se creó en la BD
         if (!result.success) {
-          console.error('❌ Error: La API retornó success=false:', result);
           throw new Error(result.message || result.error || 'Error al crear la hospitalización');
         }
         
         const hospitalizacionId = result.data?.IDHOSPITALIZACION || result.IDHOSPITALIZACION;
         if (!hospitalizacionId) {
-          console.error('❌ Error: No se obtuvo IDHOSPITALIZACION del resultado:', result);
           throw new Error('No se pudo obtener el ID de la hospitalización creada');
         }
-        
-        console.log('✅ Hospitalización guardada en BD con ID:', hospitalizacionId);
         
         // Mostrar mensaje de éxito
         setSubmitting(false);
@@ -490,18 +448,9 @@ export function HospitalizationFormRefactored({
         // IMPORTANTE: Esto debe ejecutarse ANTES de llamar a onSuccess o return
         const seguroCode = (result.data?.SEGURO || result.SEGURO || hospitalData.SEGURO || '').toString().trim();
         
-        console.log('🔍 Datos de resultado:', { hospitalizacionId, seguroCode, result });
-        
         if (["0", "02", "17"].includes(seguroCode)) {
           try {
-            console.log(`Asegurando cuenta para hospitalización ${hospitalizacionId} con seguro ${seguroCode}...`);
             const nombrePaciente = (result.data?.NOMBRES || result.NOMBRES || hospitalData.NOMBRES || '').toString().trim();
-            console.log('Datos que se envían al endpoint:', {
-              paciente: result.data?.PACIENTE || result.PACIENTE || patientId,
-              seguro: seguroCode,
-              usuario: primerApellido,
-              nombre: nombrePaciente
-            });
             const asegurarResponse = await fetch(`/api/hospitalization/accounts/${hospitalizacionId.trim()}`, {
               method: 'POST',
               headers: {
@@ -516,10 +465,8 @@ export function HospitalizationFormRefactored({
             });
             
             const asegurarResult = await asegurarResponse.json();
-            console.log('Resultado de asegurar cuenta:', asegurarResult);
             
             if (asegurarResult.ok && asegurarResult.cuentaId) {
-              console.log(`Cuenta asegurada correctamente: ${asegurarResult.cuentaId}`);
               
               // Actualizar el registro de hospitalización con el cuentaId
               try {
@@ -534,9 +481,7 @@ export function HospitalizationFormRefactored({
                 });
                 
                 const updateResult = await updateResponse.json();
-                if (updateResult.success) {
-                  console.log(`Hospitalización actualizada con CUENTAID: ${asegurarResult.cuentaId}`);
-                } else {
+                if (!updateResult.success) {
                   console.error('Error al actualizar la hospitalización con el CUENTAID:', updateResult.message);
                 }
               } catch (updateError) {
@@ -548,8 +493,6 @@ export function HospitalizationFormRefactored({
           } catch (error) {
             console.error('Error al asegurar la cuenta:', error);
           }
-        } else {
-          console.log(`No se requiere asegurar cuenta para seguro: ${seguroCode}`);
         }
         
         // Obtener el ID limpio para los PDFs
@@ -647,21 +590,13 @@ export function HospitalizationFormRefactored({
   // Función para manejar el envío del formulario
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Formulario enviado, datos actuales:', { 
-      formData,
-      procedencia: formData.procedencia,
-      hospitalizationOrigin: formData.hospitalizationOrigin,
-      attentionOrigin: formData.attentionOrigin
-    });
     
     // Solo validamos el formulario, pero no lo procesamos
     // El procesamiento real ocurre en processForm() que se llama desde FormActions
     // después de la confirmación del usuario
     const validation = validateHospitalizationForm(formData);
-    console.log('Resultado de validación en handleSubmit:', validation);
     
     if (!validation.isValid) {
-      console.log('Errores de validación en handleSubmit:', validation.errors);
       setValidationErrors(validation.errors);
       toast({
         title: "Error de validación",
@@ -676,7 +611,6 @@ export function HospitalizationFormRefactored({
   // Cargar datos iniciales usando el contexto ServerDateTime
   useEffect(() => {
     if (contextServerDateTime && !dateTimeLoading) {
-      console.log('🏥 Usando fecha y hora del contexto ServerDateTime:', contextServerDateTime);
       
       // Actualizar el estado con la fecha y hora del contexto
       setServerDateTime({

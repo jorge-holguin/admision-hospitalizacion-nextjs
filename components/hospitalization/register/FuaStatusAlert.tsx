@@ -47,7 +47,6 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     
     const validateAccount = async () => {
       try {
-        console.log('🏥 Validando cuenta usando contexto para:', patientId, trimmedCode)
         
         // Usar contexto en lugar de llamada directa
         const accountData = await fetchPatientAccountBySeguro(patientId, trimmedCode)

@@ -33,7 +33,6 @@ export function MotivosEmergenciaProvider({ children }: { children: React.ReactN
   const loadMotivosEmergencia = async () => {
     try {
       setLoading(true)
-      console.log('🚨 Cargando motivos de emergencia desde contexto...')
       
       const response = await fetch('/api/emergency/reasons')
       
@@ -42,7 +41,6 @@ export function MotivosEmergenciaProvider({ children }: { children: React.ReactN
       }
       
       const data = await response.json()
-      console.log('✅ Motivos de emergencia cargados en contexto:', data)
       
       // Extraer los items de la respuesta
       const motivosData = data.items || data.data || []

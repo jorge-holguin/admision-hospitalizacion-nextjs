@@ -42,7 +42,6 @@ export default function FuaEmergencyStatusAlert({
     }
 
     // Solo ejecutar la validación de cuenta para seguros SIS (20-25)
-    console.log(`🚨 [EMERGENCIA] Ejecutando validación de cuenta para seguro SIS: ${code}`)
     hasExecutedRef.current = true
 
     const checkAccount = async () => {
@@ -60,7 +59,6 @@ export default function FuaEmergencyStatusAlert({
         setAccountId(accountData.cuentaId)
         onValidationChange?.(true)
       } catch (error) {
-        console.error("❌ [EMERGENCIA] Error en validación de cuenta:", error)
         setError("Error al verificar el estado de la cuenta.")
         onValidationChange?.(false)
       } finally {

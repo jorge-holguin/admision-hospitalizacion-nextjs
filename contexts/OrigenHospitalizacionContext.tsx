@@ -34,7 +34,6 @@ export function OrigenHospitalizacionProvider({ children }: { children: React.Re
   const loadOrigenes = async () => {
     try {
       setLoading(true)
-      console.log('🏥 Cargando orígenes de hospitalización desde contexto...')
       
       const response = await fetch('/api/hospitalization/origins')
       
@@ -43,11 +42,9 @@ export function OrigenHospitalizacionProvider({ children }: { children: React.Re
       }
       
       const data = await response.json()
-      console.log('✅ Orígenes de hospitalización cargados en contexto:', data)
       
       // Extraer los items de la respuesta
       const origenesData = Array.isArray(data) ? data : (data.items || data.data || [])
-      console.log('🏥 Datos procesados de orígenes:', origenesData)
       setOrigenes(origenesData)
       
     } catch (error) {
@@ -58,7 +55,6 @@ export function OrigenHospitalizacionProvider({ children }: { children: React.Re
         { ORIGEN: 'CE', NOMBRE: 'Consulta Externa' },
         { ORIGEN: 'RN', NOMBRE: 'Recién Nacido' }
       ];
-      console.log('🏥 Usando datos de fallback para orígenes de hospitalización')
       setOrigenes(fallbackData)
     } finally {
       setLoading(false)

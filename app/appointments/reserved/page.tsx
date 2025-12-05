@@ -179,7 +179,6 @@ export default function ReservedAppointmentsPage() {
       
       url += `page=${currentPage}&size=${pageSize}`
       
-      console.log('🔍 URL de carga:', url)
       const response = await fetch(url)
       
       if (!response.ok) {
@@ -192,8 +191,6 @@ export default function ReservedAppointmentsPage() {
 
       // ✅ Debug: Ver qué campos están llegando desde la API
       if (data.content && data.content.length > 0) {
-        console.log('🔍 Campos disponibles en la primera reserva:', Object.keys(data.content[0]))
-        console.log('📋 Datos de la primera reserva:', data.content[0])
       }
     } catch (error) {
       console.error('Error al cargar reservas:', error)
@@ -209,12 +206,7 @@ export default function ReservedAppointmentsPage() {
     }
   }
 
-  // Cargar reservas al montar el componente (sin cargar especialidades inicialmente)
-  useEffect(() => {
-    loadReservas()
-  }, [])
-
-  // Cargar reservas cuando cambie la especialidad, estado o página
+  // Cargar reservas cuando cambie la especialidad, estado o página (incluye carga inicial)
   useEffect(() => {
     loadReservas()
   }, [selectedEspecialidad, selectedEstado, currentPage])
@@ -225,7 +217,6 @@ export default function ReservedAppointmentsPage() {
     setLoadingReservas(prev => new Set([...prev, reservaCodigo]))
     
     try {
-      console.log(`🔍 Buscando paciente con documento: ${documento}`)
       const response = await fetch(`/api/filiation/search?documento=${documento}`)
       
       if (!response.ok) {
@@ -233,11 +224,9 @@ export default function ReservedAppointmentsPage() {
       }
       
       const data = await response.json()
-      console.log('📋 Datos del paciente recibidos:', data)
       
       // Los datos vienen en un array dentro de data.data
       const patientInfo = data.data && data.data.length > 0 ? data.data[0] : null
-      console.log('👤 Información del paciente extraída:', patientInfo)
       
       if (patientInfo && patientInfo.HISTORIA) {
         setPatientData({
@@ -266,10 +255,8 @@ export default function ReservedAppointmentsPage() {
           STRING_FOTO: patientInfo.STRING_FOTO,
           PACIENTE: patientInfo.PACIENTE
         })
-        console.log('✅ Datos del paciente guardados correctamente')
         return true
       } else {
-        console.log('❌ No se encontraron datos del paciente')
         toast({
           title: "Paciente no encontrado",
           description: `No se encontró información para el documento: ${documento}`,
@@ -298,8 +285,6 @@ export default function ReservedAppointmentsPage() {
   // Obtener información completa de la solicitud incluyendo citaId
   const getSolicitudInfo = async (codigo: string) => {
     try {
-      console.log('🔍 Obteniendo información de la solicitud:', codigo)
-      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/codigo/${codigo}`, {
         method: 'GET',
         headers: {
@@ -312,14 +297,6 @@ export default function ReservedAppointmentsPage() {
       }
 
       const solicitudData = await response.json()
-      console.log('📋 Información de la solicitud obtenida:', solicitudData)
-      console.log('🔍 Campos disponibles en solicitudInfo:', Object.keys(solicitudData))
-      console.log('📋 Nuevos campos en solicitudInfo:', {
-        tipoCita: solicitudData.tipoCita,
-        especialidadInterconsulta: solicitudData.especialidadInterconsulta,
-        observacionPaciente: solicitudData.observacionPaciente
-      })
-      
       return solicitudData
     } catch (error) {
       console.error('❌ Error al obtener información de la solicitud:', error)
@@ -335,8 +312,6 @@ export default function ReservedAppointmentsPage() {
   // Función para cambiar el estado de una solicitud
   const cambiarEstadoSolicitud = async (codigo: string, nuevoEstado: string, observacion?: string, usuario?: string, error?: boolean) => {
     try {
-      console.log(`🔄 Cambiando estado de solicitud ${codigo} a ${nuevoEstado}`)
-      
       // Obtener usuario si no se proporciona
       const usuarioFinal = usuario || extractDocumentFromToken()
       
@@ -354,8 +329,6 @@ export default function ReservedAppointmentsPage() {
         body.error = error
       }
       
-      console.log('📤 Body enviado:', body)
-      
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -369,7 +342,6 @@ export default function ReservedAppointmentsPage() {
         throw new Error(`Error al cambiar estado: ${response.status} ${response.statusText}`)
       }
 
-      console.log(`✅ Estado cambiado exitosamente a ${nuevoEstado}`)
       return true
     } catch (error) {
       console.error('❌ Error al cambiar estado:', error)
@@ -384,11 +356,8 @@ export default function ReservedAppointmentsPage() {
 
   // Manejar clic en revisar
   const handleRevisar = async (reserva: ReservaData) => {
-    console.log('🔄 Iniciando revisión de reserva:', reserva.codigo)
-    
     // Verificar si ya hay una solicitud en revisión Y no es la misma
     if (solicitudEnRevision && solicitudEnRevision.codigo !== reserva.codigo) {
-      console.log('⚠️ Ya hay una solicitud en revisión:', solicitudEnRevision.codigo)
       setShowRevisionPendienteModal(true)
       return
     }
@@ -397,7 +366,6 @@ export default function ReservedAppointmentsPage() {
     
     // Obtener el apellido del usuario desde el JWT
     const usuarioApellido = extractDocumentFromToken()
-    console.log('👤 Usuario que revisa:', usuarioApellido)
     
     // Cambiar estado a "EN_REVISION" al hacer clic en Revisar
     const cambioExitoso = await cambiarEstadoSolicitud(reserva.codigo, "EN_REVISION", undefined, usuarioApellido)
@@ -414,7 +382,6 @@ export default function ReservedAppointmentsPage() {
     // Obtener información completa de la solicitud (incluyendo citaId)
     const solicitudInfo = await getSolicitudInfo(reserva.codigo)
     if (!solicitudInfo) {
-      console.log('❌ No se pudo obtener información de la solicitud')
       return
     }
 
@@ -431,14 +398,6 @@ export default function ReservedAppointmentsPage() {
       observacionPaciente: solicitudInfo.observacionPaciente
     }
     setSelectedReserva(reservaCompleta)
-    console.log('📋 Reserva actualizada con citaId:', reservaCompleta.citaId, 'idSolicitudCita:', reservaCompleta.idSolicitudCita)
-    console.log('📋 Nuevos campos:', {
-      tipoCita: reservaCompleta.tipoCita,
-      especialidadInterconsulta: reservaCompleta.especialidadInterconsulta,
-      observacionPaciente: reservaCompleta.observacionPaciente
-    })
-    console.log('📝 Verificando actualización de reserva:', reservaCompleta)
-    console.log('📝 Estado actual de reserva:', reservaCompleta.estado)
     
     // Actualizar la lista de reservas con el citaId e idSolicitudCita
     setReservas(prev => prev.map(r => 
@@ -456,21 +415,8 @@ export default function ReservedAppointmentsPage() {
     // Buscar información del paciente por documento
     const found = await searchPatientByDocument(reserva.numeroDocumento, reserva.codigo)
     if (found) {
-      console.log('✅ Abriendo modal con datos del paciente')
-      console.log('📋 Datos que se pasarán al modal:', {
-        patientData: patientData ? { HISTORIA: patientData.HISTORIA, NOMBRES: patientData.NOMBRES } : null,
-        appointment: {
-          codigo: reservaCompleta.codigo,
-          tipoCita: reservaCompleta.tipoCita,
-          especialidadInterconsulta: reservaCompleta.especialidadInterconsulta,
-          observacionPaciente: reservaCompleta.observacionPaciente,
-          fecha: reservaCompleta.fecha,
-          especialidadNombre: reservaCompleta.especialidadNombre
-        }
-      })
       setIsModalOpen(true)
     } else {
-      console.log('❌ No se pudo abrir el modal - datos del paciente no encontrados')
       // Mostrar modal de advertencia de paciente no encontrado
       setReservaSinPaciente(reserva)
       setShowPacienteNoEncontradoModal(true)
@@ -1079,16 +1025,6 @@ export default function ReservedAppointmentsPage() {
           </main>
 
           {/* Modal de asignación de paciente */}
-          {(() => {
-            console.log('🔍 Estados del modal:', {
-              isModalOpen,
-              hasPatientData: !!patientData,
-              hasSelectedReserva: !!selectedReserva,
-              patientData: patientData ? { HISTORIA: patientData.HISTORIA, NOMBRES: patientData.NOMBRES } : null,
-              selectedReserva: selectedReserva ? { codigo: selectedReserva.codigo, nombres: selectedReserva.nombres } : null
-            })
-            return null
-          })()}
           {isModalOpen && patientData && selectedReserva && (
             <PatientAssignmentReservedModal
               isOpen={isModalOpen}
@@ -1114,7 +1050,6 @@ export default function ReservedAppointmentsPage() {
                 observacionPaciente: selectedReserva.observacionPaciente
               }}
               onApprove={async (data: any) => {
-                console.log('Aprobación de reserva:', data)
                 // Cambiar estado a "CITADO" al aprobar
                 if (selectedReserva) {
                   const usuarioApellido = extractDocumentFromToken()
@@ -1136,7 +1071,6 @@ export default function ReservedAppointmentsPage() {
                 }
               }}
               onDeny={async (motivo: string) => {
-                console.log('Denegación de reserva:', motivo)
                 // Cambiar estado a "DENEGADO" con observación
                 if (selectedReserva) {
                   const usuarioApellido = extractDocumentFromToken()
@@ -1158,7 +1092,6 @@ export default function ReservedAppointmentsPage() {
                 }
               }}
               onObserve={(motivo: string) => {
-                console.log('Observación de reserva:', motivo)
                 // Aquí iría la lógica para observar la reserva
                 return Promise.resolve()
               }}

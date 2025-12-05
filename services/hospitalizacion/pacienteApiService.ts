@@ -11,11 +11,9 @@ export const pacienteApiService = {
    */
   async getPacienteFromApi(id: string) {
     try {
-      console.log(`Obteniendo datos del paciente con ID: ${id} desde la API`);
       
       // Construir la URL de la API (usando rutas relativas)
       const apiUrl = `/api/filiation/${id}`;
-      console.log(`URL de la API: ${apiUrl}`);
       
       // Realizar la petición a la API
       const response = await fetch(apiUrl, {
@@ -30,7 +28,6 @@ export const pacienteApiService = {
       
       // Obtener los datos de la respuesta
       const data = await response.json();
-      console.log(`API devolvió datos del paciente:`, data ? 'Datos obtenidos' : 'Sin resultados');
       
       // Verificar si la respuesta tiene los datos esperados
       if (!data || (!data.PACIENTE && !data.data)) {
@@ -57,7 +54,6 @@ export const pacienteApiService = {
    */
   async getFormattedAge(pacienteId: string) {
     try {
-      console.log(`Obteniendo edad formateada para el paciente ID: ${pacienteId}`);
       
       // Obtener los datos del paciente desde la API
       const pacienteData = await this.getPacienteFromApi(pacienteId);
@@ -66,20 +62,15 @@ export const pacienteApiService = {
         console.error(`No se encontraron datos para el paciente ID: ${pacienteId}`);
         return '000a00m00d'; // Devolver un valor por defecto en lugar de null
       }
-      
-      console.log('Datos del paciente obtenidos:', pacienteData);
-      
+            
       // Verificar si ya tenemos una edad formateada como string en el formato correcto (000a00m00d)
       if (typeof pacienteData.EDAD === 'string' && /^\d{3}a\d{2}m\d{2}d$/.test(pacienteData.EDAD)) {
-        console.log('EDAD ya formateada encontrada:', pacienteData.EDAD);
         return pacienteData.EDAD;
       }
       
       // Verificar si tenemos la fecha de nacimiento
       if (pacienteData.FECHA_NACIMIENTO && pacienteData.FECHA_NACIMIENTO !== null) {
-        try {
-          console.log('Calculando edad a partir de FECHA_NACIMIENTO:', pacienteData.FECHA_NACIMIENTO);
-          
+        try {          
           // Convertir la fecha de nacimiento a objeto Date
           const fechaNacimiento = new Date(pacienteData.FECHA_NACIMIENTO);
           
@@ -108,7 +99,6 @@ export const pacienteApiService = {
             
             // Formatear como '000a00m00d'
             const edadFormateada = `${años.toString().padStart(3, '0')}a${meses.toString().padStart(2, '0')}m${dias.toString().padStart(2, '0')}d`;
-            console.log('Edad calculada a partir de fecha de nacimiento:', edadFormateada);
             return edadFormateada;
           } else {
             console.error('La fecha de nacimiento no es válida:', pacienteData.FECHA_NACIMIENTO);
@@ -121,7 +111,6 @@ export const pacienteApiService = {
       // Si tenemos la edad como número (años) o como string que se puede convertir a número
       if (pacienteData.EDAD !== undefined && pacienteData.EDAD !== null) {
         try {
-          console.log('EDAD encontrada:', pacienteData.EDAD);
           let edadAños;
           
           // Intentar extraer números de la edad si es una cadena
@@ -142,7 +131,6 @@ export const pacienteApiService = {
           if (!isNaN(edadAños)) {
             // Formatear como '000a00m00d' (solo años, 0 meses, 0 días)
             const edadFormateada = `${edadAños.toString().padStart(3, '0')}a00m00d`;
-            console.log('Edad formateada a partir de EDAD:', edadFormateada);
             return edadFormateada;
           } else {
             console.error('No se pudo convertir la edad a un número válido:', pacienteData.EDAD);
