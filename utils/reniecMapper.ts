@@ -17,7 +17,6 @@ interface ReniecData {
   block?: string;
   prefijoBlock?: string;
   interior?: string;
-  urbanizacion?: string;
   etapa?: string;
   manzana?: string;
   lote?: string;
@@ -148,54 +147,37 @@ export function mapMaritalStatus(reniecEstadoCivil: string): string {
 
 /**
  * Construye la dirección completa a partir de los componentes de RENIEC
- * Combina: direccion, numero, block, interior, urbanizacion, etapa, manzana, lote
- * Excluye campos con "SIN DATOS"
+ * Combina: direccion, numero, block, interior, etapa, manzana, lote
+ * Excluye campos con "SIN DATOS" y urbanización (innecesaria)
  */
 export function buildCompleteAddress(reniecData: ReniecData): string {
   const parts: string[] = [];
   
-  // Agregar dirección principal
-  if (reniecData.direccion && reniecData.direccion !== 'SIN DATOS') {
-    parts.push(reniecData.direccion);
-  }
+  const addPart = (value: string | undefined, prefix?: string) => {
+    if (value && value !== 'SIN DATOS') {
+      parts.push(prefix ? `${prefix} ${value}` : value);
+    }
+  };
   
-  // Agregar número
-  if (reniecData.numero && reniecData.numero !== 'SIN DATOS') {
-    parts.push(`N° ${reniecData.numero}`);
-  }
+  // Dirección principal
+  addPart(reniecData.direccion);
   
-  // Agregar block con prefijo
+  // Número
+  addPart(reniecData.numero, 'N°');
+  
+  // Block con prefijo
   if (reniecData.block && reniecData.block !== 'SIN DATOS') {
-    const blockText = reniecData.prefijoBlock && reniecData.prefijoBlock !== 'SIN DATOS' 
-      ? `Block ${reniecData.prefijoBlock}-${reniecData.block}`
-      : `Block ${reniecData.block}`;
-    parts.push(blockText);
+    const prefix = reniecData.prefijoBlock && reniecData.prefijoBlock !== 'SIN DATOS' 
+      ? `Block ${reniecData.prefijoBlock}-` 
+      : 'Block ';
+    parts.push(`${prefix}${reniecData.block}`);
   }
   
-  // Agregar interior
-  if (reniecData.interior && reniecData.interior !== 'SIN DATOS') {
-    parts.push(`Int. ${reniecData.interior}`);
-  }
-  
-  // Agregar urbanización
-  if (reniecData.urbanizacion && reniecData.urbanizacion !== 'SIN DATOS') {
-    parts.push(`Urb. ${reniecData.urbanizacion}`);
-  }
-  
-  // Agregar etapa
-  if (reniecData.etapa && reniecData.etapa !== 'SIN DATOS') {
-    parts.push(`Etapa ${reniecData.etapa}`);
-  }
-  
-  // Agregar manzana
-  if (reniecData.manzana && reniecData.manzana !== 'SIN DATOS') {
-    parts.push(`Mz. ${reniecData.manzana}`);
-  }
-  
-  // Agregar lote
-  if (reniecData.lote && reniecData.lote !== 'SIN DATOS') {
-    parts.push(`Lt. ${reniecData.lote}`);
-  }
+  // Interior, Etapa, Manzana, Lote
+  addPart(reniecData.interior, 'Int.');
+  addPart(reniecData.etapa, 'Etapa');
+  addPart(reniecData.manzana, 'Mz.');
+  addPart(reniecData.lote, 'Lt.');
   
   return parts.join(' ');
 }
@@ -305,21 +287,15 @@ export function getClientIP(request: Request): string {
  * @returns UBIGEO correcto o undefined si no se encuentra
  */
 export async function getUbigeoByReniecCode(codigoReniec: string): Promise<string | undefined> {
+  if (!codigoReniec || codigoReniec.length !== 6) return undefined;
+  
   try {
-    if (!codigoReniec || codigoReniec.length !== 6) {
-      return undefined;
-    }
-    
     const response = await fetch(`/api/ubigeo/by-reniec/${codigoReniec}`);
+    if (!response.ok) return undefined;
     
-    if (!response.ok) {
-      return undefined;
-    }
-
     const data = await response.json();
-    
     return data.ubigeo;
-  } catch (error) {
+  } catch {
     return undefined;
   }
 }
@@ -330,35 +306,23 @@ export async function getUbigeoByReniecCode(codigoReniec: string): Promise<strin
  * @returns Código de grado de instrucción de la BD (ej: "05") o undefined si no se encuentra
  */
 export async function getGradoInstruccionByReniecCode(codigoReniec: string): Promise<string | undefined> {
+  if (!codigoReniec) return undefined;
+  
   try {
-    if (!codigoReniec) {
-      return undefined;
-    }
-    
-    // Consultar todos los grados de instrucción
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
     const response = await fetch(`${API_BASE_URL}/maestro/grado-instruccion/buscar?limite=50`);
     
-    if (!response.ok) {
-      return undefined;
-    }
+    if (!response.ok) return undefined;
 
     const gradosInstruccion = await response.json();
-    
-    // Buscar el grado que tenga el código RENIEC que coincida
-    // El código RENIEC puede venir con espacios o en diferentes formatos, normalizar
     const codigoNormalizado = codigoReniec.trim();
     
     const gradoEncontrado = gradosInstruccion.find((grado: any) => 
-      grado.reniec && grado.reniec.trim() === codigoNormalizado
+      grado.reniec?.trim() === codigoNormalizado
     );
     
-    if (gradoEncontrado) {
-      return gradoEncontrado.gradoInstruccion;
-    } else {
-      return undefined;
-    }
-  } catch (error) {
+    return gradoEncontrado?.gradoInstruccion;
+  } catch {
     return undefined;
   }
 }

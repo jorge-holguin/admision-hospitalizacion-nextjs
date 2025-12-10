@@ -1175,7 +1175,7 @@ function AdditionalAppointmentModalContent({
                   
                   <div className="space-y-4">
                     {/* Tipo de Cita */}
-                    {/* <div>
+                    { <div>
                       <Label className="text-sm font-medium text-gray-700">
                         Tipo de Cita <span className="text-red-500">*</span>
                       </Label>
@@ -1189,7 +1189,7 @@ function AdditionalAppointmentModalContent({
                       <p className="text-xs text-gray-500 mt-1">
                         Por defecto: A - ADICIONAL (cita adicional fuera del cupo regular)
                       </p>
-                    </div> */}
+                    </div>}
 
                     {/* Tipo de Seguro */}
                     <div>
