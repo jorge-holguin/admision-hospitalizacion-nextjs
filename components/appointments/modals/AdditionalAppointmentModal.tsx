@@ -1330,13 +1330,11 @@ function AdditionalAppointmentModalContent({
                 handleSave()
               }
             }}
-            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia)) || hasConsultorioMatch || hasEspecialidadMatch}
+            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia)) || hasConsultorioMatch}
             className="bg-cyan-600 hover:bg-cyan-700 text-white"
             title={
               hasConsultorioMatch 
                 ? "No se puede confirmar: el paciente ya tiene una cita en el mismo consultorio" 
-                : hasEspecialidadMatch 
-                ? "No se puede confirmar: el paciente ya tiene una cita en la misma especialidad" 
                 : ""
             }
           >

@@ -24,7 +24,7 @@ export const availableDatesService = {
       const baseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL;
       
       // ✅ Si turnoConsulta no está definido, no incluirlo en la URL (obtiene ambos turnos)
-      let url = `${baseUrl}/cita/fechas-consultorios-solicitud?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&idEspecialidad=${idEspecialidad}`;
+      let url = `${baseUrl}/cita/fechas-consultorios-solicitud?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&idEspecialidad=${idEspecialidad}&solicitudCita=1`;
       if (turnoConsulta) {
         url += `&turnoConsulta=${turnoConsulta}`;
       }      

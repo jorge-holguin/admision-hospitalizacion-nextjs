@@ -773,23 +773,55 @@ export default function FiliationPage() {
             {/* Diálogo de confirmación para NN (tipo documento 0) */}
             {nnConfirmation && (
               <Dialog open={true} onOpenChange={(open) => { if (!open) setNnConfirmation(null) }}>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle className="text-lg font-bold text-blue-800">Historia NN creada</DialogTitle>
-                    <DialogDescription>
-                      Se ha creado la historia clínica para un recién nacido.
+                <DialogContent className="max-w-md">
+                  {/* Header con icono */}
+                  <div className="flex flex-col items-center text-center pb-4 border-b">
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                      <CheckCircle className="w-10 h-10 text-green-600" />
+                    </div>
+                    <DialogTitle className="text-xl font-bold text-gray-800">¡Historia Clínica Creada!</DialogTitle>
+                    <DialogDescription className="text-gray-500 mt-1">
+                      Registro de Recién Nacido
                     </DialogDescription>
-                  </DialogHeader>
-                  <div className="mt-2 space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="font-semibold">H.C.:</span><span>{nnConfirmation.historiaClinica}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">Nombre:</span><span>{nnConfirmation.resumenPaciente?.paterno} {nnConfirmation.resumenPaciente?.materno} {nnConfirmation.resumenPaciente?.nombre}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">Sexo:</span><span>{nnConfirmation.resumenPaciente?.sexo || ""}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">F. Nac.:</span><span>{nnConfirmation.resumenPaciente?.fechaNacimiento || ""}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">Dirección:</span><span>{nnConfirmation.resumenPaciente?.direccion || ""}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">Distrito:</span><span>{nnConfirmation.resumenPaciente?.distrito || ""}</span></div>
                   </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={() => setNnConfirmation(null)} className="bg-blue-600 hover:bg-blue-700 text-white">
+
+                  {/* Número de Historia destacado */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4">
+                    <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">N° Historia Clínica</p>
+                    <p className="text-2xl font-bold text-blue-800 mt-1">{nnConfirmation.historiaClinica}</p>
+                  </div>
+
+                  {/* Datos del paciente */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 text-sm">Nombre</span>
+                      <span className="font-medium text-gray-800">
+                        {nnConfirmation.resumenPaciente?.paterno} {nnConfirmation.resumenPaciente?.materno} {nnConfirmation.resumenPaciente?.nombre}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 text-sm">Sexo</span>
+                      <span className="font-medium text-gray-800">
+                        {nnConfirmation.resumenPaciente?.sexo === 'M' ? 'Masculino' : nnConfirmation.resumenPaciente?.sexo === 'F' ? 'Femenino' : nnConfirmation.resumenPaciente?.sexo || '-'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 text-sm">Fecha Nacimiento</span>
+                      <span className="font-medium text-gray-800">{nnConfirmation.resumenPaciente?.fechaNacimiento || '-'}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 text-sm">Dirección</span>
+                      <span className="font-medium text-gray-800 text-right max-w-[200px] truncate">{nnConfirmation.resumenPaciente?.direccion || '-'}</span>
+                    </div>
+                  </div>
+
+                  {/* Botón */}
+                  <div className="mt-4 flex justify-center">
+                    <Button 
+                      onClick={() => setNnConfirmation(null)} 
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-2"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
                       Aceptar
                     </Button>
                   </div>

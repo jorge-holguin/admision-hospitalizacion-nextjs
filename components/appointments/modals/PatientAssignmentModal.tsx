@@ -1013,15 +1013,13 @@ function PatientAssignmentModalContent({
               !selectedSeguro || 
               (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) ||
               hasConsultorioMatch || // Deshabilitar si hay cita en el mismo consultorio
-              hasEspecialidadMatch || // Deshabilitar si hay cita en la misma especialidad
+              // ✅ hasEspecialidadMatch ya NO bloquea, solo muestra advertencia
               isLoading
             }
             className="bg-blue-600 hover:bg-blue-700"
             title={
               hasConsultorioMatch 
                 ? "No se puede confirmar: el paciente ya tiene una cita en el mismo consultorio" 
-                : hasEspecialidadMatch 
-                ? "No se puede confirmar: el paciente ya tiene una cita en la misma especialidad" 
                 : ""
             }
           >

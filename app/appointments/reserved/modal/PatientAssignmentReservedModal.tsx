@@ -291,7 +291,9 @@ function PatientAssignmentReservedModalContent({
         const [day, month, year] = apt.fecha.split('/')
         aptDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
       } else if (apt.fecha.includes('-')) {
-        aptDate = new Date(apt.fecha)
+        // ✅ Manejar formato ISO con timestamp (ej: "2025-12-10 00:00:00" o "2025-12-10T00:00:00")
+        const fechaClean = apt.fecha.split(' ')[0].split('T')[0] // Obtener solo YYYY-MM-DD
+        aptDate = new Date(fechaClean + 'T00:00:00')
       } else {
         continue
       }
@@ -300,7 +302,15 @@ function PatientAssignmentReservedModalContent({
       const [hours, minutes] = apt.hora.split(':').map(Number)
       aptDate.setHours(hours, minutes || 0, 0, 0)
 
-      // Calcular diferencia en horas
+      // ✅ Verificar si es el MISMO DÍA antes de validar conflicto de horario
+      const isSameDay = currentDate.toDateString() === aptDate.toDateString()
+      
+      if (!isSameDay) {
+        // Si NO es el mismo día, no hay conflicto posible
+        continue
+      }
+
+      // Calcular diferencia en horas (solo si es el mismo día)
       const diffMs = Math.abs(currentDate.getTime() - aptDate.getTime())
       const diffHours = diffMs / (1000 * 60 * 60)
 
@@ -1048,7 +1058,7 @@ function PatientAssignmentReservedModalContent({
                 !selectedSeguro || 
                 (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) ||
                 hasConsultorioMatch || // Deshabilitar si hay cita en el mismo consultorio
-                hasEspecialidadMatch || // Deshabilitar si hay cita en la misma especialidad
+                // ✅ hasEspecialidadMatch ya NO bloquea, solo muestra advertencia
                 isLoading
               }
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
@@ -1056,8 +1066,6 @@ function PatientAssignmentReservedModalContent({
               title={
                 hasConsultorioMatch 
                   ? "No se puede aprobar: el paciente ya tiene una cita en el mismo consultorio" 
-                  : hasEspecialidadMatch 
-                  ? "No se puede aprobar: el paciente ya tiene una cita en la misma especialidad" 
                   : ""
               }
             >
