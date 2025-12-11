@@ -680,7 +680,9 @@ function AdditionalAppointmentModalContent({
         const [day, month, year] = apt.fecha.split('/')
         aptDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
       } else if (apt.fecha.includes('-')) {
-        aptDate = new Date(apt.fecha)
+        // ✅ Manejar formato ISO con timestamp (ej: "2025-12-10 00:00:00" o "2025-12-10T00:00:00")
+        const fechaClean = apt.fecha.split(' ')[0].split('T')[0] // Obtener solo YYYY-MM-DD
+        aptDate = new Date(fechaClean + 'T00:00:00')
       } else {
         continue
       }

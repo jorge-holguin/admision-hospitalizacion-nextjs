@@ -37,8 +37,21 @@ export function TipoDocumentoProvider({ children }: { children: ReactNode }) {
 
         const data = await response.json()
         
-        // Filtrar solo los activos
-        const activos = data.filter((tipo: TipoDocumento) => tipo.activo === 1)
+        // Filtrar solo los activos y ordenar: DNI primero, Ninguno al final
+        const activos = data
+          .filter((tipo: TipoDocumento) => tipo.activo === 1)
+          .sort((a: TipoDocumento, b: TipoDocumento) => {
+            const codeA = a.tipoDocumento.trim()
+            const codeB = b.tipoDocumento.trim()
+            // DNI primero
+            if (codeA === 'D') return -1
+            if (codeB === 'D') return 1
+            // Ninguno (0) al final
+            if (codeA === '0') return 1
+            if (codeB === '0') return -1
+            // El resto alfabéticamente por nombre
+            return a.nombre.localeCompare(b.nombre)
+          })
         setTiposDocumento(activos)
         setIsLoading(false)
       } catch (err) {

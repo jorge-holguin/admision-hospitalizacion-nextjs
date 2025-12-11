@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,6 +77,10 @@ export default function FiliationPage() {
   const [documentType, setDocumentType] = useState("DNI")
   const [documentNumber, setDocumentNumber] = useState("")
   const [isLoadingPatientHistory, setIsLoadingPatientHistory] = useState(false)
+  const [nnConfirmation, setNnConfirmation] = useState<{
+    historiaClinica: string
+    resumenPaciente: any
+  } | null>(null)
   
   // Aplicar debounce al término de búsqueda con retardo variable basado en el tipo de búsqueda
   const debounceDelay = searchType === "nombres" ? 1000 : 500; // Retardo más largo para la búsqueda por nombre
@@ -224,23 +228,35 @@ export default function FiliationPage() {
     refreshData()
   }
 
-  const handleRegistrationSuccessWithSearch = (documento: string) => {
+  const handleRegistrationSuccessWithSearch = (identificador: string, extra?: { isNN?: boolean; resumenPaciente?: any }) => {
     setIsPatientRegistrationModalOpen(false)
     setReniecData(null)
     setSisData(null)
     
-    // Realizar búsqueda automática por documento
-    setSearchType("documento")
-    setSearchTerm(documento)
-    
-    // Ejecutar búsqueda inmediatamente
+    const isNN = extra?.isNN || (identificador?.startsWith("NN"))
+    const searchBy: "historia" | "documento" = isNN ? "historia" : "documento"
+
+    // Guardar datos para el diálogo de confirmación solo si es NN
+    if (isNN && extra?.resumenPaciente) {
+      setNnConfirmation({
+        historiaClinica: identificador,
+        resumenPaciente: extra.resumenPaciente,
+      })
+    }
+
+    // Realizar búsqueda automática
+    setSearchType(searchBy)
+    setSearchTerm(identificador)
+
     setTimeout(() => {
-      handleSearch(documento, "documento")
+      handleSearch(identificador, searchBy)
     }, 500)
-    
+
     toast({
       title: "Paciente registrado",
-      description: `Historia clínica creada. Buscando paciente con documento ${documento}...`,
+      description: isNN
+        ? `Historia clínica NN creada. Buscando paciente con historia ${identificador}...`
+        : `Historia clínica creada. Buscando paciente con documento ${identificador}...`,
     })
   }
 
@@ -750,10 +766,36 @@ export default function FiliationPage() {
         patientName={selectedPatientForHospitalization?.NOMBRES || ''}
       />
 
-      {/* Modales de Filiación - Envueltos en providers solo cuando están abiertos */}
-      {(isPatientSearchModalOpen || isPatientRegistrationModalOpen || isPatientViewModalOpen || isPatientEditModalOpen) && (
+      {/* Modales de Filiación - Envueltos en providers solo cuando están abiertos o hay confirmación NN */}
+      {(isPatientSearchModalOpen || isPatientRegistrationModalOpen || isPatientViewModalOpen || isPatientEditModalOpen || nnConfirmation) && (
         <SegurosCitaProvider>
           <FiliationProvider>
+            {/* Diálogo de confirmación para NN (tipo documento 0) */}
+            {nnConfirmation && (
+              <Dialog open={true} onOpenChange={(open) => { if (!open) setNnConfirmation(null) }}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-blue-800">Historia NN creada</DialogTitle>
+                    <DialogDescription>
+                      Se ha creado la historia clínica para un recién nacido.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mt-2 space-y-2 text-sm">
+                    <div className="flex justify-between"><span className="font-semibold">H.C.:</span><span>{nnConfirmation.historiaClinica}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">Nombre:</span><span>{nnConfirmation.resumenPaciente?.paterno} {nnConfirmation.resumenPaciente?.materno} {nnConfirmation.resumenPaciente?.nombre}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">Sexo:</span><span>{nnConfirmation.resumenPaciente?.sexo || ""}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">F. Nac.:</span><span>{nnConfirmation.resumenPaciente?.fechaNacimiento || ""}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">Dirección:</span><span>{nnConfirmation.resumenPaciente?.direccion || ""}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">Distrito:</span><span>{nnConfirmation.resumenPaciente?.distrito || ""}</span></div>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button onClick={() => setNnConfirmation(null)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      Aceptar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
             {isPatientSearchModalOpen && (
               <Dialog open={isPatientSearchModalOpen} onOpenChange={setIsPatientSearchModalOpen}>
                 <PatientSearchModal 

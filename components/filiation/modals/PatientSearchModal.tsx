@@ -33,8 +33,21 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
     }
   }, [prefilledDocument])
 
+  // ✅ Handler para cambio de tipo de documento
+  const handleDocumentTypeChange = (newType: string) => {
+    setDocumentType(newType)
+    // Si es tipo "0" (Ninguno), autocompletar número con "0"
+    if (newType === "0") {
+      setDocumentNumber("0")
+    }
+  }
+
+  // ✅ Verificar si el tipo es "Ninguno" (0)
+  const isNingunoType = documentType.trim() === "0"
+
   const handleSearchReniec = async () => {
-    if (!documentNumber || documentNumber.length < 8) {
+    // ✅ Excepción para tipo "Ninguno" (0): no requiere 8 caracteres
+    if (!isNingunoType && (!documentNumber || documentNumber.length < 8)) {
       toast({
         title: "Validación",
         description: "Ingrese un número de documento válido",
@@ -46,18 +59,40 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
     setIsLoadingReniec(true)
 
     try {
-      // 1. Primero buscar en la API de filiación
-      const filiacionResponse = await fetch(
-        `/api/filiation/search?page=1&pageSize=10&documento=${documentNumber}`
-      );
-      const filiacionData = await filiacionResponse.json();
+      // ✅ Si es tipo "0" (Ninguno/RN), saltar validación de paciente existente
+      // Los RN tienen TIPO_DOCUMENTO=0 y DOCUMENTO=0, pueden haber múltiples
+      if (!isNingunoType) {
+        // 1. Primero buscar en la API de filiación (solo si NO es tipo Ninguno)
+        const filiacionResponse = await fetch(
+          `/api/filiation/search?page=1&pageSize=10&documento=${documentNumber}`
+        );
+        const filiacionData = await filiacionResponse.json();
 
-      // 2. Si encuentra datos en filiación, mostrar diálogo de paciente existente
-      if (filiacionData.data && filiacionData.data.length > 0) {
-        setIsLoadingReniec(false);
-        setExistingPatient(filiacionData.data[0]);
-        setShowExistsDialog(true);
-        return;
+        // 2. Si encuentra datos en filiación, mostrar diálogo de paciente existente
+        if (filiacionData.data && filiacionData.data.length > 0) {
+          setIsLoadingReniec(false);
+          setExistingPatient(filiacionData.data[0]);
+          setShowExistsDialog(true);
+          return;
+        }
+      }
+
+      // ✅ Si es tipo "0" (Ninguno/RN), ir directo al registro sin consultar APIs
+      if (isNingunoType) {
+        toast({
+          title: "📋 Registro de Recién Nacido",
+          description: "Se abrirá el formulario con campos autocompletados. Complete los datos del paciente.",
+          duration: 4000
+        })
+        
+        const manualData = {
+          documentType: "0",
+          document: "0",
+          isRecienNacido: true // Flag para indicar que es RN
+        }
+        onSearchComplete(manualData, null)
+        setIsLoadingReniec(false)
+        return
       }
 
       // 3. Consultar APIs externas según tipo de documento
@@ -245,7 +280,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
             <Label htmlFor="documentType">Tipo de Documento</Label>
             <TipoDocumentoSelector
               value={documentType}
-              onChange={setDocumentType}
+              onChange={handleDocumentTypeChange}
               placeholder="Seleccione tipo"
             />
           </div>
@@ -254,16 +289,17 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
             <Label htmlFor="documentNumber">Número de Documento</Label>
             <Input
               id="documentNumber"
-              placeholder="Ingrese número de documento..."
+              placeholder={isNingunoType ? "0" : "Ingrese número de documento..."}
               value={documentNumber}
               onChange={(e) => setDocumentNumber(e.target.value)}
               maxLength={documentType.trim() === "D" ? 8 : 12}
+              disabled={isNingunoType} // ✅ Deshabilitar si es "Ninguno"
             />
           </div>
 
           <Button 
             onClick={handleSearchReniec} 
-            disabled={isLoadingReniec} 
+            disabled={isLoadingReniec || (!isNingunoType && documentNumber.length < 1)} 
             className="bg-blue-600 hover:bg-blue-700"
           >
             {isLoadingReniec ? "Consultando..." : "Buscar"}

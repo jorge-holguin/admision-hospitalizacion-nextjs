@@ -38,7 +38,8 @@ export function TipoDocumentoSelector({ value, onChange, disabled }: TipoDocumen
       <SelectContent>
         {tiposDocumento.map((tipo) => (
           <SelectItem key={tipo.tipoDocumento} value={tipo.tipoDocumento.trim()}>
-            {tipo.nombre}
+            {/* Limpiar asterisco del nombre "*Ninguno" */}
+            {tipo.nombre.replace(/^\*/, '')}
           </SelectItem>
         ))}
       </SelectContent>

@@ -20,7 +20,7 @@ interface PatientRegistrationModalProps {
   documentNumber: string
   onCancel: () => void
   onSuccess: () => void
-  onSuccessWithDocument?: (documento: string) => void
+  onSuccessWithDocument?: (identificador: string, extra?: { isNN?: boolean; resumenPaciente?: any; apiResponse?: any }) => void
 }
 
 export function PatientRegistrationModal({ 
@@ -46,6 +46,64 @@ export function PatientRegistrationModal({
       setSelectedDocNumber(documentNumber)
     }
   }, [documentType, documentNumber])
+
+  // ✅ Función para aplicar valores por defecto cuando es tipo "0" (Ninguno/RN)
+  const applyDefaultValuesForNoDocument = () => {
+    setFormData(prev => ({
+      ...prev,
+      // Datos personales - valores por defecto para RN
+      apellidoPaterno: prev.apellidoPaterno || "NN", // NN = No Name
+      apellidoMaterno: prev.apellidoMaterno || "NN", // NN = No Name
+      nombres: prev.nombres || "NN", // NN = No Name
+      // Datos básicos - valores por defecto para pacientes sin documento (RN)
+      paisNacimiento: prev.paisNacimiento || "146", // 146 = PERU
+      estadoCivil: prev.estadoCivil || "0", // 0 = Ninguno
+      lugarNacimiento: prev.lugarNacimiento || "150118", // 150118 = Lima/Lurigancho
+      distritoProcedencia: prev.distritoProcedencia || "150118", // Ubigeo (padding automático en servicio)
+      direccion: prev.direccion || "POR DEFINIR", // Dirección por defecto
+      // Datos adicionales - valores por defecto
+      tipoSeguro: prev.tipoSeguro || "0", // 0 = Pagante
+      gradoInstruccion: prev.gradoInstruccion || "00", // 00 = Ninguno
+      ocupacion: prev.ocupacion || "0", // 0 = Ninguno
+      religion: prev.religion || "0", // 0 = Ninguno
+      etnia: prev.etnia || "58", // 58 = Mestizo
+      centroPoblado: prev.centroPoblado || "L01", // L01 = Chosica (padding automático en servicio)
+      telefono1: prev.telefono1 || "0", // Teléfono por defecto
+    }))
+  }
+
+  // ✅ Efecto para manejar cuando el modal se abre con tipo "0" (Ninguno/RN)
+  useEffect(() => {
+    const isRecienNacido = reniecData?.isRecienNacido || documentType === "0" || selectedDocType === "0"
+    
+    if (isRecienNacido) {
+      // Si es RN o tipo "0", autocompletar número con "0"
+      setSelectedDocType("0")
+      setSelectedDocNumber("0")
+      // Pequeño delay para asegurar que formData esté inicializado
+      setTimeout(() => {
+        applyDefaultValuesForNoDocument()
+      }, 0)
+    }
+  }, [reniecData, documentType]) // ✅ Agregar documentType como dependencia
+
+  // ✅ Handler para cambio de tipo de documento
+  const handleDocumentTypeChange = (newType: string) => {
+    setSelectedDocType(newType)
+    
+    // Si es tipo "0" (Ninguno), autocompletar con valores por defecto
+    if (newType === "0") {
+      // Autocompletar número de documento con "0"
+      setSelectedDocNumber("0")
+      applyDefaultValuesForNoDocument()
+      
+      toast({
+        title: "📋 Tipo de documento: Ninguno",
+        description: "Se han autocompletado algunos campos con valores por defecto. Complete los datos del paciente manualmente.",
+        duration: 5000
+      })
+    }
+  }
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
   
@@ -56,30 +114,34 @@ export function PatientRegistrationModal({
     message: string
   }>>([])
   
+  // ✅ Verificar si es RN para inicializar con valores por defecto
+  const isRNInitial = reniecData?.isRecienNacido || documentType === "0"
+  
   const [formData, setFormData] = useState({
-    // Datos básicos
-    apellidoPaterno: "",
-    apellidoMaterno: "",
-    nombres: "",
+    // Datos básicos - valores iniciales para RN
+    apellidoPaterno: isRNInitial ? "NN" : "",
+    apellidoMaterno: isRNInitial ? "NN" : "",
+    nombres: isRNInitial ? "NN" : "",
     fechaNacimiento: "",
     sexo: "",
-    estadoCivil: "",
-    lugarNacimiento: "",
+    estadoCivil: isRNInitial ? "0" : "",
+    lugarNacimiento: isRNInitial ? "150118" : "",
     lugarNacimientoReniec: "",
-    paisNacimiento: "", // Vacío por defecto para modo manual
-    direccion: "",
-    distritoProcedencia: "",
+    paisNacimiento: isRNInitial ? "146" : "", // 146 = PERU
+    direccion: isRNInitial ? "POR DEFINIR" : "",
+    distritoProcedencia: isRNInitial ? "150118" : "",
     ubigeoReniec: "",
+    distritoReniec: "",
     
     // Datos adicionales
-    tipoSeguro: "",
-    gradoInstruccion: "",
+    tipoSeguro: isRNInitial ? "0" : "", // 0 = Pagante
+    gradoInstruccion: isRNInitial ? "00" : "", // 00 = Ninguno
     gradoInstruccionReniec: "", // Código RENIEC del grado de instrucción
-    ocupacion: "",
-    religion: "",
+    ocupacion: isRNInitial ? "0" : "", // 0 = Ninguno
+    religion: isRNInitial ? "0" : "", // 0 = Ninguno
     etnia: "58", // ✅ Valor por defecto: 58 = Mestizo
-    centroPoblado: "",
-    telefono1: "",
+    centroPoblado: isRNInitial ? "L01" : "", // L01 = Chosica
+    telefono1: isRNInitial ? "0" : "",
     telefono2: "",
     hijos: "",
     correoElectronico: "",
@@ -89,7 +151,7 @@ export function PatientRegistrationModal({
     padre: "",
     madre: "",
     conyuge: "",
-    ocupacionFamiliar: "",
+    ocupacionFamiliar: isRNInitial ? "0" : "",
     nombreAcompanante: "",
     parentesco: "",
     ocupacionAcompanante: "",
@@ -343,15 +405,53 @@ export function PatientRegistrationModal({
       const result = await saveHistoriaClinica(payload)
       
       if (result.success) {
+        // Extraer número de historia clínica desde la respuesta (distintos posibles campos)
+        const responseData: any = result.data || {}
+        const historiaClinica =
+          responseData.HISTORIA ||
+          responseData.historia ||
+          responseData.numeroHistoria ||
+          responseData.numero_historia ||
+          responseData.hc ||
+          responseData.HISTORIA_CLINICA ||
+          ""
+
+        const isTipoDocumentoNN = selectedDocType === "0" || documentType === "0"
+
+        // Identificador de búsqueda: para NN usar historia, para el resto usar documento
+        const searchIdentifier = isTipoDocumentoNN && historiaClinica
+          ? historiaClinica
+          : selectedDocNumber
+
         toast({
           title: "✅ Historia clínica guardada",
-          description: "El paciente ha sido registrado exitosamente. Redirigiendo a búsqueda...",
+          description: isTipoDocumentoNN && historiaClinica
+            ? `Historia clínica NN creada: ${historiaClinica}. Se realizará la búsqueda automáticamente.`
+            : "El paciente ha sido registrado exitosamente. Redirigiendo a búsqueda...",
           variant: "default"
         })
-        
-        // Si existe onSuccessWithDocument, pasar el documento para búsqueda automática
-        if (onSuccessWithDocument && selectedDocNumber) {
-          onSuccessWithDocument(selectedDocNumber)
+
+        // Resumen básico del paciente para mostrar en el diálogo de confirmación
+        const resumenPaciente = {
+          historiaClinica,
+          tipoDocumento: selectedDocType,
+          documento: selectedDocNumber,
+          paterno: formData.apellidoPaterno,
+          materno: formData.apellidoMaterno,
+          nombre: formData.nombres,
+          sexo: formData.sexo,
+          fechaNacimiento: formData.fechaNacimiento,
+          direccion: formData.direccion,
+          distrito: formData.distritoProcedencia,
+        }
+
+        // Si existe onSuccessWithDocument, pasar identificador y resumen para búsqueda automática
+        if (onSuccessWithDocument && searchIdentifier) {
+          onSuccessWithDocument(searchIdentifier, {
+            isNN: isTipoDocumentoNN,
+            resumenPaciente,
+            apiResponse: responseData,
+          })
         } else {
           onSuccess()
         }
@@ -383,7 +483,7 @@ export function PatientRegistrationModal({
             documentType={selectedDocType}
             documentNumber={selectedDocNumber}
             reniecData={reniecData}
-            onDocumentTypeChange={setSelectedDocType}
+            onDocumentTypeChange={handleDocumentTypeChange}
             onDocumentNumberChange={setSelectedDocNumber}
           />
         )

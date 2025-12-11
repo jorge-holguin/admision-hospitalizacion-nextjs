@@ -180,6 +180,12 @@ export async function transformFormDataToAPIPayload(
     distritoReniecUbigeo = formData.distritoReniec
   }
 
+  // ✅ Asegurar que distrito tenga exactamente 7 caracteres (padding con espacios)
+  const distritoFormatted = (distritoUbigeo || '').padEnd(7, ' ').substring(0, 7)
+  
+  // ✅ Asegurar que localidad tenga exactamente 12 caracteres (padding con espacios)
+  const localidadFormatted = (formData.centroPoblado || '').padEnd(12, ' ').substring(0, 12)
+
   const payload: HistoriaClinicaPayload = {
     stringFoto: photoBase64,
     tipoDocumento: documentType,
@@ -194,7 +200,7 @@ export async function transformFormDataToAPIPayload(
     pais: formData.paisNacimiento,
     lugarNacimiento: lugarNacimientoUbigeo,
     direccion: formData.direccion,
-    distrito: distritoUbigeo,
+    distrito: distritoFormatted, // ✅ Exactamente 7 caracteres
     seguro: formData.tipoSeguro?.split('-')[0]?.trim() || formData.tipoSeguro || '0', // ✅ Extraer solo código
     gradoInstruccion: formData.gradoInstruccion,
     gradoInstruccionCod: formData.gradoInstruccionReniec || '', // Código RENIEC
@@ -213,7 +219,7 @@ export async function transformFormDataToAPIPayload(
     direccionReniec: validadoReniec ? (direccionReniecCompleta || formData.direccion) : '', // null si es manual
     distritoReniec: distritoReniecUbigeo || '', // ✅ Enviar siempre si existe, no solo cuando validadoReniec
     validadoReniec: validadoReniec,
-    localidad: formData.centroPoblado
+    localidad: localidadFormatted // ✅ Exactamente 12 caracteres
   }
   
   return payload
