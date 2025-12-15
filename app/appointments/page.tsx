@@ -594,15 +594,19 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         setReleasedCitaId(citaId)
         setShowReleaseSuccessDialog(true)
         
-        // Recargar la lista de citas
-        searchAppointmentsByParams()
+        // Actualizar el buscador con el ID de la cita liberada para que el usuario pueda verificar
+        setShowSearchById(true)
+        setSearchQuery(citaId)
+        
+        // Buscar la cita liberada para mostrarla en la tabla
+        searchAppointmentById(citaId)
       } catch (error: any) {
         console.error('Error al liberar cita:', error)
         setShowReleaseModal(false)
         setReleaseErrorMessage(error.message || 'No se pudo liberar la cita. Intente nuevamente.')
         setShowReleaseErrorDialog(true)
       }
-    }, [searchAppointmentsByParams])
+    }, [searchAppointmentsByParams, searchAppointmentById])
     
     const handleCloseReleaseModal = useCallback(() => {
       setShowReleaseModal(false)

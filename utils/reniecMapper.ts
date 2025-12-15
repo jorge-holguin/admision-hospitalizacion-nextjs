@@ -290,7 +290,7 @@ export async function getUbigeoByReniecCode(codigoReniec: string): Promise<strin
   if (!codigoReniec || codigoReniec.length !== 6) return undefined;
   
   try {
-    const response = await fetch(`/api/ubigeo/by-reniec/${codigoReniec}`);
+    const response = await fetch(`/api/utils/ubigeo/by-reniec/${codigoReniec}`);
     if (!response.ok) return undefined;
     
     const data = await response.json();
