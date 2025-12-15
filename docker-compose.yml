@@ -2,12 +2,23 @@ version: "3.9"
 
 services:
   app:
-    build: .
-    container_name: nextjs_dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospital-management-system
     ports:
       - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - .env:/app/.env
-    command: npm run dev
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--tls-min-v1.0
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - DATABASE_URL=sqlserver://172.16.0.10:1433;database=SIGSALUD;user=user_daniel;password=user_demo;encrypt=false;trustServerCertificate=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/utils/datetime"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
