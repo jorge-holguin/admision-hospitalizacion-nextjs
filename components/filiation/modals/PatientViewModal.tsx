@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { User, FileText, Calendar, Home, Phone, Users, Heart, Printer } from "lucide-react"
-import { useDocumentPrinter } from "@/components/hospitalization/DocumentPrinter"
 import { calculateAge, formatAgeReadable } from "@/lib/ageCalculator"
+import { extractDocumentFromToken } from "@/utils/jwtUtils"
 
 interface Patient {
   id?: string
@@ -97,7 +97,6 @@ interface PatientViewModalProps {
 export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalProps) {
   const [localidadNombre, setLocalidadNombre] = useState<string>('')
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-  const { printHospitalizationDocument } = useDocumentPrinter()
 
   // Cargar nombre de localidad desde API
   useEffect(() => {
@@ -522,10 +521,51 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         <div className="flex space-x-3">
           <Button 
             variant="outline" 
-            onClick={() => {
-              const pacienteId = patient.PACIENTE || patient.paciente || patient.id;
-              if (pacienteId) {
-                printHospitalizationDocument(pacienteId.toString().trim(), 'filiacion');
+            onClick={async () => {
+              const historia = (patient.HISTORIA || '').toString().trim()
+              if (!historia) return
+              if (!API_BASE_URL) {
+                console.error('NEXT_PUBLIC_API_CITAS_MASTER_URL no está configurado')
+                return
+              }
+
+              const usuario = extractDocumentFromToken().toString().trim()
+              if (!usuario) {
+                console.error('No se pudo obtener el usuario (DNI) desde el token JWT')
+                return
+              }
+
+              const url = `${API_BASE_URL}/reporte/pdf/hoja-filiacion/historia/${encodeURIComponent(historia)}?usuario=${encodeURIComponent(usuario)}`
+              
+              try {
+                // Descargar el PDF como blob
+                const response = await fetch(url)
+                if (!response.ok) throw new Error('Error al obtener el PDF')
+                
+                const blob = await response.blob()
+                const blobUrl = URL.createObjectURL(blob)
+                
+                // Crear iframe oculto para imprimir
+                const iframe = document.createElement('iframe')
+                iframe.style.display = 'none'
+                iframe.src = blobUrl
+                document.body.appendChild(iframe)
+                
+                iframe.onload = () => {
+                  setTimeout(() => {
+                    iframe.contentWindow?.focus()
+                    iframe.contentWindow?.print()
+                    // Limpiar después de imprimir
+                    setTimeout(() => {
+                      document.body.removeChild(iframe)
+                      URL.revokeObjectURL(blobUrl)
+                    }, 1000)
+                  }, 500)
+                }
+              } catch (error) {
+                console.error('Error al imprimir:', error)
+                // Fallback: abrir en nueva pestaña si falla
+                window.open(url, '_blank', 'noopener,noreferrer')
               }
             }}
             className="bg-blue-600 hover:bg-blue-700 text-white"
