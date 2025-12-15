@@ -36,7 +36,17 @@ ENV NODE_ENV=production
 
 # DATABASE_URL dummy para el build (Prisma lo necesita aunque no se conecte)
 # La URL real se proporciona en runtime via .env o docker-compose
-ENV DATABASE_URL="sqlserver://localhost:1433;database=dummy;user=dummy;password=dummy;encrypt=true;trustServerCertificate=true"
+ENV DATABASE_URL="sqlserver://localhost:1433;database=dummy;user=dummy;password=dummy;encrypt=false;trustServerCertificate=true"
+
+# IMPORTANTE: Variables NEXT_PUBLIC_* deben estar en build time para Next.js
+# Estas se incrustan en el código del cliente durante el build
+ARG NEXT_PUBLIC_API_CITAS_MASTER_URL=http://192.168.0.252:9011
+ARG NEXT_PUBLIC_API_RENIEC_URL=http://192.168.0.252:9010
+ARG NEXT_PUBLIC_API_SIS_URL=http://192.168.0.252:9010
+
+ENV NEXT_PUBLIC_API_CITAS_MASTER_URL=$NEXT_PUBLIC_API_CITAS_MASTER_URL
+ENV NEXT_PUBLIC_API_RENIEC_URL=$NEXT_PUBLIC_API_RENIEC_URL
+ENV NEXT_PUBLIC_API_SIS_URL=$NEXT_PUBLIC_API_SIS_URL
 
 # Build de la aplicación
 RUN npm run build
