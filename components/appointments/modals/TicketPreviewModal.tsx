@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Printer, Calendar, Clock, User, Stethoscope, Building2, CreditCard, FileText, Copy } from "lucide-react"
+import { Printer, Calendar, Clock, User, Stethoscope, Building2, CreditCard, FileText, Copy, CheckCircle2, Download } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, type CitaDto } from "@/services/appointments/printService"
 import Image from "next/image"
 import html2canvas from "html2canvas"
-import * as clipboard from "clipboard-polyfill"
 
 export type TicketData = {
   consultorio: string;
@@ -38,6 +37,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
   const [isPrinting, setIsPrinting] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const [entidadSisNombre, setEntidadSisNombre] = useState<string>('')
+  const [copySuccess, setCopySuccess] = useState<'copied' | 'downloaded' | null>(null)
 
   // Función para ofuscar el nombre del operador
   // Ejemplo: "HOLGUIN CUCALON JORGE" -> "JHOLGUIN"
@@ -98,6 +98,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
       setIsPrinting(false)
       setIsCopying(false)
       setEntidadSisNombre('')
+      setCopySuccess(null)
     }
   }, [isOpen])
 
@@ -165,90 +166,162 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
     }
   }
 
+  // Función auxiliar para forzar estilos de grid en el clon (html2canvas no procesa media queries)
+  const forceGridStyles = (element: HTMLElement) => {
+    // Buscar todos los elementos con clases de grid responsivo y forzar el layout desktop
+    const grids = element.querySelectorAll('[class*="grid"]')
+    grids.forEach((grid) => {
+      const el = grid as HTMLElement
+      const classes = el.className
+      
+      // Forzar grid-cols-2 para elementos con md:grid-cols-2
+      if (classes.includes('md:grid-cols-2')) {
+        el.style.display = 'grid'
+        el.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))'
+        el.style.gap = '0.75rem'
+      }
+      
+      // Forzar grid-cols-3 para elementos con md:grid-cols-3
+      if (classes.includes('md:grid-cols-3')) {
+        el.style.display = 'grid'
+        el.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))'
+        el.style.gap = '0.75rem'
+      }
+      
+      // Forzar col-span para elementos con md:col-span-2 o md:col-span-3
+      if (classes.includes('md:col-span-2')) {
+        el.style.gridColumn = 'span 2 / span 2'
+      }
+      if (classes.includes('md:col-span-3')) {
+        el.style.gridColumn = 'span 3 / span 3'
+      }
+    })
+  }
+
+  // Verificar si Clipboard API está disponible (requiere HTTPS o localhost)
+  const isClipboardAvailable = (): boolean => {
+    try {
+      return !!(navigator.clipboard && typeof ClipboardItem !== 'undefined')
+    } catch {
+      return false
+    }
+  }
+
   // Copiar TODO el contenido del ticket como imagen (sin recortes)
   const handleCopyAsImage = async () => {
     if (!ticketData) return
     setIsCopying(true)
+    setCopySuccess(null)
 
     try {
       const src = document.getElementById('ticket-cita')
       if (!src) throw new Error('No se encontró el elemento del ticket')
 
-      // 1) Clonar el ticket fuera de pantalla y eliminar límites/overflow
+      // 1) Crear contenedor para el clon
       const cloneWrapper = document.createElement('div')
-      cloneWrapper.style.position = 'fixed'
-      cloneWrapper.style.left = '-10000px'
+      cloneWrapper.style.position = 'absolute'
+      cloneWrapper.style.left = '-9999px'
       cloneWrapper.style.top = '0'
+      cloneWrapper.style.width = '550px'
       cloneWrapper.style.zIndex = '-1'
 
       const clone = src.cloneNode(true) as HTMLElement
-      // quitar límites del clon
       clone.style.maxHeight = 'none'
       clone.style.overflow = 'visible'
       clone.style.height = 'auto'
-      clone.style.backgroundColor = '#ffffff' // fondo blanco sólido
-
-      // En caso de tailwind utilitario en el clon:
+      clone.style.width = '550px'
+      clone.style.backgroundColor = '#ffffff'
+      clone.style.padding = '20px'
+      
       clone.classList.remove('max-h-[calc(95vh-120px)]', 'overflow-y-auto')
-
-      // Para que el ancho coincida con el real del ticket
-      // (si quieres forzarlo, puedes setear un width fijo en px acorde a tu diseño)
-      clone.style.width = `${src.scrollWidth}px`
+      forceGridStyles(clone)
 
       cloneWrapper.appendChild(clone)
       document.body.appendChild(cloneWrapper)
 
-      // 2) Asegurar carga de imágenes dentro del clon
+      // 2) Esperar imágenes (timeout corto)
+      const images = clone.getElementsByTagName('img')
       await Promise.all(
-        Array.from(clone.getElementsByTagName('img')).map(img => {
+        Array.from(images).map(img => {
           if (img.complete) return Promise.resolve()
-          return new Promise<void>((res) => {
-            img.onload = () => res()
-            img.onerror = () => res()
+          return new Promise<void>((resolve) => {
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+            setTimeout(resolve, 500) // Timeout corto
           })
         })
       )
 
-      // 3) Capturar el clon completo sin recortes
-      const scale = Math.min(2, window.devicePixelRatio || 1)
+      // 3) Capturar con html2canvas (scale reducido para velocidad)
       const canvas = await html2canvas(clone, {
-        scale,
+        scale: 1.5, // Reducido de 2 para mayor velocidad
         useCORS: true,
+        allowTaint: true,
         backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: clone.scrollWidth,
-        windowHeight: clone.scrollHeight,
-        logging: false
+        logging: false,
+        width: 550,
+        windowWidth: 550
       })
 
-      // 4) Copiar PNG al portapapeles
-      const blob: Blob | null = await new Promise(res => canvas.toBlob(res, 'image/png'))
+      // 4) Generar blob
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(res, 'image/png', 0.92))
       if (!blob) throw new Error('No se pudo generar la imagen')
 
-      await clipboard.write([
-        new clipboard.ClipboardItem({ [blob.type]: blob })
-      ])
+      // 5) Limpiar clon inmediatamente
+      cloneWrapper.remove()
 
-      toast({
-        title: "📋 Ticket copiado como imagen",
-        description: "Pega la imagen en WhatsApp Web con Ctrl+V (usa Chrome o Edge).",
-        className: "bg-green-50 border-green-200 text-green-800",
-        duration: 5000
-      })
+      // 6) Copiar o descargar
+      let copiado = false
+      
+      if (isClipboardAvailable()) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ])
+          copiado = true
+        } catch (clipboardError) {
+          console.warn('Clipboard API falló:', clipboardError)
+        }
+      }
+
+      if (copiado) {
+        setCopySuccess('copied')
+        toast({
+          title: "📋 Ticket copiado",
+          description: "Pega con Ctrl+V en WhatsApp",
+          className: "bg-green-50 border-green-200 text-green-800",
+          duration: 4000
+        })
+      } else {
+        // Fallback: descargar
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `ticket-cita-${ticketData.numero}.png`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        
+        setCopySuccess('downloaded')
+        toast({
+          title: "📥 Imagen descargada",
+          description: "Ábrela y compártela en WhatsApp",
+          className: "bg-blue-50 border-blue-200 text-blue-800",
+          duration: 4000
+        })
+      }
     } catch (error) {
-      console.error('Error al copiar como imagen:', error)
+      console.error('Error al copiar/descargar imagen:', error)
       toast({
-        title: "Error al copiar imagen",
-        description: error instanceof Error ? error.message : "No se pudo copiar el ticket como imagen",
+        title: "Error al generar imagen",
+        description: error instanceof Error ? error.message : "No se pudo generar la imagen",
         variant: "destructive"
       })
     } finally {
-      // 5) Limpieza del clon
-      const ghost = Array.from(document.body.children).find(
-        el => el instanceof HTMLDivElement && el.style.left === '-10000px'
-      )
-      if (ghost && ghost.parentElement) ghost.parentElement.removeChild(ghost)
+      // Limpieza de seguridad
+      const ghosts = document.querySelectorAll('div[style*="left: -9999px"]')
+      ghosts.forEach(ghost => ghost.remove())
       setIsCopying(false)
     }
   }
@@ -421,6 +494,33 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
           </div>
         </div>
 
+        {/* Mensaje de éxito visible en el modal */}
+        {copySuccess && (
+          <div className={`mx-3 mt-3 p-3 rounded-lg flex items-center gap-3 ${
+            copySuccess === 'copied' 
+              ? 'bg-green-100 border border-green-300 text-green-800' 
+              : 'bg-blue-100 border border-blue-300 text-blue-800'
+          }`}>
+            {copySuccess === 'copied' ? (
+              <>
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">✅ Imagen copiada al portapapeles</p>
+                  <p className="text-xs">Pega con Ctrl+V en WhatsApp Web</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Download className="h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">📥 Imagen descargada</p>
+                  <p className="text-xs">Ábrela desde Descargas y compártela</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Botones de acción */}
         <div className="p-3 bg-gray-50 border-t space-y-2 flex-shrink-0">
           <Button
@@ -444,12 +544,28 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
           <Button
             onClick={handleCopyAsImage}
             disabled={isCopying || isPrinting}
-            className="w-full bg-emerald-600 text-white rounded-lg py-5 hover:bg-emerald-700 transition font-semibold shadow-lg"
+            className={`w-full rounded-lg py-5 transition font-semibold shadow-lg ${
+              copySuccess === 'copied' 
+                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                : copySuccess === 'downloaded'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
           >
             {isCopying ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Copiando...
+                Generando imagen...
+              </>
+            ) : copySuccess === 'copied' ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                ¡Copiado! Pega con Ctrl+V
+              </>
+            ) : copySuccess === 'downloaded' ? (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Descargado ✓
               </>
             ) : (
               <>

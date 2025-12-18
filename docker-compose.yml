@@ -2,9 +2,19 @@ version: "3.9"
 
 services:
   app:
+    image: hospital-management-system:latest
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_AUTH_API_URL: ${NEXT_PUBLIC_AUTH_API_URL:-http://192.168.0.17:9006}
+        NEXT_PUBLIC_API_BACKEND_URL: ${NEXT_PUBLIC_API_BACKEND_URL:-http://192.168.0.252:9011/api}
+        NEXT_PUBLIC_API_CIEX_URL: ${NEXT_PUBLIC_API_CIEX_URL:-http://192.168.0.17:9002/hospitalizacion/hospitalizacion-admision/api/v1}
+        NEXT_PUBLIC_API_CITAS_MASTER_URL: ${NEXT_PUBLIC_API_CITAS_MASTER_URL:-http://192.168.0.252:9011/api}
+        NEXT_PUBLIC_API_RESERVAS_URL: ${NEXT_PUBLIC_API_RESERVAS_URL:-http://192.168.0.252:9012/api/v1}
+        NEXT_PUBLIC_API_REFCON_URL: ${NEXT_PUBLIC_API_REFCON_URL:-http://192.168.0.31:9012/api}
+        NEXT_PUBLIC_API_RENIEC_URL: ${NEXT_PUBLIC_API_RENIEC_URL:-http://192.168.0.252:9010}
+        NEXT_PUBLIC_API_SIS_URL: ${NEXT_PUBLIC_API_SIS_URL:-http://192.168.0.252:9010}
     container_name: hospital-management-system
     ports:
       - "3000:3000"
