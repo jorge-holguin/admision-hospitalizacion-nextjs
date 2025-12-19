@@ -112,6 +112,10 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   const [reniecButtonUsed, setReniecButtonUsed] = useState(false) // ✅ Bloquear botón después de usar
   const { consultarReniec } = useReniec()
   
+  // ✅ Estados para tipo y número de documento editables
+  const [selectedDocType, setSelectedDocType] = useState<string>('')
+  const [selectedDocNumber, setSelectedDocNumber] = useState<string>('')
+  
   // ✅ Estados para alertas visuales de APIs
   const [apiAlerts, setApiAlerts] = useState<Array<{
     type: 'success' | 'warning' | 'info'
@@ -125,8 +129,36 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       setCurrentStep(1)
       setReniecButtonUsed(false) // Resetear estado del botón
       setReniecPhotoHex(null) // Limpiar foto anterior
+      
+      // ✅ Inicializar tipo y número de documento desde el paciente
+      const tipoDoc = (() => {
+        if (typeof patient.TIPO_DOCUMENTO === 'string') return patient.TIPO_DOCUMENTO.trim()
+        if (typeof patient.tipoDocumento === 'string') return patient.tipoDocumento.trim()
+        if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
+          return patient.tipoDocumento.tipoDocumento.trim()
+        }
+        return 'D' // Default DNI
+      })()
+      setSelectedDocType(tipoDoc)
+      setSelectedDocNumber(patient.DOCUMENTO || patient.dni || '')
     }
   }, [patient])
+  
+  // ✅ Handler para cambio de tipo de documento
+  // NOTA: El número de documento NO se puede cambiar, solo el tipo
+  const handleDocumentTypeChange = (newType: string) => {
+    setSelectedDocType(newType)
+    
+    const tipoNombre = newType === "D" ? "DNI" : 
+                       newType === "CE" ? "Carnet de Extranjería" : 
+                       newType === "PP" ? "Pasaporte" : 
+                       newType === "0" ? "Ninguno" : newType
+    toast({
+      title: `📋 Tipo de documento cambiado`,
+      description: `Nuevo tipo: ${tipoNombre}`,
+      duration: 3000
+    })
+  }
   
   // ✅ Consultar RENIEC automáticamente SOLO si no hay foto y es DNI
   useEffect(() => {
@@ -594,10 +626,10 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     const missingFields: string[] = []
     
     // Step 1: Datos Básicos
-    const docType = patient.TIPO_DOCUMENTO || patient.tipoDocumento
-    const docNumber = patient.DOCUMENTO || patient.dni || patient.documento
-    
-    if (!docType || (typeof docType === 'string' && docType.trim() === '')) missingFields.push('Tipo de Documento')
+    // Tipo de documento: usar estado editable
+    if (!selectedDocType || selectedDocType.trim() === '') missingFields.push('Tipo de Documento')
+    // Número de documento: usar el original del paciente (no es editable)
+    const docNumber = patient.DOCUMENTO || patient.dni || patient.documento || ''
     if (!docNumber || (typeof docNumber === 'string' && docNumber.trim() === '')) missingFields.push('N° Documento')
     if (!formData.apellidoPaterno || formData.apellidoPaterno.trim() === '') missingFields.push('Apellido Paterno')
     if (!formData.apellidoMaterno || formData.apellidoMaterno.trim() === '') missingFields.push('Apellido Materno')
@@ -696,7 +728,6 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         // Formatear como '000a00m00d'
         const edadFormatted = `${String(years).padStart(3, '0')}a${String(months).padStart(2, '0')}m${String(days).padStart(2, '0')}d`
         updateData.edad = edadFormatted
-        console.log('🎂 Edad calculada:', updateData.edad, `(${years} años, ${months} meses, ${days} días)`)
       }
       if (formData.sexo) updateData.sexo = formData.sexo
       if (formData.estadoCivil?.trim()) updateData.estadoCivil = formData.estadoCivil.trim()
@@ -704,60 +735,43 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.paisNacimiento) updateData.pais = formData.paisNacimiento
       if (formData.direccion?.trim()) updateData.direccion = formData.direccion.trim()
       // ✅ Campos obligatorios: documento y tipoDocumento
-      if (patient.DOCUMENTO || patient.dni || patient.documento) {
-        const documentoValue = (patient.DOCUMENTO || patient.dni || patient.documento).trim()
+      // El número de documento NO es editable, siempre usar el original del paciente
+      const documentoValue = (patient.DOCUMENTO || patient.dni || patient.documento || '').trim()
+      if (documentoValue) {
         updateData.documento = documentoValue
-        console.log('📄 Documento:', updateData.documento)
       }
       
-      // ✅ Tipo de documento: extraer correctamente del objeto o string
-      let tipoDocValue = 'D' // Default DNI
-      
-      if (typeof patient.TIPO_DOCUMENTO === 'string') {
-        tipoDocValue = patient.TIPO_DOCUMENTO.trim()
-      } else if (typeof patient.tipoDocumento === 'string') {
-        tipoDocValue = patient.tipoDocumento.trim()
-      } else if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
-        // Si es objeto como { tipoDocumento: "D", nombre: "DNI" }
-        tipoDocValue = patient.tipoDocumento.tipoDocumento.trim()
-      }
-      
-      updateData.tipoDocumento = tipoDocValue
-      console.log('📋 Tipo Documento extraído:', updateData.tipoDocumento, 'de:', patient.tipoDocumento || patient.TIPO_DOCUMENTO)
+      // ✅ Tipo de documento: usar el estado editable selectedDocType
+      // Este es el valor que el usuario puede cambiar en el selector
+      updateData.tipoDocumento = selectedDocType || 'D'
       
       // ✅ IMPORTANTE: Enviar CÓDIGOS con PADDING, no nombres
       if (formData.distritoProcedencia?.trim()) {
         // distrito debe tener exactamente 7 caracteres con padding de espacios
         updateData.distrito = formData.distritoProcedencia.trim().padEnd(7, ' ')
-        console.log('📍 Distrito (ubigeo con padding):', `"${updateData.distrito}"`, `Length: ${updateData.distrito.length}`)
       }
       if (formData.tipoSeguro?.trim()) {
         // Extraer solo el código del seguro (antes del guión si existe)
         // Ejemplo: "0   - PAGANTE" -> "0"
         const seguroValue = formData.tipoSeguro.trim().split('-')[0].trim()
         updateData.seguro = seguroValue
-        console.log('🏥 Seguro (código):', updateData.seguro, 'desde:', formData.tipoSeguro)
       }
       if (formData.gradoInstruccion?.trim()) {
         // gradoInstruccion debe ser el código (ej: "05")
         updateData.gradoInstruccion = formData.gradoInstruccion.trim()
-        console.log('🎓 Grado Instrucción (código):', updateData.gradoInstruccion)
       }
       if (formData.ocupacion?.trim()) {
         // ocupacion debe ser el código (ej: "0")
         updateData.ocupacion = formData.ocupacion.trim()
-        console.log('💼 Ocupación (código):', updateData.ocupacion)
       }
       if (formData.religion?.trim()) updateData.religion = formData.religion.trim()
       if (formData.etnia?.trim()) {
         // codEtnia debe ser el código (ej: "58")
         updateData.codEtnia = formData.etnia.trim()
-        console.log('🌍 Etnia (código):', updateData.codEtnia)
       }
       if (formData.centroPoblado?.trim()) {
         // localidad debe tener exactamente 12 caracteres con padding de espacios
         updateData.localidad = formData.centroPoblado.trim().padEnd(12, ' ')
-        console.log('🏘️ Localidad (con padding):', `"${updateData.localidad}"`, `Length: ${updateData.localidad.length}`)
       }
       if (formData.telefono1?.trim()) updateData.telefono1 = formData.telefono1.trim()
       if (formData.telefono2?.trim()) updateData.telefono2 = formData.telefono2.trim()
@@ -774,46 +788,35 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (reniecPhotoHex) {
         // Si hay foto nueva de RENIEC, enviarla
         updateData.stringFoto = reniecPhotoHex
-        console.log('📸 Enviando foto RENIEC (hexadecimal):', reniecPhotoHex.substring(0, 50) + '...')
       } else if (formData.stringFoto && formData.stringFoto.trim() !== '') {
         // Si hay foto en formData (cargada desde RENIEC anteriormente), enviarla
         updateData.stringFoto = formData.stringFoto
-        console.log('📸 Enviando foto desde formData (RENIEC):', formData.stringFoto.substring(0, 50) + '...')
       } else {
         // Si no hay foto nueva, pero el paciente tiene foto existente, preservarla
         const fotoExistente = patient.STRING_FOTO || patient.stringFoto;
         if (fotoExistente && fotoExistente.trim() !== '') {
           updateData.stringFoto = fotoExistente
-          console.log('📸 Preservando foto existente del paciente')
         }
       }
       
       // ✅ Campos RENIEC
       if (formData.direccionReniec?.trim()) {
         updateData.direccionReniec = formData.direccionReniec.trim()
-        console.log('📍 Dirección RENIEC:', updateData.direccionReniec)
       }
       if (formData.distritoReniec?.trim()) {
         updateData.distritoReniec = formData.distritoReniec.trim()
-        console.log('🗺️ Distrito RENIEC (ubigeo BD):', updateData.distritoReniec)
       }
       // ✅ Ubigeo de nacimiento RENIEC (código de 6 dígitos: depProvDist)
       if (formData.ubigeoNacReniec?.trim()) {
         updateData.ubigeoNacReniec = formData.ubigeoNacReniec.trim()
-        console.log('🗺️ Ubigeo Nacimiento RENIEC:', updateData.ubigeoNacReniec)
       } else if (reniecData?.ubigeoReniecNacimiento) {
         // Si no está en formData pero está en reniecData, usarlo
         updateData.ubigeoNacReniec = reniecData.ubigeoReniecNacimiento
-        console.log('🗺️ Ubigeo Nacimiento RENIEC (desde reniecData):', updateData.ubigeoNacReniec)
       }
       // Si se consultó RENIEC (reniecData existe), marcar como validado
       if (reniecData) {
         updateData.validadoReniec = true
-        console.log('✅ Validado RENIEC: true')
       }
-
-      console.log('Actualizando paciente:', pacienteId)
-      console.log('Datos a enviar (solo campos editados):', updateData)
       
       // Obtener usuario del JWT
       const usuario = extractDocumentFromToken();
@@ -865,35 +868,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             <Step1BasicData
               formData={formData}
               onInputChange={handleInputChange}
-              documentType={(() => {
-                // Extraer código del tipo de documento (string u objeto)
-                if (typeof patient.TIPO_DOCUMENTO === 'string') return patient.TIPO_DOCUMENTO.trim();
-                if (typeof patient.tipoDocumento === 'string') return patient.tipoDocumento.trim();
-                if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
-                  return patient.tipoDocumento.tipoDocumento.trim(); // ✅ Extraer del objeto
-                }
-                return 'D'; // Default DNI
-              })()}
-              documentNumber={patient.DOCUMENTO || patient.dni || ''}
+              documentType={selectedDocType}
+              documentNumber={selectedDocNumber}
               patientData={patient}
-              reniecData={reniecData || {
-                dni: patient.DOCUMENTO || patient.dni || '',
-                apellidoPaterno: patient.PATERNO?.trim() || patient.apellidoPaterno || '',
-                apellidoMaterno: patient.MATERNO?.trim() || patient.apellidoMaterno || '',
-                nombres: patient.NOMBRE?.trim() || patient.nombres || patient.name || '',
-              }}
+              onDocumentTypeChange={handleDocumentTypeChange}
+              onDocumentNumberChange={setSelectedDocNumber}
+              reniecData={reniecData || undefined}
             />
             {/* ✅ Botón RENIEC solo visible para pacientes con tipo de documento 'D' (DNI) */}
-            {(() => {
-              // Extraer código del tipo de documento para verificar si es DNI
-              let tipoDoc = '';
-              if (typeof patient.TIPO_DOCUMENTO === 'string') tipoDoc = patient.TIPO_DOCUMENTO.trim();
-              else if (typeof patient.tipoDocumento === 'string') tipoDoc = patient.tipoDocumento.trim();
-              else if (typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.tipoDocumento) {
-                tipoDoc = patient.tipoDocumento.tipoDocumento.trim();
-              }
-              return tipoDoc === 'D';
-            })() && (
+            {selectedDocType === 'D' && (
               <div className="flex justify-center mt-4">
                 <Button 
                   onClick={handleUpdateFromReniec}
@@ -947,7 +930,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="text-xl font-bold text-blue-800">
-          Editar Información del Paciente - H.C. {patient.HISTORIA?.trim() || patient.historia?.trim() || formData.historia || 'N/A'}
+          Editar Información del Paciente - H.C. {patient.HISTORIA?.trim() || patient.historia?.trim() || 'N/A'}
         </DialogTitle>
       </DialogHeader>
 

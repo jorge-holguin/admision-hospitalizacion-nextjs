@@ -3,6 +3,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTipoDocumento } from "@/contexts/filiation/TipoDocumentoContext"
 import { Loader2 } from "lucide-react"
+import { useMemo } from "react"
 
 interface TipoDocumentoSelectorProps {
   value: string
@@ -12,6 +13,29 @@ interface TipoDocumentoSelectorProps {
 
 export function TipoDocumentoSelector({ value, onChange, disabled }: TipoDocumentoSelectorProps) {
   const { tiposDocumento, isLoading, error } = useTipoDocumento()
+
+  // Normalizar el valor para comparación (trim y manejar casos especiales)
+  const normalizedValue = useMemo(() => {
+    if (!value) return ''
+    const trimmed = value.trim().toUpperCase()
+    // Mapear valores comunes a códigos del sistema
+    if (trimmed === 'DNI') return 'D'
+    if (trimmed === 'CARNET DE EXTRANJERÍA' || trimmed === 'CARNET DE EXTRANJERIA') return 'CE'
+    if (trimmed === 'PASAPORTE') return 'PP'
+    return trimmed
+  }, [value])
+
+  // Encontrar el valor que coincide en la lista
+  const selectedValue = useMemo(() => {
+    if (!normalizedValue || tiposDocumento.length === 0) return ''
+    
+    const found = tiposDocumento.find(tipo => {
+      const tipoCode = tipo.tipoDocumento.trim().toUpperCase()
+      return tipoCode === normalizedValue
+    })
+    
+    return found ? found.tipoDocumento.trim() : normalizedValue
+  }, [normalizedValue, tiposDocumento])
 
   if (isLoading) {
     return (
@@ -31,7 +55,7 @@ export function TipoDocumentoSelector({ value, onChange, disabled }: TipoDocumen
   }
 
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    <Select value={selectedValue} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger>
         <SelectValue placeholder="Seleccione tipo" />
       </SelectTrigger>

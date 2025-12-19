@@ -188,6 +188,7 @@ export function Step1BasicData({
                     patientData?.HISTORIA?.trim() || 
                     patientData?.historia?.trim() || 
                     reniecData?.historyNumber || 
+                    // Si es DNI (D), usar el número de documento como historia
                     (documentType === 'D' || documentType === 'DNI' ? documentNumber : '') || 
                     "Se genera automáticamente"
                   } 
@@ -200,19 +201,14 @@ export function Step1BasicData({
                   <CreditCard className="w-4 h-4 mr-1" />
                   Tipo de Documento <span className="text-red-600">*</span>
                 </Label>
+                {/* Solo bloquear si viene de RENIEC con DNI válido */}
                 {reniecData && reniecData.dni ? (
                   <Input id="tipoDocumento" value="DNI" disabled className="bg-gray-50 text-gray-600 uppercase" />
-                ) : patientData ? (
-                  <TipoDocumentoSelector
-                    value={documentType}
-                    onChange={(value) => onDocumentTypeChange?.(value)}
-                    disabled={true}
-                  />
                 ) : (
                   <TipoDocumentoSelector
                     value={documentType}
                     onChange={(value) => onDocumentTypeChange?.(value)}
-                    disabled={!!reniecData}
+                    disabled={false}
                   />
                 )}
               </div>
@@ -221,7 +217,8 @@ export function Step1BasicData({
                   <Hash className="w-4 h-4 mr-1" />
                   N° Documento <span className="text-red-600">*</span>
                 </Label>
-                {reniecData ? (
+                {/* Si hay patientData (modo edición) o reniecData, el número NO es editable */}
+                {(reniecData || patientData) ? (
                   <Input
                     id="dni"
                     value={reniecData?.document || reniecData?.dni || patientData?.documento || patientData?.DOCUMENTO || documentNumber}
@@ -231,7 +228,7 @@ export function Step1BasicData({
                 ) : (
                   <Input
                     id="dni"
-                    value={documentNumber || patientData?.documento || patientData?.DOCUMENTO || ""}
+                    value={documentNumber || ""}
                     onChange={(e) => onDocumentNumberChange?.(e.target.value)}
                     placeholder="Ingrese número de documento"
                   />

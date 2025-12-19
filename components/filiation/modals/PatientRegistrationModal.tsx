@@ -89,11 +89,11 @@ export function PatientRegistrationModal({
 
   // ✅ Handler para cambio de tipo de documento
   const handleDocumentTypeChange = (newType: string) => {
+    const prevType = selectedDocType
     setSelectedDocType(newType)
     
     // Si es tipo "0" (Ninguno), autocompletar con valores por defecto
     if (newType === "0") {
-      // Autocompletar número de documento con "0"
       setSelectedDocNumber("0")
       applyDefaultValuesForNoDocument()
       
@@ -101,6 +101,20 @@ export function PatientRegistrationModal({
         title: "📋 Tipo de documento: Ninguno",
         description: "Se han autocompletado algunos campos con valores por defecto. Complete los datos del paciente manualmente.",
         duration: 5000
+      })
+    } else if (prevType !== newType) {
+      // Si cambió el tipo de documento (y no es "0"), limpiar el número
+      // para que el usuario ingrese uno nuevo del tipo correcto
+      setSelectedDocNumber("")
+      
+      // Mostrar toast informativo
+      const tipoNombre = newType === "D" ? "DNI" : 
+                         newType === "CE" ? "Carnet de Extranjería" : 
+                         newType === "PP" ? "Pasaporte" : newType
+      toast({
+        title: `📋 Tipo de documento: ${tipoNombre}`,
+        description: "Ingrese el número de documento correspondiente.",
+        duration: 3000
       })
     }
   }

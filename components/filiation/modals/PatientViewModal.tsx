@@ -140,7 +140,9 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     ...patient,
     // Información del Sistema
     hc: patient.HISTORIA?.trim() || patient.hc || '',
-    tipoDocumento: typeof patient.tipoDocumento === 'object' ? patient.tipoDocumento?.nombre : patient.NOMBRE_DOCUMENTO || 'DNI',
+    tipoDocumento: typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.nombre 
+      ? patient.tipoDocumento.nombre 
+      : (typeof patient.tipoDocumento === 'string' ? patient.tipoDocumento : patient.NOMBRE_DOCUMENTO || patient.TIPO_DOCUMENTO || 'DNI'),
     dni: patient.DOCUMENTO || patient.dni || '',
     // Edad: priorizar siempre la edad calculada por el backend (mayúsculas o minúsculas)
     edad: patient.EDAD || patient.edad || '',
