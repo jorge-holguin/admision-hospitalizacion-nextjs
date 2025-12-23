@@ -93,6 +93,9 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
     return getFinancingCodeName(value);
   };
 
+  // Códigos de seguro que no deben aparecer en hospitalización
+  const SEGUROS_EXCLUIDOS_HOSPITALIZACION = ['05', '16'];
+
   return (
     <div className="space-y-2">
       <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
@@ -127,7 +130,9 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
                 )}
               </CommandEmpty>
               <CommandGroup>
-                {seguros.map((seguro) => {
+                {seguros
+                  .filter(seguro => !SEGUROS_EXCLUIDOS_HOSPITALIZACION.includes(seguro.Seguro?.trim?.() || ''))
+                  .map((seguro) => {
                   const seguroValue = `${seguro.Seguro} - ${seguro.Nombre}`;
                   return (
                     <CommandItem

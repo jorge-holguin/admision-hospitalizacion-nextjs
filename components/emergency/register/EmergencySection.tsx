@@ -250,10 +250,17 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       data: f,
     }));
 
+  // Seguros excluidos para emergencias: 05 (Crédito Paciente) y 16 (Interconsulta)
+  const SEGUROS_EXCLUIDOS_EMERGENCIA = ['05', '16'];
+  
   const formatSeguros = useMemo(() => {
     return seguros
       .filter(
         (s) => {
+          // Excluir seguros no permitidos en emergencias
+          const seguroCode = s.Seguro?.toString().trim() || '';
+          if (SEGUROS_EXCLUIDOS_EMERGENCIA.includes(seguroCode)) return false;
+          
           if (!searchSeguro) return true;
           
           const searchLower = searchSeguro.toLowerCase();
@@ -262,7 +269,6 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           if (s.Nombre?.toLowerCase().includes(searchLower)) return true;
           
           // Search in code - handle different formats
-          const seguroCode = s.Seguro?.toString().trim() || '';
           return seguroCode.toLowerCase().includes(searchLower);
         }
       )

@@ -53,12 +53,21 @@ export async function POST(
     console.log(`[${new Date().toISOString()}] Iniciando transacción con timeout extendido a 15 segundos...`);
     // Iniciar una transacción para garantizar consistencia con timeout extendido a 15 segundos
     return await prisma.$transaction(async (tx) => {
-      // 1. Consultar la emergencia para obtener el valor de SEGUROLIQ usando consulta SQL directa
+      // 1. Consultar la emergencia para obtener el valor de SEGUROLIQ y otros campos relevantes
       const emergenciaResult = await tx.$queryRaw`
-        SELECT TOP 1 SEGUROLIQ, PACIENTE, CUENTAID 
+        SELECT TOP 1 
+          SEGUROLIQ, 
+          PACIENTE, 
+          CUENTAID,
+          CONSULTORIO,
+          NOMBRES,
+          FECHA,
+          HORA
         FROM EMERGENCIA 
         WHERE EMERGENCIA_ID = ${idEmergencia}
       ` as any[];
+      
+      console.log('Datos de emergencia obtenidos:', JSON.stringify(emergenciaResult[0], null, 2));
       
       const emergencia = emergenciaResult && emergenciaResult.length > 0 ? emergenciaResult[0] : null;
 
@@ -71,6 +80,60 @@ export async function POST(
           { status: 404 }
         );
       }
+
+      // Extraer datos de la emergencia para usar en el SP (prioridad: BD > body > default)
+      const consultorioEmergencia = emergencia.CONSULTORIO?.trim() || consultorio || "2090";
+      const empresaEmergencia = empresa || "0"; // Empresa siempre es '0' para emergencias
+      const nombreEmergencia = emergencia.NOMBRES?.trim() || nombre || "";
+      
+      // Formatear fecha correctamente para SQL Server (DD/MM/YYYY)
+      let fechaFormateada: string;
+      if (emergencia.FECHA) {
+        // Si es un objeto Date, formatearlo
+        const fechaObj = emergencia.FECHA instanceof Date ? emergencia.FECHA : new Date(emergencia.FECHA);
+        if (!isNaN(fechaObj.getTime())) {
+          const dia = String(fechaObj.getDate()).padStart(2, '0');
+          const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+          const anio = fechaObj.getFullYear();
+          fechaFormateada = `${dia}/${mes}/${anio}`;
+        } else {
+          // Fallback a fecha actual
+          const now = new Date();
+          fechaFormateada = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+        }
+      } else if (fecha) {
+        fechaFormateada = fecha;
+      } else {
+        const now = new Date();
+        fechaFormateada = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+      }
+      
+      // Formatear hora correctamente para SQL Server (HH:MM:SS)
+      let horaFormateada: string;
+      if (emergencia.HORA) {
+        // Si es un string, usarlo directamente (puede ser "HH:MM" o "HH:MM:SS")
+        const horaStr = String(emergencia.HORA).trim();
+        // Asegurar formato HH:MM:SS
+        if (horaStr.length === 5) {
+          horaFormateada = `${horaStr}:00`;
+        } else if (horaStr.length >= 8) {
+          horaFormateada = horaStr.substring(0, 8);
+        } else {
+          horaFormateada = horaStr;
+        }
+      } else if (hora) {
+        horaFormateada = hora;
+      } else {
+        const now = new Date();
+        horaFormateada = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      }
+      
+      console.log(`📋 Datos extraídos de la emergencia:`);
+      console.log(`   - Consultorio: '${consultorioEmergencia}' (BD: '${emergencia.CONSULTORIO}', body: '${consultorio}')`);
+      console.log(`   - Empresa: '${empresaEmergencia}'`);
+      console.log(`   - Nombre: '${nombreEmergencia}'`);
+      console.log(`   - Fecha formateada: '${fechaFormateada}' (BD: '${emergencia.FECHA}')`);
+      console.log(`   - Hora formateada: '${horaFormateada}' (BD: '${emergencia.HORA}')`);
 
       // 2. Verificar si el SEGUROLIQ está en los valores permitidos
       const segurosPermitidos = ["0", "02", "17"];
@@ -111,20 +174,28 @@ export async function POST(
         const estado = "1"; // Estado activo
         
         // Ejecutar el procedimiento almacenado usando $queryRaw con parámetros nombrados
-        const fechaActual = fecha || new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/');
-        const horaActual = hora || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        // Las fechas y horas ya están formateadas arriba
+        
+        console.log(`🔧 Parámetros para SP_LIQUIDA_NUEVA_CUENTA:`);
+        console.log(`   - paciente: ${paciente}`);
+        console.log(`   - seguro: ${seguro || "02"}`);
+        console.log(`   - empresa: ${empresaEmergencia}`);
+        console.log(`   - consultorio: ${consultorioEmergencia}`);
+        console.log(`   - origen: ${origen || "EM"}`);
+        console.log(`   - fecha: ${fechaFormateada}`);
+        console.log(`   - hora: ${horaFormateada}`);
         
         const resultado = await tx.$queryRaw`
           EXEC SP_LIQUIDA_NUEVA_CUENTA 
             @paciente = ${paciente},
             @seguro = ${seguro || "02"},
-            @empresa = ${empresa || "0"},
-            @consultorio = ${consultorio || "2090"},
+            @empresa = ${empresaEmergencia},
+            @consultorio = ${consultorioEmergencia},
             @observa = ${observa || "."},
-            @fecha = ${fechaActual},
+            @fecha = ${fechaFormateada},
             @estado = ${estado},
-            @hora = ${horaActual},
-            @nombre = ${nombre || ""},
+            @hora = ${horaFormateada},
+            @nombre = ${nombreEmergencia},
             @origen = ${origen || "EM"},
             @usuario = ${usuario},
             @nrofua = ${nrofua || "."},
