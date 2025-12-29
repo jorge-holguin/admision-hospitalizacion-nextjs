@@ -34,7 +34,7 @@ export async function POST(
       origen, 
       usuario, 
       nrofua, 
-      presta 
+      presta
     } = body;
     
     console.log('📊 Datos extraídos del cuerpo:');

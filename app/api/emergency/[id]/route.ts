@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { emergenciaService } from '@/services/emergencia/emergenciaService';
+import { cuentaService } from '@/services/emergencia/cuentaService';
 import { resolveStatus } from '@/utils/statusUtils';
 
 /**
@@ -162,6 +163,31 @@ export async function PATCH(
       
       // Actualizar la emergencia
       const updatedEmergencia = await emergenciaService.updateEmergencia(emergenciaId, data);
+      
+      // Si hay CUENTAID, también actualizar la cuenta con OBSERVACION y EMPRESASEGURO
+      const cuentaId = data.CUENTAID || currentEmergencia.CUENTAID;
+      if (cuentaId && cuentaId.trim() !== '') {
+        console.log(`📝 Sincronizando datos con cuenta ${cuentaId}...`);
+        
+        // Obtener el código de seguro para verificar si es SOAT
+        const seguroCode = data.SEGURO?.trim() || currentEmergencia.SEGURO?.trim();
+        const isSOAT = seguroCode === '02';
+        
+        // Solo enviar empresaSeguro si es SOAT
+        const empresaSeguroValue = isSOAT ? (data.EMPRESASEG || '') : '';
+        
+        const cuentaResult = await cuentaService.updateCuentaObservacionYEmpresa(
+          cuentaId.trim(),
+          data.OBSERVACION1,
+          empresaSeguroValue
+        );
+        
+        if (cuentaResult.success) {
+          console.log(`✅ Cuenta ${cuentaId} actualizada correctamente`);
+        } else {
+          console.warn(`⚠️ No se pudo actualizar la cuenta: ${cuentaResult.message}`);
+        }
+      }
       
       return NextResponse.json({
         success: true,

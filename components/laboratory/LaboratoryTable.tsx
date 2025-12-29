@@ -1,94 +1,44 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Printer, FileText, Droplet, Eye } from "lucide-react"
-import { format } from "date-fns"
+import { Edit, Trash2, Eye, Loader2 } from "lucide-react"
+
+// Interface exportada para usar en page.tsx
+export interface LaboratoryCita {
+  idCita: string
+  idPaciente: string
+  nombrePaciente: string
+  nroDocumento: string
+  estado: string
+  ordenx: number
+  hora: string
+  origen: string
+}
 
 interface LaboratoryTableProps {
-  fecha: Date
-  origen: string
-  estado: string
-  searchType: string
-  searchValue: string
-  useIdCita: boolean
-  idCita: string
+  data: LaboratoryCita[]
+  isLoading: boolean
+  hasSearched: boolean
+  onViewDetail: (cita: LaboratoryCita) => void
+  onEdit: (cita: LaboratoryCita) => void
+  onDelete: (cita: LaboratoryCita) => void
 }
-
-interface LaboratoryCita {
-  ID_CITA: string
-  NOMBRES: string
-  ESTADO: string
-  NRO_DOCUMENTO: string
-  FECHA_REGISTRO: string
-  USUARIO_REGISTRO: string
-  TIPO_SEGURO: string
-}
-
-const mockData: LaboratoryCita[] = [
-  {
-    ID_CITA: "00043252",
-    NOMBRES: "VALDEZ CHACON FEDERICO",
-    ESTADO: "1",
-    NRO_DOCUMENTO: "47895471",
-    FECHA_REGISTRO: "2025-12-22T13:26:58",
-    USUARIO_REGISTRO: "73101361",
-    TIPO_SEGURO: "PAGANTE"
-  },
-  {
-    ID_CITA: "00043253",
-    NOMBRES: "BERROCAL HUARCAYA CARLA JESUS",
-    ESTADO: "1",
-    NRO_DOCUMENTO: "74881286",
-    FECHA_REGISTRO: "2025-12-22T13:26:14",
-    USUARIO_REGISTRO: "73101361",
-    TIPO_SEGURO: "SIS"
-  },
-  {
-    ID_CITA: "00043254",
-    NOMBRES: "HUAMAN TORRES ALISSON SHOMARA",
-    ESTADO: "2",
-    NRO_DOCUMENTO: "76481286",
-    FECHA_REGISTRO: "2025-12-22T13:26:14",
-    USUARIO_REGISTRO: "73101361",
-    TIPO_SEGURO: "SOAT"
-  },
-  {
-    ID_CITA: "04233100",
-    NOMBRES: "MORALES IBAÑEZ CATALINA",
-    ESTADO: "1",
-    NRO_DOCUMENTO: "04233100",
-    FECHA_REGISTRO: "2025-12-22T14:12:54",
-    USUARIO_REGISTRO: "73101361",
-    TIPO_SEGURO: "PAGANTE"
-  },
-  {
-    ID_CITA: "71820900",
-    NOMBRES: "IBAÑEZ GUTIERREZ NATALY KARLA",
-    ESTADO: "0",
-    NRO_DOCUMENTO: "71820900",
-    FECHA_REGISTRO: "2025-12-22T14:10:27",
-    USUARIO_REGISTRO: "73101361",
-    TIPO_SEGURO: "SIS"
-  }
-]
 
 export function LaboratoryTable({
-  fecha,
-  origen,
-  estado,
-  searchType,
-  searchValue,
-  useIdCita,
-  idCita
+  data,
+  isLoading,
+  hasSearched,
+  onViewDetail,
+  onEdit,
+  onDelete
 }: LaboratoryTableProps) {
-  const [data] = useState<LaboratoryCita[]>(mockData)
 
   const getEstadoBadge = (estado: string) => {
-    switch (estado) {
+    const estadoTrimmed = estado?.trim() || ""
+    switch (estadoTrimmed) {
       case "0":
         return <Badge variant="destructive">Anulado</Badge>
       case "1":
@@ -100,122 +50,131 @@ export function LaboratoryTable({
     }
   }
 
-  const handleEdit = (idCita: string) => {
-  }
-
-  const handleDelete = (idCita: string) => {
-  }
-
-  const handlePrint = (idCita: string) => {
-  }
-
-  const handleCargarCallis = (idCita: string) => {
-  }
-
-  const handleCargarOrina = (idCita: string) => {
-  }
-
-  const handleVerPDF = (idCita: string) => {
+  const getOrigenLabel = (origen: string) => {
+    const origenTrimmed = origen?.trim() || ""
+    switch (origenTrimmed) {
+      case "CE":
+        return "Cons. Ext."
+      case "E":
+        return "Emergencia"
+      case "H":
+        return "Hospitalización"
+      default:
+        return origen || "-"
+    }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold text-blue-800">
-          Resultados de Búsqueda ({data.length} registros)
-        </CardTitle>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold text-blue-800">
+            Resultados de Búsqueda
+          </CardTitle>
+          {hasSearched && (
+            <Badge variant="outline" className="text-blue-600">
+              {data.length} registro{data.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
+        <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-blue-50">
+              <TableRow className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <TableHead className="font-semibold text-blue-900">ID Cita</TableHead>
-                <TableHead className="font-semibold text-blue-900">Nombres</TableHead>
-                <TableHead className="font-semibold text-blue-900">Estado</TableHead>
+                <TableHead className="font-semibold text-blue-900">Cód. Paciente</TableHead>
                 <TableHead className="font-semibold text-blue-900">N° Documento</TableHead>
-                <TableHead className="font-semibold text-blue-900">Fecha Registro</TableHead>
-                <TableHead className="font-semibold text-blue-900">Usuario</TableHead>
-                <TableHead className="font-semibold text-blue-900">Tipo Seguro</TableHead>
+                <TableHead className="font-semibold text-blue-900">Nombre Paciente</TableHead>
+                <TableHead className="font-semibold text-blue-900 text-center">Hora</TableHead>
+                <TableHead className="font-semibold text-blue-900 text-center">Estado</TableHead>
                 <TableHead className="font-semibold text-blue-900 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    No se encontraron resultados
+                  <TableCell colSpan={7} className="text-center py-16">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+                      <span className="text-gray-500 font-medium">Buscando citas de laboratorio...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : !hasSearched ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-16 text-gray-500">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
+                        <Eye className="h-8 w-8 text-blue-400" />
+                      </div>
+                      <span className="text-lg font-medium">Utilice los filtros para buscar citas</span>
+                      <span className="text-sm text-gray-400">Seleccione fecha, origen y presione "Buscar"</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : data.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-lg">No se encontraron resultados</span>
+                      <span className="text-sm text-gray-400">Intente con otros filtros de búsqueda</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((cita) => (
-                  <TableRow key={cita.ID_CITA} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">{cita.ID_CITA}</TableCell>
-                    <TableCell>{cita.NOMBRES}</TableCell>
-                    <TableCell>{getEstadoBadge(cita.ESTADO)}</TableCell>
-                    <TableCell>{cita.NRO_DOCUMENTO}</TableCell>
-                    <TableCell>
-                      {format(new Date(cita.FECHA_REGISTRO), "dd/MM/yyyy HH:mm")}
+                data.map((cita, index) => (
+                  <TableRow 
+                    key={cita.idCita || index} 
+                    className="hover:bg-blue-50/50 transition-colors"
+                  >
+                    <TableCell className="font-mono text-xs text-gray-600">
+                      {cita.idCita || "-"}
                     </TableCell>
-                    <TableCell>{cita.USUARIO_REGISTRO}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{cita.TIPO_SEGURO}</Badge>
+                    <TableCell className="font-medium text-gray-700">
+                      {cita.idPaciente || "-"}
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {cita.nroDocumento || "-"}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[250px] truncate" title={cita.nombrePaciente}>
+                      {cita.nombrePaciente || "-"}
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-sm">
+                      {cita.hora || "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getEstadoBadge(cita.estado)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 justify-center flex-wrap">
+                      <div className="flex gap-1 justify-center">
                         <Button
                           size="sm"
                           variant="ghost"
                           className="h-8 w-8 p-0 hover:bg-blue-100"
-                          onClick={() => handleEdit(cita.ID_CITA)}
+                          onClick={() => onViewDetail(cita)}
+                          title="Ver Detalle"
+                        >
+                          <Eye className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 hover:bg-amber-100"
+                          onClick={() => onEdit(cita)}
                           title="Editar"
                         >
-                          <Edit className="h-4 w-4 text-blue-600" />
+                          <Edit className="h-4 w-4 text-amber-600" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           className="h-8 w-8 p-0 hover:bg-red-100"
-                          onClick={() => handleDelete(cita.ID_CITA)}
+                          onClick={() => onDelete(cita)}
                           title="Eliminar"
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 hover:bg-gray-100"
-                          onClick={() => handlePrint(cita.ID_CITA)}
-                          title="Imprimir"
-                        >
-                          <Printer className="h-4 w-4 text-gray-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 hover:bg-purple-100"
-                          onClick={() => handleCargarCallis(cita.ID_CITA)}
-                          title="Cargar Callis"
-                        >
-                          <FileText className="h-4 w-4 text-purple-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 hover:bg-cyan-100"
-                          onClick={() => handleCargarOrina(cita.ID_CITA)}
-                          title="Cargar Orina"
-                        >
-                          <Droplet className="h-4 w-4 text-cyan-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 hover:bg-green-100"
-                          onClick={() => handleVerPDF(cita.ID_CITA)}
-                          title="Ver PDF"
-                        >
-                          <Eye className="h-4 w-4 text-green-600" />
                         </Button>
                       </div>
                     </TableCell>

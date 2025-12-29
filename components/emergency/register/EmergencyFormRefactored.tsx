@@ -223,7 +223,10 @@ export function EmergencyFormRefactored({
     usuario: primerApellido || 'SISTEMA',
     // Campos adicionales para distrito y lugar de nacimiento
     COD_DISTRITO: '',
-    LUGAR_NACIMIENTO: ''
+    LUGAR_NACIMIENTO: '',
+    // Empresa de seguro (opcional, solo cuando seguro='02' SOAT)
+    aseguradora: '',
+    aseguradoraDisplay: ''
   });
 
   // Obtener funciones del contexto de datos del paciente
@@ -643,7 +646,9 @@ export function EmergencyFormRefactored({
         RELIGION: (filiacionData?.religion || formData.religion || '0').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         SEGUROLIQ: seguroLiqValue.padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
         FORMA_INGRESO: (formData.formaIngreso === '1' ? '1' : (formData.formaIngreso || '1')).padEnd(1, ' ').substring(0, 1), // Asegurar que sea 1 (Caminando) por defecto
-        CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7) // Ajustar a Char(7) exactamente
+        CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7), // Ajustar a Char(7) exactamente
+        // EMPRESASEG: Solo se envía si el seguro es SOAT (02)
+        EMPRESASEG: seguroValue.trim() === '02' ? (formData.aseguradora || '').trim() : ''
       };
       
       // Determinar si es creación o actualización
@@ -695,7 +700,9 @@ export function EmergencyFormRefactored({
               paciente: pacienteData,
               seguro: seguroCodeForAccount,
               usuario: primerApellido,
-              nombre: nombreData
+              nombre: nombreData,
+              observa: formData.observacion1 || '',
+              empresaSeguro: seguroCodeForAccount === '02' ? (formData.aseguradora || '') : ''
             })
           });
 
@@ -867,6 +874,19 @@ export function EmergencyFormRefactored({
       // Si hay CUENTAID en los datos de emergencia, actualizarlo
       if (emergencyData.CUENTAID) {
         setCuentaId(emergencyData.CUENTAID);
+      }
+      
+      // Cargar EMPRESASEGURO si existe (para edición)
+      if (emergencyData.EMPRESASEGURO) {
+        const empresaCode = emergencyData.EMPRESASEGURO?.toString().trim() || '';
+        const empresaNombre = emergencyData.EMPRESASEG_NOMBRE?.toString().trim() || '';
+        console.log(`📋 Cargando EMPRESASEGURO: ${empresaCode} - ${empresaNombre}`);
+        
+        setFormData(prev => ({
+          ...prev,
+          aseguradora: empresaCode,
+          aseguradoraDisplay: empresaNombre ? `(${empresaCode}) - ${empresaNombre}` : empresaCode
+        }));
       }
     }
     setLoading(false);

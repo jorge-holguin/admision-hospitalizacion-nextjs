@@ -1697,6 +1697,7 @@ model EMERGENCIA {
   ANIMO                     String?              @db.VarChar(150)
   ORINA                     String?              @db.VarChar(255)
   DEPOSICIONES              String?              @db.VarChar(255)
+  EMPRESASEGURO             String?              @db.VarChar(2)
   CERTIFICADO_MEDICO        CERTIFICADO_MEDICO[]
 
   @@index([PACIENTE], map: "<Name of Missing Index, sysname,>")

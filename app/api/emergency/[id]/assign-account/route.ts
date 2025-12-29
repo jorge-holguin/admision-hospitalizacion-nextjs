@@ -36,7 +36,8 @@ export async function POST(
       origen, 
       usuario, 
       nrofua, 
-      presta 
+      presta,
+      empresaSeguro
     } = body;
 
     // Validar que todos los campos requeridos estén presentes
@@ -62,7 +63,8 @@ export async function POST(
           CONSULTORIO,
           NOMBRES,
           FECHA,
-          HORA
+          HORA,
+          OBSERVACION1
         FROM EMERGENCIA 
         WHERE EMERGENCIA_ID = ${idEmergencia}
       ` as any[];
@@ -85,6 +87,7 @@ export async function POST(
       const consultorioEmergencia = emergencia.CONSULTORIO?.trim() || consultorio || "2090";
       const empresaEmergencia = empresa || "0"; // Empresa siempre es '0' para emergencias
       const nombreEmergencia = emergencia.NOMBRES?.trim() || nombre || "";
+      const observacionEmergencia = emergencia.OBSERVACION1?.trim() || observa || ".";
       
       // Formatear fecha correctamente para SQL Server (DD/MM/YYYY)
       let fechaFormateada: string;
@@ -108,32 +111,33 @@ export async function POST(
         fechaFormateada = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
       }
       
-      // Formatear hora correctamente para SQL Server (HH:MM:SS)
+      // Formatear hora correctamente para SQL Server (HH:MM)
       let horaFormateada: string;
       if (emergencia.HORA) {
-        // Si es un string, usarlo directamente (puede ser "HH:MM" o "HH:MM:SS")
+        // Si es un string, usarlo directamente y asegurar formato HH:MM
         const horaStr = String(emergencia.HORA).trim();
-        // Asegurar formato HH:MM:SS
-        if (horaStr.length === 5) {
-          horaFormateada = `${horaStr}:00`;
-        } else if (horaStr.length >= 8) {
-          horaFormateada = horaStr.substring(0, 8);
+        // Extraer solo HH:MM (primeros 5 caracteres)
+        if (horaStr.length >= 5) {
+          horaFormateada = horaStr.substring(0, 5);
         } else {
           horaFormateada = horaStr;
         }
       } else if (hora) {
-        horaFormateada = hora;
+        // Si viene del body, asegurar formato HH:MM
+        const horaStr = String(hora).trim();
+        horaFormateada = horaStr.length >= 5 ? horaStr.substring(0, 5) : horaStr;
       } else {
         const now = new Date();
-        horaFormateada = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        horaFormateada = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       }
       
       console.log(`📋 Datos extraídos de la emergencia:`);
       console.log(`   - Consultorio: '${consultorioEmergencia}' (BD: '${emergencia.CONSULTORIO}', body: '${consultorio}')`);
       console.log(`   - Empresa: '${empresaEmergencia}'`);
       console.log(`   - Nombre: '${nombreEmergencia}'`);
+      console.log(`   - Observacion: '${observacionEmergencia}' (BD: '${emergencia.OBSERVACION1}')`);
       console.log(`   - Fecha formateada: '${fechaFormateada}' (BD: '${emergencia.FECHA}')`);
-      console.log(`   - Hora formateada: '${horaFormateada}' (BD: '${emergencia.HORA}')`);
+      console.log(`   - Hora formateada: '${horaFormateada}' (BD: '${emergencia.HORA}')`)
 
       // 2. Verificar si el SEGUROLIQ está en los valores permitidos
       const segurosPermitidos = ["0", "02", "17"];
@@ -191,7 +195,7 @@ export async function POST(
             @seguro = ${seguro || "02"},
             @empresa = ${empresaEmergencia},
             @consultorio = ${consultorioEmergencia},
-            @observa = ${observa || "."},
+            @observa = ${observacionEmergencia},
             @fecha = ${fechaFormateada},
             @estado = ${estado},
             @hora = ${horaFormateada},
@@ -279,6 +283,37 @@ export async function POST(
         USUARIO = ${usuario} 
         WHERE EMERGENCIA_ID = ${idEmergencia}
       `;
+      
+      // 5.1 Si hay empresaSeguro, actualizar tanto en emergencia como en cuenta
+      if (empresaSeguro) {
+        console.log(`📋 Actualizando EMPRESASEGURO en emergencia y cuenta: ${empresaSeguro}`);
+        
+        // Actualizar EMPRESASEGURO en la emergencia
+        await tx.$executeRaw`
+          UPDATE EMERGENCIA 
+          SET EMPRESASEGURO = ${empresaSeguro}
+          WHERE EMERGENCIA_ID = ${idEmergencia}
+        `;
+        
+        // Actualizar EMPRESASEGURO en la cuenta
+        await tx.$executeRaw`
+          UPDATE CUENTA 
+          SET EMPRESASEGURO = ${empresaSeguro}
+          WHERE CUENTAID = ${cuentaId}
+        `;
+        
+        console.log(`✅ EMPRESASEGURO actualizada correctamente en emergencia y cuenta`);
+      }
+      
+      // 5.2 Actualizar observaciones en la cuenta si vienen en el body
+      if (observa && observa.trim() !== '' && observa !== '.') {
+        console.log(`📋 Actualizando OBSERVACION en cuenta: ${observa}`);
+        await tx.$executeRaw`
+          UPDATE CUENTA 
+          SET OBSERVACION = ${observa}
+          WHERE CUENTAID = ${cuentaId}
+        `;
+      }
       
       console.log(`Filas afectadas en la actualización: ${updateResult}`);
       

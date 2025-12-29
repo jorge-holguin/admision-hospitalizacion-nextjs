@@ -110,7 +110,7 @@ export default function Dashboard() {
           )}
 
           {/* LABORATORIO - Acceso para todos */}
-          <Card
+          {/* <Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-purple-200"
             onClick={handleLaboratoryClick}
           >
@@ -125,7 +125,7 @@ export default function Dashboard() {
                 Gestión de citas de laboratorio
               </p>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* TABLAS MAESTRAS - Solo DEVOPS y ESTADISTICA */}
           {canAccessTablasMaestras && (

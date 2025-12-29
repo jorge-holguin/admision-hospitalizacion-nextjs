@@ -14,9 +14,29 @@ interface ErrorAlertProps {
 export function ErrorAlert({ title = "Error", message, onClose, show }: ErrorAlertProps) {
   if (!show) return null
 
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onClose) {
+      onClose()
+    }
+  }
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose(e)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md mx-4 bg-white rounded-lg shadow-2xl border-2 border-red-500 animate-in fade-in zoom-in duration-200">
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="relative w-full max-w-md mx-4 bg-white rounded-lg shadow-2xl border-2 border-red-500 animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center gap-3 p-6 pb-4 border-b border-red-200 bg-red-50">
           <div className="flex-shrink-0">
@@ -29,8 +49,9 @@ export function ErrorAlert({ title = "Error", message, onClose, show }: ErrorAle
           </div>
           {onClose && (
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-shrink-0 p-1 rounded-full hover:bg-red-100 transition-colors"
+              type="button"
             >
               <X className="w-5 h-5 text-red-600" />
             </button>
@@ -48,9 +69,10 @@ export function ErrorAlert({ title = "Error", message, onClose, show }: ErrorAle
         <div className="flex justify-end gap-3 p-6 pt-4 border-t border-gray-200 bg-gray-50">
           {onClose && (
             <Button
-              onClick={onClose}
+              onClick={handleClose}
               variant="default"
               className="bg-red-600 hover:bg-red-700 text-white px-6"
+              type="button"
             >
               Entendido
             </Button>

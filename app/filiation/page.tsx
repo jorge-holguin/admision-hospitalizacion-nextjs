@@ -467,8 +467,8 @@ export default function FiliationPage() {
       header: "Dirección",
     },
     {
-      key: "Nombre_Localidad",
-      header: "Localidad",
+      key: "TELEFONO1",
+      header: "Telefono",
     },
     {
       key: "Distrito_Dir",
@@ -536,7 +536,7 @@ export default function FiliationPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navbar title="Sistema de Admisión Web" subtitle="HOSPITALIZACIÓN" showBackButton={false} />
+        <Navbar title="Sistema de Admisión Web" subtitle="Filiación" showBackButton={false} />
         <Toaster />
 
       {/* Main Content */}

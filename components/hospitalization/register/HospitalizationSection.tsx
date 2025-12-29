@@ -19,7 +19,7 @@ interface HospitalizationSectionProps {
   patientId: string;
   validationErrors: Record<string, string>;
   disabled?: boolean;
-  verificacionDiagnosticoRef: React.RefObject<VerificacionDiagnosticoRef>;
+  verificacionDiagnosticoRef?: React.RefObject<VerificacionDiagnosticoRef>;
   onFormChange: (field: string, value: string) => void;
   onOrigenChange: (value: string, origenData: OrigenHospitalizacion | null) => void;
   onAttentionOriginChange: (value: string) => void;

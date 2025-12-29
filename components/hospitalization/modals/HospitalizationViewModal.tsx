@@ -110,7 +110,6 @@ export function HospitalizationViewModal({
   }, [isOpen, hospitalizationId]) // ✅ Removido initialData de dependencias
 
   const handleSave = (updatedData: any) => {
-    console.log('✅ Hospitalización actualizada:', updatedData)
     setSubmitSuccess(true)
     
     toast({

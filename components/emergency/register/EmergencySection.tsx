@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect, { OptionItem } from "@/components/ui/SearchableSelect";
@@ -12,6 +12,14 @@ import { ConsultorioEmergencySelector } from "../selectors/ConsultorioEmergencyS
 import { usePatientData } from "@/contexts/PatientDataContext";
 
 // Using OptionItem from SearchableSelect component
+
+interface EmpresaSeguro {
+  EMPRESA: string;
+  NOMBRE: string;
+  RUC?: string;
+  DIRECCION?: string;
+  TELEFONO?: string;
+}
 
 interface EmergencySectionProps {
   formData: any;
@@ -25,6 +33,7 @@ interface EmergencySectionProps {
   onSeguroChange: (value: string, seguroData: any) => void;
   onMedicoChange: (value: string, medicoData: any) => void;
   onDiagnosticoChange: (value: string, diagnosticoData: any) => void;
+  onAseguradoraChange?: (value: string, aseguradoraData: any) => void;
   // Optional preloaded options to avoid duplicate API calls
   preloadedMotivos?: any[];
   preloadedConsultorios?: any[];
@@ -54,6 +63,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   onSeguroChange,
   onMedicoChange,
   onDiagnosticoChange,
+  onAseguradoraChange,
   preloadedMotivos,
   preloadedConsultorios,
   preloadedFormasIngreso,
@@ -97,6 +107,60 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   const [searchConsultorio, setSearchConsultorio] = useState("");
   const [searchForma, setSearchForma] = useState("");
   const [searchSeguro, setSearchSeguro] = useState("");
+  const [searchAseguradora, setSearchAseguradora] = useState("");
+  
+  // ===== Estado para Aseguradoras (SOAT) =====
+  const [empresasSeguro, setEmpresasSeguro] = useState<EmpresaSeguro[]>([]);
+  const [loadingEmpresasSeguro, setLoadingEmpresasSeguro] = useState(false);
+  
+  // Verificar si el seguro seleccionado es SOAT (02)
+  const seguroTrimmed = formData.seguro?.trim() || '';
+  const isSOAT = seguroTrimmed === '02' || seguroTrimmed === '2';
+  
+  // Debug log para verificar el valor
+  useEffect(() => {
+  }, [formData.seguro, seguroTrimmed, isSOAT, formData.seguroDisplay]);
+  
+  // Cargar empresas de seguro cuando el seguro es SOAT
+  const fetchEmpresasSeguro = useCallback(async (search?: string) => {
+    try {
+      setLoadingEmpresasSeguro(true);
+      const url = search 
+        ? `/api/emergency/empresas-seguro?search=${encodeURIComponent(search)}`
+        : '/api/emergency/empresas-seguro';
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.ok) {
+        setEmpresasSeguro(data.data || []);
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar empresas de seguro:', error);
+    } finally {
+      setLoadingEmpresasSeguro(false);
+    }
+  }, []);
+  
+  // Cargar empresas cuando el seguro cambia a SOAT
+  useEffect(() => {
+    if (isSOAT && empresasSeguro.length === 0) {
+      fetchEmpresasSeguro();
+    }
+  }, [isSOAT, empresasSeguro.length, fetchEmpresasSeguro]);
+  
+  // Debounce para búsqueda de aseguradoras
+  useEffect(() => {
+    if (!isSOAT) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (searchAseguradora.length >= 2) {
+        fetchEmpresasSeguro(searchAseguradora);
+      } else if (searchAseguradora.length === 0 && empresasSeguro.length > 0) {
+        fetchEmpresasSeguro();
+      }
+    }, 500); // 500ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchAseguradora, isSOAT, fetchEmpresasSeguro]);
 
   // No need for dropdown management as it's handled in the SearchableSelect component
 
@@ -285,6 +349,25 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     opts: { value: string; display: string }[],
     code?: string
   ) => opts.find((o) => o.value === code)?.display || "";
+  
+  // Formato de opciones para aseguradoras
+  const formatEmpresasSeguro = useMemo(() => {
+    return empresasSeguro
+      .filter((e) => {
+        if (!searchAseguradora) return true;
+        const searchLower = searchAseguradora.toLowerCase();
+        return (
+          e.NOMBRE?.toLowerCase().includes(searchLower) ||
+          e.EMPRESA?.toLowerCase().includes(searchLower)
+        );
+      })
+      .map((e) => ({
+        value: e.EMPRESA,
+        display: `(${e.EMPRESA}) - ${e.NOMBRE}`,
+        description: e.RUC ? `RUC: ${e.RUC}` : "",
+        data: e,
+      }));
+  }, [empresasSeguro, searchAseguradora]);
 
   return (
     <div className="space-y-6 mt-8" data-testid="emergency-section">
@@ -391,6 +474,15 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
               onFormChange("seguroDisplay", opt.display);
             }
             
+            // Limpiar aseguradora si cambia de SOAT a otro tipo
+            if (seguroValue !== '02' && seguroValue !== '2') {
+              onFormChange("aseguradora", "");
+              onFormChange("aseguradoraDisplay", "");
+              if (onAseguradoraChange) {
+                onAseguradoraChange("", null);
+              }
+            }
+            
             onFormChange("seguro", seguroValue);
             onSeguroChange(seguroValue, seguroData);
           }}
@@ -400,6 +492,34 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           placeholder="Seleccionar seguro..."
           disabled={disabled}
         />
+        
+        {/* Aseguradora - Solo visible cuando el seguro es SOAT (02) */}
+        {isSOAT && (
+          <SearchableSelect
+            label="Aseguradora (Opcional)"
+            value={formData.aseguradoraDisplay || ""}
+            options={formatEmpresasSeguro}
+            loading={loadingEmpresasSeguro}
+            search={searchAseguradora}
+            onSearchChange={(v: string) => {
+              console.log('⌨️ Escribiendo en búsqueda de aseguradora:', v);
+              setSearchAseguradora(v);
+              // El debounce en useEffect hará el fetch automáticamente
+            }}
+            onSelect={(opt: OptionItem) => {
+              onFormChange("aseguradora", opt.value);
+              onFormChange("aseguradoraDisplay", opt.display);
+              if (onAseguradoraChange) {
+                onAseguradoraChange(opt.value, opt.data);
+              }
+            }}
+            selectName="aseguradora"
+            required={false}
+            error={validationErrors.aseguradora}
+            placeholder="Seleccionar aseguradora (opcional)..."
+            disabled={disabled}
+          />
+        )}
 
         {/* Motivo de Emergencia */}
         <SearchableSelect

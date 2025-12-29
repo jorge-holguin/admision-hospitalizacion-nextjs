@@ -213,7 +213,7 @@ export function HospitalizationFormRefactored({
       hospitalizedIn: data.hospitalizedIn,
       authorizingDoctor: data.authorizingDoctor,
       financing: data.financing,
-      diagnosis: data.diagnosis
+      diagnosis: data.diagnosis,
     }));
     
     if (data.origenData) {
@@ -378,7 +378,7 @@ export function HospitalizationFormRefactored({
         // Datos del acompañante
         ACOMPANANTE_NOMBRE: truncate(formData.companionName || '', 50),
         ACOMPANANTE_TELEFONO: truncate(formData.companionPhone || '', 15),
-        ACOMPANANTE_DIRECCION: truncate(formData.companionAddress || '', 100)
+        ACOMPANANTE_DIRECCION: truncate(formData.companionAddress || '', 100),
         // ✅ Solo enviamos los campos con valores reales
         // Los campos null/vacíos no se envían para evitar sobrescribir valores por defecto de la BD
       };
@@ -460,7 +460,7 @@ export function HospitalizationFormRefactored({
                 paciente: result.data?.PACIENTE || result.PACIENTE || patientId,
                 seguro: seguroCode,
                 usuario: primerApellido,
-                nombre: nombrePaciente
+                nombre: nombrePaciente,
               })
             });
             
@@ -716,7 +716,6 @@ export function HospitalizationFormRefactored({
                 patientId={patientId}
                 validationErrors={validationErrors}
                 disabled={fieldsLocked}
-                // verificacionDiagnosticoRef={verificacionDiagnosticoRef}
                 onFormChange={handleFormChange}
                 onOrigenChange={(value, origenData) => {
                   setFormData(prev => ({

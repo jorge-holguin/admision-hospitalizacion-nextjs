@@ -261,6 +261,89 @@ class CuentaService {
       return { success: false, message: errorMessage };
     }
   }
+  /**
+   * Actualiza la OBSERVACION y EMPRESASEGURO de una cuenta específica
+   * Se usa al editar una emergencia/hospitalización para sincronizar con la cuenta
+   */
+  async updateCuentaObservacionYEmpresa(
+    cuentaId: string, 
+    observacion?: string, 
+    empresaSeguro?: string
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      console.log(`📝 Actualizando cuenta ${cuentaId}:`);
+      console.log(`   - OBSERVACION: ${observacion || '(sin cambio)'}`);
+      console.log(`   - EMPRESASEGURO: ${empresaSeguro || '(sin cambio)'}`);
+      
+      // Construir la consulta dinámicamente según los campos a actualizar
+      const updates: string[] = [];
+      
+      if (observacion !== undefined && observacion !== null) {
+        updates.push(`OBSERVACION = '${observacion.replace(/'/g, "''")}'`);
+      }
+      
+      if (empresaSeguro !== undefined && empresaSeguro !== null) {
+        updates.push(`EMPRESASEGURO = '${empresaSeguro.trim()}'`);
+      }
+      
+      if (updates.length === 0) {
+        return {
+          success: true,
+          message: 'No hay campos para actualizar'
+        };
+      }
+      
+      const updateQuery = `UPDATE CUENTA SET ${updates.join(', ')} WHERE CUENTAID = '${cuentaId}'`;
+      console.log(`🔄 Query: ${updateQuery}`);
+      
+      // Ejecutar la actualización usando queryRaw para construcción dinámica
+      const result = await prisma.$executeRawUnsafe(updateQuery);
+      
+      console.log(`✅ Filas afectadas: ${result}`);
+      
+      if (result > 0) {
+        // Verificar la actualización
+        const cuentaActualizada = await prisma.$queryRaw`
+          SELECT CUENTAID, PACIENTE, SEGURO, EMPRESASEGURO, OBSERVACION 
+          FROM CUENTA 
+          WHERE CUENTAID = ${cuentaId}
+        ` as any[];
+        
+        console.log('📋 Cuenta después de la actualización:', cuentaActualizada[0]);
+        
+        return {
+          success: true,
+          message: `Cuenta ${cuentaId} actualizada correctamente`,
+          data: cuentaActualizada[0]
+        };
+      } else {
+        return {
+          success: false,
+          message: `No se encontró la cuenta ${cuentaId}`
+        };
+      }
+    } catch (error: any) {
+      const errorMessage = `Error al actualizar cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
+      console.error(errorMessage, error);
+      return { success: false, message: errorMessage };
+    }
+  }
+
+  /**
+   * Obtiene una cuenta por su ID
+   */
+  async getCuentaById(cuentaId: string): Promise<any | null> {
+    try {
+      const cuenta = await prisma.$queryRaw`
+        SELECT * FROM CUENTA WHERE CUENTAID = ${cuentaId}
+      ` as any[];
+      
+      return Array.isArray(cuenta) && cuenta.length > 0 ? cuenta[0] : null;
+    } catch (error: any) {
+      console.error(`Error al obtener cuenta ${cuentaId}:`, error);
+      return null;
+    }
+  }
 }
 
 export const cuentaService = new CuentaService();

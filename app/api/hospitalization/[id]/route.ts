@@ -6,16 +6,16 @@ import { revalidatePath } from 'next/cache'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Validar que el ID exista y sea válido
-    if (!params || !params.id || params.id === 'undefined' || params.id.trim() === '') {
-      console.error('API: ID de orden de hospitalización inválido o no proporcionado:', params?.id);
+    if (!id || id === 'undefined' || id.trim() === '') {
+      console.error('API: ID de orden de hospitalización inválido o no proporcionado:', id);
       return NextResponse.json({ error: 'ID de orden de hospitalización inválido o no proporcionado' }, { status: 400 });
     }
-    
-    const id = params.id;
     console.log(`API: Buscando orden de hospitalización con ID: ${id}`);
     
     const result = await ordenHospitalizacionService.getOrdenHospitalizacionById(id);
@@ -26,24 +26,24 @@ export async function GET(
     
     return NextResponse.json(result);
   } catch (error) {
-    const idValue = params?.id || 'desconocido';
-    console.error(`Error fetching orden de hospitalización ${idValue}:`, error instanceof Error ? error.message : 'Unknown error');
+    console.error(`Error fetching orden de hospitalización:`, error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Validar que el ID exista y sea válido
-    if (!params || !params.id || params.id === 'undefined' || params.id.trim() === '') {
-      console.error('API: ID de orden de hospitalización inválido o no proporcionado para actualización:', params?.id);
+    if (!id || id === 'undefined' || id.trim() === '') {
+      console.error('API: ID de orden de hospitalización inválido o no proporcionado para actualización:', id);
       return NextResponse.json({ error: 'ID de orden de hospitalización inválido o no proporcionado' }, { status: 400 });
     }
     
-    const id = params.id;
     console.log(`API: Actualizando orden de hospitalización con ID: ${id}`);
     
     // Obtener los datos del cuerpo de la solicitud
@@ -100,18 +100,17 @@ export async function PUT(
       return NextResponse.json({ error: 'Error al actualizar la orden de hospitalización en la base de datos' }, { status: 500 });
     }
   } catch (error) {
-    const idValue = params?.id || 'desconocido';
-    console.error(`Error actualizando orden de hospitalización ${idValue}:`, error instanceof Error ? error.message : 'Unknown error');
+    console.error(`Error actualizando orden de hospitalización:`, error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     
     if (!id) {
       return NextResponse.json(

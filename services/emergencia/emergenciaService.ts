@@ -45,6 +45,7 @@ export interface EmergenciaData {
   HISTORIA?: string;
   CIEX1?: string;
   TIPO_CIEX1?: string;
+  EMPRESASEG?: string;
   // Description fields from joined tables
   MOTIVO_DESCRIPCION?: string;
   DIAGNOSTICO_DESCRIPCION?: string;
@@ -210,21 +211,62 @@ const emergenciasQuery = `
 
       console.log(`Buscando emergencia con ID: ${emergenciaId}`);
       
-      // Usar consulta SQL nativa con joins para obtener todos los campos necesarios
+      // Usar consulta SQL nativa con joins para obtener solo los campos necesarios (optimizado)
       const result = await prisma.$queryRaw`
         SELECT TOP 1 
-          e.*,
+          e.EMERGENCIA_ID,
+          e.FECHA,
+          e.HORA,
+          e.ORDEN,
+          e.PATERNO,
+          e.MATERNO,
+          e.NOMBRE,
+          e.NOMBRES,
+          e.PACIENTE,
+          e.FECHA_NACIMIENTO,
+          e.EDAD,
+          e.SEXO,
+          e.ESTADO_CIVIL,
+          e.DIRECCION,
+          e.DISTRITO,
+          e.TELEFONO1,
+          e.TELEFONO2,
+          e.TIPO_DOCUMENTO,
+          e.DOCUMENTO,
+          e.ACOMPANANTE,
+          e.TIPO_DOCUMENTOA,
+          e.DOCUMENTOA,
+          e.CONSULTORIO,
+          e.MOTIVO_EMERGENCIA,
+          e.SEGURO,
+          e.SEGUROLIQ,
+          e.OBSERVACION1,
+          e.OBSERVACION2,
+          e.ESTADO,
+          e.CUENTAID,
+          e.USUARIO,
+          e.PRE_AFILIACION,
+          e.LOCALIDAD,
+          e.TIPOATENCION,
+          e.RELIGION,
+          e.FORMA_INGRESO,
+          e.HISTORIA,
+          e.CIEX1,
+          e.TIPO_CIEX1,
+          e.EMPRESASEGURO,
           me.NOMBRE AS MOTIVO_DESCRIPCION,
           c.NOMBRE AS CONSULTORIO_DESCRIPCION,
           s.NOMBRE AS SEGURO_NOMBRE,
           sl.NOMBRE AS SEGUROLIQ_NOMBRE,
-          fi.NOMBRE AS FORMA_INGRESO_DESCRIPCION
+          fi.NOMBRE AS FORMA_INGRESO_DESCRIPCION,
+          es.NOMBRE AS EMPRESASEG_NOMBRE
         FROM EMERGENCIA e
         LEFT JOIN MOTIVO_EMERGENCIA me ON e.MOTIVO_EMERGENCIA = me.MOTIVO_EMERGENCIA
         LEFT JOIN CONSULTORIO c ON e.CONSULTORIO = c.CONSULTORIO
         LEFT JOIN SEGURO s ON e.SEGURO = s.SEGURO
         LEFT JOIN SEGURO sl ON e.SEGUROLIQ = sl.SEGURO
         LEFT JOIN FORMA_INGRESO fi ON e.FORMA_INGRESO = fi.FORMA_INGRESO
+        LEFT JOIN EMPRESASEGURO es ON e.EMPRESASEGURO = es.EMPRESASEGURO
         WHERE e.EMERGENCIA_ID = ${emergenciaId}
       `;
       
@@ -450,6 +492,7 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         HISTORIA: data.HISTORIA || '',
         CIEX1: data.CIEX1 || '0',
         TIPO_CIEX1: data.TIPO_CIEX1 || '0',
+        EMPRESASEGURO: data.EMPRESASEG || '',
       };
       
       // Crear la emergencia usando SQL nativo en lugar de Prisma ORM
@@ -464,7 +507,7 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
           TELEFONO1, TELEFONO2, TIPO_DOCUMENTO, DOCUMENTO, ACOMPANANTE, TIPO_DOCUMENTOA,
           DOCUMENTOA, CONSULTORIO, MOTIVO_EMERGENCIA, SEGURO, OBSERVACION1, OBSERVACION2,
           ESTADO, CUENTAID, USUARIO, PRE_AFILIACION, LOCALIDAD, TIPOATENCION, RELIGION,
-          SEGUROLIQ, FORMA_INGRESO, HISTORIA, CIEX1, TIPO_CIEX1
+          SEGUROLIQ, FORMA_INGRESO, HISTORIA, CIEX1, TIPO_CIEX1, EMPRESASEGURO
         ) VALUES (
           ${emergenciaData.EMERGENCIA_ID},
           ${emergenciaData.FECHA},
@@ -504,7 +547,8 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
           ${emergenciaData.FORMA_INGRESO},
           ${emergenciaData.HISTORIA},
           ${emergenciaData.CIEX1},
-          ${emergenciaData.TIPO_CIEX1}
+          ${emergenciaData.TIPO_CIEX1},
+          ${emergenciaData.EMPRESASEGURO}
         )
       `;
       
@@ -683,6 +727,9 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
       }
       if (data.TIPO_CIEX1 !== undefined) {
         await prisma.$executeRaw`UPDATE EMERGENCIA SET TIPO_CIEX1 = ${data.TIPO_CIEX1} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+      }
+      if (data.EMPRESASEG !== undefined) {
+        await prisma.$executeRaw`UPDATE EMERGENCIA SET EMPRESASEGURO = ${data.EMPRESASEG} WHERE EMERGENCIA_ID = ${emergenciaId}`;
       }
       
       // Obtener la emergencia actualizada

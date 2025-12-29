@@ -75,6 +75,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     seguro: string;
     seguroDisplay?: string;
     seguroLiq: string;
+    aseguradora?: string;
+    aseguradoraDisplay?: string;
     observacion1: string;
     observacion2: string;
     // Datos del acompañante
@@ -89,6 +91,13 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     cuentaId?: string; // ID de cuenta para actualización
   };
   
+  // Interface para empresas de seguro
+  interface EmpresaSeguro {
+    EMPRESA: string;
+    NOMBRE: string;
+    RUC?: string;
+  }
+  
   const [formData, setFormData] = useState<FormDataType>({
     tipoAtencion: "",
     condicionPaciente: "",
@@ -101,6 +110,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     seguro: "",
     seguroDisplay: "",
     seguroLiq: "",
+    aseguradora: "",
+    aseguradoraDisplay: "",
     observacion1: "",
     observacion2: "",
     // Datos del acompañante
@@ -246,6 +257,60 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   const [searchConsultorio, setSearchConsultorio] = useState("");
   const [searchForma, setSearchForma] = useState("");
   const [searchSeguro, setSearchSeguro] = useState("");
+  const [searchAseguradora, setSearchAseguradora] = useState("");
+  
+  // ===== Estado para Aseguradoras (SOAT) =====
+  const [empresasSeguro, setEmpresasSeguro] = useState<EmpresaSeguro[]>([]);
+  const [loadingEmpresasSeguro, setLoadingEmpresasSeguro] = useState(false);
+  
+  // Verificar si el seguro seleccionado es SOAT (02)
+  const seguroLiqTrimmed = formData.seguroLiq?.trim() || '';
+  const isSOAT = seguroLiqTrimmed === '02' || seguroLiqTrimmed === '2';
+  
+  // Debug log para verificar el valor
+  useEffect(() => {
+  }, [formData.seguroLiq, seguroLiqTrimmed, isSOAT]);
+  
+  // Cargar empresas de seguro cuando el seguro es SOAT
+  const fetchEmpresasSeguro = useCallback(async (search?: string) => {
+    try {
+      setLoadingEmpresasSeguro(true);
+      const url = search 
+        ? `/api/emergency/empresas-seguro?search=${encodeURIComponent(search)}`
+        : '/api/emergency/empresas-seguro';
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.ok) {
+        setEmpresasSeguro(data.data || []);
+      }
+    } catch (error) {
+      console.error('❌ [View] Error al cargar empresas de seguro:', error);
+    } finally {
+      setLoadingEmpresasSeguro(false);
+    }
+  }, []);
+  
+  // Cargar empresas cuando el seguro cambia a SOAT
+  useEffect(() => {
+    if (isSOAT && empresasSeguro.length === 0) {
+      fetchEmpresasSeguro();
+    }
+  }, [isSOAT, empresasSeguro.length, fetchEmpresasSeguro]);
+  
+  // Debounce para búsqueda de aseguradoras
+  useEffect(() => {
+    if (!isSOAT) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (searchAseguradora.length >= 2) {
+        fetchEmpresasSeguro(searchAseguradora);
+      } else if (searchAseguradora.length === 0 && empresasSeguro.length > 0) {
+        fetchEmpresasSeguro();
+      }
+    }, 500); // 500ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchAseguradora, isSOAT, fetchEmpresasSeguro]);
 
   // ===== Solo un dropdown abierto =====
   const [openSelect, setOpenSelect] = useState<string | null>(null);
@@ -308,6 +373,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
           `(${extractCode(initialData.SEGUROLIQ)}) - ${initialData.SEGUROLIQ_NOMBRE}` : 
           (initialData.SEGURO_NOMBRE ? `(${extractCode(initialData.SEGURO)}) - ${initialData.SEGURO_NOMBRE}` : ''),
         seguroLiq: extractCode(initialData.SEGUROLIQ),
+        aseguradora: extractCode(initialData.EMPRESASEGURO),
+        aseguradoraDisplay: initialData.EMPRESASEG_NOMBRE ? 
+          `(${extractCode(initialData.EMPRESASEGURO)}) - ${initialData.EMPRESASEG_NOMBRE}` : '',
         observacion1: cleanApiString(initialData.OBSERVACION1),
         observacion2: cleanApiString(initialData.OBSERVACION2),
         // Datos del acompañante
@@ -492,6 +560,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         FORMA_INGRESO: limitLength(formData.formaIngreso, 1),         // Char(1)
         SEGURO: seguroLiqValue,                                       // Char(3) - Igual a SEGUROLIQ
         SEGUROLIQ: seguroLiqValue,                                    // Char(3)
+        EMPRESASEG: limitLength(formData.aseguradora, 2),             // Char(2) - Empresa de seguro SOAT
         OBSERVACION1: limitLength(formData.observacion1, 100),         // Estimado VarChar(100)
         OBSERVACION2: limitLength(formData.observacion2, 100),         // Estimado VarChar(100)
         ACOMPANANTE: limitLength(formData.acompanante, 100),          // VarChar(100)
@@ -499,6 +568,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         DOCUMENTOA: limitLength(formData.documentoA, 15),             // Char(15)
         FECHA: formattedDate,                                         // DateTime
         HORA: limitLength(formData.hora, 5),                          // Char(5)
+        CUENTAID: initialData?.CUENTAID || '',                        // Incluir CUENTAID para sincronizar cuenta
       };
       
       // Si el seguro ha cambiado y tenemos un nuevo CUENTAID, incluirlo en la actualización
@@ -748,6 +818,35 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     opts: { value: string; display: string }[],
     code?: string
   ) => opts.find((o) => o.value === code)?.display || "";
+  
+  // Formato de opciones para aseguradoras
+  const formatEmpresasSeguro = useMemo(() => {
+    return empresasSeguro
+      .filter((e) => {
+        if (!searchAseguradora) return true;
+        const searchLower = searchAseguradora.toLowerCase();
+        return (
+          e.NOMBRE?.toLowerCase().includes(searchLower) ||
+          e.EMPRESA?.toLowerCase().includes(searchLower)
+        );
+      })
+      .map((e) => ({
+        value: e.EMPRESA,
+        display: `(${e.EMPRESA}) - ${e.NOMBRE}`,
+        description: e.RUC ? `RUC: ${e.RUC}` : "",
+        data: e,
+      }));
+  }, [empresasSeguro, searchAseguradora]);
+  
+  // Función para encontrar el nombre de una aseguradora
+  const findAseguradoraName = useCallback((code: string) => {
+    if (!code || !empresasSeguro.length) return "";
+    const empresa = empresasSeguro.find(e => e.EMPRESA?.trim() === code?.trim());
+    if (empresa) {
+      return `(${empresa.EMPRESA}) - ${empresa.NOMBRE}`;
+    }
+    return code ? `(${code})` : "";
+  }, [empresasSeguro]);
 
   // Función memoizada para encontrar el nombre de un motivo por su código
   const findMotivoName = useCallback((code: string) => {
@@ -939,13 +1038,45 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                     loading={loadingSeguros}
                     search={searchSeguro}
                     onSearchChange={(v: string) => setSearchSeguro(v)}
-                    onSelect={(value: string, data: any) => handleFormChange("seguroLiq", value)}
+                    onSelect={(value: string, data: any) => {
+                      handleFormChange("seguroLiq", value);
+                      // Limpiar aseguradora si cambia de SOAT a otro tipo
+                      if (value !== '02' && value !== '2') {
+                        handleFormChange("aseguradora", "");
+                        handleFormChange("aseguradoraDisplay", "");
+                      }
+                    }}
                     selectName="seguroLiq"
                     required
                     error={validationErrors.seguroLiq}
                     placeholder="Seleccionar seguro..."
                     disabled={readOnly || !isFieldEnabled('seguroLiq')}
                   />
+                  
+                  {/* Aseguradora - Solo visible cuando el seguro es SOAT (02) */}
+                  {isSOAT && (
+                    <SearchableSelect
+                      label="Aseguradora (Opcional)"
+                      value={formData.aseguradoraDisplay || findAseguradoraName(formData.aseguradora || "")}
+                      options={formatEmpresasSeguro}
+                      loading={loadingEmpresasSeguro}
+                      search={searchAseguradora}
+                      onSearchChange={(v: string) => {
+                        console.log('⌨️ [View] Escribiendo en búsqueda de aseguradora:', v);
+                        setSearchAseguradora(v);
+                        // El debounce en useEffect hará el fetch automáticamente
+                      }}
+                      onSelect={(value: string, data: any) => {
+                        handleFormChange("aseguradora", value);
+                        handleFormChange("aseguradoraDisplay", `(${value}) - ${data?.NOMBRE || ''}`);
+                      }}
+                      selectName="aseguradora"
+                      required={false}
+                      error={validationErrors.aseguradora}
+                      placeholder="Seleccionar aseguradora (opcional)..."
+                      disabled={readOnly || !isFieldEnabled('aseguradora')}
+                    />
+                  )}
 
                         {/* Motivo de Emergencia */}
                  <SearchableSelect
