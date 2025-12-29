@@ -84,7 +84,7 @@ export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode 
         },
         body: JSON.stringify({
           establecimientoDestino: ESTABLECIMIENTO_DESTINO,
-          limite: "10",
+          limite: "25",
           numerodocumento: params.numerodocumento,
           pagina: "1",
           tipodocumento: params.tipodocumento
