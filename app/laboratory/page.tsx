@@ -20,7 +20,7 @@ import { LaboratoryDetailModal } from "@/components/laboratory/LaboratoryDetailM
 import { toast } from "@/components/ui/use-toast"
 
 // URL base del API externo de laboratorio
-const LAB_API_BASE_URL = "http://192.168.0.252:9011/api/apoyodiagnostico/laboratorio/citas"
+const LAB_API_BASE_URL = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/apoyodiagnostico/laboratorio/citas`
 
 export default function LaboratoryPage() {
   const router = useRouter()
