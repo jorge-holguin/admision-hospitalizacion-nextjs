@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { Sql } from "@prisma/client/runtime/library";
 
 // Inicializar el cliente Prisma
 const prisma = new PrismaClient();
@@ -30,14 +29,15 @@ export async function POST(
       empresa, 
       consultorio, 
       observa, 
-      fecha, 
       hora, 
       nombre, 
       origen, 
       usuario, 
       nrofua, 
       presta,
-      empresaSeguro
+      empresaSeguro,
+      reuseAccountId, // ID de cuenta existente para reutilizar (opcional)
+      forceCreateNew  // Forzar creación de nueva cuenta (opcional)
     } = body;
 
     // Validar que todos los campos requeridos estén presentes
@@ -89,27 +89,12 @@ export async function POST(
       const nombreEmergencia = emergencia.NOMBRES?.trim() || nombre || "";
       const observacionEmergencia = emergencia.OBSERVACION1?.trim() || observa || ".";
       
-      // Formatear fecha correctamente para SQL Server (DD/MM/YYYY)
-      let fechaFormateada: string;
-      if (emergencia.FECHA) {
-        // Si es un objeto Date, formatearlo
-        const fechaObj = emergencia.FECHA instanceof Date ? emergencia.FECHA : new Date(emergencia.FECHA);
-        if (!isNaN(fechaObj.getTime())) {
-          const dia = String(fechaObj.getDate()).padStart(2, '0');
-          const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
-          const anio = fechaObj.getFullYear();
-          fechaFormateada = `${dia}/${mes}/${anio}`;
-        } else {
-          // Fallback a fecha actual
-          const now = new Date();
-          fechaFormateada = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-        }
-      } else if (fecha) {
-        fechaFormateada = fecha;
-      } else {
-        const now = new Date();
-        fechaFormateada = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-      }
+      // ✅ CORRECCIÓN: Usar la fecha ACTUAL del servidor para FECHA_APERTURA de la cuenta
+      // La cuenta se apertura en el momento actual, no en la fecha de la emergencia
+      const now = new Date();
+      const fechaFormateada = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+      
+      console.log(`📅 Fecha de apertura de cuenta (fecha actual): ${fechaFormateada}`);
       
       // Formatear hora correctamente para SQL Server (HH:MM)
       let horaFormateada: string;
@@ -159,21 +144,78 @@ export async function POST(
         );
       }
 
-      // 3. Buscar si el paciente ya tiene una cuenta activa del mismo tipo de seguro
-      // Para emergencias usamos ORIGEN = 'EM' y verificamos que el SEGURO coincida
-      const seguroParaBuscar = seguro || "02";
-      const cuentaExistente = await tx.$queryRaw`
-        SELECT TOP 1 CUENTAID 
-        FROM CUENTA 
-        WHERE PACIENTE = ${paciente} 
-        AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = ${seguroParaBuscar}
-        ORDER BY FECHA_APERTURA DESC
-      ` as any[];
+      // 3. Si se proporciona reuseAccountId, usar esa cuenta directamente
+      if (reuseAccountId) {
+        console.log(`♻️ Reutilizando cuenta existente: ${reuseAccountId}`);
+        
+        // Verificar que la cuenta existe y está activa
+        const cuentaVerificada = await tx.$queryRaw`
+          SELECT TOP 1 CUENTAID, ESTADO 
+          FROM CUENTA 
+          WHERE CUENTAID = ${reuseAccountId} AND ESTADO = '1'
+        ` as any[];
+        
+        if (!cuentaVerificada || cuentaVerificada.length === 0) {
+          return NextResponse.json(
+            { 
+              ok: false, 
+              mensaje: `La cuenta ${reuseAccountId} no existe o no está activa` 
+            },
+            { status: 400 }
+          );
+        }
+        
+        // Actualizar la emergencia con el CUENTAID existente
+        await tx.$executeRaw`
+          UPDATE EMERGENCIA 
+          SET CUENTAID = ${reuseAccountId}, 
+          USUARIO = ${usuario} 
+          WHERE EMERGENCIA_ID = ${idEmergencia}
+        `;
+        
+        // Si hay empresaSeguro, actualizar en emergencia
+        if (empresaSeguro) {
+          await tx.$executeRaw`
+            UPDATE EMERGENCIA 
+            SET EMPRESASEGURO = ${empresaSeguro}
+            WHERE EMERGENCIA_ID = ${idEmergencia}
+          `;
+        }
+        
+        console.log(`✅ Emergencia ${idEmergencia} actualizada con cuenta reutilizada ${reuseAccountId}`);
+        
+        return NextResponse.json(
+          { 
+            ok: true, 
+            mensaje: "Cuenta reutilizada correctamente", 
+            cuentaId: reuseAccountId,
+            reutilizada: true
+          },
+          { status: 200 }
+        );
+      }
 
+      // 4. Buscar si el paciente ya tiene una cuenta activa del mismo tipo de seguro
+      // SOLO si NO se está forzando la creación de una nueva cuenta
       let cuentaId;
+      let cuentaExistente: any[] = [];
+      
+      if (!forceCreateNew) {
+        // Para emergencias usamos ORIGEN = 'EM' y verificamos que el SEGURO coincida
+        const seguroParaBuscar = seguro || "02";
+        cuentaExistente = await tx.$queryRaw`
+          SELECT TOP 1 CUENTAID 
+          FROM CUENTA 
+          WHERE PACIENTE = ${paciente} 
+          AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = ${seguroParaBuscar}
+          ORDER BY FECHA_APERTURA DESC
+        ` as any[];
+      } else {
+        console.log('🆕 forceCreateNew=true: Se creará una nueva cuenta sin verificar existentes');
+      }
 
-      // 4. Si no existe una cuenta activa del mismo tipo de seguro, llamar al procedimiento almacenado
-      if (!cuentaExistente || cuentaExistente.length === 0) {
+      // 5. Si no existe una cuenta activa O se fuerza la creación, llamar al procedimiento almacenado
+      if (forceCreateNew || !cuentaExistente || cuentaExistente.length === 0) {
         // Preparar los parámetros para el SP
         const estado = "1"; // Estado activo
         

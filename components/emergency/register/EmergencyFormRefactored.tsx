@@ -21,6 +21,7 @@ import { EmergencyDetails } from './EmergencyDetails'
 import { validateEmergencyForm } from './FormValidatorEmergency'
 import { useSelectsState } from './FormUtilsEmergency'
 import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
+import { AccountConfirmationDialog } from '../modals/AccountConfirmationDialog'
 
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
@@ -123,8 +124,14 @@ export function EmergencyFormRefactored({
   const [loadingCuenta, setLoadingCuenta] = useState<boolean>(false);
   const [cuentaId, setCuentaId] = useState<string | null>(null);
   
+  // Estados para el diálogo de confirmación de cuenta
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [existingAccountInfo, setExistingAccountInfo] = useState<any>(null);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [accountDialogLoading, setAccountDialogLoading] = useState(false);
+  
   // Usar contexto para fecha y hora del servidor
-  const { serverDateTime } = useServerDateTime();
+  const { serverDateTime, refreshDateTime } = useServerDateTime();
 
   // Contextos para datos compartidos
   const { seguros } = useSeguros()
@@ -246,9 +253,20 @@ export function EmergencyFormRefactored({
     return fetchedData as PatientDataExtended | null;
   }, [getPatientData, fetchPatientData]);
 
+  // Refrescar fecha y hora del servidor al montar el componente (cada vez que se abre el modal)
+  // Solo para emergencias nuevas, no para edición
+  useEffect(() => {
+    if (!emergencyId && !emergencyData) {
+      // Es una emergencia nueva, refrescar la hora del servidor
+      console.log('🕐 Refrescando fecha/hora del servidor para nueva emergencia');
+      refreshDateTime();
+    }
+  }, []); // Solo al montar el componente
+  
   // Usar fecha y hora del servidor desde el contexto
   useEffect(() => {
-    if (serverDateTime.date && serverDateTime.time) {
+    // Solo actualizar si es una emergencia nueva (no edición)
+    if (!emergencyId && !emergencyData && serverDateTime.date && serverDateTime.time) {
       // Actualizar formulario con fecha y hora del servidor
       setFormData(prev => ({
         ...prev,
@@ -256,7 +274,7 @@ export function EmergencyFormRefactored({
         hora: serverDateTime.time || fallbackTime
       }));
     }
-  }, [serverDateTime, fallbackDate, fallbackTime]);
+  }, [serverDateTime, fallbackDate, fallbackTime, emergencyId, emergencyData]);
 
   // Ya no necesitamos cargar tipos de documento, usamos el contexto
 
@@ -486,15 +504,36 @@ export function EmergencyFormRefactored({
 
 
 
-  // Función para procesar el formulario (solo se ejecuta después de la confirmación)
-  const processForm = async () => {
+  // Función para verificar si existe una cuenta activa para el paciente
+  const checkExistingAccount = async (seguroCode: string): Promise<any> => {
+    try {
+      const response = await fetch(`/api/emergency/check-account?paciente=${patientId}&seguro=${seguroCode}`);
+      const result = await response.json();
+      
+      if (result.ok && result.requiresCuenta && result.existeCtaActiva && result.cuenta) {
+        return result.cuenta;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error al verificar cuenta existente:', error);
+      return null;
+    }
+  };
+
+  // Función para procesar el formulario con opción de reutilizar cuenta o forzar creación
+  const processFormWithAccountOption = async (reuseAccountId?: string, forceCreateNew?: boolean) => {
     try {
       setSubmitting(true);
+      setAccountDialogLoading(true);
       
-      // Obtener el siguiente ID de emergencia y orden si es creación
-      let emergencyIdToUse = emergencyId;
-      let ordenToUse = formData.orden || '';
-      let cuentaIdToUse = formData.cuentaId || '';
+      // Usar los datos pendientes si existen, o los datos actuales del formulario
+      const dataToUse = pendingFormData || {
+        emergencyIdToUse: emergencyId,
+        ordenToUse: formData.orden || '',
+        cuentaIdToUse: formData.cuentaId || ''
+      };
+      
+      let { emergencyIdToUse, ordenToUse, cuentaIdToUse } = dataToUse;
       
       if (!emergencyIdToUse) {
         const nextIds = await fetchNextEmergencyIds();
@@ -505,6 +544,7 @@ export function EmergencyFormRefactored({
             variant: "destructive"
           });
           setSubmitting(false);
+          setAccountDialogLoading(false);
           return;
         }
         
@@ -512,65 +552,8 @@ export function EmergencyFormRefactored({
         ordenToUse = nextIds.orden;
       }
 
-      // Obtener la cuenta activa del paciente si no la tenemos
-      // Para emergencias, necesitamos el tipo de seguro
-      if (!cuentaIdToUse && formData.seguro) {
-        const accountData = await fetchEmergencyAccount(patientId, formData.seguro);
-        cuentaIdToUse = accountData?.cuentaId || '';
-      }
-      
-      // Obtener datos de filiación del contexto (ya cargados previamente)
+      // Obtener datos de filiación del contexto
       const filiacionData = getPatientFiliation(patientId);
-      
-      if (filiacionData) {
-        
-        // Actualizar el formulario con los datos de filiación
-        setFormData(prev => {
-          return {
-            ...prev,
-            emergenciaId: emergencyIdToUse,
-            orden: ordenToUse,
-            cuentaId: cuentaIdToUse,
-            estadoCivil: filiacionData.estadoCivil || prev.estadoCivil || '',
-            direccion: filiacionData.direccion || prev.direccion || '',
-            distrito: filiacionData.distrito || prev.distrito || '',
-            telefono1: filiacionData.telefono1 || prev.telefono1 || '',
-            telefono2: filiacionData.telefono2 || prev.telefono2 || '',
-            nombre: filiacionData.nombre || prev.nombre || '',
-            nombres: filiacionData.nombres || prev.nombres || '',
-            apellidoPaterno: filiacionData.apellidoPaterno || prev.apellidoPaterno || '',
-            apellidoMaterno: filiacionData.apellidoMaterno || prev.apellidoMaterno || '',
-            tipoDocumento: filiacionData.tipoDocumento || prev.tipoDocumento || '',
-            documento: filiacionData.documento || prev.documento || '',
-            localidad: filiacionData.localidad || prev.localidad || '',
-            seguro: filiacionData.seguro ? `${filiacionData.seguro} - ${filiacionData.descSeguro || ''}` : prev.seguro || '',
-            religion: filiacionData.religion || prev.religion || '',
-            COD_DISTRITO: filiacionData.COD_DISTRITO || prev.COD_DISTRITO || '',
-            LUGAR_NACIMIENTO: filiacionData.LUGAR_NACIMIENTO || prev.LUGAR_NACIMIENTO || ''
-          };
-        });
-      } else {
-        // Actualizar el formulario solo con los IDs
-        setFormData(prev => ({
-          ...prev,
-          emergenciaId: emergencyIdToUse,
-          orden: ordenToUse,
-          cuentaId: cuentaIdToUse
-        }));
-      }
-      
-      // Validar el formulario
-      const validation = validateEmergencyForm(formData);
-      if (!validation.isValid) {
-        setValidationErrors(validation.errors);
-        toast({
-          title: "Error de validación",
-          description: "Por favor complete todos los campos requeridos",
-          variant: "destructive"
-        });
-        setSubmitting(false);
-        return;
-      }
       
       // Extraer códigos de los valores seleccionados
       const consultorioCode = formData.consultorio.split(' - ')[0] || '';
@@ -581,7 +564,6 @@ export function EmergencyFormRefactored({
       let seguroValue = seguroCode;
       let seguroLiqValue = seguroCode;
       
-      // Si el seguro mostrado en el formulario es PAGANTE, usar código 0 para ambos campos
       if (formData.seguro.includes('PAGANTE') || seguroCode === '0') {
         seguroValue = '0';
         seguroLiqValue = '0';
@@ -590,154 +572,119 @@ export function EmergencyFormRefactored({
         seguroLiqValue = '0';
       }
       
-      // Formatear fecha como YYYYMMDD
       const fechaFormateada = formData.fecha.replace(/-/g, '');
       
-      // Los datos de filiación ya están disponibles desde arriba
-      
-      // Preparar datos para enviar al servidor con límites de longitud adecuados
-      const emergencyData = {
+      // Preparar datos para enviar al servidor
+      const emergencyDataPayload = {
         EMERGENCIA_ID: emergencyIdToUse,
         PACIENTE: patientId,
         FECHA: fechaFormateada,
         HORA: formData.hora,
         CONSULTORIO: consultorioCode.padEnd(6, ' ').substring(0, 6),
         MOTIVO_EMERGENCIA: motivoCode.padEnd(2, ' ').substring(0, 2),
-        SEGURO: seguroValue.padEnd(2, ' ').substring(0, 2), // Usar el valor convertido para SEGURO
-        OBSERVACION1: (formData.observacion1 || '').substring(0, 100), // Limitar a 100 caracteres
-        OBSERVACION2: (formData.observacion2 || '').substring(0, 100), // Limitar a 100 caracteres
-        ESTADO: formData.estado.substring(0, 1), // Limitar a 1 caracter
-        USUARIO: (primerApellido || 'SISTEMA').substring(0, 10), // Limitar a 10 caracteres
-        // Campos adicionales
-        ORDEN: (ordenToUse || '1').padStart(3, '0').substring(0, 3), // Formatear como '001' en lugar de '1'
-        // Usar datos de filiación para los campos de nombre y apellidos
-        PATERNO: (filiacionData && typeof filiacionData === 'object' && 'apellidoPaterno' in filiacionData ? String(filiacionData.apellidoPaterno) : formData.apellidoPaterno || '').substring(0, 30), // Limitar a 30 caracteres
-        MATERNO: (filiacionData && typeof filiacionData === 'object' && 'apellidoMaterno' in filiacionData ? String(filiacionData.apellidoMaterno) : formData.apellidoMaterno || '').substring(0, 30), // Limitar a 30 caracteres
-        NOMBRE: (filiacionData && typeof filiacionData === 'object' && 'nombre' in filiacionData ? String(filiacionData.nombre) : formData.nombres || '').substring(0, 30), // Limitar a 30 caracteres
-        NOMBRES: (filiacionData && typeof filiacionData === 'object' && 'nombres' in filiacionData ? String(filiacionData.nombres) : `${formData.nombres || ''} ${formData.apellidoMaterno || ''} ${formData.apellidoPaterno || ''}`).trim().substring(0, 100),
-        TIPO_DOCUMENTO: (filiacionData?.tipoDocumento || formData.tipoDocumento || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
-        DOCUMENTO: (formData.documento || '').substring(0, 15), // Limitar a 15 caracteres
-        FECHA_NACIMIENTO: formData.fechaNacimiento ? formData.fechaNacimiento.replace(/-/g, '').substring(0, 8) : '', // Limitar a 8 caracteres
+        SEGURO: seguroValue.padEnd(2, ' ').substring(0, 2),
+        OBSERVACION1: (formData.observacion1 || '').substring(0, 100),
+        OBSERVACION2: (formData.observacion2 || '').substring(0, 100),
+        ESTADO: formData.estado.substring(0, 1),
+        USUARIO: (primerApellido || 'SISTEMA').substring(0, 10),
+        ORDEN: (ordenToUse || '1').padStart(3, '0').substring(0, 3),
+        PATERNO: (filiacionData?.apellidoPaterno || formData.apellidoPaterno || '').substring(0, 30),
+        MATERNO: (filiacionData?.apellidoMaterno || formData.apellidoMaterno || '').substring(0, 30),
+        NOMBRE: (filiacionData?.nombre || formData.nombres || '').substring(0, 30),
+        NOMBRES: (filiacionData?.nombres || `${formData.nombres || ''} ${formData.apellidoMaterno || ''} ${formData.apellidoPaterno || ''}`).trim().substring(0, 100),
+        TIPO_DOCUMENTO: (filiacionData?.tipoDocumento || formData.tipoDocumento || '').padEnd(2, ' ').substring(0, 2),
+        DOCUMENTO: (formData.documento || '').substring(0, 15),
+        FECHA_NACIMIENTO: formData.fechaNacimiento ? formData.fechaNacimiento.replace(/-/g, '').substring(0, 8) : '',
         EDAD: (() => {
-          // Obtener edad y asegurar mínimo 1 día si es 000a00m00d
           let edad = (filiacionData?.edad || formData.edad || '').substring(0, 10);
-          if (edad === '000a00m00d') {
-            edad = '000a00m01d';
-          }
+          if (edad === '000a00m00d') edad = '000a00m01d';
           return edad;
-        })(), // Limitar a 10 caracteres, mínimo 1 día
-        SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1), // Limitar a 1 caracter
-        ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
-        DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100), // Limitar a 100 caracteres
-        // Usar el valor de ubigeo (COD_DISTRITO) para el distrito
-        DISTRITO: (() => {
-          // Priorizar COD_DISTRITO sobre distrito
-          const codigoDistrito = filiacionData?.COD_DISTRITO || formData.COD_DISTRITO || '';
-          return codigoDistrito.trim().substring(0, 7);
-        })(), // Limitar a 7 caracteres
-        TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20), // Limitar a 20 caracteres
-        TELEFONO2: (filiacionData?.telefono2 || formData.telefono2 || '').substring(0, 20), // Limitar a 20 caracteres
-        ACOMPANANTE: (formData.acompanante || '').substring(0, 100), // Limitar a 100 caracteres
-        TIPO_DOCUMENTOA: (formData.tipoDocumentoA === 'D' ? 'D' : (formData.tipoDocumentoA || 'D')).substring(0, 2), // Asegurar que sea D por defecto
-        DOCUMENTOA: (formData.documentoA || '').substring(0, 15), // Limitar a 15 caracteres
-        PRE_AFILIACION: (formData.preAfiliacion || '').padEnd(1, ' ').substring(0, 1), // Limitar a 1 caracter
-        LOCALIDAD: (filiacionData?.localidad || formData.localidad || '').padEnd(12, ' ').substring(0, 12), // Limitar a 12 caracteres
-        TIPOATENCION: (formData.tipoAtencion || 'E').padEnd(1, ' ').substring(0, 1), // Limitar a 1 caracter
-        RELIGION: (filiacionData?.religion || formData.religion || '0').padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
-        SEGUROLIQ: seguroLiqValue.padEnd(2, ' ').substring(0, 2), // Limitar a 2 caracteres
-        FORMA_INGRESO: (formData.formaIngreso === '1' ? '1' : (formData.formaIngreso || '1')).padEnd(1, ' ').substring(0, 1), // Asegurar que sea 1 (Caminando) por defecto
-        CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7), // Ajustar a Char(7) exactamente
-        // EMPRESASEG: Solo se envía si el seguro es SOAT (02)
+        })(),
+        SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1),
+        ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2),
+        DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100),
+        DISTRITO: (filiacionData?.COD_DISTRITO || formData.COD_DISTRITO || '').trim().substring(0, 7),
+        TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20),
+        TELEFONO2: (filiacionData?.telefono2 || formData.telefono2 || '').substring(0, 20),
+        ACOMPANANTE: (formData.acompanante || '').substring(0, 100),
+        TIPO_DOCUMENTOA: (formData.tipoDocumentoA === 'D' ? 'D' : (formData.tipoDocumentoA || 'D')).substring(0, 2),
+        DOCUMENTOA: (formData.documentoA || '').substring(0, 15),
+        PRE_AFILIACION: (formData.preAfiliacion || '').padEnd(1, ' ').substring(0, 1),
+        LOCALIDAD: (filiacionData?.localidad || formData.localidad || '').padEnd(12, ' ').substring(0, 12),
+        TIPOATENCION: (formData.tipoAtencion || 'E').padEnd(1, ' ').substring(0, 1),
+        RELIGION: (filiacionData?.religion || formData.religion || '0').padEnd(2, ' ').substring(0, 2),
+        SEGUROLIQ: seguroLiqValue.padEnd(2, ' ').substring(0, 2),
+        FORMA_INGRESO: (formData.formaIngreso === '1' ? '1' : (formData.formaIngreso || '1')).padEnd(1, ' ').substring(0, 1),
+        CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7),
         EMPRESASEG: seguroValue.trim() === '02' ? (formData.aseguradora || '').trim() : ''
       };
       
-      // Determinar si es creación o actualización
       const method = emergencyId ? 'PATCH' : 'POST';
       const url = emergencyId ? `/api/emergency/${emergencyId}` : '/api/emergency';
       
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emergencyData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emergencyDataPayload),
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        
-        // Manejar errores específicos de estado
         if (response.status === 403 && errorData.statusInfo) {
           throw new Error(`No se puede editar: ${errorData.error}`);
         }
-        
         throw new Error(errorData.error || 'Error al procesar la emergencia');
       }
       
       const result = await response.json();
       
       // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
-      // Extraer el código de seguro del resultado o de los datos del formulario
       const seguroCodeForAccount = result.data?.SEGUROLIQ?.trim() || 
                                    result.SEGUROLIQ?.trim() || 
-                                   emergencyData?.SEGUROLIQ?.trim() ||
-                                   formData.seguroLiq?.split(' - ')[0]?.trim();
+                                   emergencyDataPayload?.SEGUROLIQ?.trim();
       
       if (seguroCodeForAccount && ["0", "02", "17"].includes(seguroCodeForAccount)) {
         try {
           const pacienteData = result.data?.PACIENTE || result.PACIENTE || patientId;
-          const nombreData = result.data?.NOMBRES?.trim() || 
-                           result.NOMBRES?.trim() || 
-                           formData.nombres || 
-                           formData.nombre || '';
+          const nombreData = result.data?.NOMBRES?.trim() || result.NOMBRES?.trim() || formData.nombres || formData.nombre || '';
           
           const asegurarResponse = await fetch(`/api/emergency/${emergencyIdToUse}/assign-account`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               paciente: pacienteData,
               seguro: seguroCodeForAccount,
               usuario: primerApellido,
               nombre: nombreData,
               observa: formData.observacion1 || '',
-              empresaSeguro: seguroCodeForAccount === '02' ? (formData.aseguradora || '') : ''
+              empresaSeguro: seguroCodeForAccount === '02' ? (formData.aseguradora || '') : '',
+              reuseAccountId: reuseAccountId, // Pasar el ID de cuenta a reutilizar si existe
+              forceCreateNew: forceCreateNew  // Forzar creación de nueva cuenta si es true
             })
           });
 
           const asegurarResult = await asegurarResponse.json();
           
-          if (asegurarResult.ok) {
-            
-            // Actualizar el registro de emergencia con el cuentaId si está disponible
-            if (asegurarResult.cuentaId) {
-              try {
-                const updateResponse = await fetch(`/api/emergency/${emergencyIdToUse}`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    CUENTAID: asegurarResult.cuentaId
-                  })
-                });
-                
-                const updateResult = await updateResponse.json();
-                if (!updateResult.success) {
-                  console.error('Error al actualizar la emergencia con el CUENTAID:', updateResult.message);
-                }
-              } catch (updateError) {
-                console.error('Error al actualizar la emergencia con el CUENTAID:', updateError);
-              }
+          if (asegurarResult.ok && asegurarResult.cuentaId) {
+            try {
+              await fetch(`/api/emergency/${emergencyIdToUse}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ CUENTAID: asegurarResult.cuentaId })
+              });
+            } catch (updateError) {
+              console.error('Error al actualizar la emergencia con el CUENTAID:', updateError);
             }
-          } else {
-            console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
           }
         } catch (error) {
           console.error('Error al asegurar la cuenta:', error);
         }
       }
+      
+      // Limpiar estados del diálogo
+      setShowAccountDialog(false);
+      setExistingAccountInfo(null);
+      setPendingFormData(null);
       
       // Mostrar mensaje de éxito
       if (!isModal) {
@@ -746,62 +693,111 @@ export function EmergencyFormRefactored({
           description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
           variant: "default"
         });
+      } else if (onSuccess) {
+        onSuccess(result);
       } else {
-        // En modo modal, usar callback de éxito
-        if (onSuccess) {
-          onSuccess(result);
-        } else {
-          // Si estamos en modal pero no hay callback de éxito, mostrar toast
-          toast({
-            title: emergencyId ? "Emergencia actualizada" : "Emergencia creada",
-            description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
-            variant: "default"
-          });
-        }
+        toast({
+          title: emergencyId ? "Emergencia actualizada" : "Emergencia creada",
+          description: `Se ha ${emergencyId ? 'actualizado' : 'creado'} la emergencia correctamente`,
+          variant: "default"
+        });
       }
       
     } catch (err: any) {
       console.error('Error al procesar el formulario:', err);
       
-      // Manejar diferentes tipos de errores
       let errorTitle = "Error";
       let errorMessage = err.message;
       
-      // Detectar errores específicos por mensaje
       if (err.message.includes('No se puede editar')) {
         errorTitle = "No se puede editar";
-        // El mensaje ya viene formateado desde la API
       } else if (err.message.includes('validación')) {
         errorTitle = "Error de validación";
       } else if (err.message.includes('conexión') || err.message.includes('network')) {
         errorTitle = "Error de conexión";
         errorMessage = "Problemas de conexión con el servidor. Por favor intente nuevamente.";
-      } else if (err.message.includes('permiso') || err.message.includes('autorización')) {
-        errorTitle = "Error de permisos";
-        errorMessage = "No tiene permisos para realizar esta operación.";
       }
       
       if (!isModal) {
-        toast({
-          title: errorTitle,
-          description: errorMessage,
-          variant: "destructive",
-        });
-        
-        // Si es un error de permisos o estado, mostrar alerta adicional
+        toast({ title: errorTitle, description: errorMessage, variant: "destructive" });
         if (err.message.includes('No se puede editar')) {
           setError(errorMessage);
           setShowErrorAlert(true);
         }
-      } else {
-        // En modo modal, usar callback de error
-        if (onError) {
-          onError(errorMessage);
-        }
+      } else if (onError) {
+        onError(errorMessage);
       }
     } finally {
       setSubmitting(false);
+      setAccountDialogLoading(false);
     }
+  };
+
+  // Función para procesar el formulario (verifica cuenta existente primero)
+  const processForm = async () => {
+    try {
+      setSubmitting(true);
+      
+      // Extraer código de seguro para verificar si requiere cuenta
+      const seguroCode = formData.seguro.split(' - ')[0]?.trim() || '';
+      let seguroToCheck = seguroCode;
+      
+      // Convertir ESSALUD a PAGANTE
+      if (seguroCode === '06' || formData.seguro.includes('PAGANTE')) {
+        seguroToCheck = '0';
+      }
+      
+      // Verificar si el seguro requiere cuenta (0, 02, 17)
+      const segurosConCuenta = ['0', '00', '02', '17'];
+      
+      if (segurosConCuenta.includes(seguroToCheck)) {
+        console.log(`🔍 Verificando cuenta existente para paciente ${patientId} con seguro ${seguroToCheck}`);
+        
+        const existingAccount = await checkExistingAccount(seguroToCheck);
+        
+        if (existingAccount) {
+          console.log(`⚠️ Cuenta activa encontrada: ${existingAccount.cuentaId}`);
+          
+          // Guardar datos pendientes para después del diálogo
+          setPendingFormData({
+            emergencyIdToUse: emergencyId,
+            ordenToUse: formData.orden || '',
+            cuentaIdToUse: formData.cuentaId || ''
+          });
+          
+          // Mostrar diálogo de confirmación
+          setExistingAccountInfo(existingAccount);
+          setShowAccountDialog(true);
+          setSubmitting(false);
+          return; // Esperar decisión del usuario
+        }
+      }
+      
+      // Si no hay cuenta existente o el seguro no requiere cuenta, proceder normalmente
+      await processFormWithAccountOption();
+      
+    } catch (err: any) {
+      console.error('Error al verificar cuenta:', err);
+      setSubmitting(false);
+    }
+  };
+
+  // Handlers para el diálogo de cuenta
+  const handleReuseAccount = async (cuentaId: string) => {
+    console.log(`♻️ Usuario eligió reutilizar cuenta: ${cuentaId}`);
+    await processFormWithAccountOption(cuentaId, false); // Reutilizar cuenta existente
+  };
+
+  const handleCreateNewAccount = async () => {
+    console.log(`➕ Usuario eligió crear nueva cuenta`);
+    await processFormWithAccountOption(undefined, true); // Forzar creación de nueva cuenta
+  };
+
+  const handleCloseAccountDialog = () => {
+    setShowAccountDialog(false);
+    setExistingAccountInfo(null);
+    setPendingFormData(null);
+    setSubmitting(false);
   };
 
   // Manejar cancelación del formulario
@@ -898,6 +894,16 @@ export function EmergencyFormRefactored({
   return (
     <form id="emergency-form" onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
       <Toaster />
+      
+      {/* Diálogo de confirmación de cuenta existente */}
+      <AccountConfirmationDialog
+        isOpen={showAccountDialog}
+        onClose={handleCloseAccountDialog}
+        onReuseAccount={handleReuseAccount}
+        onCreateNew={handleCreateNewAccount}
+        accountInfo={existingAccountInfo}
+        isLoading={accountDialogLoading}
+      />
       
       {/* Renderizar alertas en el contenedor externo si se proporciona un ID */}
       {alertsContainerId && patientId && requiresFuaValidation && (

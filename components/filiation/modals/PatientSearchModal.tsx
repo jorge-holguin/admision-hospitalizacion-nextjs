@@ -9,7 +9,7 @@ import { TipoDocumentoSelector } from "@/components/appointments/selectors"
 import { useReniec } from "@/hooks/useReniec"
 import { toast } from "@/components/ui/use-toast"
 import { consultarSIS } from "@/services/sisService"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Clock } from "lucide-react"
 
 interface PatientSearchModalProps {
   onSearchComplete: (patientData: any, sisData?: any) => void
@@ -24,6 +24,8 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
   const [isLoadingReniec, setIsLoadingReniec] = useState(false)
   const [showExistsDialog, setShowExistsDialog] = useState(false)
   const [existingPatient, setExistingPatient] = useState<any>(null)
+  const [showTimeoutDialog, setShowTimeoutDialog] = useState(false) // Estado para diálogo de timeout
+  const [pendingManualData, setPendingManualData] = useState<any>(null) // Datos pendientes para registro manual
   const { consultarReniec } = useReniec()
 
   // Actualizar el número de documento cuando cambie el prop
@@ -112,7 +114,19 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
           reniecData = reniecResult.data
           hasData = true
         } else if (reniecResult.error) {
-          if (reniecResult.error.includes('DNI_NO_EXISTE')) {
+          if (reniecResult.error.includes('RENIEC_TIMEOUT')) {
+            reniecError = 'RENIEC_TIMEOUT'
+            // Guardar datos para registro manual y mostrar diálogo
+            const manualData = {
+              documentType: documentType,
+              document: documentNumber,
+              reniecError: 'RENIEC_TIMEOUT'
+            }
+            setPendingManualData({ reniecData: manualData, sisData: null })
+            setShowTimeoutDialog(true)
+            setIsLoadingReniec(false)
+            return // Salir para mostrar el diálogo
+          } else if (reniecResult.error.includes('DNI_NO_EXISTE')) {
             reniecError = 'DNI_NO_EXISTE'
             toast({
               title: "⚠️ DNI no encontrado",
@@ -207,6 +221,56 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
     } finally {
       setIsLoadingReniec(false);
     }
+  }
+
+  // Si se muestra el diálogo de timeout de RENIEC
+  if (showTimeoutDialog && pendingManualData) {
+    return (
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-amber-600 flex items-center gap-2">
+            <Clock className="h-6 w-6" />
+            Falla en servicio RENIEC
+          </DialogTitle>
+          <DialogDescription>
+            No se pudo obtener respuesta del servicio
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-gray-700 mb-3">
+              La consulta a RENIEC ha excedido el tiempo de espera de <strong>15 segundos</strong>.
+            </p>
+            <p className="text-gray-600 text-sm">
+              Esto puede deberse a problemas de conectividad o alta demanda en el servicio de RENIEC.
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              ℹ️ Puede continuar con el <strong>registro manual</strong> del paciente. Deberá completar todos los datos personales manualmente.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => {
+                setShowTimeoutDialog(false)
+                // Continuar con registro manual
+                if (pendingManualData) {
+                  onSearchComplete(pendingManualData.reniecData, pendingManualData.sisData)
+                }
+                setPendingManualData(null)
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Entendido
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    )
   }
 
   // Si se muestra el diálogo de paciente existente

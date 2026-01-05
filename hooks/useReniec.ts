@@ -87,19 +87,41 @@ export function useReniec() {
       const reniecBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
       const reniecUrl = `${reniecBaseUrl}/reniec/datos-completos?dni=${dni}&usuario=${usuarioFinal}&app=${app}&ip=${ip}&urlAplicativo=${urlAplicativo}&moduloAplicativo=${moduloAplicativo}`;
 
-      // Llamar directamente a la API de RENIEC
-      const response = await fetch(reniecUrl, {
-        method: 'GET',
-        headers: {
-          'accept': '*/*'
+      // Crear AbortController para timeout de 15 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 15000); // 15 segundos de timeout
+
+      let reniecData: ReniecData;
+      
+      try {
+        // Llamar directamente a la API de RENIEC con timeout
+        const response = await fetch(reniecUrl, {
+          method: 'GET',
+          headers: {
+            'accept': '*/*'
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Error al consultar RENIEC: ${response.statusText}`);
         }
-      });
 
-      if (!response.ok) {
-        throw new Error(`Error al consultar RENIEC: ${response.statusText}`);
+        reniecData = await response.json();
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Detectar si fue un timeout (abort)
+        if (fetchError.name === 'AbortError') {
+          console.error('⏱️ Timeout de 15 segundos alcanzado al consultar RENIEC');
+          throw new Error('RENIEC_TIMEOUT: La consulta a RENIEC ha excedido el tiempo de espera (15 segundos). Proceda con el registro manual.');
+        }
+        throw fetchError;
       }
-
-      const reniecData: ReniecData = await response.json();
 
       // Verificar si la respuesta es exitosa
       // 0000 = Éxito
