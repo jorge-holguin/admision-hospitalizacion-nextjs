@@ -21,6 +21,7 @@ interface AccountInfo {
   fechaApertura: string
   estado: string
   origen?: string
+  horaApertura: string
 }
 
 interface AccountConfirmationDialogProps {
@@ -82,6 +83,13 @@ export function AccountConfirmationDialog({
               
               <div className="text-gray-600">Fecha Apertura:</div>
               <div className="font-medium text-amber-700">{accountInfo.fechaApertura}</div>
+
+              <div className="text-gray-600">Hora Apertura:</div>
+              <div className="font-medium text-amber-700">{accountInfo.horaApertura}</div>
+
+              <div className="text-gray-600">Origen:</div>
+              <div className="font-medium text-amber-700">{accountInfo.origen}</div>
+
               
               {accountInfo.observacion && (
                 <>

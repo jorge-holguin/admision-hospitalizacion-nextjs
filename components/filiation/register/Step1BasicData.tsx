@@ -388,7 +388,7 @@ export function Step1BasicData({
               <Input
                 id="direccion"
                 placeholder="Ingrese dirección completa"
-                value={formData.direccion || patientData?.DIRECCION || reniecData?.address || ""}
+                value={formData.direccion || patientData?.DIRECCION|| ""}
                 onChange={(e) => {
                   const value = e.target.value.toUpperCase();
                   // Limitar a 60 caracteres para evitar problemas con la vista de BD

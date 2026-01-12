@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
         EMPRESASEGURO,
         OBSERVACION,
         FECHA_APERTURA,
+        HORA_APERTURA,
         ESTADO,
         ORIGEN
       FROM CUENTA 
@@ -81,6 +82,24 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Formatear la hora de apertura (HH:mm)
+      let horaAperturaFormateada = '';
+      if (cuenta.HORA_APERTURA) {
+        if (cuenta.HORA_APERTURA instanceof Date) {
+          const horas = String(cuenta.HORA_APERTURA.getUTCHours()).padStart(2, '0');
+          const minutos = String(cuenta.HORA_APERTURA.getUTCMinutes()).padStart(2, '0');
+          horaAperturaFormateada = `${horas}:${minutos}`;
+        } else {
+          const horaString = cuenta.HORA_APERTURA.toString().trim();
+          // El formato esperado es HH:mm:ss, nos quedamos con HH:mm
+          if (horaString.includes(':')) {
+            horaAperturaFormateada = horaString.substring(0, 5);
+          } else {
+            horaAperturaFormateada = horaString;
+          }
+        }
+      }
+
       console.log(`✅ Cuenta activa encontrada: ${cuenta.CUENTAID}, aperturada el ${fechaAperturaFormateada}`);
 
       return NextResponse.json({
@@ -95,6 +114,7 @@ export async function GET(req: NextRequest) {
           observacion: cuenta.OBSERVACION?.trim(),
           fechaApertura: fechaAperturaFormateada,
           fechaAperturaRaw: cuenta.FECHA_APERTURA,
+          horaApertura: horaAperturaFormateada,
           estado: cuenta.ESTADO,
           origen: cuenta.ORIGEN?.trim()
         },
