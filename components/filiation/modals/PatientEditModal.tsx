@@ -285,7 +285,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         lugarNacimiento: typeof patient.lugarNacimiento === 'object' ? patient.lugarNacimiento?.ubigeo?.trim() : patient.LUGAR_NACIMIENTO?.trim() || patient.lugarNacimiento || "",
         // País: extraer código del objeto o campo directo
         paisNacimiento: patient.pais || mapPaisValue(patient.PAIS) || "PERU",
-        direccion: patient.direccionReniec || patient.direccion || patient.DIRECCION || patient.DIRECCION_RENIEC || patient.address || "",
+        // ✅ PRIORIDAD: DIRECCION primero, luego DIRECCION_RENIEC
+        direccion: patient.direccion || patient.DIRECCION || patient.direccionReniec || patient.DIRECCION_RENIEC || patient.address || "",
         // Distrito: extraer ubigeo del objeto distrito
         distritoProcedencia: (() => {
           const codigo = typeof patient.distrito === 'object' 
@@ -546,8 +547,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           sexo: result.data.sex || prev.sexo,
           estadoCivil: result.data.maritalStatus || prev.estadoCivil,
           
-          // Dirección completa construida por el mapper
-          direccion: result.data.address || prev.direccion,
+          // ✅ RENIEC SYNC: Reemplazar direccion con direccionReniec cuando se actualiza desde RENIEC
+          direccion: result.data.address || result.data.direccionReniec || prev.direccion,
           
           // País de nacimiento (siempre PERÚ = 146 cuando hay datos RENIEC)
           paisNacimiento: "146",

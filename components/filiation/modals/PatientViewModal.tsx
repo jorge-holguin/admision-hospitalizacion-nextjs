@@ -168,7 +168,8 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     // Lugar de Nacimiento: extraer distrito del objeto
     lugarNacimiento: typeof patient.lugarNacimiento === 'object' ? patient.lugarNacimiento?.distrito : patient.LUGAR_NACIMIENTO || '',
     distrito: typeof patient.distrito === 'object' ? patient.distrito?.distrito : patient.DISTRITO || patient.district || '',
-    direccion: patient.direccionReniec || patient.DIRECCION || patient.DIRECCION_RENIEC || patient.address || '',
+    // ✅ PRIORIDAD: DIRECCION primero, luego DIRECCION_RENIEC
+    direccion: patient.direccion || patient.DIRECCION || patient.direccionReniec || patient.DIRECCION_RENIEC || patient.address || '',
     distritoProcedencia: typeof patient.distrito === 'object' ? patient.distrito?.distrito : patient.Distrito_Dir || patient.DISTRITO_RENIEC || patient.distritoProcedencia || '',
     
     // Datos Adicionales
