@@ -69,6 +69,7 @@ interface Appointment {
   tipoCita?: string | null  // ✅ Tipo de cita
   especialidadInterconsulta?: string | null  // ✅ Especialidad de interconsulta
   observacionPaciente?: string | null  // ✅ Observaciones del paciente
+  observacion?: string | null  // ✅ Observación de denegación/revisión
 }
 
 interface TipoCita {

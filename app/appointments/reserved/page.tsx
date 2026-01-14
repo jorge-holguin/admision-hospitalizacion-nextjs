@@ -47,6 +47,7 @@ interface ReservaData {
   tipoCita?: string | null
   especialidadInterconsulta?: string | null  // ✅ Especialidad de interconsulta
   observacionPaciente?: string | null  // ✅ Observaciones del paciente
+  observacion?: string | null  // ✅ Observación de denegación/revisión
   rutaReferencia?: string
   consultorio?: string | null
 }
@@ -114,6 +115,8 @@ export default function ReservedAppointmentsPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [reniecData, setReniecData] = useState<any>(null)
   const [sisData, setSisData] = useState<any>(null)
+  const [showMotivoModal, setShowMotivoModal] = useState(false)
+  const [motivoSeleccionado, setMotivoSeleccionado] = useState<string>("")
 
   // Función para obtener fechas
   const getDateRange = () => {
@@ -395,7 +398,8 @@ export default function ReservedAppointmentsPage() {
       tipoAtencion: solicitudInfo.tipoAtencion,
       tipoCita: solicitudInfo.tipoCita,
       especialidadInterconsulta: solicitudInfo.especialidadInterconsulta,
-      observacionPaciente: solicitudInfo.observacionPaciente
+      observacionPaciente: solicitudInfo.observacionPaciente,
+      observacion: solicitudInfo.observacion
     }
     setSelectedReserva(reservaCompleta)
     
@@ -407,7 +411,8 @@ export default function ReservedAppointmentsPage() {
             idSolicitudCita: solicitudInfo.idSolicitudCita,
             tipoCita: solicitudInfo.tipoCita,
             especialidadInterconsulta: solicitudInfo.especialidadInterconsulta,
-            observacionPaciente: solicitudInfo.observacionPaciente
+            observacionPaciente: solicitudInfo.observacionPaciente,
+            observacion: solicitudInfo.observacion
           }
         : r
     ))
@@ -925,12 +930,28 @@ export default function ReservedAppointmentsPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge 
-                                variant="outline" 
-                                className={getEstadoBadgeColor(reserva.estado)}
-                              >
-                                {reserva.estado}
-                              </Badge>
+                              <div className="space-y-2">
+                                <Badge 
+                                  variant="outline" 
+                                  className={getEstadoBadgeColor(reserva.estado)}
+                                >
+                                  {reserva.estado}
+                                </Badge>
+                                {reserva.estado === "DENEGADO" && reserva.observacion && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setMotivoSeleccionado(reserva.observacion || "")
+                                      setShowMotivoModal(true)
+                                    }}
+                                    className="text-xs h-7 px-2 text-red-600 border-red-300 hover:bg-red-50"
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    Ver Motivo
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
@@ -1047,7 +1068,8 @@ export default function ReservedAppointmentsPage() {
                 estado: selectedReserva.estado,
                 tipoCita: selectedReserva.tipoCita,
                 especialidadInterconsulta: selectedReserva.especialidadInterconsulta,
-                observacionPaciente: selectedReserva.observacionPaciente
+                observacionPaciente: selectedReserva.observacionPaciente,
+                observacion: selectedReserva.observacion
               }}
               onApprove={async (data: any) => {
                 // Cambiar estado a "CITADO" al aprobar
@@ -1283,6 +1305,47 @@ export default function ReservedAppointmentsPage() {
                   className="flex-1 bg-orange-600 hover:bg-orange-700"
                 >
                   {isRevirtiendo ? "Revirtiendo..." : "Confirmar Reversión"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal para mostrar el motivo de denegación */}
+          <Dialog open={showMotivoModal} onOpenChange={(open) => {
+            setShowMotivoModal(open)
+            if (!open) {
+              setMotivoSeleccionado("")
+            }
+          }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <XCircle className="h-5 w-5" />
+                  Motivo de Denegación
+                </DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  A continuación se muestra el motivo por el cual fue denegada esta solicitud.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-900 mb-2">Motivo de Rechazo:</h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {motivoSeleccionado || "No se especificó un motivo"}
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    setShowMotivoModal(false)
+                    setMotivoSeleccionado("")
+                  }}
+                  className="w-full"
+                >
+                  Cerrar
                 </Button>
               </DialogFooter>
             </DialogContent>
