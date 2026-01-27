@@ -5,11 +5,15 @@ import { usePatientData } from '@/contexts/PatientDataContext';
 interface PatientSectionEmergencyProps {
   patientId: string;
   onPatientDataLoaded: (data: any) => void;
+  onUpdatePatient?: () => void;
+  isLoadingUpdate?: boolean;
 }
 
 export const PatientSectionEmergency: React.FC<PatientSectionEmergencyProps> = ({ 
   patientId, 
-  onPatientDataLoaded 
+  onPatientDataLoaded,
+  onUpdatePatient,
+  isLoadingUpdate
 }) => {
   // Use the patient data context to check if we already have the data
   const { getPatientData } = usePatientData();
@@ -30,6 +34,8 @@ export const PatientSectionEmergency: React.FC<PatientSectionEmergencyProps> = (
         <PatientInfoCardEmergency 
           patientId={patientId} 
           onDataLoaded={onPatientDataLoaded}
+          onUpdatePatient={onUpdatePatient}
+          isLoadingUpdate={isLoadingUpdate}
           className="bg-white shadow-sm"
         />
       </div>

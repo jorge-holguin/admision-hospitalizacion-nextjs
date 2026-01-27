@@ -16,15 +16,24 @@ interface MedicoItem {
   ESPECIALIDAD?: string
 }
 
+// Interfaz para la respuesta de la API medicos-consultorios
+interface MedicoConsultorioItem {
+  medico: string
+  nombreMedico: string
+  consultorio: string
+  nombreConsultorio: string
+}
+
 interface MedicoSelectorProps {
   label?: string
   value: string | "all"
-  onChange: (value: string | "all") => void
+  onChange: (value: string | "all", consultorio?: string) => void
   className?: string
   // consultorio is intentionally ignored to keep this selector independent
   consultorio?: string | "all"
   especialidad?: string | null  // Filtrar médicos por especialidad del consultorio
   availableMedicos?: Array<{codigo: string, nombre: string}>  // Lista filtrada de médicos disponibles
+  selectedDate?: Date  // Fecha seleccionada para filtrar médicos-consultorios
 }
 
 function buildNombre(m: MedicoItem): string {
@@ -34,11 +43,38 @@ function buildNombre(m: MedicoItem): string {
   return m.MEDICO ?? ""
 }
 
-export function MedicoSelector({ label = "Médico", value, onChange, className = "", consultorio = "all", especialidad, availableMedicos }: MedicoSelectorProps) {
+export function MedicoSelector({ label = "Médico", value, onChange, className = "", consultorio = "all", especialidad, availableMedicos, selectedDate }: MedicoSelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [items, setItems] = useState<MedicoItem[]>([])
+  const [medicoConsultorioItems, setMedicoConsultorioItems] = useState<MedicoConsultorioItem[]>([])
   const [loading, setLoading] = useState(false)
+
+  // Cargar médicos desde la nueva API medicos-consultorios
+  const loadMedicosConsultorios = async (fecha: Date, signal?: AbortSignal) => {
+    try {
+      setLoading(true)
+      const dateStr = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+      const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`
+      
+      console.log('🔍 MedicoSelector: Cargando médicos-consultorios:', url)
+      const res = await fetch(url, { signal })
+      if (!res.ok) {
+        console.warn('⚠️ MedicoSelector: Error al cargar médicos-consultorios:', res.status)
+        return
+      }
+      const data: MedicoConsultorioItem[] = await res.json()
+      console.log('✅ MedicoSelector: Médicos-consultorios cargados:', data.length)
+      setMedicoConsultorioItems(data)
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('❌ MedicoSelector: Error:', error)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const load = async (q: string, signal?: AbortSignal) => {
     try {
@@ -56,8 +92,22 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
     }
   }
 
+  // Si se proporciona selectedDate, usar la nueva API medicos-consultorios
+  useEffect(() => {
+    if (selectedDate) {
+      const ctrl = new AbortController()
+      loadMedicosConsultorios(selectedDate, ctrl.signal)
+      return () => {
+        ctrl.abort()
+      }
+    }
+  }, [selectedDate])
+
   // Si se proporciona availableMedicos, usar esa lista en lugar de cargar desde API
   useEffect(() => {
+    // Si tenemos selectedDate, usamos la API de medicos-consultorios
+    if (selectedDate) return
+    
     if (availableMedicos && availableMedicos.length > 0) {
       // Convertir la lista de médicos disponibles al formato MedicoItem
       const medicoItems: MedicoItem[] = availableMedicos.map(m => ({
@@ -76,15 +126,25 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       clearTimeout(t)
       ctrl.abort()
     }
-  }, [open, search, especialidad, availableMedicos])  // Recargar cuando cambie especialidad o availableMedicos
+  }, [open, search, especialidad, availableMedicos, selectedDate])  // Recargar cuando cambie especialidad o availableMedicos
 
   // No carga inicial para evitar duplicados causados por StrictMode; se carga al abrir
 
   const display = useMemo(() => {
     if (value === "all" || !value) return "Seleccionar médico..."
+    
+    // Si usamos la API de medicos-consultorios
+    if (selectedDate && medicoConsultorioItems.length > 0) {
+      const found = medicoConsultorioItems.find(m => m.medico?.trim() === value?.trim())
+      if (found) {
+        return `${found.nombreMedico?.trim()} - ${found.nombreConsultorio?.trim()}`
+      }
+    }
+    
+    // Fallback a la lista de items tradicional
     const found = items.find(m => m.MEDICO === value)
     return found ? `${found.MEDICO} - ${buildNombre(found)}` : value
-  }, [value, items])
+  }, [value, items, medicoConsultorioItems, selectedDate])
 
   return (
     <div className={className}>
@@ -122,7 +182,33 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
                   <Check className={`mr-2 h-4 w-4 ${value === "all" ? "opacity-100" : "opacity-0"}`} />
                   Todos los médicos
                 </CommandItem>
-                {items
+                {/* Si usamos la API de medicos-consultorios */}
+                {selectedDate && medicoConsultorioItems
+                  .filter((m) => {
+                    const searchLower = search.toLowerCase()
+                    return m.nombreMedico?.toLowerCase().includes(searchLower) || 
+                           m.nombreConsultorio?.toLowerCase().includes(searchLower) ||
+                           m.medico?.toLowerCase().includes(searchLower)
+                  })
+                  .map((m, idx) => {
+                    const codigo = m.medico?.trim() || ''
+                    const displayText = `${m.nombreMedico?.trim()} - ${m.nombreConsultorio?.trim()}`
+                    return (
+                      <CommandItem
+                        key={`${codigo}-${m.consultorio}-${idx}`}
+                        value={displayText}
+                        onSelect={() => {
+                          onChange(codigo, m.consultorio?.trim()) // Enviar código y consultorio
+                          setOpen(false)
+                        }}
+                      >
+                        <Check className={`mr-2 h-4 w-4 ${value === codigo ? "opacity-100" : "opacity-0"}`} />
+                        {displayText}
+                      </CommandItem>
+                    )
+                  })}
+                {/* Fallback: usar items tradicionales si no hay selectedDate */}
+                {!selectedDate && items
                   .filter((m) => {
                     const nombre = buildNombre(m)
                     const codigo = m.MEDICO || ''

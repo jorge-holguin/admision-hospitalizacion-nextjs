@@ -7,8 +7,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
-import { User, Calendar, Phone, MapPin, CreditCard, Heart, House } from 'lucide-react';
+import { User, Calendar, Phone, MapPin, CreditCard, Heart, House, Edit } from 'lucide-react';
 import { usePatientData } from '@/contexts/PatientDataContext';
+import { Button } from '@/components/ui/button';
 import { calculateAgeFormatted, formatAgeReadable } from '@/lib/ageCalculator';
 
 interface PatientInfoCardEmergencyProps {
@@ -16,6 +17,8 @@ interface PatientInfoCardEmergencyProps {
   patient?: any; // Datos del paciente ya cargados
   onDataLoaded?: (data: any) => void;
   className?: string;
+  onUpdatePatient?: () => void; // Callback para abrir modal de edición
+  isLoadingUpdate?: boolean; // Estado de carga del botón actualizar
 }
 
 interface PatientData {
@@ -53,7 +56,9 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
   patientId,
   patient,
   onDataLoaded,
-  className = ""
+  className = "",
+  onUpdatePatient,
+  isLoadingUpdate = false
 }) => {
   // Use the patient data context
   const { getPatientData } = usePatientData();
@@ -319,6 +324,30 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
               </div>
           </div>
         </div>
+
+        {/* Botón Actualizar Historia Clínica */}
+        {onUpdatePatient && (
+          <div className="border-t pt-3 mt-3">
+            <Button
+              variant="outline"
+              onClick={onUpdatePatient}
+              disabled={isLoadingUpdate}
+              className="w-full justify-center px-6 py-2.5 h-11 border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+            >
+              {isLoadingUpdate ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Actualizar Historia Clínica
+                </>
+              )}
+            </Button>
+          </div>
+        )}
     </div>
   );
 };

@@ -41,6 +41,9 @@ interface HospitalizationFormProps {
   onBack?: () => void;
   isModal?: boolean;
   alertsContainerId?: string;
+  onUpdatePatient?: () => void;
+  isLoadingUpdate?: boolean;
+  refreshPatientKey?: number;
 }
 
 const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
@@ -54,7 +57,10 @@ export function HospitalizationFormRefactored({
   onError, 
   onBack, 
   isModal = false, 
-  alertsContainerId 
+  alertsContainerId,
+  onUpdatePatient,
+  isLoadingUpdate,
+  refreshPatientKey
 }: HospitalizationFormProps) {
   const router = useRouter();
   const { user } = useAuth(); // Moved inside the component
@@ -668,6 +674,9 @@ export function HospitalizationFormRefactored({
                 patientId={patientId}
                 hospitalizationOrderId={hospitalizationId || undefined}
                 onPatientDataLoaded={handlePatientDataLoaded}
+                onUpdatePatient={onUpdatePatient}
+                isLoadingUpdate={isLoadingUpdate}
+                refreshPatientKey={refreshPatientKey}
               />
             </CardContent>
           </Card>

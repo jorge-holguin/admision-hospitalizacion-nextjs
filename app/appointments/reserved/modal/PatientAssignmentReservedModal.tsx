@@ -246,10 +246,59 @@ function PatientAssignmentReservedModalContent({
 
   // Determinar si hay coincidencias con citas pendientes
   const hasConsultorioMatch = pendingAppointments?.some((apt) => {
-    const curr = (appointment as any)?.consultorioNombre?.trim().toLowerCase()
-    const other = apt.consultorioNombre?.trim().toLowerCase()
-    return curr && other && curr === other
+    // Obtener tanto el nombre como el código del consultorio de la cita ACTUAL (la que se quiere crear)
+    const currNombre = (appointment as any)?.consultorioNombre?.trim().toLowerCase()
+    const currCodigo = (appointment as any)?.consultorio?.trim().toLowerCase()
+    
+    // Obtener datos del consultorio de la cita PENDIENTE
+    const otherNombre = apt.consultorioNombre?.trim().toLowerCase()
+    const otherCodigo = apt.consultorio?.trim().toLowerCase()
+    
+    // Comparar por nombre o por código (cualquiera que coincida)
+    const matchNombre = currNombre && otherNombre && currNombre === otherNombre
+    const matchCodigo = currCodigo && otherCodigo && currCodigo === otherCodigo
+    
+    // También comparar código de cita actual con nombre de pendiente y viceversa
+    // Por si el formato difiere (ej: código "2090" vs nombre "2090 - EMERGENCIA")
+    const matchCodigoEnNombre = currCodigo && otherNombre && otherNombre.includes(currCodigo)
+    const matchNombreEnCodigo = currNombre && otherCodigo && currNombre.includes(otherCodigo)
+    
+    const hasMatch = matchNombre || matchCodigo || matchCodigoEnNombre || matchNombreEnCodigo
+    
+    if (hasMatch) {
+      console.log('⛔ DOBLE CITA DETECTADA EN CONSULTORIO:')
+      console.log('   📍 Consultorio de la cita actual:')
+      console.log('      - Nombre:', currNombre || 'N/A')
+      console.log('      - Código:', currCodigo || 'N/A')
+      console.log('   📍 Consultorio de cita pendiente:')
+      console.log('      - Nombre:', otherNombre || 'N/A')
+      console.log('      - Código:', otherCodigo || 'N/A')
+      console.log('   📍 Tipo de match:')
+      console.log('      - Por nombre exacto:', matchNombre)
+      console.log('      - Por código exacto:', matchCodigo)
+      console.log('      - Código en nombre:', matchCodigoEnNombre)
+      console.log('      - Nombre en código:', matchNombreEnCodigo)
+      return true
+    }
+    return false
   })
+  
+  // Log de debugging siempre visible
+  useEffect(() => {
+    if (pendingAppointments?.length > 0) {
+      console.log('🔍 === VALIDACIÓN DE DOBLES CITAS ===')
+      console.log('   📊 Citas pendientes cargadas:', pendingAppointments.length)
+      console.log('   📍 Consultorio de cita actual:')
+      console.log('      - Nombre:', (appointment as any)?.consultorioNombre || 'N/A')
+      console.log('      - Código:', (appointment as any)?.consultorio || 'N/A')
+      console.log('   📋 Consultorios de citas pendientes:')
+      pendingAppointments.forEach((apt, idx) => {
+        console.log(`      ${idx + 1}. Nombre: "${apt.consultorioNombre}", Código: "${apt.consultorio}"`)
+      })
+      console.log('   ⚠️ ¿Hay match de consultorio?:', hasConsultorioMatch)
+      console.log('🔍 === FIN VALIDACIÓN ===')
+    }
+  }, [pendingAppointments, appointment, hasConsultorioMatch])
 
   const hasEspecialidadMatch = pendingAppointments?.some((apt) => {
     // Para reservas, el appointment puede tener "especialidadSolicitud" (código)
@@ -365,6 +414,20 @@ function PatientAssignmentReservedModalContent({
 
   const handleApprove = async () => {
     if (!patient || !appointment) return
+    
+    // ⚠️ VALIDACIÓN CRÍTICA: Verificar dobles citas antes de continuar
+    if (hasConsultorioMatch) {
+      console.error('❌ INTENTO DE APROBAR CITA CON CONSULTORIO DUPLICADO BLOQUEADO')
+      toast({
+        title: "⛔ Doble Cita Detectada",
+        description: "El paciente ya tiene una cita pendiente en este mismo consultorio. No se puede aprobar esta solicitud para evitar dobles citas.",
+        variant: "destructive",
+        duration: 8000
+      })
+      return
+    }
+    
+    console.log('✅ Validación de doble cita pasada, continuando con aprobación...')
 
     setIsLoading(true)
     try {
@@ -938,6 +1001,22 @@ function PatientAssignmentReservedModalContent({
                       onAppointmentsLoaded={setPendingAppointments}
                       timeConflict={timeValidation}
                     />
+                  )}
+                  
+                  {/* ⛔ ALERTA CRÍTICA: Doble cita detectada */}
+                  {hasConsultorioMatch && (
+                    <Alert className="bg-red-100 border-red-500 border-2 mt-4">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                      <AlertDescription className="text-red-800 font-semibold">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-base">⛔ DOBLE CITA DETECTADA</span>
+                          <span className="text-sm font-normal">
+                            El paciente ya tiene una cita pendiente en este mismo consultorio. 
+                            No se puede aprobar esta solicitud para evitar dobles citas.
+                          </span>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
               </Card>

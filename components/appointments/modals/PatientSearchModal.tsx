@@ -21,6 +21,7 @@ import { GradoInstruccionProvider } from "@/contexts/filiation/GradoInstruccionC
 interface Patient {
   // Campos que vienen del servicio filiacion2Service
   HISTORIA: string
+  PACIENTE?: string
   NOMBRES: string
   SEXO: string
   DOCUMENTO: string
@@ -28,6 +29,7 @@ interface Patient {
   DIRECCION: string
   DISTRITO: string
   Distrito_Dir?: string
+  STRING_FOTO?: string | null
 }
 
 interface PatientSearchModalProps {
@@ -110,6 +112,22 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     }
   }
 
+  // Función para obtener foto del paciente
+  const fetchPatientPhoto = async (pacienteId: string): Promise<string | null> => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+      const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.foto || data.STRING_FOTO || data.photo || null
+      }
+      return null
+    } catch (error) {
+      console.warn('Error fetching patient photo:', error)
+      return null
+    }
+  }
+
   const handleSearch = async () => {
     if (!searchTerm.trim()) return
 
@@ -128,8 +146,27 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
       const response = await fetch(`/api/filiation/search?${params}`)
       if (response.ok) {
         const data = await response.json()
-        // Los datos ya vienen en el formato correcto desde el servicio filiacion2Service
-        setPatients(data.data || [])
+        let patientsData = data.data || []
+        
+        // Si se busca por nombre, obtener fotos de los pacientes
+        if (searchType === 'nombre' && patientsData.length > 0) {
+          console.log('🖼️ Obteniendo fotos de pacientes...')
+          // Obtener fotos en paralelo para todos los pacientes
+          const patientsWithPhotos = await Promise.all(
+            patientsData.map(async (patient: Patient) => {
+              const pacienteId = patient.PACIENTE || patient.HISTORIA
+              if (pacienteId) {
+                const photo = await fetchPatientPhoto(pacienteId)
+                return { ...patient, STRING_FOTO: photo }
+              }
+              return patient
+            })
+          )
+          patientsData = patientsWithPhotos
+          console.log('✅ Fotos obtenidas para', patientsData.filter((p: any) => p.STRING_FOTO).length, 'pacientes')
+        }
+        
+        setPatients(patientsData)
       } else {
         setPatients([])
       }
@@ -250,7 +287,13 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
 
   useEffect(() => {
     if (!isOpen) {
+      // Clear all state when modal closes
       resetSearch()
+      setSisData(null)
+      setReniecData(null)
+      setShowFiliationSearch(false)
+      setShowRegistrationModal(false)
+      setPrefilledDocument("")
     }
   }, [isOpen])
 

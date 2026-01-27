@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import type { OptionItem } from '@/components/ui/SearchableSelect';
 import { useTipoDocumento } from '@/contexts/filiation/TipoDocumentoContext';
@@ -72,11 +73,49 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
       }
     }
   }, [tiposDocumento, formData.tipoDocumentoA, formData.tipoDocumentoADisplay]);
+  // Estado local para el checkbox "paciente vino solo"
+  const [pacienteVinoSolo, setPacienteVinoSolo] = useState(false);
+
+  // Efecto para detectar si ya tiene datos de "SOLO"
+  useEffect(() => {
+    if (formData.acompanante === 'SOLO' && formData.documentoA === '-') {
+      setPacienteVinoSolo(true);
+    }
+  }, [formData.acompanante, formData.documentoA]);
+
+  // Manejar el cambio del checkbox
+  const handlePacienteVinoSoloChange = (checked: boolean) => {
+    setPacienteVinoSolo(checked);
+    if (checked) {
+      onFormChange('acompanante', 'SOLO');
+      onFormChange('documentoA', '-');
+    } else {
+      onFormChange('acompanante', '');
+      onFormChange('documentoA', '');
+    }
+  };
+
   return (
     <div className="space-y-6 mt-6">
 
       {/* Cuarta fila - Datos del Acompañante */}
-        <h3 className="text-lg font-semibold mb-4">Datos del Acompañante</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Datos del Acompañante</h3>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="pacienteVinoSolo"
+              checked={pacienteVinoSolo}
+              onCheckedChange={handlePacienteVinoSoloChange}
+              disabled={disabled}
+            />
+            <Label 
+              htmlFor="pacienteVinoSolo" 
+              className="text-sm font-medium cursor-pointer text-gray-700"
+            >
+              Paciente vino solo
+            </Label>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg border border-gray-200">
           <div className="space-y-2">
             <Label htmlFor="acompanante">Nombre del Acompañante <span className="text-red-500">*</span></Label>
@@ -84,10 +123,10 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
               id="acompanante"
               value={formData.acompanante || ''}
               onChange={(e) => onFormChange('acompanante', e.target.value)}
-              disabled={disabled}
-              placeholder="Nombre completo..."
+              disabled={disabled || pacienteVinoSolo}
+              placeholder={pacienteVinoSolo ? "SOLO" : "Nombre completo..."}
               required
-              className={validationErrors?.acompanante ? 'border-red-500' : ''}
+              className={`${validationErrors?.acompanante ? 'border-red-500' : ''} ${pacienteVinoSolo ? 'bg-gray-200' : ''}`}
             />
             {validationErrors?.acompanante && (
               <p className="text-red-500 text-sm mt-1">{validationErrors.acompanante}</p>
@@ -124,10 +163,10 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
               id="documentoA"
               value={formData.documentoA || ''}
               onChange={(e) => onFormChange('documentoA', e.target.value)}
-              disabled={disabled}
-              placeholder="Número de documento..."
+              disabled={disabled || pacienteVinoSolo}
+              placeholder={pacienteVinoSolo ? "-" : "Número de documento..."}
               required
-              className={validationErrors?.documentoA ? 'border-red-500' : ''}
+              className={`${validationErrors?.documentoA ? 'border-red-500' : ''} ${pacienteVinoSolo ? 'bg-gray-200' : ''}`}
             />
             {validationErrors?.documentoA && (
               <p className="text-red-500 text-sm mt-1">{validationErrors.documentoA}</p>

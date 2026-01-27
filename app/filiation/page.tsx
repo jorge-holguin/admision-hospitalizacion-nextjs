@@ -22,6 +22,8 @@ import { HospitalizationModalProvider } from "@/components/hospitalization/modal
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
+import { calculateAge } from "@/lib/ageCalculator"
+import { convertISOToSQLDate } from "@/utils/timeUtils"
 
 // Filiation components
 import { PatientSearchBar } from "@/components/filiation/PatientSearchBar"
@@ -411,51 +413,48 @@ export default function FiliationPage() {
     },
     {
       key: "PACIENTE",
-      header: "Código Paciente",
+      header: "Código Paciente / Documento",
+      cell: (patient: any) => {
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{patient.PACIENTE || '-'}</span>
+            <span className="text-xs text-gray-600">{patient.DOCUMENTO || '-'}</span>
+          </div>
+        )
+      }
     },
     {
       key: "FECHA_NACIMIENTO",
-      header: "Fecha Nac.",
+      header: "Fecha Nac. / Edad",
       cell: (patient: any) => {
-        // Mostrar la fecha en formato DD/MM/YYYY
         if (!patient.FECHA_NACIMIENTO) return "";
         
         try {
-          // Ahora el backend ya nos envía la fecha en formato YYYY-MM-DD
-          const rawDate = patient.FECHA_NACIMIENTO;
+          // Formatear fecha usando utilidad existente
+          const formattedDate = convertISOToSQLDate(patient.FECHA_NACIMIENTO);
           
-          // Si es un string con formato ISO o SQL Server (YYYY-MM-DD)
-          if (typeof rawDate === 'string') {
-            // Extraer los componentes de la fecha usando regex
-            const match = rawDate.match(/(\d{4})-(\d{2})-(\d{2})/);
-            if (match) {
-              const [_, year, month, day] = match;
-              return `${day}/${month}/${year}`;
+          // Calcular edad usando utilidad existente
+          const age = calculateAge(patient.FECHA_NACIMIENTO);
+          
+          // Construir texto de edad con años y meses
+          let ageText = "";
+          if (age.years > 0 || age.months > 0) {
+            const parts: string[] = [];
+            if (age.years > 0) {
+              parts.push(`${age.years} ${age.years === 1 ? 'año' : 'años'}`);
             }
+            if (age.months > 0) {
+              parts.push(`${age.months} ${age.months === 1 ? 'mes' : 'meses'}`);
+            }
+            ageText = parts.join(', ');
           }
           
-          // Si es un objeto Date o puede convertirse en uno
-          const date = new Date(rawDate);
-          if (!isNaN(date.getTime())) {
-            // Formatear manualmente para asegurar formato DD/MM/YYYY
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-          }
-          
-          // Si es un string pero no en formato estándar, mostrarlo como está
-          if (typeof rawDate === 'string') {
-            return rawDate;
-          }
-          
-          // Si es un objeto con propiedades de fecha
-          if (typeof rawDate === 'object' && rawDate !== null) {
-            return JSON.stringify(rawDate);
-          }
-          
-          // Si nada funciona, mostrar el valor original
-          return String(rawDate);
+          return formattedDate ? (
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{formattedDate}</span>
+              <span className="text-xs text-gray-600">{ageText}</span>
+            </div>
+          ) : String(patient.FECHA_NACIMIENTO);
         } catch (error) {
           console.error("Error al formatear fecha:", error);
           return String(patient.FECHA_NACIMIENTO || "");
@@ -542,16 +541,16 @@ export default function FiliationPage() {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Historias Clínicas</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Historias Clínicas</h1>
 
           <Button
             variant="outline"
             size="lg"
-            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700"
+            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 font-bold"
             onClick={() => (window.location.href = "/dashboard")}
           >
             <Home className="h-10 w-10" />
-            <span className="text-lg font-medium">Dashboard</span>
+            <span className="text-lg font-bold">Dashboard</span>
           </Button>
         </div>
         <div className="mb-6">
@@ -560,8 +559,8 @@ export default function FiliationPage() {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Búsqueda de Pacientes</span>
+            <CardTitle className="flex items-center justify-between font-bold text-gray-900">
+              <span className="text-lg">Búsqueda de Pacientes</span>
               <Button
                 onClick={handleNewPatientClick}
                 className="bg-green-600 hover:bg-green-700 text-white"
@@ -620,6 +619,7 @@ export default function FiliationPage() {
                 type="submit" 
                 onClick={() => handleSearch()} 
                 disabled={isLoading || isSearching}
+                className="font-medium"
               >
                 {isLoading || isSearching ? (
                   <>
@@ -636,13 +636,13 @@ export default function FiliationPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Resultados de la Búsqueda</CardTitle>
+            <CardTitle className="font-bold text-gray-900 text-lg">Resultados de la Búsqueda</CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={refreshData}
               disabled={isLoading}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 font-medium"
             >
               <span className="sr-only">Actualizar datos</span>
               <svg
@@ -710,20 +710,20 @@ export default function FiliationPage() {
               </div>
             ) : (
               <>
-                <div className="mb-4 text-sm text-muted-foreground">
+                <div className="mb-4 text-sm font-medium text-gray-700">
                   {isLoading ? (
                     <div className="flex items-center">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <span>Cargando datos...</span>
+                      <span className="font-medium">Cargando datos...</span>
                     </div>
                   ) : (
                     <div className="flex flex-wrap justify-between items-center gap-2">
-                      <span>
+                      <span className="font-medium">
                         Mostrando {patients.length > 0 ? (pagination.page - 1) * pagination.pageSize + 1 : 0} a{" "}
                         {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} registros
                       </span>
                       {searchTerm && (
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium">
                           Filtrado por: {searchType === "nombres" ? "Nombres" : searchType === "historia" ? "Historia Clínica" : "Documento"} - "{searchTerm}"
                         </span>
                       )}

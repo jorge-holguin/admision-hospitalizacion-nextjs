@@ -225,7 +225,7 @@ export function EmergencyListModal({
               Emergencias
             </DialogTitle>
             {patientData && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm font-medium text-gray-700 mt-1">
                 Nombres: {patientData.name} - Cod.Paciente: {patientData.pacienteId} - HC: {patientData.hc} - DNI: {patientData.documento} 
               </p>
             )}
@@ -249,10 +249,10 @@ export function EmergencyListModal({
             </div>
           ) : emergencies.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">No hay emergencias registradas para este paciente</p>
+              <p className="text-gray-700 mb-4 font-medium">No hay emergencias registradas para este paciente</p>
               <Button
                 onClick={onCreateNew}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white font-bold"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Crear Primera Emergencia
@@ -263,17 +263,17 @@ export function EmergencyListModal({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="font-semibold">Estado</TableHead>
-                    <TableHead className="font-semibold">ID</TableHead>
-                    <TableHead className="font-semibold">Fecha y Hora</TableHead>
-                    <TableHead className="font-semibold">Consultorio</TableHead>
-                    <TableHead className="font-semibold">Motivo</TableHead>
-                    <TableHead className="font-semibold">Seguro Liquidador</TableHead>
-                    <TableHead className="font-semibold">Cuenta</TableHead>
-                    <TableHead className="font-semibold">Diagnóstico</TableHead>
-                    <TableHead className="font-semibold">Médico</TableHead>
-                    <TableHead className="font-semibold">Relato</TableHead>
-                    <TableHead className="font-semibold">Acciones</TableHead>
+                    <TableHead className="font-bold text-gray-900">Estado</TableHead>
+                    <TableHead className="font-bold text-gray-900">ID</TableHead>
+                    <TableHead className="font-bold text-gray-900">Fecha y Hora</TableHead>
+                    <TableHead className="font-bold text-gray-900">Consultorio</TableHead>
+                    <TableHead className="font-bold text-gray-900">Motivo</TableHead>
+                    <TableHead className="font-bold text-gray-900">Seguro Liquidador</TableHead>
+                    <TableHead className="font-bold text-gray-900">Cuenta</TableHead>
+                    <TableHead className="font-bold text-gray-900">Diagnóstico</TableHead>
+                    <TableHead className="font-bold text-gray-900">Médico</TableHead>
+                    <TableHead className="font-bold text-gray-900">Relato</TableHead>
+                    <TableHead className="font-bold text-gray-900">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -282,44 +282,45 @@ export function EmergencyListModal({
                       key={emergency.EMERGENCIA_ID}
                       className={emergency.ESTADO === '0' || emergency.ESTADO === 'ANULADO' ? 'opacity-50 bg-gray-50' : ''}
                     >
-                      <TableCell>{getStatusDisplay(emergency.ESTADO)}</TableCell>
-                      <TableCell className="font-medium">{emergency.EMERGENCIA_ID}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-gray-800">{getStatusDisplay(emergency.ESTADO)}</TableCell>
+                      <TableCell className="font-bold text-gray-900">{emergency.EMERGENCIA_ID}</TableCell>
+                      <TableCell className="font-medium text-gray-800">
                         <div className="flex flex-col">
-                          <span className="text-sm">{formatDate(emergency.FECHA)}</span>
-                          <span className="text-xs text-gray-500">{emergency.HORA}</span>
+                          <span className="text-sm font-medium">{formatDate(emergency.FECHA)}</span>
+                          <span className="text-xs text-gray-600">{emergency.HORA}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{emergency.CONSULTORIO_DESCRIPCION || emergency.CONSULTORIO}</TableCell>
-                      <TableCell>{emergency.MOTIVO_DESCRIPCION || emergency.MOTIVO_EMERGENCIA}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-gray-800">{emergency.CONSULTORIO_DESCRIPCION || emergency.CONSULTORIO}</TableCell>
+                      <TableCell className="font-medium text-gray-800">{emergency.MOTIVO_DESCRIPCION || emergency.MOTIVO_EMERGENCIA}</TableCell>
+                      <TableCell className="font-medium text-gray-800">
                         {emergency.SEGUROLIQ && emergency.SEGURO_NOMBRE ? 
                           `(${emergency.SEGUROLIQ.trim()}) - ${emergency.SEGURO_NOMBRE}` : 
                           emergency.CIEX1 || '-'
                         }
                       </TableCell>
-                      <TableCell>
-                        <span className="font-semibold text-blue-600">
+                      <TableCell className="font-medium text-gray-800">
+                        <span className="font-bold text-blue-700">
                           {emergency.CUENTAID || '-'}
                         </span>
                       </TableCell>
-                      <TableCell>{emergency.DIAGNOSTICO_DESCRIPCION || '0'}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-gray-800">{emergency.DIAGNOSTICO_DESCRIPCION || '0'}</TableCell>
+                      <TableCell className="font-medium text-gray-800">
                         <MedicoDisplay 
                           codigoMedico={emergency.MEDICO} 
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-gray-800">
                         <RelatoDisplay relato={emergency.RELATO} />
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          {/* Botón Ver - siempre disponible */}
+                          {/* Botón Ver - siempre disponible incluso para anulados */}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onView(emergency.EMERGENCIA_ID, emergency)}
                             className="h-8 w-8 p-0"
+                            title="Ver emergencia"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -359,7 +360,7 @@ export function EmergencyListModal({
               {/* Paginación */}
               {pagination.totalPages > 1 && (
                 <div className="flex justify-between items-center mt-4 px-4 py-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm font-medium text-gray-700">
                     Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} a {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} registros
                   </div>
                   <div className="flex space-x-2">
@@ -368,6 +369,7 @@ export function EmergencyListModal({
                       size="sm"
                       onClick={() => handlePageChange(pagination.page - 1)}
                       disabled={pagination.page <= 1}
+                      className="font-medium"
                     >
                       Anterior
                     </Button>
@@ -376,6 +378,7 @@ export function EmergencyListModal({
                       size="sm"
                       onClick={() => handlePageChange(pagination.page + 1)}
                       disabled={pagination.page >= pagination.totalPages}
+                      className="font-medium"
                     >
                       Siguiente
                     </Button>

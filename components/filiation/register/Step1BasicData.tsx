@@ -13,8 +13,10 @@ import {
   Calendar, 
   Clock, 
   Hash, 
-  Home 
+  Home,
+  Edit
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import ImageWithLoader from "@/components/ui/ImageWithLoader"
 import { UbigeoSelector, EstadoCivilSelector, PaisSelector } from "@/components/filiation/selectors"
 import { TipoDocumentoSelector } from "@/components/filiation/selectors/TipoDocumentoSelector"
@@ -29,6 +31,8 @@ interface Step1BasicDataProps {
   patientData?: any  // Datos del paciente en modo edición
   onDocumentTypeChange?: (type: string) => void
   onDocumentNumberChange?: (number: string) => void
+  onEditHistoryNumber?: () => void  // Callback para abrir modal de edición de historia
+  isEditMode?: boolean  // Indica si está en modo edición
 }
 
 export function Step1BasicData({ 
@@ -39,7 +43,9 @@ export function Step1BasicData({
   reniecData,
   patientData,
   onDocumentTypeChange,
-  onDocumentNumberChange
+  onDocumentNumberChange,
+  onEditHistoryNumber,
+  isEditMode = false
 }: Step1BasicDataProps) {
   // Estado para la foto con cache-busting
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
@@ -182,19 +188,33 @@ export function Step1BasicData({
                   <FileText className="w-4 h-4 mr-1" />
                   N° Historia Clínica
                 </Label>
-                <Input 
-                  id="hc" 
-                  value={
-                    patientData?.HISTORIA?.trim() || 
-                    patientData?.historia?.trim() || 
-                    reniecData?.historyNumber || 
-                    // Si es DNI (D), usar el número de documento como historia
-                    (documentType === 'D' || documentType === 'DNI' ? documentNumber : '') || 
-                    "Se genera automáticamente"
-                  } 
-                  disabled 
-                  className="bg-gray-50 text-gray-600" 
-                />
+                <div className="flex gap-2 items-center">
+                  <Input 
+                    id="hc" 
+                    value={
+                      patientData?.HISTORIA?.trim() || 
+                      patientData?.historia?.trim() || 
+                      reniecData?.historyNumber || 
+                      // Si es DNI (D), usar el número de documento como historia
+                      (documentType === 'D' || documentType === 'DNI' ? documentNumber : '') || 
+                      "Se genera automáticamente"
+                    } 
+                    disabled 
+                    className="bg-gray-50 text-gray-600 flex-1" 
+                  />
+                  {isEditMode && onEditHistoryNumber && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onEditHistoryNumber}
+                      className="shrink-0"
+                      title="Editar número de historia clínica"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <div>
                 <Label htmlFor="tipoDocumento" className="flex items-center text-sm font-medium text-gray-700">

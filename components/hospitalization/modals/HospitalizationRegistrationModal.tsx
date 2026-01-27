@@ -3,13 +3,20 @@
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, CheckCircle, Loader2, Edit } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { HospitalizationFormRefactored } from "../register/HospitalizationFormRefactored"
 import { PatientInfoCard } from "../PatientInfoCard"
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
 import { ErrorAlert } from "@/components/ui/error-alert"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
+import { EstadoCivilProvider } from "@/contexts/filiation/EstadoCivilContext"
+import { PaisProvider } from "@/contexts/filiation/PaisContext"
+import { EtniaProvider } from "@/contexts/filiation/EtniaContext"
+import { ReligionProvider } from "@/contexts/filiation/ReligionContext"
+import { OcupacionProvider } from "@/contexts/filiation/OcupacionContext"
+import { GradoInstruccionProvider } from "@/contexts/filiation/GradoInstruccionContext"
 
 interface HospitalizationRegistrationModalProps {
   isOpen: boolean
@@ -36,10 +43,14 @@ export function HospitalizationRegistrationModal({
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [showErrorAlert, setShowErrorAlert] = useState(false)
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
+  const [fullPatientData, setFullPatientData] = useState<any>(null)
+  const [refreshPatientKey, setRefreshPatientKey] = useState(0)
   
   // Contexto de datos del paciente
   const { getPatientData } = usePatientData()
-  const { fetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId)
+  const { fetchPatientData, refetchPatientData, isLoading: patientDataLoading } = useFetchPatientData(patientId)
   
   // Contexto de consultorios
   const { consultoriosHospitalizacion, loadConsultoriosHospitalizacion } = useConsultorios()
@@ -189,6 +200,35 @@ export function HospitalizationRegistrationModal({
             onBack={onBack}
             isModal={true}
             alertsContainerId="alertas-container"
+            onUpdatePatient={async () => {
+              try {
+                setIsLoadingFullPatient(true)
+                const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+                const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${patientId}`)
+                if (response.ok) {
+                  const data = await response.json()
+                  setFullPatientData(data)
+                  setShowPatientEditModal(true)
+                } else {
+                  toast({
+                    title: "Error",
+                    description: "No se pudieron cargar los datos del paciente",
+                    variant: "destructive"
+                  })
+                }
+              } catch (error) {
+                console.error('Error loading patient data:', error)
+                toast({
+                  title: "Error",
+                  description: "Error al cargar datos del paciente",
+                  variant: "destructive"
+                })
+              } finally {
+                setIsLoadingFullPatient(false)
+              }
+            }}
+            isLoadingUpdate={isLoadingFullPatient}
+            refreshPatientKey={refreshPatientKey}
           />
         </div>
 
@@ -203,6 +243,47 @@ export function HospitalizationRegistrationModal({
         message={errorMessage || "Ha ocurrido un error al guardar la hospitalización"}
         onClose={handleCloseErrorAlert}
       />
+
+      {/* Modal de edición de paciente con providers necesarios */}
+      {showPatientEditModal && fullPatientData && (
+        <Dialog open={showPatientEditModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowPatientEditModal(false)
+            setFullPatientData(null)
+          }
+        }}>
+          <EstadoCivilProvider>
+            <PaisProvider>
+              <EtniaProvider>
+                <ReligionProvider>
+                  <OcupacionProvider>
+                    <GradoInstruccionProvider>
+                      <PatientEditModal
+                        patient={fullPatientData}
+                        onCancel={() => {
+                          setShowPatientEditModal(false)
+                          setFullPatientData(null)
+                        }}
+                        onSuccess={async () => {
+                          setShowPatientEditModal(false)
+                          setFullPatientData(null)
+                          // Refrescar datos del paciente (forzar recarga desde API)
+                          await refetchPatientData()
+                          setRefreshPatientKey(prev => prev + 1)
+                          toast({
+                            title: "Éxito",
+                            description: "Historia clínica actualizada correctamente",
+                          })
+                        }}
+                      />
+                    </GradoInstruccionProvider>
+                  </OcupacionProvider>
+                </ReligionProvider>
+              </EtniaProvider>
+            </PaisProvider>
+          </EstadoCivilProvider>
+        </Dialog>
+      )}
     </Dialog>
   )
 }

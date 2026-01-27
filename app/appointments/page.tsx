@@ -239,7 +239,16 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         const dateStr = targetDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
         qs.set('desde', dateStr)
         qs.set('hasta', dateStr)
-        if (filters.consultorio && filters.consultorio !== 'all') qs.set('consultorio', String(filters.consultorio))
+        
+        // Usar búsqueda por nombre de consultorio si hay consultorio seleccionado
+        let endpoint = 'cita/buscar'
+        if (filters.consultorio && filters.consultorio !== 'all' && selectedConsultorioData?.NOMBRE) {
+          endpoint = 'cita/buscar/nombreConsultorio'
+          qs.set('consultorio', selectedConsultorioData.NOMBRE)
+        } else if (filters.consultorio && filters.consultorio !== 'all') {
+          qs.set('consultorio', String(filters.consultorio))
+        }
+        
         if (filters.medico && filters.medico !== 'all') qs.set('medico', String(filters.medico))
         
         // Agregar filtro de estado si no es "all"
@@ -260,7 +269,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
-        const url = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/buscar?${qs.toString()}`
+        const url = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`
+        console.log('🔍 Buscando citas:', url)
         const res = await fetch(url)
         if (!res.ok) {
           return
@@ -329,7 +339,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       } finally {
         setIsRefreshing(false)
       }
-    }, [selectedDate, filters, pageParam, sizeParam])
+    }, [selectedDate, filters, pageParam, sizeParam, selectedConsultorioData])
 
     // Estas funciones ya no son necesarias al eliminar los datos de ejemplo
 
@@ -1006,15 +1016,22 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           onConsultorioDataChange={(data: any) => {
                             setSelectedConsultorioData(data)
                           }}
+                          selectedDate={selectedDate}
+                          turno={filters.turno}
+                          estado={filters.estado}
                           className="space-y-2"
                         />
     
                         <MedicoSelector
                           label="Médico"
                           value={filters.medico}
-                          onChange={(val: string | "all") => {
-                            // ✅ Al seleccionar médico, resetear consultorio
-                            setFilters({ ...filters, medico: val, consultorio: val !== 'all' ? 'all' : filters.consultorio })
+                          onChange={(val: string | "all", consultorio?: string) => {
+                            // ✅ Al seleccionar médico, si viene con consultorio, actualizar ambos
+                            setFilters({ 
+                              ...filters, 
+                              medico: val, 
+                              consultorio: consultorio || (val !== 'all' ? 'all' : filters.consultorio) 
+                            })
                             setPageParam(0)
                             // Si está buscando por ID, desactivar búsqueda por ID
                             if (showSearchById) {
@@ -1023,6 +1040,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                             }
                           }}
                           especialidad={selectedConsultorioData?.ESPECIALIDAD?.trim() || null}
+                          selectedDate={selectedDate}
                           className="mt-1"
                         />
                       </div>

@@ -185,7 +185,7 @@ export function HospitalizationListModal({
                Hospitalizaciones
              </DialogTitle>
              {patientData && (
-               <p className="text-sm text-gray-600 mt-1">
+               <p className="text-sm font-medium text-gray-700 mt-1">
                  Paciente: {patientData.name} - Cod.Paciente: {patientData.pacienteId} - HC: {patientData.hc} - DNI: {patientData.documento}
                </p>
              )}
@@ -229,7 +229,7 @@ export function HospitalizationListModal({
             {/* Empty state */}
             {!loading && !error && filteredOrdenes.length === 0 && (
               <div className="text-center py-12">
-                <div className="text-gray-500 mb-4">
+                <div className="text-gray-700 font-medium mb-4">
                   {searchTerm ? 'No se encontraron hospitalizaciones que coincidan con la búsqueda' : 'No hay hospitalizaciones registradas'}
                 </div>
                 {!searchTerm && (
@@ -247,15 +247,15 @@ export function HospitalizationListModal({
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold">Estado</TableHead>
-                      <TableHead className="font-semibold">ID</TableHead>
-                      <TableHead className="font-semibold">Consultorio</TableHead>
-                      <TableHead className="font-semibold">Médico</TableHead>
-                      <TableHead className="font-semibold">Fecha y Hora Ingreso</TableHead>
-                      <TableHead className="font-semibold">Origen</TableHead>
-                      <TableHead className="font-semibold">Seguro</TableHead>
-                      <TableHead className="font-semibold">Cuenta</TableHead>
-                      <TableHead className="font-semibold">Acciones</TableHead>
+                      <TableHead className="font-bold text-gray-900">Estado</TableHead>
+                      <TableHead className="font-bold text-gray-900">ID</TableHead>
+                      <TableHead className="font-bold text-gray-900">Consultorio</TableHead>
+                      <TableHead className="font-bold text-gray-900">Médico</TableHead>
+                      <TableHead className="font-bold text-gray-900">Fecha y Hora Ingreso</TableHead>
+                      <TableHead className="font-bold text-gray-900">Origen</TableHead>
+                      <TableHead className="font-bold text-gray-900">Seguro</TableHead>
+                      <TableHead className="font-bold text-gray-900">Cuenta</TableHead>
+                      <TableHead className="font-bold text-gray-900">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -279,41 +279,40 @@ export function HospitalizationListModal({
                               <span className="px-2 py-1 rounded-md text-xs font-medium">{orden.ESTADO}</span>
                             )}
                           </TableCell>
-                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-800'}`}>
+                          <TableCell className={`font-bold ${isDeleted ? 'text-gray-500' : 'text-gray-900'}`}>
                             {hospitalizacionId}
                           </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
                             {orden.CONSULNOMBRE || orden.CONSULTORIO1 || 'No especificado'}
                           </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
                             {orden.MEDICONOMBRE || orden.MEDICO1 || 'No especificado'}
                           </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
                             <div className="flex flex-col">
-                              <span className="text-sm font-semibold">{formatDate(orden.FECHA1)}</span>
-                              <span className="text-xs text-gray-500">{orden.HORA1}</span>
+                              <span className="text-sm font-bold">{formatDate(orden.FECHA1)}</span>
+                              <span className="text-xs text-gray-600">{orden.HORA1}</span>
                             </div>
                           </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
                             {orden.ORIGENOMBRE || orden.ORIGEN || 'No especificado'}
                           </TableCell>
-                          <TableCell className={isDeleted ? 'text-gray-500' : ''}>
+                          <TableCell className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
                             {orden.SEGURONOMBRE || orden.SEGURO || 'No especificado'}
                           </TableCell>
                           <TableCell>
-                            <span className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-blue-700'}`}>
+                            <span className={`font-bold ${isDeleted ? 'text-gray-500' : 'text-blue-700'}`}>
                               {orden.CUENTAID || '-'}
                             </span>
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              {/* Botón Ver */}
+                              {/* Botón Ver - siempre disponible incluso para anulados */}
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="bg-white hover:bg-blue-50 border-blue-200"
                                 onClick={() => handleViewOrder(hospitalizacionId)}
-                                disabled={isDeleted}
                                 title="Ver hospitalización"
                               >
                                 <Eye className="w-4 h-4 text-blue-600" />
@@ -394,7 +393,7 @@ export function HospitalizationListModal({
           {/* Paginación */}
           {!loading && !error && pagination.totalPages > 1 && (
             <div className="flex-shrink-0 flex items-center justify-between pt-4 border-t">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm font-medium text-gray-700">
                 Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} - {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} hospitalizaciones
               </div>
               <div className="flex items-center gap-2">

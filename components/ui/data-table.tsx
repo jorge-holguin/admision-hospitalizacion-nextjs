@@ -114,7 +114,7 @@ export function DataTable<T>({
             <TableHeader>
               <TableRow>
                 {columns.map((column) => (
-                  <TableHead key={column.key}>{column.header}</TableHead>
+                  <TableHead key={column.key} className="font-bold text-gray-900">{column.header}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -123,7 +123,7 @@ export function DataTable<T>({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center"
+                    className="h-24 text-center font-medium text-gray-700"
                   >
                     Cargando datos...
                   </TableCell>
@@ -132,16 +132,16 @@ export function DataTable<T>({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center"
+                    className="h-24 text-center font-medium text-gray-700"
                   >
                     No se encontraron resultados.
                   </TableCell>
                 </TableRow>
               ) : (
                 data.map((item, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={index} className="border-b">
                     {columns.map((column) => (
-                      <TableCell key={`${index}-${column.key}`}>
+                      <TableCell key={`${index}-${column.key}`} className="font-medium text-gray-800">
                         {column.cell
                           ? column.cell(item)
                           : (item as any)[column.key]}
@@ -155,18 +155,18 @@ export function DataTable<T>({
         </div>
       </CardContent>
       <CardFooter className="flex items-center justify-between px-6 pt-2">
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
           <div>
             Mostrando {data.length > 0 ? (page - 1) * pageSize + 1 : 0} a{" "}
             {Math.min(page * pageSize, total)} de {total} registros
           </div>
           <div className="flex items-center space-x-2">
-            <span>Registros por página:</span>
+            <span className="font-medium">Registros por página:</span>
             <Select
               value={pageSize.toString()}
               onValueChange={(value) => onPageSizeChange(parseInt(value))}
             >
-              <SelectTrigger className="h-8 w-[70px]">
+              <SelectTrigger className="h-8 w-[70px] font-medium">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent>

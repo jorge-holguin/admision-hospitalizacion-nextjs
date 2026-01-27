@@ -74,6 +74,7 @@ interface PatientDataContextType {
   patientData: Record<string, PatientData>;
   setPatientData: (patientId: string, data: PatientData) => void;
   getPatientData: (patientId: string) => PatientData | null;
+  invalidatePatientData: (patientId: string) => void;
   isLoading: Record<string, boolean>;
   setLoading: (patientId: string, loading: boolean) => void;
   errors: Record<string, string | null>;
@@ -100,6 +101,14 @@ export const PatientDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     return patientData[patientId] || null;
   };
 
+  const invalidatePatientData = (patientId: string) => {
+    setPatientDataState(prev => {
+      const newState = { ...prev };
+      delete newState[patientId];
+      return newState;
+    });
+  };
+
   const setLoading = (patientId: string, loading: boolean) => {
     setLoadingState(prev => ({
       ...prev,
@@ -119,6 +128,7 @@ export const PatientDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       patientData,
       setPatientData,
       getPatientData,
+      invalidatePatientData,
       isLoading,
       setLoading,
       errors,
@@ -143,7 +153,7 @@ const inFlightRequests: Record<string, Promise<PatientData | null>> = {};
 
 // Hook to fetch patient data
 export const useFetchPatientData = (patientId: string | null | undefined) => {
-  const { getPatientData, setPatientData, setLoading, setError, isLoading, errors } = usePatientData();
+  const { getPatientData, setPatientData, setLoading, setError, isLoading, errors, invalidatePatientData } = usePatientData();
   
   // Use a ref to track the current patientId to avoid stale closures
   const patientIdRef = React.useRef(patientId);
@@ -151,14 +161,19 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
     patientIdRef.current = patientId;
   }, [patientId]);
 
-  const fetchPatientData = React.useCallback(async () => {
+  const fetchPatientData = React.useCallback(async (forceRefresh: boolean = false) => {
     const currentPatientId = patientIdRef.current;
     if (!currentPatientId) return null;
     
-    // Check if we already have the data in context
-    const existingData = getPatientData(currentPatientId);
-    if (existingData) {
-      return existingData;
+    // Check if we already have the data in context (skip if forceRefresh)
+    if (!forceRefresh) {
+      const existingData = getPatientData(currentPatientId);
+      if (existingData) {
+        return existingData;
+      }
+    } else {
+      // Invalidate existing data when forcing refresh
+      invalidatePatientData(currentPatientId);
     }
     
     // Check if there's already a request in flight for this patient
@@ -235,8 +250,13 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
     return fetchPromise;
   }, [getPatientData, setPatientData, setLoading, setError]); // Remove patientId from dependencies
 
+  const refetchPatientData = React.useCallback(async () => {
+    return fetchPatientData(true);
+  }, [fetchPatientData]);
+
   return {
     fetchPatientData,
+    refetchPatientData,
     isLoading: patientId ? isLoading[patientId] || false : false,
     error: patientId ? errors[patientId] || null : null
   };

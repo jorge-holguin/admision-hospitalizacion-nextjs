@@ -36,6 +36,9 @@ interface EmergencySectionViewProps {
   onSave?: (data: any) => void;
   onError?: (error: string) => void;
   onCancel?: () => void;
+  onUpdatePatient?: () => void;
+  isLoadingUpdate?: boolean;
+  refreshPatientKey?: number;
 }
 
 export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
@@ -45,6 +48,9 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   onSave,
   onError,
   onCancel,
+  onUpdatePatient,
+  isLoadingUpdate,
+  refreshPatientKey,
 }) => {
   const router = useRouter();
   
@@ -174,29 +180,21 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     // Si está eliminado, no permitir edición
     if (isDeleted) return false;
     
-    const estado = initialData?.ESTADO;
     const seguroLiq = initialData?.SEGUROLIQ;
     
-    // Caso especial: ESTADO='2' para SOAT o SIS - permitir editar todo excepto consultorio
-    if (estado === '2' && (isPaganteOrSoat(seguroLiq) || isSIS(seguroLiq))) {
-      // Para consultorio, siempre bloqueado
-      if (fieldName === 'consultorio') return false;
-      
-      // Para los demás campos, permitir edición
+    // Si NO está en modo readOnly, permitir edición de todos los campos (incluyendo consultorio)
+    if (!readOnly) {
       return true;
     }
     
-    // Si permite edición especial (PAGANTE/SOAT en otros estados)
-    if (allowsSpecialEdit() && estado !== '2') {
+    // Si permite edición especial (PAGANTE/SOAT), solo permitir editar seguroLiq
+    if (allowsSpecialEdit()) {
       return fieldName === 'seguroLiq';
     }
     
     // Si está en modo readOnly completo, no permitir edición
-    if (readOnly) return false;
-    
-    // Para otros casos, usar la lógica normal de fieldsLocked
-    return !fieldsLocked;
-  }, [readOnly, isDeleted, allowsSpecialEdit, fieldsLocked, initialData?.ESTADO, initialData?.SEGUROLIQ, isPaganteOrSoat, isSIS]);
+    return false;
+  }, [readOnly, isDeleted, allowsSpecialEdit, initialData?.SEGUROLIQ]);
 
   // Actualizar fieldsLocked cuando cambie readOnly
   useEffect(() => {
@@ -550,6 +548,37 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
             variant: 'destructive',
           });
           // Continuar con la actualización de la emergencia aunque falle la cuenta
+        }
+      }
+      
+      // Verificar si el consultorio ha cambiado para actualizar la tabla CUENTA
+      const consultorioOriginal = initialData?.CONSULTORIO?.trim();
+      const consultorioNuevo = formData.consultorio?.trim();
+      const consultorioHaCambiado = consultorioOriginal !== consultorioNuevo;
+      
+      if (consultorioHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
+        try {
+          console.log(`📋 Actualizando consultorio en CUENTA: ${consultorioOriginal} → ${consultorioNuevo}`);
+          const consultorioResponse = await fetch(`/api/emergency/${emergencyId}/update-cuenta-consultorio`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              consultorio: consultorioNuevo,
+              cuentaId: cuentaParaActualizar 
+            }),
+          });
+          
+          if (!consultorioResponse.ok) {
+            const errorData = await consultorioResponse.json();
+            console.error('Error al actualizar consultorio en CUENTA:', errorData);
+          } else {
+            console.log('✅ Consultorio actualizado en CUENTA');
+          }
+        } catch (consultorioError: any) {
+          console.error('Error al actualizar consultorio en cuenta:', consultorioError);
+          // Continuar con la actualización de la emergencia aunque falle
         }
       }
       
@@ -941,8 +970,11 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
           <Card className="h-full">
             <CardContent className="p-6">
               <PatientSectionEmergency
+                key={refreshPatientKey}
                 patientId={initialData?.PACIENTE}
                 onPatientDataLoaded={handlePatientDataLoaded}
+                onUpdatePatient={onUpdatePatient}
+                isLoadingUpdate={isLoadingUpdate}
               />
             </CardContent>
           </Card>
@@ -1000,18 +1032,21 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
 
                   {/* Consultorio */}
                   <SearchableSelect
+                    selectName="consultorio"
                     label="Consultorio"
                     value={findConsultorioName(formData.consultorio)}
                     options={formatConsultorios}
                     loading={loadingConsultorios}
                     search={searchConsultorio}
                     onSearchChange={(v: string) => setSearchConsultorio(v)}
-                    onSelect={(value: string, data: any) => handleFormChange("consultorio", value)}
-                    selectName="consultorio"
+                    onSelect={(value: string, data: any) => {
+                      handleFormChange("consultorio", value)
+                      handleFormChange("consultorioDisplay", `(${value}) - ${data?.NOMBRE || ''}`)
+                    }}
                     required
                     error={validationErrors.consultorio}
                     placeholder="Seleccionar consultorio..."
-                    disabled={readOnly || true}
+                    disabled={readOnly || !isFieldEnabled('consultorio')}
                   />
 
                   {/* Forma de Ingreso */}
@@ -1104,11 +1139,11 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                       id="observacion1"
                       value={formData.observacion1 || ""}
                       onChange={(e) => handleFormChange("observacion1", e.target.value)}
-                      disabled={readOnly || !isFieldEnabled('observacion1')}
+                      disabled={!readOnly && !isFieldEnabled('observacion1')}
                       readOnly={readOnly}
                       placeholder="Observaciones adicionales..."
                       rows={3}
-                      className="md:text-sm"
+                      className={`md:text-sm ${readOnly ? 'bg-white cursor-text select-text' : ''}`}
                     />
                   </div>
                 </div>

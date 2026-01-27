@@ -679,6 +679,17 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
       }
       if (data.CONSULTORIO !== undefined) {
         await prisma.$executeRaw`UPDATE EMERGENCIA SET CONSULTORIO = ${data.CONSULTORIO} WHERE EMERGENCIA_ID = ${emergenciaId}`;
+        
+        // Actualizar también el consultorio en la tabla CUENTA si existe CUENTAID
+        const emergenciaActual = Array.isArray(existingEmergencia) ? existingEmergencia[0] : existingEmergencia;
+        if (emergenciaActual && emergenciaActual.CUENTAID) {
+          try {
+            await prisma.$executeRaw`UPDATE CUENTA SET CONSULTORIO = ${data.CONSULTORIO} WHERE CUENTAID = ${emergenciaActual.CUENTAID}`;
+            console.log(`✅ Consultorio actualizado en CUENTA ${emergenciaActual.CUENTAID}: ${data.CONSULTORIO}`);
+          } catch (updateError) {
+            console.warn(`⚠️ No se pudo actualizar el consultorio en tabla CUENTA:`, updateError);
+          }
+        }
       }
       if (data.MOTIVO_EMERGENCIA !== undefined) {
         await prisma.$executeRaw`UPDATE EMERGENCIA SET MOTIVO_EMERGENCIA = ${data.MOTIVO_EMERGENCIA} WHERE EMERGENCIA_ID = ${emergenciaId}`;

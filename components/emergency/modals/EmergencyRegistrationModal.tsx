@@ -3,12 +3,19 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, CheckCircle, Loader2, Edit } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { EmergencyFormRefactored } from "../register/EmergencyFormRefactored"
 import { PatientInfoCardEmergency } from "../PatientInfoCardEmergency"
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
+import { EstadoCivilProvider } from "@/contexts/filiation/EstadoCivilContext"
+import { PaisProvider } from "@/contexts/filiation/PaisContext"
+import { EtniaProvider } from "@/contexts/filiation/EtniaContext"
+import { ReligionProvider } from "@/contexts/filiation/ReligionContext"
+import { OcupacionProvider } from "@/contexts/filiation/OcupacionContext"
+import { GradoInstruccionProvider } from "@/contexts/filiation/GradoInstruccionContext"
 
 interface EmergencyRegistrationModalProps {
   isOpen?: boolean
@@ -45,6 +52,9 @@ export function EmergencyRegistrationModal({
   const { consultorios, loadConsultoriosEmergencia } = useConsultorios()
   
   const [enhancedPatient, setEnhancedPatient] = useState<any>(null)
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
+  const [fullPatientData, setFullPatientData] = useState<any>(null)
 
   // Cargar consultorios de emergencia cuando se abre el modal
   useEffect(() => {
@@ -184,6 +194,34 @@ export function EmergencyRegistrationModal({
                     patientId={patientId}
                     patient={enhancedPatient}
                     className="border-0 shadow-none"
+                    onUpdatePatient={async () => {
+                      try {
+                        setIsLoadingFullPatient(true)
+                        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+                        const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${patientId}`)
+                        if (response.ok) {
+                          const data = await response.json()
+                          setFullPatientData(data)
+                          setShowPatientEditModal(true)
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "No se pudieron cargar los datos del paciente",
+                            variant: "destructive"
+                          })
+                        }
+                      } catch (error) {
+                        console.error('Error loading patient data:', error)
+                        toast({
+                          title: "Error",
+                          description: "Error al cargar datos del paciente",
+                          variant: "destructive"
+                        })
+                      } finally {
+                        setIsLoadingFullPatient(false)
+                      }
+                    }}
+                    isLoadingUpdate={isLoadingFullPatient}
                   />
                 </div>
               </div>
@@ -206,6 +244,49 @@ export function EmergencyRegistrationModal({
           </div>
         </div>
       </DialogContent>
+
+      {/* Modal de edición de paciente con providers necesarios */}
+      {showPatientEditModal && fullPatientData && (
+        <Dialog open={showPatientEditModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowPatientEditModal(false)
+            setFullPatientData(null)
+          }
+        }}>
+          <EstadoCivilProvider>
+            <PaisProvider>
+              <EtniaProvider>
+                <ReligionProvider>
+                  <OcupacionProvider>
+                    <GradoInstruccionProvider>
+                      <PatientEditModal
+                        patient={fullPatientData}
+                        onCancel={() => {
+                          setShowPatientEditModal(false)
+                          setFullPatientData(null)
+                        }}
+                        onSuccess={async () => {
+                          setShowPatientEditModal(false)
+                          setFullPatientData(null)
+                          // Recargar datos del paciente
+                          const patientInfo = await fetchPatientData()
+                          if (patientInfo) {
+                            setEnhancedPatient(patientInfo)
+                          }
+                          toast({
+                            title: "Éxito",
+                            description: "Historia clínica actualizada correctamente",
+                          })
+                        }}
+                      />
+                    </GradoInstruccionProvider>
+                  </OcupacionProvider>
+                </ReligionProvider>
+              </EtniaProvider>
+            </PaisProvider>
+          </EstadoCivilProvider>
+        </Dialog>
+      )}
     </Dialog>
   )
 }

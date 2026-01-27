@@ -5,8 +5,9 @@ import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { User, Calendar, Phone, MapPin, FileText, Heart, VenusAndMars, House, Home, Book } from 'lucide-react';
+import { User, Calendar, Phone, MapPin, FileText, Heart, VenusAndMars, House, Home, Book, Edit } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
 import { usePatientData, useFetchPatientData } from '@/contexts/PatientDataContext';
 import { calculateAgeFormatted, formatAgeReadable } from '@/lib/ageCalculator';
@@ -17,6 +18,8 @@ interface PatientInfoCardProps {
   className?: string;
   onDataLoaded?: (data: any) => void;
   initialData?: any; // Datos iniciales para evitar llamada a API
+  onUpdatePatient?: () => void; // Callback para abrir modal de edición
+  isLoadingUpdate?: boolean; // Estado de carga del botón actualizar
 }
 
 interface PatientData {
@@ -54,7 +57,9 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   hospitalizationOrderId,
   className = '',
   onDataLoaded,
-  initialData
+  initialData,
+  onUpdatePatient,
+  isLoadingUpdate = false
 }) => {
   // Usar el contexto para obtener datos del paciente
   const { fetchPatientData, isLoading, error: fetchError } = useFetchPatientData(patientId);
@@ -385,6 +390,30 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Botón Actualizar Historia Clínica */}
+        {onUpdatePatient && (
+          <div className="border-t pt-3 mt-3">
+            <Button
+              variant="outline"
+              onClick={onUpdatePatient}
+              disabled={isLoadingUpdate}
+              className="w-full justify-center px-6 py-2.5 h-11 border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+            >
+              {isLoadingUpdate ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Actualizar Historia Clínica
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

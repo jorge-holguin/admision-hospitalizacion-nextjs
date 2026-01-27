@@ -15,6 +15,7 @@ import { useReniec } from "@/hooks/useReniec"
 import { convertToLocalDateTime } from "@/utils/dateFormatUtils"
 import { getUbigeoByReniecCode } from "@/utils/reniecMapper"
 import { consultarSIS, mapSISSeguroToLocal } from "@/services/sisService"
+import { EditHistoryNumberModal } from "./EditHistoryNumberModal"
 
 interface Patient {
   id?: string
@@ -116,6 +117,11 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   const [selectedDocType, setSelectedDocType] = useState<string>('')
   const [selectedDocNumber, setSelectedDocNumber] = useState<string>('')
   
+  // Estados para editar número de historia clínica
+  const [showEditHistoryModal, setShowEditHistoryModal] = useState(false)
+  const [currentHistoryNumber, setCurrentHistoryNumber] = useState<string>('')
+  const [historyUpdateKey, setHistoryUpdateKey] = useState(0) // Para forzar re-render
+  
   // ✅ Estados para alertas visuales de APIs
   const [apiAlerts, setApiAlerts] = useState<Array<{
     type: 'success' | 'warning' | 'info'
@@ -141,6 +147,10 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       })()
       setSelectedDocType(tipoDoc)
       setSelectedDocNumber(patient.DOCUMENTO || patient.dni || '')
+      
+      // Inicializar número de historia clínica
+      const historia = patient.HISTORIA || patient.hc || patient.historia || ''
+      setCurrentHistoryNumber(historia)
     }
   }, [patient])
   
@@ -157,6 +167,32 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       title: `📋 Tipo de documento cambiado`,
       description: `Nuevo tipo: ${tipoNombre}`,
       duration: 3000
+    })
+  }
+  
+  // Handler para abrir modal de edición de historia
+  const handleOpenEditHistory = () => {
+    setShowEditHistoryModal(true)
+  }
+
+  // Handler para éxito al actualizar historia
+  const handleHistoryUpdateSuccess = (newHistory: string) => {
+    setCurrentHistoryNumber(newHistory)
+    
+    // Actualizar el objeto patient para que se refleje inmediatamente en el frontend
+    if (patient) {
+      patient.HISTORIA = newHistory
+      patient.historia = newHistory
+      patient.hc = newHistory
+    }
+    
+    // Forzar re-render del componente
+    setHistoryUpdateKey(prev => prev + 1)
+    
+    toast({
+      title: "✅ Historia clínica actualizada",
+      description: `Nuevo número: ${newHistory}`,
+      duration: 5000
     })
   }
   
@@ -867,6 +903,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         return (
           <>
             <Step1BasicData
+              key={`step1-${historyUpdateKey}`}
               formData={formData}
               onInputChange={handleInputChange}
               documentType={selectedDocType}
@@ -875,6 +912,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
               onDocumentTypeChange={handleDocumentTypeChange}
               onDocumentNumberChange={setSelectedDocNumber}
               reniecData={reniecData || undefined}
+              isEditMode={true}
+              onEditHistoryNumber={handleOpenEditHistory}
             />
             {/* ✅ Botón RENIEC solo visible para pacientes con tipo de documento 'D' (DNI) */}
             {selectedDocType === 'D' && (
@@ -928,7 +967,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
   }
 
   return (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={true} onOpenChange={onCancel}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="text-xl font-bold text-blue-800">
           Editar Información del Paciente - H.C. {patient.HISTORIA?.trim() || patient.historia?.trim() || 'N/A'}
@@ -1022,6 +1062,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           )}
         </div>
       </div>
+    </DialogContent>
 
       {/* Dialog de éxito */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
@@ -1050,6 +1091,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           </div>
         </DialogContent>
       </Dialog>
-    </DialogContent>
+
+      {/* Modal para editar número de historia clínica */}
+      <EditHistoryNumberModal
+        isOpen={showEditHistoryModal}
+        onClose={() => setShowEditHistoryModal(false)}
+        onSuccess={handleHistoryUpdateSuccess}
+        currentHistory={currentHistoryNumber}
+        patientId={patient.PACIENTE || patient.paciente || patient.id || ''}
+      />
+    </Dialog>
   )
 }

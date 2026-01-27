@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Edit } from "lucide-react"
+import { ArrowLeft, Edit, Copy } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,14 @@ import EmergencySectionView from '@/components/emergency/view/EmergencySectionVi
 import { resolveStatus } from '@/utils/statusUtils'
 import { toast } from "@/components/ui/use-toast"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
+import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
+import { useFetchPatientData } from "@/contexts/PatientDataContext"
+import { EstadoCivilProvider } from "@/contexts/filiation/EstadoCivilContext"
+import { PaisProvider } from "@/contexts/filiation/PaisContext"
+import { EtniaProvider } from "@/contexts/filiation/EtniaContext"
+import { ReligionProvider } from "@/contexts/filiation/ReligionContext"
+import { OcupacionProvider } from "@/contexts/filiation/OcupacionContext"
+import { GradoInstruccionProvider } from "@/contexts/filiation/GradoInstruccionContext"
 
 interface EmergencyViewModalProps {
   isOpen: boolean
@@ -42,6 +50,13 @@ export function EmergencyViewModal({
     isReadOnly: boolean;
     statusText: string;
   }>({ isReadOnly: mode !== 'edit', statusText: 'Cargando...' })
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
+  const [fullPatientData, setFullPatientData] = useState<any>(null)
+  const [refreshPatientKey, setRefreshPatientKey] = useState(0)
+
+  // Hook para refrescar datos del paciente
+  const { refetchPatientData } = useFetchPatientData(patientId)
 
   // Contexto de consultorios
   const { consultorios, loadConsultoriosEmergencia } = useConsultorios()
@@ -93,10 +108,11 @@ export function EmergencyViewModal({
           
           // Determinar el estado según el estado de la emergencia y el modo
           const emergencyStatus = emergency.ESTADO
-          const isEditable = emergencyStatus === '2' // Solo estado REGISTRADO (2) es editable
+          // Permitir edición en modo 'edit' - no restringir por estado
+          const isEditable = mode === 'edit'
           
-          // Si el modo es 'edit' y el registro es editable, permitir edición
-          if (mode === 'edit' && isEditable) {
+          // Si el modo es 'edit', permitir edición
+          if (isEditable) {
             setCurrentMode('edit')
             setStatusInfo({
               isReadOnly: false,
@@ -106,9 +122,7 @@ export function EmergencyViewModal({
             setCurrentMode('view')
             setStatusInfo({
               isReadOnly: true,
-              statusText: mode === 'edit' && !isEditable 
-                ? 'No editable - Estado del registro no permite modificaciones'
-                : 'Modo visualización'
+              statusText: 'Modo visualización'
             })
           }
         } else {
@@ -189,6 +203,30 @@ export function EmergencyViewModal({
     return currentMode === 'edit' ? 'Editar Registro de Emergencia' : 'Ver Registro de Emergencia'
   }
 
+  const loadFullPatientData = async (pacienteId: string) => {
+    try {
+      setIsLoadingFullPatient(true)
+      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${pacienteId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar datos del paciente')
+      }
+      
+      const data = await response.json()
+      setFullPatientData(data)
+    } catch (error) {
+      console.error('Error al cargar datos del paciente:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos completos del paciente",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingFullPatient(false)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
@@ -216,7 +254,7 @@ export function EmergencyViewModal({
           </div>
           
           <div className="flex items-center gap-3">
-            {currentMode === 'view' && emergencyData?.ESTADO === '2' && (
+            {currentMode === 'view' && (
               <Button
                 onClick={handleToggleEditMode}
                 className="bg-green-600 hover:bg-green-700 text-white"
@@ -239,9 +277,13 @@ export function EmergencyViewModal({
         <div className="flex-1 overflow-auto">
           {statusInfo.isReadOnly && currentMode === 'view' && emergencyData?.ESTADO !== '2' && (
             <Alert className="mb-6 bg-amber-50 border-amber-200">
-              <AlertTitle className="text-amber-800">Registro en modo lectura</AlertTitle>
+              <AlertTitle className="text-amber-800 flex items-center gap-2">
+                <Copy className="h-4 w-4" />
+                Registro en modo lectura
+              </AlertTitle>
               <AlertDescription className="text-amber-700">
-                Este registro está cerrado y no puede ser modificado.
+                Este registro está cerrado y no puede ser modificado. 
+                <span className="font-medium"> Puede seleccionar y copiar el contenido de los campos para reutilizarlo.</span>
               </AlertDescription>
             </Alert>
           )}
@@ -264,11 +306,60 @@ export function EmergencyViewModal({
                 onSave={handleSave}
                 onError={handleError}
                 onCancel={onBack}
+                onUpdatePatient={async () => {
+                  if (patientId) {
+                    await loadFullPatientData(patientId)
+                    setShowPatientEditModal(true)
+                  }
+                }}
+                isLoadingUpdate={isLoadingFullPatient}
+                refreshPatientKey={refreshPatientKey}
               />
             )
           )}
         </div>
       </DialogContent>
+
+      {/* Modal de edición de paciente con providers necesarios */}
+      {showPatientEditModal && fullPatientData && (
+        <Dialog open={showPatientEditModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowPatientEditModal(false)
+            setFullPatientData(null)
+          }
+        }}>
+          <EstadoCivilProvider>
+            <PaisProvider>
+              <EtniaProvider>
+                <ReligionProvider>
+                  <OcupacionProvider>
+                    <GradoInstruccionProvider>
+                      <PatientEditModal
+                        patient={fullPatientData}
+                        onCancel={() => {
+                          setShowPatientEditModal(false)
+                          setFullPatientData(null)
+                        }}
+                        onSuccess={async () => {
+                          setShowPatientEditModal(false)
+                          setFullPatientData(null)
+                          // Refrescar datos del paciente desde el contexto
+                          await refetchPatientData()
+                          setRefreshPatientKey(prev => prev + 1)
+                          toast({
+                            title: "Éxito",
+                            description: "Historia clínica actualizada correctamente",
+                          })
+                        }}
+                      />
+                    </GradoInstruccionProvider>
+                  </OcupacionProvider>
+                </ReligionProvider>
+              </EtniaProvider>
+            </PaisProvider>
+          </EstadoCivilProvider>
+        </Dialog>
+      )}
     </Dialog>
   )
 }

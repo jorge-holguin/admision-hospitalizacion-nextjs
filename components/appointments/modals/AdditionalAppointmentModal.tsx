@@ -96,6 +96,10 @@ function AdditionalAppointmentModalContent({
   // Estado para expandir/contraer calendario
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false)
   
+  // Estado para validación de citas existentes del paciente
+  const [existingAppointmentsWarning, setExistingAppointmentsWarning] = useState<string | null>(null)
+  const [loadingExistingAppointments, setLoadingExistingAppointments] = useState(false)
+  
   // Estado para controlar si la fecha está confirmada (desbloquea PASO 4)
   const [isFechaConfirmed, setIsFechaConfirmed] = useState(false)
   
@@ -109,6 +113,8 @@ function AdditionalAppointmentModalContent({
   // Initialize form when modal opens
   useEffect(() => {
     if (isOpen && patient) {
+      console.log('🔄 Inicializando modal para paciente:', patient.PACIENTE || patient.HISTORIA)
+      
       // Set today's date
       const today = new Date()
       setSelectedCalendarDate(today)
@@ -120,13 +126,19 @@ function AdditionalAppointmentModalContent({
         setTipoSeguro(patient.SEGURO)
       } else {
         console.warn('⚠️ Paciente no tiene SEGURO definido:', patient)
+        setTipoSeguro("") // Reset si no hay seguro
       }
       
-      // Reset other fields
+      // Cargar foto y datos adicionales del paciente
+      const pacienteId = patient.PACIENTE || patient.HISTORIA
+      if (pacienteId) {
+        loadPatientPhotoAndData(pacienteId)
+      }
+      
+      // Reset ALL fields to avoid stale data from previous patient
       setConsultorio("")
       setMedico("")
       setTurno("")
-      // setTipoCita("")
       setObservacion("")
       setReferencia("")
       setReferenciaIdSeleccionada("")
@@ -137,7 +149,20 @@ function AdditionalAppointmentModalContent({
       setShowSuccess(false)
       setCreatedAppointment(null)
       setDatesWithAppointments([])
+      setDatesWithoutAppointments([])
       setShowPastDates(false)
+      setRefreshedPatient(null) // Reset refreshed patient data
+      setFullPatientData(null) // Reset full patient data
+      setShowPatientEditModal(false) // Close edit modal if open
+      setPendingAppointments([]) // Reset pending appointments
+      setConsultorioNombreSel("")
+      setEspecialidadConsultorio(null)
+      setAvailableMedicos([])
+      setExistingAppointmentsWarning(null)
+      setRefconSyncSuccess(false)
+      setRefconSyncError(null)
+      setSkipRefconSync(false)
+      setIsCalendarExpanded(false)
     }
   }, [isOpen, patient])
 
@@ -156,6 +181,53 @@ function AdditionalAppointmentModalContent({
       setSisVerificationResult(null)
     }
   }, [tipoSeguro])
+
+  // Validar citas existentes cuando se selecciona consultorio
+  useEffect(() => {
+    const validateExistingAppointments = async () => {
+      if (!consultorio || !patient?.PACIENTE) {
+        setExistingAppointmentsWarning(null)
+        return
+      }
+
+      setLoadingExistingAppointments(true)
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+        const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=5`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('📋 Citas existentes del paciente:', data)
+          
+          // Verificar si hay citas para el consultorio seleccionado
+          if (Array.isArray(data) && data.length > 0) {
+            const citasEnConsultorio = data.filter((cita: any) => 
+              cita.consultorio?.trim() === consultorio?.trim() || 
+              cita.CONSULTORIO?.trim() === consultorio?.trim()
+            )
+            
+            if (citasEnConsultorio.length > 0) {
+              const citaInfo = citasEnConsultorio[0]
+              const fechaCita = citaInfo.fecha || citaInfo.FECHA || 'fecha desconocida'
+              setExistingAppointmentsWarning(
+                `⚠️ El paciente ya tiene una cita en este consultorio para el ${fechaCita}. Verifique antes de continuar.`
+              )
+            } else {
+              setExistingAppointmentsWarning(null)
+            }
+          } else {
+            setExistingAppointmentsWarning(null)
+          }
+        }
+      } catch (error) {
+        console.error('Error validando citas existentes:', error)
+      } finally {
+        setLoadingExistingAppointments(false)
+      }
+    }
+
+    validateExistingAppointments()
+  }, [consultorio, patient?.PACIENTE])
 
   // Cargar fechas disponibles cuando se selecciona consultorio Y turno
   useEffect(() => {
@@ -284,7 +356,39 @@ function AdditionalAppointmentModalContent({
     return isSis
   }
 
-  // Función para cargar datos completos del paciente
+  // Función para cargar datos completos del paciente con foto
+  const loadPatientPhotoAndData = async (pacienteId: string) => {
+    try {
+      console.log('🖼️ Cargando foto y datos del paciente:', pacienteId)
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
+      
+      if (!response.ok) {
+        console.warn('⚠️ No se pudo cargar foto del paciente')
+        return
+      }
+      
+      const data = await response.json()
+      console.log('✅ Datos del paciente con foto cargados:', data)
+      
+      // Actualizar refreshedPatient con los datos completos incluyendo foto
+      setRefreshedPatient({
+        ...patient,
+        ...data,
+        STRING_FOTO: data.stringFoto || data.STRING_FOTO,
+        NOMBRES: data.nombres || patient.NOMBRES,
+        ESTADO_CIVIL: data.estadoCivil || patient.ESTADO_CIVIL,
+        FECHA_NACIMIENTO: data.fechaNacimiento || patient.FECHA_NACIMIENTO,
+        EDAD: data.edad || patient.EDAD,
+        PACIENTE: data.paciente || patient.PACIENTE
+      })
+    } catch (error) {
+      console.error('❌ Error al cargar foto del paciente:', error)
+    }
+  }
+
+  // Función para cargar datos completos del paciente para edición
   const loadFullPatientData = async (pacienteId: string) => {
     try {
       setIsLoadingFullPatient(true)
@@ -938,6 +1042,7 @@ function AdditionalAppointmentModalContent({
                         setMedico("")
                         setDatesWithAppointments([])
                         setDatesWithoutAppointments([])
+                        setExistingAppointmentsWarning(null)
                       }}
                       onConsultorioDataChange={(data) => {
                         if (data && data.ESPECIALIDAD) {
@@ -950,6 +1055,17 @@ function AdditionalAppointmentModalContent({
                       }}
                       className="w-full"
                     />
+                    {loadingExistingAppointments && (
+                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Verificando citas existentes...
+                      </div>
+                    )}
+                    {existingAppointmentsWarning && (
+                      <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-md p-2 text-yellow-800 text-sm">
+                        {existingAppointmentsWarning}
+                      </div>
+                    )}
                   </div>
 
                   {/* PASO 2: Turno */}

@@ -91,10 +91,10 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
             id="acompanante"
             value={formData.acompanante || ''}
             onChange={(e) => onFormChange('acompanante', e.target.value)}
-            disabled={disabled || readOnly}
+            disabled={!readOnly && disabled}
             readOnly={readOnly}
             placeholder="Nombre completo..."
-            className="md:text-sm"
+            className={`md:text-sm ${readOnly ? 'bg-white cursor-text select-text' : ''}`}
           />
         </div>
 
@@ -128,10 +128,10 @@ export const AdditionalViewFieldsSection: React.FC<AdditionalViewFieldsSectionPr
             id="documentoA"
             value={formData.documentoA || ''}
             onChange={(e) => onFormChange('documentoA', e.target.value)}
-            disabled={disabled || readOnly}
+            disabled={!readOnly && disabled}
             readOnly={readOnly}
             placeholder="Número de documento..."
-            className="md:text-sm"
+            className={`md:text-sm ${readOnly ? 'bg-white cursor-text select-text' : ''}`}
           />
         </div>
       </div>

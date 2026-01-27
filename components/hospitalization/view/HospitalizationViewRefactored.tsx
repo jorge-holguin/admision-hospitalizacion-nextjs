@@ -12,6 +12,8 @@ import { usePatient } from '@/contexts/PatientContext'
 
 // Componentes reutilizables
 import { PatientInfoCard } from '@/components/hospitalization/PatientInfoCard'
+import { PatientEditModal } from '@/components/filiation/modals/PatientEditModal'
+import { Dialog } from '@/components/ui/dialog'
 
 // Componentes específicos para la vista
 import { FormHeader } from './FormHeader'
@@ -64,6 +66,10 @@ export function HospitalizationViewRefactored({
   const [dateEdited, setDateEdited] = useState(false);
   const [timeEdited, setTimeEdited] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showPatientEditModal, setShowPatientEditModal] = useState(false);
+  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false);
+  const [fullPatientData, setFullPatientData] = useState<any>(null);
+  const [refreshPatientKey, setRefreshPatientKey] = useState(0);
   
   // Estado para el formulario
   const [formData, setFormData] = useState({
@@ -425,11 +431,40 @@ export function HospitalizationViewRefactored({
               <h3 className="text-lg font-semibold mb-4">Datos del Paciente</h3>
               <div className="flex-1 flex flex-col">
                 <PatientInfoCard
+                  key={refreshPatientKey}
                   patientId={patientId}
                   hospitalizationOrderId={hospitalizationId || undefined}
                   onDataLoaded={handlePatientDataLoaded}
-                  initialData={initialData} // Pasar los datos iniciales para evitar llamada a API
+                  initialData={initialData}
                   className="flex-1"
+                  onUpdatePatient={async () => {
+                    try {
+                      setIsLoadingFullPatient(true)
+                      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+                      const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${patientId}`)
+                      if (response.ok) {
+                        const data = await response.json()
+                        setFullPatientData(data)
+                        setShowPatientEditModal(true)
+                      } else {
+                        toast({
+                          title: "Error",
+                          description: "No se pudieron cargar los datos del paciente",
+                          variant: "destructive"
+                        })
+                      }
+                    } catch (error) {
+                      console.error('Error loading patient data:', error)
+                      toast({
+                        title: "Error",
+                        description: "Error al cargar datos del paciente",
+                        variant: "destructive"
+                      })
+                    } finally {
+                      setIsLoadingFullPatient(false)
+                    }
+                  }}
+                  isLoadingUpdate={isLoadingFullPatient}
                 />
               </div>
             </CardContent>
@@ -498,6 +533,34 @@ export function HospitalizationViewRefactored({
         submitting={submitting}
         isEditable={isEditable}
       />
+
+      {/* Modal de edición de paciente */}
+      {showPatientEditModal && fullPatientData && (
+        <Dialog open={showPatientEditModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowPatientEditModal(false)
+            setFullPatientData(null)
+          }
+        }}>
+          <PatientEditModal
+            patient={fullPatientData}
+            onCancel={() => {
+              setShowPatientEditModal(false)
+              setFullPatientData(null)
+            }}
+            onSuccess={() => {
+              setShowPatientEditModal(false)
+              setFullPatientData(null)
+              // Forzar recarga del componente PatientInfoCard
+              setRefreshPatientKey(prev => prev + 1)
+              toast({
+                title: "Éxito",
+                description: "Historia clínica actualizada correctamente",
+              })
+            }}
+          />
+        </Dialog>
+      )}
     </form>
   );
 }
