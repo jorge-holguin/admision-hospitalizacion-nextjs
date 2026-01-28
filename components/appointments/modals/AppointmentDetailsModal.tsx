@@ -28,9 +28,9 @@ export function AppointmentDetailsModal({
   const [usuarioLiberador, setUsuarioLiberador] = useState<string | null>(null)
   const [loadingLiberacion, setLoadingLiberacion] = useState(false)
 
-  // Cargar datos de liberación si el estado es 1 (NO OTORGADO/LIBERADO)
+  // Cargar datos de liberación en cualquier estado (para saber quién liberó inicialmente)
   useEffect(() => {
-    if (!isOpen || !appointment || appointment.estado != '1') {
+    if (!isOpen || !appointment) {
       setLiberacionData(null)
       setUsuarioLiberador(null)
       return
@@ -46,7 +46,13 @@ export function AppointmentDetailsModal({
         if (resLib.ok) {
           const dataLib = await resLib.json()
           if (Array.isArray(dataLib) && dataLib.length > 0) {
-            const libData = dataLib[0]
+            // Seleccionar la liberación más reciente (mayor idLiberacion)
+            const libData = dataLib.reduce((latest, current) => {
+              const latestId = parseInt(latest.idLiberacion || latest.IDLIBERACION || '0')
+              const currentId = parseInt(current.idLiberacion || current.IDLIBERACION || '0')
+              return currentId > latestId ? current : latest
+            }, dataLib[0])
+            
             setLiberacionData(libData)
             
             // Obtener nombre del usuario que liberó
