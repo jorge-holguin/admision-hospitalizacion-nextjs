@@ -50,7 +50,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns"
 // Import all components from the appointments module
 import {
   AppointmentCalendar,
-  ConsultorioDinamicoSelector,
+  ConsultorioCitasSelector,
   MedicoSelector,
   EstadoSelector, 
   ESTADO_OPTIONS,
@@ -77,7 +77,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [filteredAppointments, setFilteredAppointments] = useState(emptyAppointments)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
     const [filters, setFilters] = useState({
-      estado: "1", // Estado por defecto: NO OTORGADO
+      estado: "1", // Estado por defecto: TODOS los estados
       consultorio: "all",
       medico: "all",
       turno: "ALL",
@@ -1058,7 +1058,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           options={ESTADO_OPTIONS}
                         />
     
-                        <ConsultorioDinamicoSelector
+                        <ConsultorioCitasSelector
                           label="Consultorio"
                           value={filters.consultorio}
                           onChange={(val: string | "all") => {
@@ -1077,13 +1077,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                             if (data) {
                               setConsultorioNameSearch("")
                             }
-                          }}
-                          onFreeTextSearch={(searchText: string) => {
-                            // Búsqueda por texto libre - actualizar consultorioNameSearch
-                            setConsultorioNameSearch(searchText)
-                            // Limpiar selector de consultorio
-                            setFilters({ ...filters, consultorio: 'all' })
-                            setSelectedConsultorioData(null)
                           }}
                           selectedDate={selectedDate}
                           turno={filters.turno}

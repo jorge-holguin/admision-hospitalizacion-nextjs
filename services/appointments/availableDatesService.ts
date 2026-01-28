@@ -63,7 +63,7 @@ export const availableDatesService = {
             fechasMap.set(fechaKey, {
               fecha: fecha,
               consultorio: item.consultorio || item.CONSULTORIO || consultorioId,
-              totalDisponibles: item.totalDisponibles || 1
+              totalDisponibles: typeof item.totalDisponibles === 'number' ? item.totalDisponibles : 1
             });
           }
         }
