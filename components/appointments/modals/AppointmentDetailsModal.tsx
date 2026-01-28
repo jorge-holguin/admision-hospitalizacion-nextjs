@@ -214,7 +214,8 @@ export function AppointmentDetailsModal({
           </div>
 
           {/* Usuario - Condicional según estado */}
-          <div className="border-t pt-4 bg-gray-50 rounded-md p-4">
+          <div className="border-t pt-4 bg-gray-50 rounded-md p-4 space-y-4">
+            {/* Información del usuario según estado */}
             {appointment.estado == '0' ? (
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5 text-red-600" />
@@ -222,74 +223,75 @@ export function AppointmentDetailsModal({
                   Usuario que anuló la cita: <span className="text-red-600 font-semibold">({appointment.userEliminacion?.trim() || '-'})</span>
                 </p>
               </div>
-            ) : appointment.estado == '1' ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 border-b pb-2">
-                  <AlertCircle className="h-5 w-5 text-orange-600" />
-                  <p className="text-lg font-semibold text-orange-600">Detalles de Liberación</p>
-                </div>
-                {loadingLiberacion ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Spinner className="h-6 w-6" />
-                    <span className="ml-2 text-sm text-gray-500">Cargando detalles...</span>
-                  </div>
-                ) : liberacionData ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-gray-500" /> Fecha de Liberación
-                      </Label>
-                      <p className="text-sm font-medium">
-                        {liberacionData.fechaLiberacion 
-                          ? new Date(liberacionData.fechaLiberacion).toLocaleString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
-                          : '-'
-                        }
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                        <User className="h-4 w-4 text-gray-500" /> Usuario que Liberó
-                      </Label>
-                      <p className="text-sm font-medium">
-                        <span className="text-orange-600 font-semibold">
-                          {liberacionData.usuarioLiberacion?.trim() || '-'}
-                        </span>
-                        {usuarioLiberador && usuarioLiberador !== liberacionData.usuarioLiberacion?.trim() && (
-                          <span className="block text-xs text-gray-600 mt-1">{usuarioLiberador}</span>
-                        )}
-                      </p>
-                    </div>
-                    {liberacionData.observacion && liberacionData.observacion.trim() !== '""' && (
-                      <div className="space-y-1 md:col-span-2">
-                        <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                          <FileText className="h-4 w-4 text-gray-500" /> Motivo de Liberación
-                        </Label>
-                        <p className="text-sm font-medium bg-white p-2 rounded border">
-                          {liberacionData.observacion.replace(/^"|"$/g, '')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-orange-600" />
-                    <p className="text-base font-medium text-gray-700">
-                      Usuario que liberó la cita: <span className="text-orange-600 font-semibold">({appointment.userLiberacion?.trim() || '-'})</span>
-                    </p>
-                  </div>
-                )}
-              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5 text-blue-600" />
                 <p className="text-base font-medium text-gray-700">
                   Usuario que asignó la cita: <span className="text-blue-600 font-semibold">({appointment.usuario?.trim() || '-'})</span>
+                </p>
+              </div>
+            )}
+
+            {/* Detalles de Liberación - Mostrar en cualquier estado si hay datos */}
+            {loadingLiberacion ? (
+              <div className="flex items-center justify-center py-4">
+                <Spinner className="h-6 w-6" />
+                <span className="ml-2 text-sm text-gray-500">Cargando historial de liberación...</span>
+              </div>
+            ) : liberacionData ? (
+              <div className="space-y-3 border-t pt-3">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                  <p className="text-lg font-semibold text-orange-600">Historial de Liberación</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                      <Calendar className="h-4 w-4 text-gray-500" /> Fecha de Liberación
+                    </Label>
+                    <p className="text-sm font-medium">
+                      {liberacionData.fechaLiberacion 
+                        ? new Date(liberacionData.fechaLiberacion).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : '-'
+                      }
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                      <User className="h-4 w-4 text-gray-500" /> Usuario que Liberó
+                    </Label>
+                    <p className="text-sm font-medium">
+                      <span className="text-orange-600 font-semibold">
+                        {liberacionData.usuarioLiberacion?.trim() || '-'}
+                      </span>
+                      {usuarioLiberador && usuarioLiberador !== liberacionData.usuarioLiberacion?.trim() && (
+                        <span className="block text-xs text-gray-600 mt-1">{usuarioLiberador}</span>
+                      )}
+                    </p>
+                  </div>
+                  {liberacionData.observacion && liberacionData.observacion.trim() !== '""' && (
+                    <div className="space-y-1 md:col-span-2">
+                      <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                        <FileText className="h-4 w-4 text-gray-500" /> Motivo de Liberación
+                      </Label>
+                      <p className="text-sm font-medium bg-white p-2 rounded border">
+                        {liberacionData.observacion.replace(/^"|"$/g, '')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : !loadingLiberacion && (
+              <div className="flex items-center gap-2 text-gray-500 bg-gray-100 p-3 rounded border border-gray-300">
+                <AlertCircle className="h-5 w-5" />
+                <p className="text-sm font-medium">
+                  No se encontraron registros de liberación para esta cita
                 </p>
               </div>
             )}
