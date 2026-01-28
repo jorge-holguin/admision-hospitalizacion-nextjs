@@ -54,8 +54,14 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
   const loadMedicosConsultorios = async (fecha: Date, signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const dateStr = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+      // Formatear fecha como dd/MM/yyyy (ej: 30/09/2025)
+      const day = fecha.getDate().toString().padStart(2, '0')
+      const month = (fecha.getMonth() + 1).toString().padStart(2, '0')
+      const year = fecha.getFullYear()
+      const dateStr = `${day}/${month}/${year}`
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL 
+      // desde y hasta deben ser iguales (misma fecha)
       const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`
       
       console.log('🔍 MedicoSelector: Cargando médicos-consultorios:', url)

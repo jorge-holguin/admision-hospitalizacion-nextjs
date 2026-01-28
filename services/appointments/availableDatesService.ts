@@ -8,7 +8,7 @@ export interface FetchAvailableDatesParams {
   fechaInicio: string;  // "2025-10-17"
   fechaFin: string;      // "2025-10-31"
   turnoConsulta?: 'M' | 'T';  // M = Mañana, T = Tarde, opcional para obtener ambos
-  idEspecialidad: string;    // "0019"
+  consultorioId: string;    // "6092" - Código del consultorio
 }
 
 /**
@@ -16,18 +16,29 @@ export interface FetchAvailableDatesParams {
  */
 export const availableDatesService = {
   /**
-   * Obtiene las fechas con citas disponibles para una especialidad y turno
+   * Obtiene las fechas con citas disponibles para un consultorio y turno
    */
   async fetchAvailableDates(params: FetchAvailableDatesParams): Promise<AvailableDate[]> {
     try {
-      const { fechaInicio, fechaFin, turnoConsulta, idEspecialidad } = params;
+      const { fechaInicio, fechaFin, turnoConsulta, consultorioId } = params;
       const baseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL;
       
-      // ✅ Si turnoConsulta no está definido, no incluirlo en la URL (obtiene ambos turnos)
-      let url = `${baseUrl}/cita/fechas-consultorios-solicitud?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&idEspecialidad=${idEspecialidad}&solicitudCita=1`;
+      // Convertir formato de fecha de yyyy-MM-dd a dd/MM/yyyy
+      const formatDate = (date: string) => {
+        const [year, month, day] = date.split('-');
+        return `${day}/${month}/${year}`;
+      };
+      
+      const desde = formatDate(fechaInicio);
+      const hasta = formatDate(fechaFin);
+      
+      // Usar /api/cita/citas-por-medico-consultorio con consultorioId
+      let url = `${baseUrl}/cita/citas-por-medico-consultorio?desde=${desde}&hasta=${hasta}&consultorioId=${consultorioId}`;
       if (turnoConsulta) {
         url += `&turnoConsulta=${turnoConsulta}`;
-      }      
+      }
+      
+      console.log('🔍 availableDatesService: Consultando fechas disponibles:', url);
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -35,8 +46,30 @@ export const availableDatesService = {
         return [];
       }
       
-      const data: AvailableDate[] = await response.json();
-      return data;
+      const data = await response.json();
+      console.log('✅ availableDatesService: Respuesta recibida:', data);
+      
+      // La respuesta puede ser un array o un objeto con content
+      const list = Array.isArray(data) ? data : 
+                   Array.isArray(data?.content) ? data.content : [];
+      
+      // Extraer fechas únicas del resultado
+      const fechasMap = new Map<string, AvailableDate>();
+      list.forEach((item: any) => {
+        const fecha = item.fecha || item.FECHA;
+        if (fecha) {
+          const fechaKey = fecha.split(' ')[0]; // Obtener solo la parte de fecha
+          if (!fechasMap.has(fechaKey)) {
+            fechasMap.set(fechaKey, {
+              fecha: fecha,
+              consultorio: item.consultorio || item.CONSULTORIO || consultorioId,
+              totalDisponibles: item.totalDisponibles || 1
+            });
+          }
+        }
+      });
+      
+      return Array.from(fechasMap.values());
     } catch (error) {
       console.error('❌ Error en fetchAvailableDates:', error);
       return [];
@@ -49,7 +82,7 @@ export const availableDatesService = {
   async fetchAvailableDatesAllShifts(
     fechaInicio: string,
     fechaFin: string,
-    idEspecialidad: string
+    consultorioId: string
   ): Promise<AvailableDate[]> {
     try {
       // Llamar a ambos turnos en paralelo
@@ -58,13 +91,13 @@ export const availableDatesService = {
           fechaInicio,
           fechaFin,
           turnoConsulta: 'M',
-          idEspecialidad,
+          consultorioId,
         }),
         this.fetchAvailableDates({
           fechaInicio,
           fechaFin,
           turnoConsulta: 'T',
-          idEspecialidad,
+          consultorioId,
         }),
       ]);
 

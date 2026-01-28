@@ -1,4 +1,5 @@
 export { ConsultorioCitasSelector } from './ConsultorioCitasSelector';
+export { ConsultorioDinamicoSelector } from './ConsultorioDinamicoSelector';
 export { EntidadSisSelector } from './EntidadSisSelector';
 export { EstadoSelector, ESTADO_OPTIONS } from './EstadoSelector';
 export type { EstadoOption } from './EstadoSelector';

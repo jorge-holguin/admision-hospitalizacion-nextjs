@@ -50,7 +50,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns"
 // Import all components from the appointments module
 import {
   AppointmentCalendar,
-  ConsultorioCitasSelector,
+  ConsultorioDinamicoSelector,
   MedicoSelector,
   EstadoSelector, 
   ESTADO_OPTIONS,
@@ -87,6 +87,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [searchMedicos, setSearchMedicos] = useState("")
     const [searchQuery, setSearchQuery] = useState("")
     const [showSearchById, setShowSearchById] = useState(false)
+    const [consultorioNameSearch, setConsultorioNameSearch] = useState("")  // Búsqueda por texto libre
     const [openMedico, setOpenMedico] = useState(false)
     const [openConsultorio, setOpenConsultorio] = useState(false)
     const [openEstado, setOpenEstado] = useState(false)
@@ -135,6 +136,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [datesWithAppointments, setDatesWithAppointments] = useState<Date[]>([])
     const [datesWithoutAvailability, setDatesWithoutAvailability] = useState<Date[]>([]) // ✅ Fechas sin citas disponibles (rojas)
     const [selectedConsultorioData, setSelectedConsultorioData] = useState<any>(null)
+    
     const [loadingDates, setLoadingDates] = useState(false)
     const [showPastAppointments, setShowPastAppointments] = useState(false)
 
@@ -188,17 +190,17 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         
         const fechaInicio = format(startDate, 'yyyy-MM-dd')
         const fechaFin = format(monthEnd, 'yyyy-MM-dd')
-        const idEspecialidad = selectedConsultorioData.ESPECIALIDAD.trim()
+        const consultorioId = selectedConsultorioData.CONSULTORIO.trim()
         
         let availableDates: any[] = []
 
-        // ✅ Llamar al API según el turno seleccionado
+        // ✅ Llamar al API según el turno seleccionado usando consultorioId
         if (filters.turno === 'ALL') {
           // ✅ Si es "TODOS", llamar sin turnoConsulta (obtiene ambos turnos en una sola llamada)
           availableDates = await availableDatesService.fetchAvailableDates({
             fechaInicio,
             fechaFin,
-            idEspecialidad,
+            consultorioId,
             // turnoConsulta no se incluye, así el backend devuelve ambos turnos
           })
         } else {
@@ -208,7 +210,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
             fechaInicio,
             fechaFin,
             turnoConsulta,
-            idEspecialidad,
+            consultorioId,
           })
         }
 
@@ -230,7 +232,12 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       loadAvailableDates(selectedDate)
     }, [filters.consultorio, filters.turno, selectedDate, showPastAppointments, loadAvailableDates])
 
-    // Buscar citas por parámetros (usa la fecha seleccionada en el calendario como desde/hasta)
+    // Buscar citas por parámetros
+    // Lógica de APIs:
+    // - Sin consultorio/médico: usa /cita/buscar/nombreConsultorio (sin param consultorio)
+    // - Con consultorio: usa /cita/citas-por-medico-consultorio?consultorioId=xxx
+    // - Con médico: usa /cita/citas-por-medico-consultorio?medicoId=xxx
+    // - Turno: solo se envía si no es ALL
     const searchAppointmentsByParams = useCallback(async (dateOverride?: Date) => {
       setIsRefreshing(true)
       try {
@@ -240,25 +247,43 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         qs.set('desde', dateStr)
         qs.set('hasta', dateStr)
         
-        // Usar búsqueda por nombre de consultorio si hay consultorio seleccionado
-        let endpoint = 'cita/buscar'
-        if (filters.consultorio && filters.consultorio !== 'all' && selectedConsultorioData?.NOMBRE) {
-          endpoint = 'cita/buscar/nombreConsultorio'
-          qs.set('consultorio', selectedConsultorioData.NOMBRE)
-        } else if (filters.consultorio && filters.consultorio !== 'all') {
-          qs.set('consultorio', String(filters.consultorio))
+        // Siempre usar /api/cita/buscar/nombreConsultorio
+        // - Sin consultorio: obtiene todas las citas del día
+        // - Con consultorio: filtra por nombre de consultorio (completo o parcial)
+        const endpoint = 'cita/buscar/nombreConsultorio'
+        
+        const hasConsultorio = filters.consultorio && filters.consultorio !== 'all'
+        const hasMedico = filters.medico && filters.medico !== 'all'
+        const hasConsultorioNameSearch = consultorioNameSearch && consultorioNameSearch.trim().length > 0
+        
+        // Prioridad de búsqueda:
+        // 1. Búsqueda por texto libre (consultorioNameSearch)
+        // 2. Consultorio seleccionado del selector
+        if (hasConsultorioNameSearch) {
+          qs.set('consultorio', consultorioNameSearch.trim())
+        } else if (hasConsultorio && selectedConsultorioData?.NOMBRE) {
+          qs.set('consultorio', selectedConsultorioData.NOMBRE.trim())
         }
         
-        if (filters.medico && filters.medico !== 'all') qs.set('medico', String(filters.medico))
+        // Si hay médico seleccionado, pasar el código del médico
+        if (hasMedico) {
+          qs.set('medico', String(filters.medico).trim())
+        }
+        
+        console.log('📍 Buscando citas:', { 
+          hasConsultorio, 
+          hasMedico, 
+          consultorioNombre: selectedConsultorioData?.NOMBRE,
+          consultorioNameSearch 
+        })
         
         // Agregar filtro de estado si no es "all"
         if (filters.estado && filters.estado !== 'all') {
           qs.set('estado', String(filters.estado))
         }
         
-        // Agregar filtro de turno si no es "ALL"
+        // Agregar filtro de turno SOLO si no es "ALL"
         if (filters.turno && filters.turno !== 'ALL') {
-          // Mapear de 'MAÑANA'/'TARDE' a 'M'/'T' para el backend
           const turnoBackend = filters.turno === 'MAÑANA' ? 'M' : filters.turno === 'TARDE' ? 'T' : null
           if (turnoBackend) {
             qs.set('turnoConsulta', turnoBackend)
@@ -273,16 +298,23 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         console.log('🔍 Buscando citas:', url)
         const res = await fetch(url)
         if (!res.ok) {
+          console.error('❌ Error en respuesta:', res.status, res.statusText)
+          setFilteredAppointments([])
+          setTotalCount(0)
           return
         }
         const data = await res.json()
+        console.log('📦 Respuesta raw:', data)
+        
         // Determinar si la respuesta es un array o tiene un campo content/items
         const list = Array.isArray(data) ? data : 
                      Array.isArray(data?.content) ? data.content : 
                      Array.isArray(data?.items) ? data.items : []
+        
+        console.log('📋 Lista de citas:', list.length, 'items. Primer item:', list[0])
                 
         const mapped = list.map((it: any, idx: number) => ({
-          id: it.citaId || it.id || it.ID || `R${idx}`,
+          id: String(it.citaId || it.CITAID || it.id || it.ID || `R${idx}`),
           estado: Number(it.estado ?? it.ESTADO ?? 1),
           fecha: String(it.fecha ?? it.FECHA ?? new Date().toISOString().slice(0,10)),
           hora: String(it.hora ?? it.HORA ?? "08:00"),
@@ -311,11 +343,20 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           numRef: it.numRef ? String(it.numRef).trim() : (it.NUMREF ? String(it.NUMREF).trim() : ''),
           entidadSis: it.entidadSis ? String(it.entidadSis).trim() : (it.ENTIDAD_SIS ? String(it.ENTIDAD_SIS).trim() : (it.ENTIDADSIS ? String(it.ENTIDADSIS).trim() : '')),
           idRefcon: it.idRefcon ?? it.ID_REFCON ?? it.IDREFCON ?? null,
+          nombre: String(it.nombre ?? it.NOMBRE ?? "").trim(),
         }))
         
-        // Ordenar por hora de forma ascendente (cronológico)
-        const sorted = mapped.sort((a, b) => {
-          // Convertir hora a formato comparable (HH:MM -> minutos desde medianoche)
+        // Ordenar: primero por consultorio (alfabético), luego por hora (cronológico)
+        const sorted = mapped.sort((a: any, b: any) => {
+          // Primero comparar por nombre de consultorio
+          const consultorioA = (a.consultorioNombre || a.consultorio || '').toLowerCase()
+          const consultorioB = (b.consultorioNombre || b.consultorio || '').toLowerCase()
+          
+          if (consultorioA !== consultorioB) {
+            return consultorioA.localeCompare(consultorioB)
+          }
+          
+          // Si son del mismo consultorio, ordenar por hora
           const timeToMinutes = (time: string) => {
             const [hours, minutes] = time.split(':').map(Number)
             return (hours || 0) * 60 + (minutes || 0)
@@ -339,7 +380,21 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       } finally {
         setIsRefreshing(false)
       }
-    }, [selectedDate, filters, pageParam, sizeParam, selectedConsultorioData])
+    }, [selectedDate, filters, pageParam, sizeParam, selectedConsultorioData, consultorioNameSearch])
+
+    // Debounce para búsqueda por nombre de consultorio (texto libre)
+    useEffect(() => {
+      if (!consultorioNameSearch || consultorioNameSearch.trim().length === 0) {
+        return
+      }
+      
+      const timer = setTimeout(() => {
+        console.log('🔍 Búsqueda por nombre de consultorio:', consultorioNameSearch)
+        searchAppointmentsByParams()
+      }, 500) // 500ms de debounce
+      
+      return () => clearTimeout(timer)
+    }, [consultorioNameSearch])
 
     // Estas funciones ya no son necesarias al eliminar los datos de ejemplo
 
@@ -365,6 +420,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         }
         const data = await res.json()
         
+        console.log('🔍 Búsqueda por ID - Respuesta API:', data)
+        
         // Verificar si realmente se encontró una cita válida
         if (!data || (Array.isArray(data) && data.length === 0)) {
           setFilteredAppointments([])
@@ -374,7 +431,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         
         const list = Array.isArray(data) ? data : [data]
         const mapped = list.map((it: any) => ({
-          id: it.id || it.ID || id,
+          id: it.citaId || it.CITAID || it.id || it.ID || id,
           estado: Number(it.estado ?? it.ESTADO ?? 1),
           fecha: String(it.fecha ?? it.FECHA ?? new Date().toISOString().slice(0,10)),
           hora: String(it.hora ?? it.HORA ?? "08:00"),
@@ -873,10 +930,12 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                                 medico: "all",
                                 turno: "ALL",
                               })
-                              setPageParam(0) // Reset to page 0 (backend usa base 0)
+                              setPageParam(0)
                               setSelectedTime("")
-                              setSearchQuery("") // Limpiar campo de búsqueda
-                              setShowSearchById(false) // Ocultar campo de búsqueda
+                              setSearchQuery("")
+                              setShowSearchById(false)
+                              setConsultorioNameSearch("")  // Limpiar búsqueda por texto libre
+                              setSelectedConsultorioData(null)
                               searchAppointmentsByParams()
                             }}
                             className="font-medium"
@@ -989,8 +1048,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           value={filters.estado}
                           onChange={(val: string | "all") => {
                             setFilters({ ...filters, estado: val })
-                            setPageParam(0) // Reset to page 0 when filter changes
-                            // Si está buscando por ID, desactivar búsqueda por ID
+                            setPageParam(0)
                             if (showSearchById) {
                               setShowSearchById(false)
                               setSearchQuery("")
@@ -1000,14 +1058,14 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           options={ESTADO_OPTIONS}
                         />
     
-                        <ConsultorioCitasSelector
+                        <ConsultorioDinamicoSelector
                           label="Consultorio"
                           value={filters.consultorio}
                           onChange={(val: string | "all") => {
-                            // ✅ Al seleccionar consultorio, resetear médico
                             setFilters({ ...filters, consultorio: val, medico: val !== 'all' ? 'all' : filters.medico })
                             setPageParam(0)
-                            // Si está buscando por ID, desactivar búsqueda por ID
+                            // Limpiar búsqueda por texto libre al seleccionar consultorio específico
+                            setConsultorioNameSearch("")
                             if (showSearchById) {
                               setShowSearchById(false)
                               setSearchQuery("")
@@ -1015,23 +1073,54 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           }}
                           onConsultorioDataChange={(data: any) => {
                             setSelectedConsultorioData(data)
+                            // Si se selecciona un consultorio específico, limpiar búsqueda por texto libre
+                            if (data) {
+                              setConsultorioNameSearch("")
+                            }
+                          }}
+                          onFreeTextSearch={(searchText: string) => {
+                            // Búsqueda por texto libre - actualizar consultorioNameSearch
+                            setConsultorioNameSearch(searchText)
+                            // Limpiar selector de consultorio
+                            setFilters({ ...filters, consultorio: 'all' })
+                            setSelectedConsultorioData(null)
                           }}
                           selectedDate={selectedDate}
                           turno={filters.turno}
                           estado={filters.estado}
                           className="space-y-2"
                         />
-    
+
                         <MedicoSelector
                           label="Médico"
                           value={filters.medico}
                           onChange={(val: string | "all", consultorio?: string) => {
-                            // ✅ Al seleccionar médico, si viene con consultorio, actualizar ambos
-                            setFilters({ 
-                              ...filters, 
-                              medico: val, 
-                              consultorio: consultorio || (val !== 'all' ? 'all' : filters.consultorio) 
-                            })
+                            // ✅ Al seleccionar médico:
+                            // - Si viene con consultorio asociado → actualizar consultorio y limpiar selectedConsultorioData
+                            // - Si médico es "all" → mantener consultorio actual
+                            // - Si médico específico sin consultorio → limpiar consultorio
+                            if (consultorio) {
+                              // Médico con consultorio asociado - actualizar ambos y limpiar data
+                              setFilters({ 
+                                ...filters, 
+                                medico: val, 
+                                consultorio: consultorio 
+                              })
+                              setSelectedConsultorioData(null)
+                              setConsultorioNameSearch("")  // Limpiar búsqueda por texto libre
+                            } else if (val === 'all') {
+                              // Todos los médicos - mantener consultorio actual
+                              setFilters({ ...filters, medico: val })
+                            } else {
+                              // Médico específico sin consultorio - limpiar consultorio
+                              setFilters({ 
+                                ...filters, 
+                                medico: val, 
+                                consultorio: 'all' 
+                              })
+                              setSelectedConsultorioData(null)
+                              setConsultorioNameSearch("")  // Limpiar búsqueda por texto libre
+                            }
                             setPageParam(0)
                             // Si está buscando por ID, desactivar búsqueda por ID
                             if (showSearchById) {
