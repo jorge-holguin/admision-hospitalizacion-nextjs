@@ -949,8 +949,8 @@ function PatientAssignmentReservedModalContent({
                   {patient?.PACIENTE && (
                     <PatientPendingAppointmentsModal
                       pacienteId={patient.PACIENTE}
-                      currentConsultorio={(appointment as any)?.consultorioNombre || (appointment as any)?.consultorio}
-                      currentEspecialidad={(appointment as any)?.especialidadSolicitud || (appointment as any)?.especialidad}
+                      currentConsultorio={appointment?.consultorio}
+                      currentEspecialidad={appointment?.especialidad}
                       limite={5}
                       highlight={hasConsultorioMatch || hasEspecialidadMatch}
                       onAppointmentsLoaded={setPendingAppointments}

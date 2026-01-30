@@ -1145,6 +1145,7 @@ export default function ReservedAppointmentsPage() {
                 medico: selectedReserva.medico,
                 medicoNombre: selectedReserva.medicoNombre,
                 estado: selectedReserva.estado,
+                consultorio: selectedReserva.consultorio || undefined,
                 tipoCita: selectedReserva.tipoCita,
                 especialidadInterconsulta: selectedReserva.especialidadInterconsulta,
                 observacionPaciente: selectedReserva.observacionPaciente,
