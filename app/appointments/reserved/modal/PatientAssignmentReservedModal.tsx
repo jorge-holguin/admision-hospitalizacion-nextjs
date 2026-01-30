@@ -66,10 +66,12 @@ interface Appointment {
   medico: string
   medicoNombre?: string
   estado: string
-  tipoCita?: string | null  // ✅ Tipo de cita
-  especialidadInterconsulta?: string | null  // ✅ Especialidad de interconsulta
-  observacionPaciente?: string | null  // ✅ Observaciones del paciente
-  observacion?: string | null  // ✅ Observación de denegación/revisión
+  consultorio?: string
+  consultorioNombre?: string
+  tipoCita?: string | null
+  especialidadInterconsulta?: string | null
+  observacionPaciente?: string | null
+  observacion?: string | null
 }
 
 interface TipoCita {
@@ -249,71 +251,20 @@ function PatientAssignmentReservedModalContent({
 
   // Determinar si hay coincidencias con citas pendientes
   const hasConsultorioMatch = pendingAppointments?.some((apt) => {
-    // ✅ IMPORTANTE: Aplicar trim() para eliminar espacios en blanco
-    // API reservas: "5061" (sin espacios)
-    // API citas pendientes: "5061  " (con espacios)
-    const currCodigo = (appointment as any)?.consultorio?.trim()
+    const currCodigo = appointment?.consultorio?.trim()
     const otherCodigo = apt.consultorio?.trim()
     
-    // Comparar códigos (case-insensitive por si acaso)
-    const matchCodigo = currCodigo && otherCodigo && 
-                        currCodigo.toLowerCase() === otherCodigo.toLowerCase()
-    
-    if (matchCodigo) {
-      console.log('⛔ DOBLE CITA DETECTADA - MISMO CONSULTORIO:')
-      console.log('   📍 Consultorio de RESERVA:', `"${currCodigo}"`)
-      console.log('   📍 Consultorio de CITA PENDIENTE:', `"${otherCodigo}"`)
-      console.log('   ✅ Match detectado - BLOQUEARÁ APROBACIÓN')
-      return true
-    }
-    return false
+    return currCodigo && otherCodigo && 
+           currCodigo.toLowerCase() === otherCodigo.toLowerCase()
   })
   
   const hasEspecialidadMatch = pendingAppointments?.some((apt) => {
-    // Para reservas, el appointment puede tener "especialidad" (código) o "especialidadSolicitud"
-    // Ejemplo: reserva tiene "especialidad": "0013" y cita pendiente tiene "especialidad": "0013"
-    const currCodigo = (appointment as any)?.especialidad?.trim()?.toLowerCase() || 
-                       (appointment as any)?.especialidadSolicitud?.trim()?.toLowerCase()
+    const currCodigo = appointment?.especialidad?.trim()?.toLowerCase()
     if (!currCodigo) return false
     
-    // Comparar código con código (limpiando espacios)
     const otherCodigo = apt.especialidad?.trim()?.toLowerCase()
-    const matchCodigo = otherCodigo === currCodigo
-    
-    if (matchCodigo) {
-      console.log('⚠️ MATCH DE ESPECIALIDAD DETECTADO:')
-      console.log('   - Especialidad de solicitud:', currCodigo)
-      console.log('   - Especialidad de cita pendiente:', otherCodigo)
-    }
-    
-    return matchCodigo
+    return otherCodigo === currCodigo
   })
-
-  // Log de debugging siempre visible
-  useEffect(() => {
-    if (pendingAppointments?.length > 0) {
-      console.log('🔍 === VALIDACIÓN DE DOBLES CITAS (RESERVAS) ===')
-      console.log('   📊 Citas pendientes cargadas:', pendingAppointments.length)
-      console.log('   📍 Datos de la SOLICITUD DE RESERVA:')
-      console.log('      - Consultorio (raw):', `"${(appointment as any)?.consultorio}"`, '← puede tener espacios')
-      console.log('      - Consultorio (trim):', `"${(appointment as any)?.consultorio?.trim()}"`, '← después de trim')
-      console.log('      - Especialidad (raw):', `"${(appointment as any)?.especialidad}"`)
-      console.log('      - Especialidad (trim):', `"${(appointment as any)?.especialidad?.trim()}"`)
-      console.log('   📋 Citas PENDIENTES del paciente:')
-      pendingAppointments.forEach((apt, idx) => {
-        console.log(`      ${idx + 1}.`)
-        console.log(`         - Consultorio (raw): "${apt.consultorio}" ← puede tener espacios`)
-        console.log(`         - Consultorio (trim): "${apt.consultorio?.trim()}" ← después de trim`)
-        console.log(`         - Especialidad (raw): "${apt.especialidad}"`)
-        console.log(`         - Especialidad (trim): "${apt.especialidad?.trim()}"`)
-        console.log(`         - Fecha: ${apt.fecha}`)
-      })
-      console.log('   ⚠️ RESULTADOS DE COMPARACIÓN:')
-      console.log('      - ¿Match de CONSULTORIO?:', hasConsultorioMatch, hasConsultorioMatch ? '← ⛔ BLOQUEARÁ APROBACIÓN' : '')
-      console.log('      - ¿Match de ESPECIALIDAD?:', hasEspecialidadMatch, hasEspecialidadMatch ? '← ⚠️ MOSTRARÁ ADVERTENCIA' : '')
-      console.log('🔍 === FIN VALIDACIÓN ===')
-    }
-  }, [pendingAppointments, appointment, hasConsultorioMatch, hasEspecialidadMatch])
 
   // Validar ventana de 3 horas entre citas
   const validateTimeWindow = (): { isValid: boolean; conflictingAppointment?: any; message?: string } => {
@@ -1130,28 +1081,14 @@ function PatientAssignmentReservedModalContent({
           <div className="flex justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
             <Button 
               onClick={() => {
-                console.log('🔘 === BOTÓN APROBAR CLICKEADO ===')
-                console.log('   📊 Estado de validaciones:')
-                console.log('      - hasConsultorioMatch:', hasConsultorioMatch)
-                console.log('      - hasEspecialidadMatch:', hasEspecialidadMatch)
-                console.log('      - timeValidation.isValid:', timeValidation.isValid)
-                
-                // 1. Si hay match de especialidad (pero NO de consultorio), mostrar advertencia de responsabilidad
                 if (hasEspecialidadMatch && !hasConsultorioMatch) {
-                  console.log('   ⚠️ CASO 1: Match de ESPECIALIDAD pero NO de consultorio')
-                  console.log('   → Mostrando diálogo de advertencia de responsabilidad')
                   setShowEspecialidadConflictDialog(true)
                   return
                 }
-                // 2. Si hay conflicto de horario, mostrar diálogo de advertencia
                 if (!timeValidation.isValid) {
-                  console.log('   ⚠️ CASO 2: Conflicto de HORARIO detectado')
-                  console.log('   → Mostrando diálogo de conflicto de horario')
                   setShowTimeConflictDialog(true)
                   return
                 }
-                // 3. Si no hay conflictos, aprobar directamente
-                console.log('   ✅ CASO 3: Sin conflictos - Aprobando directamente')
                 handleApprove()
               }}
               disabled={
