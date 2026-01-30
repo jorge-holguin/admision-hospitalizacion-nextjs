@@ -224,6 +224,9 @@ function PatientAssignmentReservedModalContent({
   
   // Estado para el dialog de confirmación de conflicto de horario
   const [showTimeConflictDialog, setShowTimeConflictDialog] = useState(false)
+  
+  // Estado para el dialog de confirmación de especialidad duplicada (advertencia de responsabilidad)
+  const [showEspecialidadConflictDialog, setShowEspecialidadConflictDialog] = useState(false)
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -283,33 +286,46 @@ function PatientAssignmentReservedModalContent({
     return false
   })
   
-  // Log de debugging siempre visible
-  useEffect(() => {
-    if (pendingAppointments?.length > 0) {
-      console.log('🔍 === VALIDACIÓN DE DOBLES CITAS ===')
-      console.log('   📊 Citas pendientes cargadas:', pendingAppointments.length)
-      console.log('   📍 Consultorio de cita actual:')
-      console.log('      - Nombre:', (appointment as any)?.consultorioNombre || 'N/A')
-      console.log('      - Código:', (appointment as any)?.consultorio || 'N/A')
-      console.log('   📋 Consultorios de citas pendientes:')
-      pendingAppointments.forEach((apt, idx) => {
-        console.log(`      ${idx + 1}. Nombre: "${apt.consultorioNombre}", Código: "${apt.consultorio}"`)
-      })
-      console.log('   ⚠️ ¿Hay match de consultorio?:', hasConsultorioMatch)
-      console.log('🔍 === FIN VALIDACIÓN ===')
-    }
-  }, [pendingAppointments, appointment, hasConsultorioMatch])
-
   const hasEspecialidadMatch = pendingAppointments?.some((apt) => {
-    // Para reservas, el appointment puede tener "especialidadSolicitud" (código)
-    const currCodigo = (appointment as any)?.especialidadSolicitud?.trim()?.toLowerCase()
+    // Para reservas, el appointment puede tener "especialidad" (código) o "especialidadSolicitud"
+    // Ejemplo: reserva tiene "especialidad": "0013" y cita pendiente tiene "especialidad": "0013"
+    const currCodigo = (appointment as any)?.especialidad?.trim()?.toLowerCase() || 
+                       (appointment as any)?.especialidadSolicitud?.trim()?.toLowerCase()
     if (!currCodigo) return false
     
-    // Comparar código con código
-    const matchCodigo = apt.especialidad?.trim()?.toLowerCase() === currCodigo
+    // Comparar código con código (limpiando espacios)
+    const otherCodigo = apt.especialidad?.trim()?.toLowerCase()
+    const matchCodigo = otherCodigo === currCodigo
+    
+    if (matchCodigo) {
+      console.log('⚠️ MATCH DE ESPECIALIDAD DETECTADO:')
+      console.log('   - Especialidad de solicitud:', currCodigo)
+      console.log('   - Especialidad de cita pendiente:', otherCodigo)
+    }
     
     return matchCodigo
   })
+
+  // Log de debugging siempre visible
+  useEffect(() => {
+    if (pendingAppointments?.length > 0) {
+      console.log('🔍 === VALIDACIÓN DE DOBLES CITAS (RESERVAS) ===')
+      console.log('   📊 Citas pendientes cargadas:', pendingAppointments.length)
+      console.log('   📍 Datos de la SOLICITUD DE RESERVA:')
+      console.log('      - Consultorio (código):', `"${(appointment as any)?.consultorio}"`)
+      console.log('      - Consultorio (nombre):', `"${(appointment as any)?.consultorioNombre}"`)
+      console.log('      - Especialidad (código):', `"${(appointment as any)?.especialidad}"`)
+      console.log('      - Especialidad (nombre):', `"${(appointment as any)?.especialidadNombre}"`)
+      console.log('   📋 Citas PENDIENTES del paciente:')
+      pendingAppointments.forEach((apt, idx) => {
+        console.log(`      ${idx + 1}. Consultorio: "${apt.consultorio?.trim()}", Especialidad: "${apt.especialidad?.trim()}", Fecha: ${apt.fecha}`)
+      })
+      console.log('   ⚠️ RESULTADOS:')
+      console.log('      - ¿Match de CONSULTORIO?:', hasConsultorioMatch, '(bloquea aprobación)')
+      console.log('      - ¿Match de ESPECIALIDAD?:', hasEspecialidadMatch, '(advertencia de responsabilidad)')
+      console.log('🔍 === FIN VALIDACIÓN ===')
+    }
+  }, [pendingAppointments, appointment, hasConsultorioMatch, hasEspecialidadMatch])
 
   // Validar ventana de 3 horas entre citas
   const validateTimeWindow = (): { isValid: boolean; conflictingAppointment?: any; message?: string } => {
@@ -1126,12 +1142,18 @@ function PatientAssignmentReservedModalContent({
           <div className="flex justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
             <Button 
               onClick={() => {
-                // Si hay conflicto de horario, mostrar diálogo de advertencia primero
+                // 1. Si hay match de especialidad (pero NO de consultorio), mostrar advertencia de responsabilidad
+                if (hasEspecialidadMatch && !hasConsultorioMatch) {
+                  setShowEspecialidadConflictDialog(true)
+                  return
+                }
+                // 2. Si hay conflicto de horario, mostrar diálogo de advertencia
                 if (!timeValidation.isValid) {
                   setShowTimeConflictDialog(true)
-                } else {
-                  handleApprove()
+                  return
                 }
+                // 3. Si no hay conflictos, aprobar directamente
+                handleApprove()
               }}
               disabled={
                 !selectedTipoCita || 
@@ -1344,6 +1366,77 @@ function PatientAssignmentReservedModalContent({
           </div>
         </DialogContent>
         </Dialog>
+
+      {/* Diálogo de confirmación de especialidad duplicada */}
+      <Dialog open={showEspecialidadConflictDialog} onOpenChange={setShowEspecialidadConflictDialog}>
+        <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-6 w-6" />
+              ⚠️ Advertencia: Cita en Misma Especialidad
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Se ha detectado que el paciente ya tiene una cita pendiente en la misma especialidad.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Mensaje de especialidad duplicada */}
+            <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-orange-800">
+                  <p className="font-semibold mb-2">Detalles:</p>
+                  <p>El paciente <strong>{patient?.NOMBRES}</strong> ya tiene una cita pendiente en la especialidad <strong>{(appointment as any)?.especialidadNombre || 'la misma especialidad'}</strong>.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Advertencia de responsabilidad */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-900 font-semibold mb-2">
+                ⚠️ IMPORTANTE - Responsabilidad del Admisionista
+              </p>
+              <p className="text-sm text-red-800">
+                Si decide continuar con la aprobación a pesar de que el paciente ya tiene una cita en esta especialidad, 
+                <span className="font-bold"> usted será responsable de cualquier problema o inconveniente</span> que 
+                pueda surgir debido a la duplicidad de citas.
+              </p>
+            </div>
+
+            {/* Pregunta de confirmación */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-900 font-medium text-center">
+                ¿Está seguro de que desea continuar con la aprobación de esta solicitud?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowEspecialidadConflictDialog(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowEspecialidadConflictDialog(false)
+                // Si también hay conflicto de horario, mostrar ese diálogo
+                if (!timeValidation.isValid) {
+                  setShowTimeConflictDialog(true)
+                } else {
+                  handleApprove() // Continuar con la aprobación
+                }
+              }}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              Sí, Continuar Bajo Mi Responsabilidad
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </>
   )
 }
