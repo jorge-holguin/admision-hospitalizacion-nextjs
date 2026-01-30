@@ -25,6 +25,87 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
 import { PatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientNotFoundModal } from "@/components/appointments/modals/PatientNotFoundModal"
 
+// Componente separado para el contenido del modal de reversión
+// Evita re-renders del padre al escribir en el textarea
+interface RevertirModalContentProps {
+  reserva: ReservaData
+  isLoading: boolean
+  onConfirm: (motivo: string) => void
+  onCancel: () => void
+}
+
+function RevertirModalContent({ reserva, isLoading, onConfirm, onCancel }: RevertirModalContentProps) {
+  const [motivo, setMotivo] = useState("")
+
+  return (
+    <>
+      <div className="space-y-4">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
+          <h4 className="font-semibold text-orange-900">Datos de la Solicitud:</h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Código:</span>
+              <span className="font-medium text-orange-700">{reserva.codigo}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Estado Actual:</span>
+              <span className="font-medium">{reserva.estado}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Paciente:</span>
+              <span className="font-medium">{reserva.nombres}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Especialidad:</span>
+              <span className="font-medium">{reserva.especialidadNombre}</span>
+            </div>
+            {reserva.citaId && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Cita ID:</span>
+                <span className="font-medium">{reserva.citaId}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">
+            Motivo de Reversión <span className="text-red-500">*</span>
+          </Label>
+          <Textarea
+            placeholder="Ingrese el motivo por el cual se revierte la solicitud..."
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            className="min-h-[100px] resize-none"
+            maxLength={500}
+          />
+          <div className="text-xs text-gray-500 text-right">
+            {motivo.length}/500 caracteres
+          </div>
+        </div>
+      </div>
+
+      <DialogFooter className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="flex-1"
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={() => onConfirm(motivo)}
+          disabled={!motivo.trim() || isLoading}
+          className="flex-1 bg-orange-600 hover:bg-orange-700"
+        >
+          {isLoading ? "Revirtiendo..." : "Confirmar Reversión"}
+        </Button>
+      </DialogFooter>
+    </>
+  )
+}
+
 // Interfaces
 interface ReservaData {
   tipoDocumento: string
@@ -109,7 +190,7 @@ export default function ReservedAppointmentsPage() {
   const [isDenegando, setIsDenegando] = useState(false)
   const [showRevertirModal, setShowRevertirModal] = useState(false)
   const [reservaARevertir, setReservaARevertir] = useState<ReservaData | null>(null)
-  const [motivoReversion, setMotivoReversion] = useState("")
+  // motivoReversion state moved to RevertirModalContent component to avoid re-renders
   const [isRevirtiendo, setIsRevirtiendo] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
@@ -573,13 +654,12 @@ export default function ReservedAppointmentsPage() {
   // Manejar clic en revertir - abre modal de confirmación
   const handleRevertirClick = (reserva: ReservaData) => {
     setReservaARevertir(reserva)
-    setMotivoReversion("")
     setShowRevertirModal(true)
   }
 
-  // Manejar confirmación de reversión
-  const handleConfirmarReversion = async () => {
-    if (!reservaARevertir || !motivoReversion.trim()) {
+  // Manejar confirmación de reversión (recibe motivo como parámetro del componente hijo)
+  const handleConfirmarReversion = async (motivoParam: string) => {
+    if (!reservaARevertir || !motivoParam.trim()) {
       toast({
         title: "Campo requerido",
         description: "Debe ingresar un motivo para revertir",
@@ -608,7 +688,7 @@ export default function ReservedAppointmentsPage() {
               'Content-Type': 'application/json',
               'usuario': usuarioApellido
             },
-            body: JSON.stringify(`Reversión de solicitud: ${motivoReversion}`)
+            body: JSON.stringify(`Reversión de solicitud: ${motivoParam}`)
           })
           
           if (!liberarResponse.ok) {
@@ -627,7 +707,7 @@ export default function ReservedAppointmentsPage() {
       const cambioExitoso = await cambiarEstadoSolicitud(
         reservaARevertir.codigo, 
         "PENDIENTE",
-        motivoReversion,
+        motivoParam,
         usuarioApellido,
         errorFlag
       )
@@ -653,7 +733,6 @@ export default function ReservedAppointmentsPage() {
         // Cerrar modal y limpiar estados
         setShowRevertirModal(false)
         setReservaARevertir(null)
-        setMotivoReversion("")
         
         // Recargar las reservas para reflejar el cambio
         loadReservas()
@@ -1218,12 +1297,11 @@ export default function ReservedAppointmentsPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Modal de confirmación de reversión */}
+          {/* Modal de confirmación de reversión - Usa componente separado para evitar re-renders */}
           <Dialog open={showRevertirModal} onOpenChange={(open) => {
             setShowRevertirModal(open)
             if (!open) {
               setReservaARevertir(null)
-              setMotivoReversion("")
             }
           }}>
             <DialogContent className="sm:max-w-md">
@@ -1239,74 +1317,16 @@ export default function ReservedAppointmentsPage() {
               </DialogHeader>
               
               {reservaARevertir && (
-                <div className="space-y-4">
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
-                    <h4 className="font-semibold text-orange-900">Datos de la Solicitud:</h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Código:</span>
-                        <span className="font-medium text-orange-700">{reservaARevertir.codigo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Estado Actual:</span>
-                        <span className="font-medium">{reservaARevertir.estado}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Paciente:</span>
-                        <span className="font-medium">{reservaARevertir.nombres}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Especialidad:</span>
-                        <span className="font-medium">{reservaARevertir.especialidadNombre}</span>
-                      </div>
-                      {reservaARevertir.citaId && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Cita ID:</span>
-                          <span className="font-medium">{reservaARevertir.citaId}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Motivo de Reversión <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      placeholder="Ingrese el motivo por el cual se revierte la solicitud..."
-                      value={motivoReversion}
-                      onChange={(e) => setMotivoReversion(e.target.value)}
-                      className="min-h-[100px] resize-none"
-                      maxLength={500}
-                    />
-                    <div className="text-xs text-gray-500 text-right">
-                      {motivoReversion.length}/500 caracteres
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <DialogFooter className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
+                <RevertirModalContent
+                  reserva={reservaARevertir}
+                  isLoading={isRevirtiendo}
+                  onConfirm={handleConfirmarReversion}
+                  onCancel={() => {
                     setShowRevertirModal(false)
                     setReservaARevertir(null)
-                    setMotivoReversion("")
                   }}
-                  disabled={isRevirtiendo}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleConfirmarReversion}
-                  disabled={!motivoReversion.trim() || isRevirtiendo}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700"
-                >
-                  {isRevirtiendo ? "Revirtiendo..." : "Confirmar Reversión"}
-                </Button>
-              </DialogFooter>
+                />
+              )}
             </DialogContent>
           </Dialog>
 

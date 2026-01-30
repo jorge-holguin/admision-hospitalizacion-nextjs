@@ -743,7 +743,7 @@ function PatientAssignmentReservedModalContent({
             <div className="w-full bg-green-50 border border-green-200 rounded-lg p-4 text-left space-y-1 text-sm">
               <p className="font-semibold text-green-800 mb-1">Información de la Cita Asignada</p>
               <p><span className="font-medium">Paciente:</span> {patient.NOMBRES}</p>
-              <p><span className="font-medium">Consultorio:</span> {(appointment as any)?.consultorioNombre || appointment.consultorio || 'N/A'}</p>
+              <p><span className="font-medium">Consultorio:</span> {(appointment as any)?.consultorioNombre || (appointment as any)?.consultorio || 'N/A'}</p>
               <p><span className="font-medium">Médico:</span> {(appointment as any)?.medicoNombre || appointment.medico || 'N/A'}</p>
               <p><span className="font-medium">Fecha:</span> {(appointment as any)?.fecha || 'N/A'}</p>
               <p><span className="font-medium">Hora:</span> {(appointment as any)?.hora || 'N/A'}</p>
@@ -994,8 +994,8 @@ function PatientAssignmentReservedModalContent({
                   {patient?.PACIENTE && (
                     <PatientPendingAppointmentsModal
                       pacienteId={patient.PACIENTE}
-                      currentConsultorio={(appointment as any)?.consultorioNombre}
-                      currentEspecialidad={appointment?.especialidadNombre}
+                      currentConsultorio={(appointment as any)?.consultorioNombre || (appointment as any)?.consultorio}
+                      currentEspecialidad={(appointment as any)?.especialidadSolicitud || (appointment as any)?.especialidad}
                       limite={5}
                       highlight={hasConsultorioMatch || hasEspecialidadMatch}
                       onAppointmentsLoaded={setPendingAppointments}
