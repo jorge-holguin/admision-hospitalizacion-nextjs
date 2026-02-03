@@ -121,15 +121,15 @@ export function HospitalizationViewModal({
     // Actualizar datos locales
     setHospitalizationData(updatedData)
 
-    // Llamar callback de éxito si existe
-    if (onSuccess) {
-      onSuccess(updatedData)
-    }
-
-    // Ocultar mensaje de éxito después de un tiempo
+    // Esperar un momento para que el usuario vea el mensaje de éxito, luego regresar al listado
     setTimeout(() => {
       setSubmitSuccess(false)
-    }, 3000)
+      
+      // Llamar callback de éxito para regresar al listado
+      if (onSuccess) {
+        onSuccess(updatedData)
+      }
+    }, 1500)
   }
 
   const handleError = (errorMessage: string) => {

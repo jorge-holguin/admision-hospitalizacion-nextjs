@@ -1099,6 +1099,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         onSuccess={handleHistoryUpdateSuccess}
         currentHistory={currentHistoryNumber}
         patientId={patient.PACIENTE || patient.paciente || patient.id || ''}
+        patientDocument={patient.DOCUMENTO || patient.documento || patient.dni || ''}
       />
     </Dialog>
   )

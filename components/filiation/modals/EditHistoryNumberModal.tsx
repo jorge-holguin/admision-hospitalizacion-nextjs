@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,7 @@ interface EditHistoryNumberModalProps {
   onSuccess: (newHistory: string) => void
   currentHistory: string
   patientId: string
+  patientDocument?: string
 }
 
 export function EditHistoryNumberModal({
@@ -24,12 +25,20 @@ export function EditHistoryNumberModal({
   onClose,
   onSuccess,
   currentHistory,
-  patientId
+  patientId,
+  patientDocument
 }: EditHistoryNumberModalProps) {
-  const [newHistory, setNewHistory] = useState("")
+  const [newHistory, setNewHistory] = useState(patientDocument || "")
   const [argument, setArgument] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Actualizar newHistory cuando cambie patientDocument
+  useEffect(() => {
+    if (patientDocument && !newHistory) {
+      setNewHistory(patientDocument)
+    }
+  }, [patientDocument])
 
   const handleClose = () => {
     setNewHistory("")

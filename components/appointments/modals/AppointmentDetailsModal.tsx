@@ -27,6 +27,44 @@ export function AppointmentDetailsModal({
   const [liberacionData, setLiberacionData] = useState<any>(null)
   const [usuarioLiberador, setUsuarioLiberador] = useState<string | null>(null)
   const [loadingLiberacion, setLoadingLiberacion] = useState(false)
+  const [patientData, setPatientData] = useState<any>(null)
+  const [loadingPatient, setLoadingPatient] = useState(false)
+
+  // Cargar datos del paciente (teléfonos y código) cuando se abre el modal
+  useEffect(() => {
+    if (!isOpen || !appointment) {
+      setPatientData(null)
+      return
+    }
+
+    const fetchPatientData = async () => {
+      try {
+        setLoadingPatient(true)
+        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+        
+        // Obtener el nombre del paciente de la cita
+        const patientName = appointment.nombre || appointment.NOMBRE
+        
+        if (patientName) {
+          // Llamar al endpoint para obtener datos completos del paciente
+          const res = await fetch(`${apiUrl}/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(patientName)}`)
+          
+          if (res.ok) {
+            const data = await res.json()
+            if (Array.isArray(data) && data.length > 0) {
+              setPatientData(data[0])
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar datos del paciente:', error)
+      } finally {
+        setLoadingPatient(false)
+      }
+    }
+
+    fetchPatientData()
+  }, [isOpen, appointment])
 
   // Cargar datos de liberación en cualquier estado (para saber quién liberó inicialmente)
   useEffect(() => {
@@ -168,9 +206,16 @@ export function AppointmentDetailsModal({
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                 <User className="h-4 w-4 text-gray-500" /> PACIENTE
               </Label>
-              <p className="text-sm font-medium">
-                {appointment.paciente || appointment.PACIENTE || '-'} - {appointment.nombre || appointment.NOMBRE || '-'}
-              </p>
+              {loadingPatient ? (
+                <div className="flex items-center gap-2">
+                  <Spinner className="h-4 w-4" />
+                  <span className="text-sm text-gray-500">Cargando...</span>
+                </div>
+              ) : (
+                <p className="text-sm font-medium">
+                  {patientData?.paciente || appointment.PACIENTE || appointment.paciente || '-'} - {patientData?.nombres || appointment.nombre || appointment.NOMBRE || '-'}
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
@@ -188,6 +233,39 @@ export function AppointmentDetailsModal({
                 <CreditCard className="h-4 w-4 text-gray-500" /> PAGO ID
               </Label>
               <p className="text-sm font-medium">{appointment.pagoId || '-'}</p>
+            </div>
+          </div>
+
+          {/* Quinta fila - Teléfonos */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                <FileText className="h-4 w-4 text-gray-500" /> TELÉFONO 1
+              </Label>
+              {loadingPatient ? (
+                <div className="flex items-center gap-2">
+                  <Spinner className="h-4 w-4" />
+                  <span className="text-sm text-gray-500">Cargando...</span>
+                </div>
+              ) : (
+                <p className="text-sm font-medium">{patientData?.telefono1 || appointment.telefono1 || '-'}</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                <FileText className="h-4 w-4 text-gray-500" /> TELÉFONO 2
+              </Label>
+              {loadingPatient ? (
+                <div className="flex items-center gap-2">
+                  <Spinner className="h-4 w-4" />
+                  <span className="text-sm text-gray-500">Cargando...</span>
+                </div>
+              ) : (
+                <p className="text-sm font-medium">{patientData?.telefono2 || appointment.telefono2 || '-'}</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              {/* Espacio vacío para mantener grid */}
             </div>
           </div>
 
