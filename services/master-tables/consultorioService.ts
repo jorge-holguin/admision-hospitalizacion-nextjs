@@ -1,4 +1,9 @@
-import { prisma } from '@/lib/prisma';
+// consultorioService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 // Normalizador para filas de Consultorio
 function normalizeConsultorio(row: any): Consultorio {
@@ -58,254 +63,160 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+// ============================================================================
+// SERVICIO DE CONSULTORIOS - SPRING BOOT API
+// ============================================================================
+
 export const consultorioServerService = {
   async getConsultorios(
     page: number = 1,
     pageSize: number = 10,
     filters: ConsultorioFilters = {}
   ): Promise<PaginatedResponse<Consultorio>> {
-    const skip = (page - 1) * pageSize;
-    const startRow = skip + 1;
-    const endRow = page * pageSize;
-    const { nombre, codigo, servicio } = filters;
-
     try {
-      let totalResult: any;
-      let consultorios: any;
-
-      if (nombre && !codigo && !servicio) {
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO WHERE NOMBRE LIKE ${`%${nombre}%`}`;
-        consultorios = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
-                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
-                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM CONSULTORIO
-            WHERE NOMBRE LIKE ${`%${nombre}%`}
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
-      } else if (!nombre && codigo && !servicio) {
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO WHERE CONSULTORIO LIKE ${`%${codigo}%`}`;
-        consultorios = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
-                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
-                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM CONSULTORIO
-            WHERE CONSULTORIO LIKE ${`%${codigo}%`}
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
-      } else if (!nombre && !codigo && servicio) {
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO WHERE HIS_NOMSERVICIO LIKE ${`%${servicio}%`}`;
-        consultorios = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
-                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
-                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM CONSULTORIO
-            WHERE HIS_NOMSERVICIO LIKE ${`%${servicio}%`}
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
-      } else {
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM CONSULTORIO`;
-        consultorios = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, HIS_NOMSERVICIO, ACTIVO,
-                   HIS_CODSERVICIO AS CODIGOHIS, TIPO, NUMERO,
-                   HIS_NOMSERVICIO AS NOMBRE_ESPECIALIDAD,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM CONSULTORIO
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
+      console.log(`🔍 Buscando consultorios - página ${page}, tamaño ${pageSize}`);
+      
+      const params: Record<string, string> = {
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      };
+      
+      if (filters.nombre) params.nombre = filters.nombre;
+      if (filters.codigo) params.codigo = filters.codigo;
+      if (filters.servicio) params.servicio = filters.servicio;
+      
+      const url = buildUrl(API_ENDPOINTS.masterTables.consultorios.list, params);
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-
-      const total = Number((totalResult as any)[0].total);
-      const normalized = (consultorios as any[]).map(normalizeConsultorio);
-
+      
+      const result = await response.json();
+      
+      // Normalizar respuesta
+      const data = Array.isArray(result) ? result : (result.data || []);
+      const total = result.total || data.length;
+      const normalized = data.map(normalizeConsultorio);
+      
+      console.log(`✅ Encontrados ${normalized.length} consultorios (total: ${total})`);
+      
       return {
-        data: normalized as Consultorio[],
+        data: normalized,
         total,
         page,
         pageSize,
         totalPages: Math.ceil(total / pageSize),
       };
     } catch (error) {
-      console.error('Error in consultorioServerService.getConsultorios:', error);
+      console.error('❌ Error in consultorioServerService.getConsultorios:', error);
       throw error;
     }
   },
 
   async getConsultorioById(id: string): Promise<Consultorio | null> {
     try {
-      const consultorio = await prisma.$queryRaw`
-        SELECT CONSULTORIO, NOMBRE, ABREVIATURA, ESPECIALIDAD, TIPO, ROL, MUESTRAROL, 
-               ACTIVO, ORDEN, NUMERO, HIS_CODSERVICIO, CODUPSSEEM
-        FROM CONSULTORIO
-        WHERE CONSULTORIO = ${id}
-      `;
-
-      if (!consultorio || (Array.isArray(consultorio) && consultorio.length === 0)) {
+      console.log(`🔍 Buscando consultorio: ${id}`);
+      
+      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
+      const response = await fetchApi(url);
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró consultorio ${id}`);
         return null;
       }
-
-      const item = Array.isArray(consultorio) ? consultorio[0] : consultorio;
-      return normalizeConsultorio(item);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Consultorio encontrado: ${id}`);
+      
+      return normalizeConsultorio(data);
     } catch (error) {
-      console.error(`Error in consultorioServerService.getConsultorioById(${id}):`, error);
+      console.error(`❌ Error in consultorioServerService.getConsultorioById(${id}):`, error);
       throw error;
     }
   },
 
   async createConsultorio(data: Partial<Consultorio>): Promise<Consultorio> {
     try {
-      // Check if consultorio with same codigo already exists
-      const existing = await prisma.$queryRaw`SELECT COUNT(*) as count FROM CONSULTORIO WHERE CONSULTORIO = ${data.CONSULTORIO}`;
-      const exists = Number((existing as any)[0].count) > 0;
-
-      if (exists) {
-        throw new Error('Ya existe un consultorio con este código');
-      }
-
-      // Parse numeric values
-      const parseActivo = (v: any): number => {
-        const s = String(v ?? '').trim().toUpperCase();
-        if (s === '1' || s === 'S' || s === 'TRUE') return 1;
-        if (s === '0' || s === 'N' || s === 'FALSE') return 0;
-        return 1;
-      };
+      console.log(`➕ Creando consultorio: ${data.CONSULTORIO}`);
       
-      const activoVal = parseActivo(data.ACTIVO);
-      const rolVal = data.ROL === '1' ? 1 : 0;
-      const muestraRolVal = data.MUESTRAROL === '1' ? 1 : 0;
-      const ordenVal = data.ORDEN ? parseInt(data.ORDEN) : null;
-
-      // Insert new consultorio with all fields
-      await prisma.$executeRaw`
-        INSERT INTO Consultorio(CONSULTORIO,NOMBRE,ABREVIATURA,ESPECIALIDAD,TIPO,ROL,MUESTRAROL,ACTIVO,ORDEN,NUMERO) 
-        VALUES(${data.CONSULTORIO}, ${data.NOMBRE}, ${data.ABREVIATURA || ""}, ${data.ESPECIALIDAD || ""}, ${data.TIPO || ""}, ${rolVal}, ${muestraRolVal}, ${activoVal}, ${ordenVal}, ${data.NUMERO || ""})
-      `;
-
-      // Update additional fields if provided
-      if (data.UPSTRAMA || data.HIS_CODSERVICIO) {
-        await prisma.$executeRaw`
-          UPDATE CONSULTORIO SET 
-            upstrama = ${data.UPSTRAMA || ""}, 
-            his_codservicio = ${data.HIS_CODSERVICIO || ""} 
-          WHERE CONSULTORIO = ${data.CONSULTORIO}
-        `;
-      }
-
-      // Insert BITACORA log
-      const sqlStatement = `INSERT INTO Consultorio(CONSULTORIO,NOMBRE,ABREVIATURA,ESPECIALIDAD,TIPO,ROL,MUESTRAROL,ACTIVO,ORDEN,NUMERO) VALUES(!${data.CONSULTORIO}!,!${data.NOMBRE}!,!${data.ABREVIATURA || ""}!,!${data.ESPECIALIDAD || ""}!,!${data.TIPO || ""}!,${rolVal},${muestraRolVal},${activoVal},${ordenVal || 0},!${data.NUMERO || ""}!)`;
+      const url = API_ENDPOINTS.masterTables.consultorios.list;
+      const response = await fetchApi(url, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
       
-      await prisma.$executeRaw`
-        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
-        VALUES ('INSERT',getdate(),'SYSTEM','SYSTEM','SYSTEM','ADMISION',${sqlStatement},'Consultorio')
-      `;
-
-      // Return the created consultorio
-      return {
-        CONSULTORIO: data.CONSULTORIO!,
-        NOMBRE: data.NOMBRE!,
-        ABREVIATURA: data.ABREVIATURA || "",
-        ESPECIALIDAD: data.ESPECIALIDAD || "",
-        TIPO: data.TIPO || "",
-        ROL: data.ROL || "0",
-        MUESTRAROL: data.MUESTRAROL || "0",
-        ACTIVO: data.ACTIVO || "1",
-        ORDEN: data.ORDEN || "",
-        NUMERO: data.NUMERO || "",
-        UPSTRAMA: data.UPSTRAMA || "",
-        HIS_CODSERVICIO: data.HIS_CODSERVICIO || ""
-      };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ Consultorio creado: ${data.CONSULTORIO}`);
+      
+      return normalizeConsultorio(result);
     } catch (error) {
-      console.error('Error in consultorioServerService.createConsultorio:', error);
+      console.error('❌ Error in consultorioServerService.createConsultorio:', error);
       throw error;
     }
   },
 
   async updateConsultorio(id: string, data: Partial<Consultorio>): Promise<Consultorio | null> {
     try {
-      // Check if consultorio exists
-      const existing = await this.getConsultorioById(id);
-      if (!existing) {
+      console.log(`🔄 Actualizando consultorio: ${id}`);
+      
+      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró consultorio ${id}`);
         return null;
       }
-
-      // Parse numeric values
-      const parseActivo = (v: any): number => {
-        const s = String(v ?? '').trim().toUpperCase();
-        if (s === '1' || s === 'S' || s === 'TRUE') return 1;
-        if (s === '0' || s === 'N' || s === 'FALSE') return 0;
-        return 1;
-      };
       
-      const activoVal = data.ACTIVO !== undefined ? parseActivo(data.ACTIVO) : parseActivo(existing.ACTIVO);
-      const rolVal = data.ROL !== undefined ? (data.ROL === '1' ? 1 : 0) : (existing.ROL === '1' ? 1 : 0);
-      const muestraRolVal = data.MUESTRAROL !== undefined ? (data.MUESTRAROL === '1' ? 1 : 0) : (existing.MUESTRAROL === '1' ? 1 : 0);
-      const ordenVal = data.ORDEN ? parseInt(data.ORDEN) : (existing.ORDEN ? parseInt(existing.ORDEN) : null);
-
-      // Update consultorio with all fields
-      await prisma.$executeRaw`
-        UPDATE CONSULTORIO 
-        SET NOMBRE = ${data.NOMBRE || existing.NOMBRE},
-            ABREVIATURA = ${data.ABREVIATURA || existing.ABREVIATURA || ""},
-            ESPECIALIDAD = ${data.ESPECIALIDAD || existing.ESPECIALIDAD || ""},
-            TIPO = ${data.TIPO || existing.TIPO || ""},
-            ROL = ${rolVal},
-            MUESTRAROL = ${muestraRolVal},
-            ACTIVO = ${activoVal},
-            ORDEN = ${ordenVal},
-            NUMERO = ${data.NUMERO || existing.NUMERO || ""}
-        WHERE CONSULTORIO = ${id}
-      `;
-
-      // Update additional fields if provided
-      if (data.UPSTRAMA !== undefined || data.HIS_CODSERVICIO !== undefined) {
-        await prisma.$executeRaw`
-          UPDATE CONSULTORIO SET 
-            upstrama = ${data.UPSTRAMA || existing.UPSTRAMA || ""}, 
-            his_codservicio = ${data.HIS_CODSERVICIO || existing.HIS_CODSERVICIO || ""} 
-          WHERE CONSULTORIO = ${id}
-        `;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-
-      // Insert BITACORA log for update
-      const sqlStatement = `UPDATE CONSULTORIO SET NOMBRE=!${data.NOMBRE || existing.NOMBRE}!,ABREVIATURA=!${data.ABREVIATURA || existing.ABREVIATURA || ""}!,ESPECIALIDAD=!${data.ESPECIALIDAD || existing.ESPECIALIDAD || ""}!,TIPO=!${data.TIPO || existing.TIPO || ""}!,ROL=${rolVal},MUESTRAROL=${muestraRolVal},ACTIVO=${activoVal},ORDEN=${ordenVal || 0},NUMERO=!${data.NUMERO || existing.NUMERO || ""}! WHERE CONSULTORIO=!${id}!`;
       
-      await prisma.$executeRaw`
-        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
-        VALUES ('UPDATE',getdate(),'SYSTEM','SYSTEM','SYSTEM','ADMISION',${sqlStatement},'Consultorio')
-      `;
-
-      // Return updated consultorio
-      return await this.getConsultorioById(id);
+      const result = await response.json();
+      console.log(`✅ Consultorio actualizado: ${id}`);
+      
+      return normalizeConsultorio(result);
     } catch (error) {
-      console.error(`Error in consultorioServerService.updateConsultorio(${id}):`, error);
+      console.error(`❌ Error in consultorioServerService.updateConsultorio(${id}):`, error);
       throw error;
     }
   },
 
   async deleteConsultorio(id: string): Promise<boolean> {
     try {
-      // Check if consultorio exists
-      const existing = await this.getConsultorioById(id);
-      if (!existing) {
+      console.log(`🗑️ Eliminando consultorio: ${id}`);
+      
+      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
+      const response = await fetchApi(url, {
+        method: 'DELETE',
+      });
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró consultorio ${id}`);
         return false;
       }
-
-      // Delete consultorio
-      await prisma.$executeRaw`DELETE FROM CONSULTORIO WHERE CONSULTORIO = ${id}`;
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log(`✅ Consultorio eliminado: ${id}`);
       return true;
     } catch (error) {
-      console.error(`Error in consultorioServerService.deleteConsultorio(${id}):`, error);
+      console.error(`❌ Error in consultorioServerService.deleteConsultorio(${id}):`, error);
       throw error;
     }
   }

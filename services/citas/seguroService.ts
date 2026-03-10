@@ -1,9 +1,18 @@
-import { prisma } from '@/lib/prisma';
+// seguroService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface Seguro {
   Seguro: string;
   Nombre: string;
 }
+
+// ============================================================================
+// SERVICIO DE SEGUROS - SPRING BOOT API
+// ============================================================================
 
 export const seguroService = {
   /**
@@ -12,21 +21,27 @@ export const seguroService = {
    */
   async getSegurosByCodCita(codCita: string = '1'): Promise<Seguro[]> {
     try {
-      console.log('Obteniendo seguros para citas con CODCITA:', codCita);
-      
-      const query = `
-        SELECT Seguro, Nombre 
-        FROM Seguro 
-        WHERE CODCITA = '${codCita}' 
-        ORDER BY SEGURO
-      `;
-      
-      const result = await prisma.$queryRawUnsafe(query);
-      
-      console.log(`Encontrados ${Array.isArray(result) ? result.length : 0} seguros para citas`);
-      return Array.isArray(result) ? result as Seguro[] : [];
+      console.log('🔍 Obteniendo seguros para citas con CODCITA:', codCita);
+
+      const url = buildUrl(`${API_ENDPOINTS.citas.base}/seguros`, { codCita });
+      const response = await fetchApi(url);
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const data = Array.isArray(result) ? result : (result.data || []);
+
+      const seguros = data.map((item: any) => ({
+        Seguro: item.Seguro || item.SEGURO || item.seguro || '',
+        Nombre: item.Nombre || item.NOMBRE || item.nombre || '',
+      }));
+
+      console.log(`✅ Encontrados ${seguros.length} seguros para citas`);
+      return seguros;
     } catch (error) {
-      console.error('Error al obtener seguros para citas:', error);
+      console.error('❌ Error al obtener seguros para citas:', error);
       throw new Error('Error al obtener seguros para citas');
     }
   }

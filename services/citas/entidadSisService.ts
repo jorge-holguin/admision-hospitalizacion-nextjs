@@ -1,59 +1,80 @@
-import { prisma } from '@/lib/prisma';
+// entidadSisService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface EntidadSis {
   ENTIDADSIS: string;
   NOMBRE: string;
 }
 
+// ============================================================================
+// SERVICIO DE ENTIDADES SIS - SPRING BOOT API
+// ============================================================================
+
 export const entidadSisService = {
   async getEntidadesSis(limit = 10, search?: string): Promise<EntidadSis[]> {
     try {
-      console.log('Obteniendo entidades SIS activas', { limit, search });
-      
-      let query = `
-        SELECT TOP ${limit} RTRIM(ENTIDADSIS) AS ENTIDADSIS, RTRIM(NOMBRE) AS NOMBRE 
-        FROM ENTIDADSIS 
-        WHERE ESTADO = '1'
-      `;
-      
-      // Agregar filtro de búsqueda si se proporciona
-      if (search) {
-        query += ` AND (ENTIDADSIS LIKE '%${search}%' OR NOMBRE LIKE '%${search}%')`;
+      console.log('🔍 Obteniendo entidades SIS activas', { limit, search });
+
+      const params: Record<string, string> = {
+        limit: limit.toString(),
+        activo: '1',
+      };
+      if (search) params.search = search;
+
+      const url = buildUrl(`${API_ENDPOINTS.citas.base}/entidades-sis`, params);
+      const response = await fetchApi(url);
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      query += ` ORDER BY NOMBRE`;
+      const result = await response.json();
+      const data = Array.isArray(result) ? result : (result.data || []);
 
-      const result = await prisma.$queryRawUnsafe(query);
+      const entidades = data.map((item: any) => ({
+        ENTIDADSIS: (item.ENTIDADSIS || item.entidadSis || '').trim(),
+        NOMBRE: (item.NOMBRE || item.nombre || '').trim(),
+      }));
 
-      console.log(`Encontradas ${Array.isArray(result) ? result.length : 0} entidades SIS`);
-      return Array.isArray(result) ? result as EntidadSis[] : [];
+      console.log(`✅ Encontradas ${entidades.length} entidades SIS`);
+      return entidades;
     } catch (error) {
-      console.error('Error al obtener entidades SIS:', error);
+      console.error('❌ Error al obtener entidades SIS:', error);
       throw new Error('Error al obtener entidades SIS');
     }
   },
 
   async getEntidadSisByCode(code: string): Promise<EntidadSis | null> {
     try {
-      console.log('Obteniendo entidad SIS por código:', code);
-      
-      const query = `
-        SELECT TOP 1 RTRIM(ENTIDADSIS) AS ENTIDADSIS, RTRIM(NOMBRE) AS NOMBRE 
-        FROM ENTIDADSIS 
-        WHERE RTRIM(ENTIDADSIS) = '${code.trim()}' AND ESTADO = '1'
-      `;
+      console.log('🔍 Obteniendo entidad SIS por código:', code);
 
-      const result = await prisma.$queryRawUnsafe(query) as EntidadSis[];
+      const url = `${API_ENDPOINTS.citas.base}/entidades-sis/${code.trim()}`;
+      const response = await fetchApi(url);
 
-      if (Array.isArray(result) && result.length > 0) {
-        console.log('✅ Entidad SIS encontrada:', result[0]);
-        return result[0];
+      if (response.status === 404) {
+        console.log('⚠️ Entidad SIS no encontrada para código:', code);
+        return null;
       }
 
-      console.log('⚠️ Entidad SIS no encontrada para código:', code);
-      return null;
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      const entidad = {
+        ENTIDADSIS: (result.ENTIDADSIS || result.entidadSis || '').trim(),
+        NOMBRE: (result.NOMBRE || result.nombre || '').trim(),
+      };
+
+      console.log('✅ Entidad SIS encontrada:', entidad);
+      return entidad;
     } catch (error) {
-      console.error('Error al obtener entidad SIS por código:', error);
+      console.error('❌ Error al obtener entidad SIS por código:', error);
       throw new Error('Error al obtener entidad SIS');
     }
   }

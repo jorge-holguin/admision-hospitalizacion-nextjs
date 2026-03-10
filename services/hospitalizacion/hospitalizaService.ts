@@ -1,9 +1,9 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import { NextRequest, NextResponse } from 'next/server';
-import { cuentaValidationService } from './cuentaValidationService';
-import { calculateAgeFormatted } from '@/lib/ageCalculator';
+// hospitalizaService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, fetchApi } from '@/lib/api-config';
 
-const prisma = new PrismaClient();
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface HospitalizaData {
   IDHOSPITALIZACION: string;
@@ -26,48 +26,55 @@ export interface HospitalizaData {
   ACOMPANANTE_DIRECCION?: string;
 }
 
+export interface HospitalizacionResponse {
+  IDHOSPITALIZACION: string;
+  PACIENTE: string;
+  NOMBRES: string;
+  CONSULTORIO1: string;
+  HORA1: string;
+  FECHA1: string;
+  ORIGEN: string;
+  SEGURO: string;
+  MEDICO1: string;
+  ESTADO: string;
+  USUARIO: string;
+  USUARIO_IMP?: string;
+  DIAGNOSTICO: string;
+  EDAD: string;
+  ORIGENID: string;
+  ACOMPANANTE_NOMBRE?: string;
+  ACOMPANANTE_TELEFONO?: string;
+  ACOMPANANTE_DIRECCION?: string;
+  FECHA_BAJA?: string;
+  USUARIO_BAJA?: string;
+  [key: string]: any;
+}
+
+// ============================================================================
+// SERVICIO DE HOSPITALIZACIÓN - SPRING BOOT API
+// ============================================================================
+
 class HospitalizaService {
   /**
-   * Obtiene el último IDHOSPITALIZACION y genera uno nuevo incrementándolo
+   * Obtiene el siguiente ID de hospitalización
    */
   async getNextHospitalizacionId(): Promise<string> {
     try {
-      // Buscar el último registro ordenado por IDHOSPITALIZACION de forma descendente
-      // Usar raw query para evitar problemas con el ordenamiento de strings
-      const result = await prisma.$queryRaw`
-        SELECT TOP 1 IDHOSPITALIZACION 
-        FROM HOSPITALIZA 
-        ORDER BY LEN(IDHOSPITALIZACION) DESC, IDHOSPITALIZACION DESC
-      `;
+      console.log('🔢 Obteniendo siguiente ID de hospitalización...');
       
-      // Convertir el resultado a un array para facilitar el manejo
-      const records = result as any[];
+      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.nextId);
       
-      if (!records || records.length === 0) {
-        // Si no hay registros, comenzar con un ID base
-        console.log('No se encontraron registros de hospitalización, usando ID base');
+      if (!response.ok) {
+        console.error('❌ Error al obtener siguiente ID:', response.status);
         return '2500000001';
       }
       
-      // Obtener el último ID
-      const lastId = records[0].IDHOSPITALIZACION;
-      console.log('Último ID de hospitalización encontrado:', lastId);
+      const data = await response.json();
+      console.log('✅ Siguiente ID obtenido:', data.nextId || data);
       
-      // Asegurarse de que es un número y luego incrementarlo
-      const lastIdNumber = parseInt(lastId, 10);
-      if (isNaN(lastIdNumber)) {
-        console.log('El ID no es un número válido, usando ID base');
-        return '2500000001';
-      }
-      
-      const nextId = lastIdNumber + 1;
-      console.log('Siguiente ID de hospitalización generado:', nextId);
-      
-      // Devolver como string
-      return nextId.toString();
+      return data.nextId || data.toString();
     } catch (error) {
-      console.error('Error al obtener el siguiente ID de hospitalización:', error);
-      // Devolver un ID por defecto en caso de error
+      console.error('❌ Error al obtener el siguiente ID de hospitalización:', error);
       return '2500000001';
     }
   }
@@ -75,173 +82,62 @@ class HospitalizaService {
   /**
    * Crea un nuevo registro de hospitalización
    */
-  async create(data: HospitalizaData) {
+  async create(data: HospitalizaData): Promise<HospitalizacionResponse | null> {
     try {
-      // Si no se proporciona un IDHOSPITALIZACION, generar uno nuevo
+      console.log('🏥 Creando nueva hospitalización:', data);
+      
+      // Si no se proporciona un IDHOSPITALIZACION, obtener uno nuevo
       if (!data.IDHOSPITALIZACION) {
         data.IDHOSPITALIZACION = await this.getNextHospitalizacionId();
       }
       
-      // Convertir la fecha al formato correcto si es un string
+      // Formatear la fecha si es necesario
       let fecha1 = data.FECHA1;
-      if (typeof fecha1 === 'string') {
-        // Verificar el formato de la fecha
-        if (fecha1.includes('-')) {
-          // Formato YYYY-MM-DD
-          fecha1 = new Date(fecha1);
-        } else if (fecha1.includes('/')) {
-          // Formato DD/MM/YYYY
+      if (fecha1 instanceof Date) {
+        fecha1 = fecha1.toISOString().split('T')[0];
+      } else if (typeof fecha1 === 'string') {
+        // Normalizar formato de fecha
+        if (fecha1.includes('/')) {
           const [day, month, year] = fecha1.split('/').map(Number);
-          fecha1 = new Date(year, month - 1, day);
-        } else {
-          // Formato YYYYMMDD
-          const year = parseInt(fecha1.substring(0, 4));
-          const month = parseInt(fecha1.substring(4, 6)) - 1;
-          const day = parseInt(fecha1.substring(6, 8));
-          fecha1 = new Date(year, month, day);
-        }
-      }
-
-      // Crear el registro en la base de datos usando SQL raw para evitar problemas con OFFSET
-      // Preparar los campos y valores para la inserción
-      const fields = [
-        'IDHOSPITALIZACION', 'PACIENTE', 'NOMBRES', 'CONSULTORIO1', 'HORA1', 
-        'FECHA1', 'ORIGEN', 'SEGURO', 'MEDICO1', 'ESTADO', 'USUARIO', 'USUARIO_IMP',
-        'DIAGNOSTICO', 'EDAD', 'ORIGENID'
-      ];
-      
-      // Añadir campos opcionales si existen
-      if (data.ACOMPANANTE_NOMBRE) fields.push('ACOMPANANTE_NOMBRE');
-      if (data.ACOMPANANTE_TELEFONO) fields.push('ACOMPANANTE_TELEFONO');
-      if (data.ACOMPANANTE_DIRECCION) fields.push('ACOMPANANTE_DIRECCION');
-      
-      // Formatear la fecha para SQL Server (YYYYMMDD)
-      const fechaSQL = fecha1 instanceof Date ? 
-        `${fecha1.getFullYear()}${String(fecha1.getMonth() + 1).padStart(2, '0')}${String(fecha1.getDate()).padStart(2, '0')}` : 
-        '20250731'; // Fecha por defecto si hay algún problema
-      
-      console.log('Fecha recibida:', data.FECHA1);
-      console.log('Fecha convertida a objeto Date:', fecha1);
-      console.log('Fecha formateada para SQL Server:', fechaSQL);
-      
-      // Construir la consulta SQL
-      const fieldsStr = fields.join(', ');
-      const placeholders = fields.map(() => '?').join(', ');
-      
-      // Calcular la edad actualizada si es posible
-      // Intentar obtener la fecha de nacimiento del paciente para calcular edad actualizada
-      let edadCalculada = data.EDAD;
-      if (data.PACIENTE) {
-        try {
-          const pacienteResult = await prisma.$queryRaw`
-            SELECT TOP 1 FECHA_NACIMIENTO FROM PACIENTE WHERE PACIENTE = ${data.PACIENTE}
-          ` as any[];
-          
-          if (pacienteResult && pacienteResult.length > 0 && pacienteResult[0].FECHA_NACIMIENTO) {
-            edadCalculada = calculateAgeFormatted(pacienteResult[0].FECHA_NACIMIENTO);
-            console.log(`📅 Edad calculada para hospitalización: ${edadCalculada} (desde ${pacienteResult[0].FECHA_NACIMIENTO})`);
-            
-            // Actualizar también la edad en la tabla PACIENTE
-            await prisma.$executeRaw`
-              UPDATE PACIENTE SET EDAD = ${edadCalculada} WHERE PACIENTE = ${data.PACIENTE}
-            `;
-            console.log(`✅ Edad actualizada en tabla PACIENTE para paciente ${data.PACIENTE}: ${edadCalculada}`);
-          }
-        } catch (ageError) {
-          console.warn(`⚠️ No se pudo calcular/actualizar la edad:`, ageError);
-          edadCalculada = data.EDAD; // Usar la edad original si falla el cálculo
+          fecha1 = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
       }
       
-      // Preparar los valores en el mismo orden que los campos
-      const values = [
-        data.IDHOSPITALIZACION,
-        data.PACIENTE,
-        data.NOMBRES,
-        data.CONSULTORIO1,
-        data.HORA1,
-        fechaSQL,
-        data.ORIGEN,
-        data.SEGURO,
-        data.MEDICO1,
-        data.ESTADO,
-        data.USUARIO,
-        data.USUARIO_IMP || data.USUARIO, // Usar USUARIO como valor predeterminado si USUARIO_IMP no está definido
-        data.DIAGNOSTICO,
-        edadCalculada, // Usar la edad calculada
-        data.ORIGENID
-      ];
+      const payload = {
+        ...data,
+        FECHA1: fecha1,
+        USUARIO_IMP: data.USUARIO_IMP || data.USUARIO,
+      };
       
-      // Añadir valores opcionales en el mismo orden
-      if (data.ACOMPANANTE_NOMBRE) values.push(data.ACOMPANANTE_NOMBRE);
-      if (data.ACOMPANANTE_TELEFONO) values.push(data.ACOMPANANTE_TELEFONO);
-      if (data.ACOMPANANTE_DIRECCION) values.push(data.ACOMPANANTE_DIRECCION);
+      console.log('📤 Payload de hospitalización:', payload);
       
-      // Crear una consulta SQL con valores interpolados directamente
-      // Esto es menos seguro que los marcadores de posición, pero SQL Server tiene limitaciones
-      const valuesStr = values.map((v, index) => {
-        if (v === null || v === undefined) return 'NULL';
-        // Si es el campo FECHA1 (que es el 6to campo), usar formato especial para SQL Server
-        if (index === 5) {
-          // Para FECHA1, usamos el formato YYYYMMDD sin comillas
-          return fechaSQL;
+      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.create, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error al crear hospitalización:', errorData);
+        
+        // Detectar error de trigger de emergencia no cerrada
+        if (errorData.message && (
+          errorData.message.includes('3616') || 
+          errorData.message.includes('emergencia') ||
+          errorData.message.includes('Emergencia')
+        )) {
+          throw new Error('La atención de Emergencia aún no ha sido cerrada (estado = \'3\'). Solicitar al médico cerrar o dar de alta la atención.');
         }
-        if (typeof v === 'string') return `N'${v.replace(/'/g, "''")}'`; // Escapar comillas simples
-        if (typeof v === 'object' && v !== null && 'toISOString' in v) return `'${(v as Date).toISOString()}'`;
-        return v; // Números y otros tipos
-      }).join(', ');
-      
-      // Construir la consulta SQL completa para depuración
-      const sqlCompleto = `INSERT INTO HOSPITALIZA (${fieldsStr}) VALUES (${valuesStr});`;
-      console.log('Consulta SQL completa:', sqlCompleto);
-      
-      // Para SQL Server 2008 R2, intentemos usar un formato diferente para la fecha
-      // Reemplazar el valor de FECHA1 en valuesStr con un formato compatible con SQL Server 2008
-      const fechaSQLServer = `CONVERT(DATETIME, '${fechaSQL}', 112)`; // 112 es el código para formato YYYYMMDD
-      
-      // Encontrar la posición del valor de fecha en valuesStr y reemplazarlo
-      const valuesArray = valuesStr.split(', ');
-      if (valuesArray.length > 5) { // FECHA1 es el 6to campo (índice 5)
-        valuesArray[5] = fechaSQLServer;
+        
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-      const nuevoValuesStr = valuesArray.join(', ');
       
-      console.log('Valores modificados para SQL Server 2008:', nuevoValuesStr);
+      const result = await response.json();
+      console.log('✅ Hospitalización creada:', result);
       
-      // Ejecutar la consulta SQL raw con los valores interpolados y CONVERT para la fecha
-      await prisma.$executeRaw`
-        INSERT INTO HOSPITALIZA (${Prisma.raw(fieldsStr)})
-        VALUES (${Prisma.raw(nuevoValuesStr)});
-      `;
-      
-      // Buscar el registro recién creado para devolverlo usando SQL raw en lugar de findUnique
-      // para evitar problemas con OFFSET en SQL Server 2008 R2
-      const idHospitalizacion = data.IDHOSPITALIZACION;
-      console.log('Buscando registro creado con ID:', idHospitalizacion);
-      
-      const resultados = await prisma.$queryRaw`
-        SELECT TOP 1 * FROM HOSPITALIZA 
-        WHERE IDHOSPITALIZACION = ${idHospitalizacion}
-      `;
-      
-      // Convertir el resultado a un objeto similar al que devolvería findUnique
-      const result = Array.isArray(resultados) && resultados.length > 0 ? resultados[0] : null;
-      console.log('Registro encontrado:', result ? 'Sí' : 'No');
-
       return result;
     } catch (error: any) {
-      console.error('Error al crear hospitalización:', error);
-      
-      // Detectar error de trigger de emergencia no cerrada
-      if (error.message && error.message.includes('3616')) {
-        throw new Error('La atención de Emergencia aún no ha sido cerrada (estado = \'3\'). Solicitar al médico cerrar o dar de alta la atención.');
-      }
-      
-      // Detectar otros errores de trigger
-      if (error.message && error.message.includes('desencadenador')) {
-        throw new Error('La atención de Emergencia aún no ha sido cerrada (estado = \'3\'). Solicitar al médico cerrar o dar de alta la atención.');
-      }
-      
+      console.error('❌ Error al crear hospitalización:', error);
       throw error;
     }
   }
@@ -249,23 +145,27 @@ class HospitalizaService {
   /**
    * Obtiene un registro de hospitalización por su ID
    */
-  async findById(id: string) {
+  async findById(id: string): Promise<HospitalizacionResponse | null> {
     try {
-      console.log(`Buscando hospitalización con ID: ${id} usando SQL raw`);
+      console.log(`🔍 Buscando hospitalización con ID: ${id}`);
       
-      // Usar SQL raw en lugar de Prisma ORM para evitar problemas con OFFSET en SQL Server 2008 R2
-      const resultados = await prisma.$queryRaw`
-        SELECT TOP 1 * FROM HOSPITALIZA 
-        WHERE IDHOSPITALIZACION = ${id}
-      `;
+      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.byId(id));
       
-      // Convertir el resultado a un objeto similar al que devolvería findUnique
-      const hospitalizacion = Array.isArray(resultados) && resultados.length > 0 ? resultados[0] : null;
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró hospitalización con ID ${id}`);
+        return null;
+      }
       
-      console.log(`Hospitalización encontrada: ${hospitalizacion ? 'Sí' : 'No'}`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const hospitalizacion = await response.json();
+      console.log('✅ Hospitalización encontrada:', hospitalizacion);
+      
       return hospitalizacion;
     } catch (error) {
-      console.error('Error al buscar hospitalización:', error);
+      console.error('❌ Error al buscar hospitalización:', error);
       throw error;
     }
   }
@@ -273,21 +173,22 @@ class HospitalizaService {
   /**
    * Obtiene todos los registros de hospitalización
    */
-  async findAll() {
+  async findAll(): Promise<HospitalizacionResponse[]> {
     try {
-      console.log('Obteniendo todas las hospitalizaciones usando SQL raw');
+      console.log('📋 Obteniendo todas las hospitalizaciones');
       
-      // Usar SQL raw en lugar de Prisma ORM para evitar problemas con OFFSET en SQL Server 2008 R2
-      // Limitamos a 1000 registros para evitar problemas de memoria
-      const resultados = await prisma.$queryRaw`
-        SELECT TOP 1000 * FROM HOSPITALIZA 
-        ORDER BY IDHOSPITALIZACION DESC
-      `;
+      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.list);
       
-      console.log(`Hospitalizaciones encontradas: ${Array.isArray(resultados) ? resultados.length : 0}`);
-      return resultados;
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const resultados = await response.json();
+      console.log(`✅ Hospitalizaciones encontradas: ${Array.isArray(resultados) ? resultados.length : 0}`);
+      
+      return Array.isArray(resultados) ? resultados : resultados.data || [];
     } catch (error) {
-      console.error('Error al obtener hospitalizaciones:', error);
+      console.error('❌ Error al obtener hospitalizaciones:', error);
       throw error;
     }
   }
@@ -295,136 +196,81 @@ class HospitalizaService {
   /**
    * Obtiene el siguiente ID de hospitalización para mostrar en el frontend
    */
-  async getNextId() {
+  async getNextId(): Promise<{ nextId: string }> {
     try {
       const nextId = await this.getNextHospitalizacionId();
       return { nextId };
     } catch (error) {
-      console.error('Error al obtener el siguiente ID:', error);
+      console.error('❌ Error al obtener el siguiente ID:', error);
       throw error;
     }
   }
   
   /**
-   * Elimina un registro de hospitalización por su ID
+   * Elimina un registro de hospitalización por su ID (eliminación física)
    */
-  async deleteById(id: string) {
+  async deleteById(id: string): Promise<{ success: boolean; message: string }> {
     try {
-      console.log(`Eliminando hospitalización con ID: ${id}`);
+      console.log(`🗑️ Eliminando hospitalización con ID: ${id}`);
       
-      // Usar SQL raw para evitar problemas con SQL Server 2008 R2
-      const resultado = await prisma.$executeRaw`
-        DELETE FROM HOSPITALIZA 
-        WHERE IDHOSPITALIZACION = ${id}
-      `;
+      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.delete(id), {
+        method: 'DELETE',
+      });
       
-      console.log(`Resultado de eliminación: ${resultado}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log(`✅ Hospitalización ${id} eliminada`);
       return { success: true, message: `Hospitalización ${id} eliminada correctamente` };
-    } catch (error) {
-      console.error(`Error al eliminar hospitalización ${id}:`, error);
+    } catch (error: any) {
+      console.error(`❌ Error al eliminar hospitalización ${id}:`, error);
       throw error;
     }
   }
 
   /**
    * Realiza una eliminación lógica de un registro de hospitalización por su ID
-   * Actualiza ESTADO='0', FECHA_BAJA, USUARIO_BAJA y opcionalmente MOTIVO
-   * Si el seguro es de tipo ["0", "02", "17"] (Pagante, SOAT, Otros Programas),
-   * también elimina registros huérfanos de CUENTA para ese paciente con ESTADO='0'
+   * Actualiza ESTADO='0', FECHA_BAJA, USUARIO_BAJA
    */
-  async logicalDeleteById(id: string, usuarioBaja: string, motivo?: string) {
+  async logicalDeleteById(
+    id: string, 
+    usuarioBaja: string, 
+    motivo?: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    deletedHospitalizacion?: number;
+    cuentaUpdateResult?: { success: boolean; message: string };
+  }> {
     try {
-      console.log(`Realizando eliminación lógica de hospitalización con ID: ${id}`);
+      console.log(`🔴 Realizando eliminación lógica de hospitalización con ID: ${id}`);
       
-      // 1. Obtener la información de la hospitalización para verificar el tipo de seguro
-      // Usar SQL raw en lugar de Prisma ORM para evitar problemas con SQL Server 2008 R2
-      const hospitalizacionResult = await prisma.$queryRaw`
-        SELECT PACIENTE, SEGURO, ESTADO
-        FROM HOSPITALIZA
-        WHERE IDHOSPITALIZACION = ${id}
-      `;
+      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.logicalDelete(id), {
+        method: 'PUT',
+        body: JSON.stringify({
+          usuarioBaja,
+          motivo,
+        }),
+      });
       
-      // Verificar si se encontró la hospitalización
-      const hospitalizacion = Array.isArray(hospitalizacionResult) && hospitalizacionResult.length > 0 
-        ? hospitalizacionResult[0] 
-        : null;
-      
-      if (!hospitalizacion) {
-        throw new Error(`Hospitalización con ID ${id} no encontrada`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      // Si ya está eliminada lógicamente (ESTADO='0'), no hacer nada
-      if (hospitalizacion.ESTADO === '0') {
-        return { 
-          success: true, 
-          message: `Hospitalización ${id} ya estaba marcada como eliminada`, 
-          deletedHospitalizacion: 0,
-          deletedCuentas: 0
-        };
-      }
+      const result = await response.json();
+      console.log(`✅ Eliminación lógica completada:`, result);
       
-      // 2. Actualizar el registro de hospitalización (eliminación lógica)
-      // Crear fecha en zona horaria local (Lima, GMT-5)
-      const fechaUTC = new Date();
-      // Ajustar a la zona horaria de Lima (GMT-5)
-      const fechaBaja = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
-      
-      // Usar SQL raw para evitar problemas con SQL Server 2008 R2
-      const updateResult = await prisma.$executeRaw`
-        UPDATE HOSPITALIZA 
-        SET 
-          ESTADO = '0',
-          FECHA_BAJA = ${fechaBaja},
-          USUARIO_BAJA = ${usuarioBaja}
-        WHERE IDHOSPITALIZACION = ${id}
-      `;
-      
-      let cuentaResult = { success: false, message: '' };
-      
-      // 3. Obtener la cuenta activa del paciente para aplicar borrado lógico
-      const cuenta = await cuentaValidationService.getCuentaActivaByPacienteIdAndSeguro(
-        hospitalizacion.PACIENTE, 
-        hospitalizacion.SEGURO
-      );
-      
-      if (cuenta) {
-        // Determinar el tipo de seguro y aplicar el borrado lógico correspondiente
-        const seguroTrimmed = hospitalizacion.SEGURO.trim();
-        const esSIS = ['20', '21', '22', '23', '24', '25'].includes(seguroTrimmed);
-        const esPaganteSoatOtros = ['0', '00', '02', '17'].includes(seguroTrimmed);
-        
-        if (esSIS) {
-          // Para SIS: actualizar tanto cuenta como FUA a estado inactivo
-          console.log(`Seguro SIS (${seguroTrimmed}) - Aplicando borrado lógico de cuenta y FUA`);
-          cuentaResult = await cuentaValidationService.updateCuentaAndFUA(cuenta.CUENTAID);
-        } else if (esPaganteSoatOtros) {
-          // Para PAGANTE/SOAT/Otros: solo actualizar cuenta a estado inactivo
-          console.log(`Seguro PAGANTE/SOAT/Otros (${seguroTrimmed}) - Aplicando borrado lógico solo de cuenta`);
-          const success = await cuentaValidationService.updateCUENTA(cuenta.CUENTAID);
-          cuentaResult = {
-            success,
-            message: success 
-              ? `Cuenta ${cuenta.CUENTAID} actualizada a estado inactivo`
-              : `Error al actualizar cuenta ${cuenta.CUENTAID}`
-          };
-        }
-        
-        console.log(`Resultado del borrado lógico de cuenta: ${cuentaResult.message}`);
-      } else {
-        console.log(`No se encontró cuenta activa para el paciente ${hospitalizacion.PACIENTE} con seguro ${hospitalizacion.SEGURO}`);
-        cuentaResult = { success: true, message: 'No se encontró cuenta activa para actualizar' };
-      }
-      
-      const result = { 
-        success: true, 
-        message: `Hospitalización ${id} marcada como eliminada correctamente. ${cuentaResult.message}`, 
-        deletedHospitalizacion: Number(updateResult) || 0,
-        cuentaUpdateResult: cuentaResult
+      return {
+        success: true,
+        message: result.message || `Hospitalización ${id} marcada como eliminada correctamente`,
+        deletedHospitalizacion: result.deletedHospitalizacion || 1,
+        cuentaUpdateResult: result.cuentaUpdateResult,
       };
-      
-      return result;
     } catch (error: any) {
-      console.error(`Error al realizar eliminación lógica de hospitalización ${id}:`, error);
+      console.error(`❌ Error al realizar eliminación lógica de hospitalización ${id}:`, error);
       throw error;
     }
   }

@@ -1,4 +1,9 @@
-import { prisma } from '@/lib/prisma';
+// localidadService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 // Normalizador para filas de Localidad
 function normalizeLocalidad(row: any): Localidad {
@@ -33,184 +38,159 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+// ============================================================================
+// SERVICIO DE LOCALIDADES - SPRING BOOT API
+// ============================================================================
+
 export const localidadServerService = {
   async getLocalidades(
     page: number = 1,
     pageSize: number = 10,
     filters: LocalidadFilters = {}
   ): Promise<PaginatedResponse<Localidad>> {
-    const skip = (page - 1) * pageSize;
-    const startRow = skip + 1;
-    const endRow = page * pageSize;
-    const { nombre, codigo } = filters;
-
     try {
-      let totalResult: any;
-      let localidades: any;
-
-      // Build WHERE conditions using ROW_NUMBER CTE (compatible con más versiones)
-      if (nombre && !codigo) {
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM LOCALIDAD WHERE NOMBRE LIKE ${`%${nombre}%`}`;
-        localidades = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM LOCALIDAD
-            WHERE NOMBRE LIKE ${`%${nombre}%`}
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
-      } else if (!nombre && codigo) {
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM LOCALIDAD WHERE LOCALIDAD LIKE ${`%${codigo}%`}`;
-        localidades = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM LOCALIDAD
-            WHERE LOCALIDAD LIKE ${`%${codigo}%`}
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
-      } else {
-        // No filters or multiple filters
-        totalResult = await prisma.$queryRaw`SELECT COUNT(*) as total FROM LOCALIDAD`;
-        localidades = await prisma.$queryRaw`
-          WITH CTE AS (
-            SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO,
-                   ROW_NUMBER() OVER (ORDER BY NOMBRE) AS RowNum
-            FROM LOCALIDAD
-          )
-          SELECT * FROM CTE WHERE RowNum BETWEEN ${startRow} AND ${endRow} ORDER BY RowNum
-        `;
+      console.log(`🔍 Buscando localidades - página ${page}, tamaño ${pageSize}`);
+      
+      const params: Record<string, string> = {
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      };
+      
+      if (filters.nombre) params.nombre = filters.nombre;
+      if (filters.codigo) params.codigo = filters.codigo;
+      
+      const url = buildUrl(API_ENDPOINTS.masterTables.localidades.list, params);
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-
-      const total = Number((totalResult as any)[0].total);
-      const normalized = (localidades as any[]).map(normalizeLocalidad);
-
+      
+      const result = await response.json();
+      
+      // Normalizar respuesta
+      const data = Array.isArray(result) ? result : (result.data || []);
+      const total = result.total || data.length;
+      const normalized = data.map(normalizeLocalidad);
+      
+      console.log(`✅ Encontradas ${normalized.length} localidades (total: ${total})`);
+      
       return {
-        data: normalized as Localidad[],
+        data: normalized,
         total,
         page,
         pageSize,
         totalPages: Math.ceil(total / pageSize),
       };
     } catch (error) {
-      console.error('Error in localidadServerService.getLocalidades:', error);
+      console.error('❌ Error in localidadServerService.getLocalidades:', error);
       throw error;
     }
   },
 
   async getLocalidadById(id: string): Promise<Localidad | null> {
     try {
-      const localidad = await prisma.$queryRaw`
-        SELECT LOCALIDAD, NOMBRE, UBIGEO, ACTIVO
-        FROM LOCALIDAD
-        WHERE LOCALIDAD = ${id}
-      `;
-
-      if (!localidad || (Array.isArray(localidad) && localidad.length === 0)) {
+      console.log(`🔍 Buscando localidad: ${id}`);
+      
+      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
+      const response = await fetchApi(url);
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró localidad ${id}`);
         return null;
       }
-
-      const item = Array.isArray(localidad) ? localidad[0] : localidad;
-      return normalizeLocalidad(item);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Localidad encontrada: ${id}`);
+      
+      return normalizeLocalidad(data);
     } catch (error) {
-      console.error(`Error in localidadServerService.getLocalidadById(${id}):`, error);
+      console.error(`❌ Error in localidadServerService.getLocalidadById(${id}):`, error);
       throw error;
     }
   },
 
   async createLocalidad(data: Partial<Localidad>): Promise<Localidad> {
     try {
-      // Check if codigo already exists
-      const existingCodigo = await prisma.$queryRaw`
-        SELECT COUNT(*) as Cantidad 
-        FROM Localidad 
-        WHERE Localidad = ${data.LOCALIDAD}
-      ` as any[];
+      console.log(`➕ Creando localidad: ${data.LOCALIDAD}`);
       
-      if (existingCodigo[0]?.Cantidad > 0) {
-        throw new Error('Ya existe una localidad con este código');
+      const url = API_ENDPOINTS.masterTables.localidades.list;
+      const response = await fetchApi(url, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-
-      // Parse ACTIVO value
-      const activoVal = data.ACTIVO === '1' || data.ACTIVO === '0' ? parseInt(data.ACTIVO) : 1;
-
-      // Insert new localidad
-      await prisma.$executeRaw`
-        INSERT INTO Localidad(Localidad,Nombre,Activo) 
-        VALUES(${data.LOCALIDAD}, ${data.NOMBRE}, ${activoVal})
-      `;
-
-      // Log to BITACORA
-      const sqlStatement = `INSERT INTO Localidad(Localidad,Nombre,Activo) VALUES('${data.LOCALIDAD}','${data.NOMBRE}',${activoVal})`;
-      await prisma.$executeRaw`
-        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
-        VALUES ('INSERT',getdate(),'SUPERVISORP:ALQADUEI30148','desarrollo06','ALQADUEI30148','ADMISION',${sqlStatement},'Localidad')
-      `;
-
-      // Return the created localidad
-      return {
-        LOCALIDAD: data.LOCALIDAD!,
-        NOMBRE: data.NOMBRE!,
-        UBIGEO: data.UBIGEO || '',
-        ACTIVO: data.ACTIVO || '1'
-      };
+      
+      const result = await response.json();
+      console.log(`✅ Localidad creada: ${data.LOCALIDAD}`);
+      
+      return normalizeLocalidad(result);
     } catch (error) {
-      console.error('Error in localidadServerService.createLocalidad:', error);
+      console.error('❌ Error in localidadServerService.createLocalidad:', error);
       throw error;
     }
   },
 
   async updateLocalidad(id: string, data: Partial<Localidad>): Promise<Localidad | null> {
     try {
-      // Check if localidad exists
-      const existing = await this.getLocalidadById(id);
-      if (!existing) {
+      console.log(`🔄 Actualizando localidad: ${id}`);
+      
+      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró localidad ${id}`);
         return null;
       }
-
-      // Parse ACTIVO value
-      const activoVal = data.ACTIVO === '1' || data.ACTIVO === '0' ? parseInt(data.ACTIVO) : 
-                       (existing.ACTIVO === '1' ? 1 : 0);
-
-      // Update localidad
-      await prisma.$executeRaw`
-        UPDATE Localidad 
-        SET Nombre = ${data.NOMBRE || existing.NOMBRE},
-            Ubigeo = ${data.UBIGEO || existing.UBIGEO || ''},
-            Activo = ${activoVal}
-        WHERE Localidad = ${id}
-      `;
-
-      // Log to BITACORA
-      const sqlStatement = `UPDATE Localidad SET Nombre='${data.NOMBRE || existing.NOMBRE}',Ubigeo='${data.UBIGEO || existing.UBIGEO || ''}',Activo=${activoVal} WHERE Localidad='${id}'`;
-      await prisma.$executeRaw`
-        INSERT INTO BITACORA (Transaccion,Fecha,Usuario,UsuarioRed,Pc,Modulo,SentenciaSql,Tabla) 
-        VALUES ('UPDATE',getdate(),'SUPERVISORP:ALQADUEI30148','desarrollo06','ALQADUEI30148','ADMISION',${sqlStatement},'Localidad')
-      `;
-
-      // Return updated localidad
-      return await this.getLocalidadById(id);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ Localidad actualizada: ${id}`);
+      
+      return normalizeLocalidad(result);
     } catch (error) {
-      console.error(`Error in localidadServerService.updateLocalidad(${id}):`, error);
+      console.error(`❌ Error in localidadServerService.updateLocalidad(${id}):`, error);
       throw error;
     }
   },
 
   async deleteLocalidad(id: string): Promise<boolean> {
     try {
-      // Check if localidad exists
-      const existing = await this.getLocalidadById(id);
-      if (!existing) {
+      console.log(`🗑️ Eliminando localidad: ${id}`);
+      
+      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
+      const response = await fetchApi(url, {
+        method: 'DELETE',
+      });
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró localidad ${id}`);
         return false;
       }
-
-      // Delete localidad
-      await prisma.$executeRaw`DELETE FROM LOCALIDAD WHERE LOCALIDAD = ${id}`;
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log(`✅ Localidad eliminada: ${id}`);
       return true;
     } catch (error) {
-      console.error(`Error in localidadServerService.deleteLocalidad(${id}):`, error);
+      console.error(`❌ Error in localidadServerService.deleteLocalidad(${id}):`, error);
       throw error;
     }
   }

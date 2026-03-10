@@ -1,4 +1,9 @@
-import { prisma } from '@/lib/prisma';
+// cuentaFuaService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface FuaCheckResult {
   hasFua: boolean;
@@ -6,32 +11,38 @@ export interface FuaCheckResult {
   message: string;
 }
 
+// ============================================================================
+// FUNCIONES DE VERIFICACIÓN DE FUA - SPRING BOOT API
+// ============================================================================
+
 /**
  * Verifica si un paciente tiene un FUA activo en las últimas 3 horas
- * @param patientId ID del paciente a verificar
- * @returns Objeto con información sobre el estado del FUA
  */
 export async function checkActiveFua(patientId: string): Promise<FuaCheckResult> {
   try {
-    console.log(`Verificando FUA activo para paciente: ${patientId}`);
+    console.log(`🔍 Verificando FUA activo para paciente: ${patientId}`);
     
-    // Query para verificar FUA activo en las últimas 3 horas usando Prisma
-    // Nota: Aseguramos que PACIENTE se compare como string y que la conversión de fecha/hora sea correcta
-    // SQL Server 2008 R2 compatible query
-    // Usamos 8 horas en lugar de 3 para compensar la diferencia de zona horaria (UTC vs local time)
-    // y dar un margen adicional para asegurar que se detecten correctamente los FUAs recientes
-    const activeFua = await prisma.$queryRaw`
-      SELECT TOP 1 ID_CUENTA, FECHA_ATENCION, HORA_ATENCION
-      FROM ATENCION_SEGURO
-      WHERE PACIENTE = ${patientId}
-      AND ESTADO = '2'
-      AND FECHA_ATENCION >= CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)
-      ORDER BY FECHA_ATENCION DESC, HORA_ATENCION DESC
-    `;
+    const url = API_ENDPOINTS.cuentas.fua.checkActivaByPaciente(patientId);
+    const response = await fetchApi(url);
     
-    // Verificar si encontramos un FUA activo
-    const hasFua = Array.isArray(activeFua) && activeFua.length > 0;
-    const fuaId = hasFua ? activeFua[0].ID_CUENTA : null;
+    if (response.status === 404) {
+      return { 
+        hasFua: false,
+        fuaId: null,
+        message: 'No se ha detectado un FUA activo en las últimas 3 horas'
+      };
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    const hasFua = data && (data.hasFua || data.ID_CUENTA);
+    const fuaId = hasFua ? (data.fuaId || data.ID_CUENTA) : null;
+    
+    console.log(`${hasFua ? '✅' : '⚠️'} FUA ${hasFua ? 'activo encontrado' : 'no encontrado'} para paciente ${patientId}`);
     
     return { 
       hasFua,
@@ -41,7 +52,7 @@ export async function checkActiveFua(patientId: string): Promise<FuaCheckResult>
         : 'No se ha detectado un FUA activo en las últimas 3 horas'
     };
   } catch (error) {
-    console.error('Error al verificar FUA:', error);
+    console.error('❌ Error al verificar FUA:', error);
     throw new Error('Error al verificar el estado del FUA');
   }
 }
@@ -49,6 +60,7 @@ export async function checkActiveFua(patientId: string): Promise<FuaCheckResult>
 /**
  * Consulta SQL para encontrar FUAs activos en las últimas 3 horas para un paciente específico
  * Esta función devuelve la consulta SQL como string para propósitos de prueba
+ * @deprecated Esta función es solo para referencia, la lógica ahora está en el backend
  */
 export function getActiveFuaQuery(patientId: string): string {
   return `
@@ -73,6 +85,7 @@ export function getActiveFuaQuery(patientId: string): string {
 
 /**
  * Consulta SQL para encontrar todos los FUAs de un paciente (para depuración)
+ * @deprecated Esta función es solo para referencia, la lógica ahora está en el backend
  */
 export function getAllPatientFuasQuery(patientId: string): string {
   return `

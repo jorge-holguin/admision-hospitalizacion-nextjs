@@ -1,6 +1,9 @@
+import { API_ENDPOINTS, apiFetch } from '@/lib/api-config';
+
 /**
  * Servicio para obtener la fecha y hora actual del servidor
  * Esto evita problemas de zona horaria en el cliente
+ * MIGRADO: Ahora usa backend Spring Boot
  */
 export const datetimeService = {
   /**
@@ -9,7 +12,7 @@ export const datetimeService = {
    */
   async getCurrentDateTime() {
     try {
-      const response = await fetch('/api/utils/datetime', {
+      const response = await fetch(API_ENDPOINTS.utils.datetime, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -85,14 +85,20 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
   const load = async (q: string, signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const qs = new URLSearchParams()
-      if (q) qs.set("search", q)
-      if (especialidad) qs.set("especialidad", especialidad)  // Filtrar por especialidad si existe
-      const res = await fetch(`/api/master-tables/medicos/search?${qs.toString()}` , { signal })
-      if (!res.ok) return
-      const data = await res.json()
-      const list: MedicoItem[] = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
+      const { medicoServerService } = await import('@/services/master-tables/medicoService')
+      const data = await medicoServerService.searchMedicos({
+        search: q || undefined,
+        especialidad: especialidad || undefined
+      })
+      const list: MedicoItem[] = data.map(m => ({
+        MEDICO: m.MEDICO,
+        NOMBRE: m.NOMBRE,
+        ESPECIALIDAD: m.ESPECIALIDAD,
+        CONSULTORIO: m.CONSULTORIO
+      }))
       setItems(list)
+    } catch (error) {
+      console.error('Error loading medicos:', error)
     } finally {
       setLoading(false)
     }

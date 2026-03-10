@@ -1,39 +1,44 @@
-/**
- * Servicio para gestionar Profesiones y Colegios
- */
+// profesionesColegioService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface ProfesionColegio {
-  id_profesion: string
-  Profesion: string
-  id_colegio: string
-  Colegio: string
-  ACTIVO: number
+  id_profesion: string;
+  Profesion: string;
+  id_colegio: string;
+  Colegio: string;
+  ACTIVO: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+// ============================================================================
+// SERVICIO DE PROFESIONES Y COLEGIOS - SPRING BOOT API
+// ============================================================================
 
 /**
  * Obtiene todas las profesiones y colegios activos
  */
 export async function getProfesionesColegio(): Promise<ProfesionColegio[]> {
   try {
-    const response = await fetch(`api/master-tables/profesiones-colegio`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store'
-    })
+    console.log('🔍 Obteniendo profesiones y colegios');
+    
+    const url = API_ENDPOINTS.masterTables.profesionesColegio;
+    const response = await fetchApi(url);
 
     if (!response.ok) {
-      throw new Error(`Error al obtener profesiones y colegios: ${response.statusText}`)
+      throw new Error(`Error al obtener profesiones y colegios: ${response.statusText}`);
     }
 
-    const data = await response.json()
-    return data
+    const data = await response.json();
+    const result = Array.isArray(data) ? data : (data.data || []);
+    
+    console.log(`✅ Encontradas ${result.length} profesiones/colegios`);
+    return result;
   } catch (error) {
-    console.error('Error en getProfesionesColegio:', error)
-    throw error
+    console.error('❌ Error en getProfesionesColegio:', error);
+    throw error;
   }
 }
 
@@ -42,26 +47,26 @@ export async function getProfesionesColegio(): Promise<ProfesionColegio[]> {
  */
 export async function getProfesionColegioById(id: string): Promise<ProfesionColegio | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/maestro/profesiones-colegio/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store'
-    })
+    console.log(`🔍 Buscando profesión/colegio: ${id}`);
+    
+    const url = `${API_ENDPOINTS.masterTables.profesionesColegio}/${id}`;
+    const response = await fetchApi(url);
 
+    if (response.status === 404) {
+      console.log(`⚠️ No se encontró profesión/colegio ${id}`);
+      return null;
+    }
+    
     if (!response.ok) {
-      if (response.status === 404) {
-        return null
-      }
-      throw new Error(`Error al obtener profesión y colegio: ${response.statusText}`)
+      throw new Error(`Error al obtener profesión y colegio: ${response.statusText}`);
     }
 
-    const data = await response.json()
-    return data
+    const data = await response.json();
+    console.log(`✅ Profesión/colegio encontrado: ${id}`);
+    return data;
   } catch (error) {
-    console.error('Error en getProfesionColegioById:', error)
-    throw error
+    console.error('❌ Error en getProfesionColegioById:', error);
+    throw error;
   }
 }
 
@@ -70,25 +75,25 @@ export async function getProfesionColegioById(id: string): Promise<ProfesionCole
  */
 export async function searchProfesionesColegio(searchTerm: string): Promise<ProfesionColegio[]> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/maestro/profesiones-colegio/search?q=${encodeURIComponent(searchTerm)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store'
-      }
-    )
+    console.log(`🔍 Buscando profesiones/colegios: ${searchTerm}`);
+    
+    const url = buildUrl(API_ENDPOINTS.masterTables.profesionesColegio, {
+      search: searchTerm,
+    });
+    
+    const response = await fetchApi(url);
 
     if (!response.ok) {
-      throw new Error(`Error al buscar profesiones y colegios: ${response.statusText}`)
+      throw new Error(`Error al buscar profesiones y colegios: ${response.statusText}`);
     }
 
-    const data = await response.json()
-    return data
+    const data = await response.json();
+    const result = Array.isArray(data) ? data : (data.data || []);
+    
+    console.log(`✅ Encontradas ${result.length} profesiones/colegios`);
+    return result;
   } catch (error) {
-    console.error('Error en searchProfesionesColegio:', error)
-    throw error
+    console.error('❌ Error en searchProfesionesColegio:', error);
+    throw error;
   }
 }

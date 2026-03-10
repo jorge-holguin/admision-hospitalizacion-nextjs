@@ -1,36 +1,39 @@
-import { prisma } from '@/lib/prisma/client'
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 export interface FormaIngreso {
-  FORMA_INGRESO: string
-  NOMBRE: string
+  formaIngreso: string
+  nombre: string
+  activo?: number
 }
 
+/**
+ * Servicio para formas de ingreso de emergencia
+ * MIGRADO: Ahora usa backend Spring Boot
+ */
 export class FormaIngresoService {
-  async findAll() {
+  async findAll(): Promise<FormaIngreso[]> {
     try {
-      // Intento 1: si existe columna ACTIVO
-      const result = await prisma.$queryRaw<FormaIngreso[]>`
-        SELECT FORMA_INGRESO, NOMBRE
-        FROM FORMA_INGRESO
-        WHERE ACTIVO = '1'
-        ORDER BY NOMBRE
-      `;
-      return result;
-    } catch (error) {
-      console.error('Error al obtener forma de ingreso (ACTIVO=1):', error);
+      console.log('🔍 FormaIngresoService: Obteniendo formas de ingreso desde Spring Boot');
+      
+      const response = await fetch(API_ENDPOINTS.emergencia.admissionTypes, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      // Fallback: sin filtro ACTIVO
-      try {
-        const result = await prisma.$queryRaw<FormaIngreso[]>`
-          SELECT FORMA_INGRESO, NOMBRE
-          FROM FORMA_INGRESO
-          ORDER BY NOMBRE
-        `;
-        return result;
-      } catch (fallbackError) {
-        console.error('Error en consulta fallback FORMA_INGRESO:', fallbackError);
-        return [];
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      const items = data.items || data.data || data;
+      console.log(`✅ FormaIngresoService: ${items.length} formas de ingreso obtenidas`);
+      
+      return items;
+    } catch (error) {
+      console.error('❌ Error al obtener formas de ingreso:', error);
+      return [];
     }
   }
 }
