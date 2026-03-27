@@ -401,6 +401,33 @@ function PatientAssignmentModalContent({
     setIsLoading(true)
     
     try {
+      // Verificar si la cita tiene una solicitud/reserva pendiente antes de asignar
+      const reservasApiUrl = process.env.NEXT_PUBLIC_API_RESERVAS_URL
+      if (reservasApiUrl) {
+        try {
+          const checkReservaUrl = `${reservasApiUrl}/solicitudes/cita/${appointment.id}/estados?estados=PENDIENTE&estados=EN_REVISION&estados=CITADO`
+          const checkReservaResponse = await fetch(checkReservaUrl, {
+            headers: { 'accept': '*/*' }
+          })
+          
+          if (checkReservaResponse.ok) {
+            const reservaData = await checkReservaResponse.json()
+            const solicitudes = Array.isArray(reservaData) ? reservaData : (reservaData?.data || [])
+            
+            if (solicitudes.length > 0) {
+              const estados = solicitudes.map((s: any) => s.estado || s.Estado || 'DESCONOCIDO')
+              setErrorTitle("⚠️ Cita Reservada")
+              setErrorMessage(`Esta cita ha sido reservada mediante el sistema de citas en línea y se encuentra en estado: ${estados.join(', ')}. No se puede asignar manualmente.`)
+              setShowErrorDialog(true)
+              return
+            }
+          }
+        } catch (checkError) {
+          console.warn('⚠️ No se pudo verificar reservas de la cita:', checkError)
+          // No bloquear la asignación si la verificación falla
+        }
+      }
+
       // Obtener el DNI del usuario desde el JWT
       const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
       
