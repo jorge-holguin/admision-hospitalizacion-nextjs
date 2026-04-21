@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from "@/lib/api-config";
 
 interface PatientSeguroData {
   seguro: string;
@@ -33,7 +34,10 @@ export const usePatientSeguro = (patientId: string | null): UsePatientSeguroRetu
 
       console.log(`Obteniendo datos de seguro para paciente: ${patientId}`);
       
-      const response = await fetch(`/api/filiation/search/${patientId}`);
+      // Usar endpoint directo de Spring Boot para obtener datos del paciente
+      const response = await fetch(API_ENDPOINTS.filiation.byId(patientId), {
+        signal: AbortSignal.timeout(10000)
+      });
       
       if (!response.ok) {
         throw new Error(`Error al obtener datos del paciente: ${response.status}`);

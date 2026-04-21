@@ -92,7 +92,8 @@ export const API_ENDPOINTS = {
   // FILIACIÓN / PACIENTES
   // ============================================
   filiation: {
-    search: `${API_SPRING_URL}/historia-clinica/pacientes/buscar`,
+    search: `${API_SPRING_URL}/filiation/search`,
+    searchByName: `${API_SPRING_URL}/busqueda/paciente-por-nombre`,
     byId: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/${id}`,
     create: `${API_SPRING_URL}/historia-clinica/pacientes`,
     update: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/${id}`,

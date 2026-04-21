@@ -400,42 +400,48 @@ export default function FiliationPage() {
   // Definición de columnas para la DataTable
   const columns = [
     {
-      key: "HISTORIA",
+      key: "historia",
       header: "H.C.",
+      cell: (patient: any) => <span className="text-sm font-medium">{patient.historia || patient.HISTORIA || '-'}</span>
     },
     {
-      key: "NOMBRES",
+      key: "nombres",
       header: "Nombre",
+      cell: (patient: any) => <span className="text-sm font-medium">{patient.nombres || patient.NOMBRES || '-'}</span>
     },
     {
-      key: "SEXO",
+      key: "sexo",
       header: "Sexo",
+      cell: (patient: any) => <span className="text-sm">{patient.sexo || patient.SEXO || '-'}</span>
     },
     {
-      key: "PACIENTE",
+      key: "paciente",
       header: "Código Paciente / Documento",
       cell: (patient: any) => {
+        const codigo = patient.paciente || patient.PACIENTE || '-';
+        const documento = patient.documento || patient.DOCUMENTO || '-';
         return (
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{patient.PACIENTE || '-'}</span>
-            <span className="text-xs text-gray-600">{patient.DOCUMENTO || '-'}</span>
+            <span className="text-sm font-medium">{codigo}</span>
+            <span className="text-xs text-gray-600">{documento}</span>
           </div>
         )
       }
     },
     {
-      key: "FECHA_NACIMIENTO",
+      key: "fechaNacimiento",
       header: "Fecha Nac. / Edad",
       cell: (patient: any) => {
-        if (!patient.FECHA_NACIMIENTO) return "";
-        
+        const fecha = patient.fechaNacimiento || patient.FECHA_NACIMIENTO || patient.FECHNAC;
+        if (!fecha) return "";
+
         try {
           // Formatear fecha usando utilidad existente
-          const formattedDate = convertISOToSQLDate(patient.FECHA_NACIMIENTO);
-          
+          const formattedDate = convertISOToSQLDate(fecha);
+
           // Calcular edad usando utilidad existente
-          const age = calculateAge(patient.FECHA_NACIMIENTO);
-          
+          const age = calculateAge(fecha);
+
           // Construir texto de edad con años y meses
           let ageText = "";
           if (age.years > 0 || age.months > 0) {
@@ -448,30 +454,46 @@ export default function FiliationPage() {
             }
             ageText = parts.join(', ');
           }
-          
+
           return formattedDate ? (
             <div className="flex flex-col">
               <span className="text-sm font-medium">{formattedDate}</span>
               <span className="text-xs text-gray-600">{ageText}</span>
             </div>
-          ) : String(patient.FECHA_NACIMIENTO);
+          ) : String(fecha);
         } catch (error) {
           console.error("Error al formatear fecha:", error);
-          return String(patient.FECHA_NACIMIENTO || "");
+          return String(fecha || "");
         }
       },
     },
     {
-      key: "DIRECCION",
+      key: "direccion",
       header: "Dirección",
+      cell: (patient: any) => <span className="text-sm">{patient.direccion || patient.DIRECCION || '-'}</span>
     },
     {
-      key: "TELEFONO1",
+      key: "telefono1",
       header: "Telefono",
+      cell: (patient: any) => {
+        const tel1 = patient.telefono1 || patient.TELEFONO1 || '';
+        const tel2 = patient.telefono2 || patient.TELEFONO2 || '';
+        return (
+          <div className="flex flex-col">
+            {tel1 && <span className="text-sm font-medium">{tel1}</span>}
+            {tel2 && <span className="text-xs text-gray-600">{tel2}</span>}
+          </div>
+        );
+      }
     },
     {
-      key: "Distrito_Dir",
+      key: "distritoDir",
       header: "Distrito Actual",
+      cell: (patient: any) => {
+        // Soporta tanto camelCase (distritoDir) como UPPERCASE (DISTRITO_DIR, distritoDir)
+        const distrito = patient.distritoDir || patient.DISTRITO_DIR || patient.Distrito_Dir || patient.distrito || patient.DISTRITO || '';
+        return <span className="text-sm">{distrito}</span>;
+      }
     },
     {
       key: "actions",

@@ -5,27 +5,37 @@ import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 // TIPOS E INTERFACES
 // ============================================================================
 
-// Normalizador para filas de Consultorio
+// Helper: obtiene el primer valor no nulo de una lista de claves
+function getVal(row: any, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = row?.[k];
+    if (v !== undefined && v !== null) return String(v);
+  }
+  return undefined;
+}
+
+// Normalizador para filas de Consultorio (soporta UPPERCASE y camelCase del API Spring Boot)
 function normalizeConsultorio(row: any): Consultorio {
-  const rawActivo = (row?.ACTIVO ?? '').toString();
+  const rawActivo = getVal(row, 'ACTIVO', 'activo') ?? '';
   const ACTIVO = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
+  const consultorio = getVal(row, 'CONSULTORIO', 'consultorio');
   return {
-    CONSULTORIO: row.CONSULTORIO ? String(row.CONSULTORIO).trim() : row.CONSULTORIO,
-    NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
-    ABREVIATURA: row.ABREVIATURA?.toString?.() ?? row.ABREVIATURA,
-    ESPECIALIDAD: row.ESPECIALIDAD?.toString?.() ?? row.ESPECIALIDAD,
-    TIPO: row.TIPO?.toString?.() ?? row.TIPO,
-    ROL: row.ROL?.toString?.() ?? row.ROL,
-    MUESTRAROL: row.MUESTRAROL?.toString?.() ?? row.MUESTRAROL,
+    CONSULTORIO: consultorio ? consultorio.trim() : consultorio,
+    NOMBRE: getVal(row, 'NOMBRE', 'nombre'),
+    ABREVIATURA: getVal(row, 'ABREVIATURA', 'abreviatura'),
+    ESPECIALIDAD: getVal(row, 'ESPECIALIDAD', 'especialidad'),
+    TIPO: getVal(row, 'TIPO', 'tipo'),
+    ROL: getVal(row, 'ROL', 'rol'),
+    MUESTRAROL: getVal(row, 'MUESTRAROL', 'muestraRol', 'muestrarol'),
     ACTIVO,
-    ORDEN: row.ORDEN?.toString?.() ?? row.ORDEN,
-    NUMERO: row.NUMERO?.toString?.() ?? row.NUMERO,
-    HIS_CODSERVICIO: row.HIS_CODSERVICIO?.toString?.() ?? row.HIS_CODSERVICIO,
-    UPSTRAMA: row.CODUPSSEEM?.toString?.() ?? row.CODUPSSEEM,
+    ORDEN: getVal(row, 'ORDEN', 'orden'),
+    NUMERO: getVal(row, 'NUMERO', 'numero'),
+    HIS_CODSERVICIO: getVal(row, 'HIS_CODSERVICIO', 'hisCodservicio', 'hisCodServicio'),
+    UPSTRAMA: getVal(row, 'UPSTRAMA', 'CODUPSSEEM', 'codupsseem', 'upstrama'),
     // Legacy fields for backward compatibility
-    HIS_NOMSERVICIO: row.HIS_NOMSERVICIO?.toString?.() ?? row.HIS_NOMSERVICIO,
-    CODIGOHIS: row.CODIGOHIS?.toString?.() ?? row.CODIGOHIS ?? row.HIS_CODSERVICIO,
-    NOMBRE_ESPECIALIDAD: row.NOMBRE_ESPECIALIDAD?.toString?.() ?? row.HIS_NOMSERVICIO?.toString?.() ?? row.NOMBRE_ESPECIALIDAD,
+    HIS_NOMSERVICIO: getVal(row, 'HIS_NOMSERVICIO', 'hisNomservicio', 'hisNomServicio'),
+    CODIGOHIS: getVal(row, 'CODIGOHIS', 'codigoHis', 'HIS_CODSERVICIO', 'hisCodservicio'),
+    NOMBRE_ESPECIALIDAD: getVal(row, 'NOMBRE_ESPECIALIDAD', 'nombreEspecialidad', 'HIS_NOMSERVICIO', 'hisNomservicio'),
   } as Consultorio;
 }
 

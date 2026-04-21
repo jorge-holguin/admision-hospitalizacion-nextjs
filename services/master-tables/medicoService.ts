@@ -5,49 +5,59 @@ import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 // TIPOS E INTERFACES
 // ============================================================================
 
-// Normalizador para filas de Médico
+// Helper: obtiene el primer valor no nulo de una lista de claves (UPPERCASE y camelCase)
+function getVal(row: any, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = row?.[k];
+    if (v !== undefined && v !== null) return String(v);
+  }
+  return undefined;
+}
+
+// Normalizador para filas de Médico (soporta UPPERCASE y camelCase del API Spring Boot)
 function normalizeMedico(row: any): Medico {
-  const rawActivo = (row?.ACTIVO ?? '').toString();
+  const rawActivo = getVal(row, 'ACTIVO', 'activo') ?? '';
   const activo = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
+  const consultorio = getVal(row, 'CONSULTORIO', 'consultorio');
 
   return {
     ID_MEDICO: typeof row.ID_MEDICO === 'bigint' ? Number(row.ID_MEDICO) : row.ID_MEDICO,
-    MEDICO: row.MEDICO?.toString?.() ?? row.MEDICO,
-    NOMBRE: row.NOMBRE?.toString?.() ?? row.NOMBRE,
-    DNI: row.DNI?.toString?.() ?? row.DNI,
-    EESS: row.EESS?.toString?.() ?? row.EESS,
-    ABREVIATURA: row.ABREVIATURA?.toString?.() ?? row.ABREVIATURA,
-    COLEGIO: row.COLEGIO?.toString?.() ?? row.COLEGIO,
-    COLESP: row.COLESP?.toString?.() ?? row.COLESP,
-    ESPECIALIDAD: row.ESPECIALIDAD?.toString?.() ?? row.ESPECIALIDAD,
-    CONSULTORIO: row.CONSULTORIO ? String(row.CONSULTORIO).trim() : row.CONSULTORIO,
-    CODHIS: row.CODHIS?.toString?.() ?? row.CODHIS,
-    CONTRATO: row.CONTRATO?.toString?.() ?? row.CONTRATO,
+    MEDICO: getVal(row, 'MEDICO', 'medico'),
+    NOMBRE: getVal(row, 'NOMBRE', 'nombre'),
+    DNI: getVal(row, 'DNI', 'dni'),
+    EESS: getVal(row, 'EESS', 'eess'),
+    ABREVIATURA: getVal(row, 'ABREVIATURA', 'abreviatura'),
+    COLEGIO: getVal(row, 'COLEGIO', 'colegio'),
+    COLESP: getVal(row, 'COLESP', 'colesp'),
+    ESPECIALIDAD: getVal(row, 'ESPECIALIDAD', 'especialidad'),
+    CONSULTORIO: consultorio ? consultorio.trim() : consultorio,
+    CODHIS: getVal(row, 'CODHIS', 'codhis'),
+    CONTRATO: getVal(row, 'CONTRATO', 'contrato'),
     ACTIVO: activo,
-    IMPCITA: row.IMPCITA?.toString?.() ?? row.IMPCITA,
-    PROFESION_COLEGIO: row.PROFESION_COLEGIO?.toString?.() ?? row.PROFESION_COLEGIO,
-    FECHNAC: row.FECHNAC?.toString?.() ?? row.FECHNAC,
-    GENERO: row.GENERO?.toString?.() ?? row.GENERO,
-    ESPECIALIDAD2: row.ESPECIALIDAD2?.toString?.() ?? row.ESPECIALIDAD2,
-    CONSULTORIO2: row.CONSULTORIO2?.toString?.() ?? row.CONSULTORIO2,
-    PROFESION_COLEGIO2: row.PROFESION_COLEGIO2?.toString?.() ?? row.PROFESION_COLEGIO2,
-    CONSULTORIO_NOMBRE: row.CONSULTORIO_NOMBRE?.toString?.() ?? row.CONSULTORIO_NOMBRE,
-    ESPECIALIDAD_NOMBRE: row.ESPECIALIDAD_NOMBRE?.toString?.() ?? row.ESPECIALIDAD_NOMBRE,
-    PROFESION_NOMBRE: row.PROFESION_NOMBRE?.toString?.() ?? row.PROFESION_NOMBRE,
-    COLEGIO_NOMBRE: row.COLEGIO_NOMBRE?.toString?.() ?? row.COLEGIO_NOMBRE,
-    CONSULTORIO2_NOMBRE: row.CONSULTORIO2_NOMBRE?.toString?.() ?? row.CONSULTORIO2_NOMBRE,
-    ESPECIALIDAD2_NOMBRE: row.ESPECIALIDAD2_NOMBRE?.toString?.() ?? row.ESPECIALIDAD2_NOMBRE,
-    PROFESION_COLEGIO2_NOMBRE: row.PROFESION_COLEGIO2_NOMBRE?.toString?.() ?? row.PROFESION_COLEGIO2_NOMBRE,
-    NOMBRES: row.NOMBRES?.toString?.() ?? row.NOMBRES,
-    APATERNO: row.APATERNO?.toString?.() ?? row.APATERNO,
-    AMATERNO: row.AMATERNO?.toString?.() ?? row.AMATERNO,
-    TIPO_DOCUMENTO: row.TIPO_DOCUMENTO?.toString?.() ?? row.TIPO_DOCUMENTO,
-    PAIS: row.PAIS?.toString?.() ?? row.PAIS,
-    USUARIO: row.USUARIO?.toString?.() ?? row.USUARIO,
-    CORREO: row.CORREO?.toString?.() ?? row.CORREO,
-    TELEFONO: row.TELEFONO?.toString?.() ?? row.TELEFONO,
-    COLESP2: row.COLESP2?.toString?.() ?? row.COLESP2,
-    COLESP3: row.COLESP3?.toString?.() ?? row.COLESP3,
+    IMPCITA: getVal(row, 'IMPCITA', 'impcita'),
+    PROFESION_COLEGIO: getVal(row, 'PROFESION_COLEGIO', 'profesionColegio'),
+    FECHNAC: getVal(row, 'FECHNAC', 'fechnac'),
+    GENERO: getVal(row, 'GENERO', 'genero'),
+    ESPECIALIDAD2: getVal(row, 'ESPECIALIDAD2', 'especialidad2'),
+    CONSULTORIO2: getVal(row, 'CONSULTORIO2', 'consultorio2'),
+    PROFESION_COLEGIO2: getVal(row, 'PROFESION_COLEGIO2', 'profesionColegio2'),
+    CONSULTORIO_NOMBRE: getVal(row, 'CONSULTORIO_NOMBRE', 'consultorioNombre'),
+    ESPECIALIDAD_NOMBRE: getVal(row, 'ESPECIALIDAD_NOMBRE', 'especialidadNombre'),
+    PROFESION_NOMBRE: getVal(row, 'PROFESION_NOMBRE', 'profesionNombre'),
+    COLEGIO_NOMBRE: getVal(row, 'COLEGIO_NOMBRE', 'colegioNombre'),
+    CONSULTORIO2_NOMBRE: getVal(row, 'CONSULTORIO2_NOMBRE', 'consultorio2Nombre'),
+    ESPECIALIDAD2_NOMBRE: getVal(row, 'ESPECIALIDAD2_NOMBRE', 'especialidad2Nombre'),
+    PROFESION_COLEGIO2_NOMBRE: getVal(row, 'PROFESION_COLEGIO2_NOMBRE', 'profesionColegio2Nombre'),
+    NOMBRES: getVal(row, 'NOMBRES', 'nombres'),
+    APATERNO: getVal(row, 'APATERNO', 'apaterno'),
+    AMATERNO: getVal(row, 'AMATERNO', 'amaterno'),
+    TIPO_DOCUMENTO: getVal(row, 'TIPO_DOCUMENTO', 'tipoDocumento'),
+    PAIS: getVal(row, 'PAIS', 'pais'),
+    USUARIO: getVal(row, 'USUARIO', 'usuario'),
+    CORREO: getVal(row, 'CORREO', 'correo'),
+    TELEFONO: getVal(row, 'TELEFONO', 'telefono'),
+    COLESP2: getVal(row, 'COLESP2', 'colesp2'),
+    COLESP3: getVal(row, 'COLESP3', 'colesp3'),
   } as Medico;
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { consultorioServerService } from "@/services/master-tables/consultorioService";
 
 // Definir interfaz local para evitar importar código de servidor en el cliente
 export interface Consultorio {
@@ -11,7 +12,6 @@ export interface Consultorio {
   [key: string]: any;
 }
 
-
 interface Pagination {
   page: number;
   pageSize: number;
@@ -19,7 +19,7 @@ interface Pagination {
   totalPages?: number;
 }
 
-export function useConsultorios(initialPage = 1, initialPageSize = 10) {
+export function useConsultorios(initialPage = 1, initialPageSize = 20) {
   const [data, setData] = useState<Consultorio[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: initialPage,
@@ -35,26 +35,18 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
     setError(null);
 
     try {
-      const params = new URLSearchParams({
-        page: String(pagination.page),
-        pageSize: String(pagination.pageSize),
-      });
-      Object.entries(filters || {}).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && String(v).length > 0) {
-          params.set(k, String(v));
-        }
-      });
+      const result = await consultorioServerService.getConsultorios(
+        pagination.page,
+        pagination.pageSize,
+        filters
+      );
 
-      const res = await fetch(`/api/master-tables/consultorios?${params.toString()}`);
-      if (!res.ok) throw new Error(`Error ${res.status} al obtener consultorios`);
-      const result = await res.json();
-
-      setData((result?.data as Consultorio[]) || []);
+      setData(result.data || []);
       setPagination((prev) => ({
-        page: result?.page ?? prev.page,
-        pageSize: result?.pageSize ?? prev.pageSize,
-        total: result?.total ?? 0,
-        totalPages: Math.ceil((result?.total ?? 0) / (result?.pageSize ?? prev.pageSize)),
+        page: result.page ?? prev.page,
+        pageSize: result.pageSize ?? prev.pageSize,
+        total: result.total ?? 0,
+        totalPages: result.totalPages ?? Math.ceil((result.total ?? 0) / (result.pageSize ?? prev.pageSize)),
       }));
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -89,22 +81,14 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
   const createConsultorio = async (consultorioData: Partial<Consultorio>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/consultorios`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(consultorioData),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al crear consultorio`);
-      }
+      await consultorioServerService.createConsultorio(consultorioData);
       refreshData();
       return { success: true };
     } catch (err) {
       console.error("Error creating consultorio:", err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : "Error desconocido" 
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Error desconocido"
       };
     } finally {
       setIsLoading(false);
@@ -114,22 +98,14 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
   const updateConsultorio = async (id: string, consultorioData: Partial<Consultorio>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(consultorioData),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al actualizar consultorio`);
-      }
+      await consultorioServerService.updateConsultorio(id, consultorioData);
       refreshData();
       return { success: true };
     } catch (err) {
       console.error("Error updating consultorio:", err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : "Error desconocido" 
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Error desconocido"
       };
     } finally {
       setIsLoading(false);
@@ -139,20 +115,14 @@ export function useConsultorios(initialPage = 1, initialPageSize = 10) {
   const deleteConsultorio = async (id: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al eliminar consultorio`);
-      }
+      await consultorioServerService.deleteConsultorio(id);
       refreshData();
       return { success: true };
     } catch (err) {
       console.error("Error deleting consultorio:", err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : "Error desconocido" 
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Error desconocido"
       };
     } finally {
       setIsLoading(false);

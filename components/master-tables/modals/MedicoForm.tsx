@@ -37,6 +37,7 @@ import { useOptimizedMedicos } from "@/hooks/master-tables/useOptimizedMedicos";
 import { ProfesionColegioSelector } from "@/components/master-tables/selectors/ProfesionColegioSelector";
 import { PaisSelector } from "@/components/master-tables/selectors/PaisSelector";
 import { extractDocumentFromToken } from "@/utils/jwtUtils";
+import { API_ENDPOINTS } from "@/lib/api-config";
 
 interface MedicoFormProps {
   medico?: any;
@@ -242,12 +243,14 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadEspecialidades = async () => {
     setLoadingEspecialidades(true);
     try {
-      const response = await fetch("/api/master-tables/specialties");
+      const response = await fetch(API_ENDPOINTS.masterTables.specialties);
+      if (!response.ok) throw new Error(`Error ${response.status}`);
       const result = await response.json();
-      if (result.success) {
-        setEspecialidades(result.data);
-      }
+      // La API devuelve array directo o {data: [...]}
+      const data = Array.isArray(result) ? result : (result.data || []);
+      setEspecialidades(data);
     } catch (error) {
+      console.error("Error cargando especialidades:", error);
     } finally {
       setLoadingEspecialidades(false);
     }
@@ -256,12 +259,15 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadConsultorios = async (especialidad: string) => {
     setLoadingConsultorios(true);
     try {
-      const response = await fetch(`/api/master-tables/consultorios/by-specialty?especialidad=${especialidad}`);
+      const url = `${API_ENDPOINTS.masterTables.consultorios.bySpecialty}?especialidad=${encodeURIComponent(especialidad)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Error ${response.status}`);
       const result = await response.json();
-      if (result.success) {
-        setConsultorios(result.data);
-      }
+      // La API devuelve array directo o {data: [...]}
+      const data = Array.isArray(result) ? result : (result.data || []);
+      setConsultorios(data);
     } catch (error) {
+      console.error("Error cargando consultorios:", error);
     } finally {
       setLoadingConsultorios(false);
     }
@@ -270,12 +276,15 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadConsultorios2 = async (especialidad: string) => {
     setLoadingConsultorios2(true);
     try {
-      const response = await fetch(`/api/master-tables/consultorios/by-specialty?especialidad=${especialidad}`);
+      const url = `${API_ENDPOINTS.masterTables.consultorios.bySpecialty}?especialidad=${encodeURIComponent(especialidad)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Error ${response.status}`);
       const result = await response.json();
-      if (result.success) {
-        setConsultorios2(result.data);
-      }
+      // La API devuelve array directo o {data: [...]}
+      const data = Array.isArray(result) ? result : (result.data || []);
+      setConsultorios2(data);
     } catch (error) {
+      console.error("Error cargando consultorios2:", error);
     } finally {
       setLoadingConsultorios2(false);
     }

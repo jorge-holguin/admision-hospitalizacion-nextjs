@@ -5,14 +5,24 @@ import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 // TIPOS E INTERFACES
 // ============================================================================
 
-// Normalizador para filas de Localidad
+// Helper: obtiene el primer valor no nulo de una lista de claves
+function getVal(row: any, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = row?.[k];
+    if (v !== undefined && v !== null) return String(v);
+  }
+  return undefined;
+}
+
+// Normalizador para filas de Localidad (soporta UPPERCASE y camelCase del API Spring Boot)
 function normalizeLocalidad(row: any): Localidad {
-  const rawActivo = (row?.ACTIVO ?? row?.Activo ?? '').toString();
+  const rawActivo = getVal(row, 'ACTIVO', 'activo', 'Activo') ?? '';
   const ACTIVO = rawActivo === '1' || rawActivo.toUpperCase?.() === 'S' ? '1' : '0';
+  const localidad = getVal(row, 'LOCALIDAD', 'localidad', 'Localidad');
   return {
-    LOCALIDAD: (row.LOCALIDAD || row.Localidad) ? String(row.LOCALIDAD || row.Localidad).trim() : (row.LOCALIDAD || row.Localidad),
-    NOMBRE: (row.NOMBRE || row.Nombre)?.toString?.() ?? (row.NOMBRE || row.Nombre),
-    UBIGEO: (row.UBIGEO || row.Ubigeo)?.toString?.() ?? ((row.UBIGEO || row.Ubigeo) || ''),
+    LOCALIDAD: localidad ? localidad.trim() : localidad,
+    NOMBRE: getVal(row, 'NOMBRE', 'nombre', 'Nombre'),
+    UBIGEO: getVal(row, 'UBIGEO', 'ubigeo', 'Ubigeo') ?? '',
     ACTIVO,
   } as Localidad;
 }

@@ -31,7 +31,7 @@ interface Pagination {
   totalPages?: number;
 }
 
-export function useMedicos(initialPage = 1, initialPageSize = 10) {
+export function useMedicos(initialPage = 1, initialPageSize = 20) {
   const [data, setData] = useState<Medico[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: initialPage,
