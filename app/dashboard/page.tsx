@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Home, Table, Calendar, Loader2, FlaskConical } from "lucide-react";
+import { Home, Table, Calendar, Loader2, FlaskConical, Shield } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -47,6 +47,12 @@ export default function Dashboard() {
     setIsNavigating(true);
     setNavigatingTo("Laboratorio");
     router.push("/laboratory");
+  };
+
+  const handleInsuranceClick = () => {
+    setIsNavigating(true);
+    setNavigatingTo("Seguros");
+    router.push("/insurance");
   };
 
   return (
@@ -110,6 +116,7 @@ export default function Dashboard() {
           )}
 
           {/* LABORATORIO - Acceso para todos */}
+          {/*
           <Card
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-purple-200"
             onClick={handleLaboratoryClick}
@@ -123,6 +130,25 @@ export default function Dashboard() {
               </h3>
               <p className="text-gray-600 text-sm">
                 Gestión de citas de laboratorio
+              </p>
+            </CardContent>
+          </Card>
+          */}
+
+          {/* SEGUROS - Acceso para todos */}
+          <Card
+            className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-cyan-200"
+            onClick={handleInsuranceClick}
+          >
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-10 h-10 text-cyan-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                SEGUROS
+              </h3>
+              <p className="text-gray-600 text-sm">
+               FUAs y atenciones SIS
               </p>
             </CardContent>
           </Card>
