@@ -212,15 +212,345 @@ export async function listarEspecialidades(): Promise<EspecialidadItem[]> {
     .filter((e: EspecialidadItem) => e.especialidadId && e.especialidadId !== "null")
 }
 
-// Mapeo para estadoFua: "0" = ANULADO, "1" = ACTIVO, "2" = LIQUIDADO
+// Mapeo para estadoFua: "2" = ACTIVO, "0" = INACTIVO, "1" = PENDIENTE
 export const ESTADO_FUA_LABEL: Record<string, string> = {
-  "0": "Anulado",
-  "1": "Activo",
-  "2": "Liquidado",
+  "0": "Inactivo",
+  "1": "Pendiente",
+  "2": "Activo",
 }
 
 export const ESTADO_FUA_BADGE: Record<string, string> = {
   "0": "bg-red-100 text-red-800 border border-red-300",
+  "1": "bg-yellow-100 text-yellow-800 border border-yellow-300",
+  "2": "bg-green-100 text-green-800 border border-green-300",
+}
+
+// ============================================================================
+// NUEVO ENDPOINT: /api/atencion-seguro/buscar
+// ============================================================================
+
+export interface AtencionSeguro {
+  rowId?: string
+  atencionSeguroId?: string
+  numeroFua?: string
+  idCuenta?: string
+  origen?: string               // "EM" | "HO" | "CE" | "AD"
+  seguro?: string
+  estadoFua?: string | null     // "0" | "1" | "2"
+  estadoCuenta?: string | null  // "0" | "1" | "2" ...
+  tipoPrestacion?: string
+  tipoPrestacionNombre?: string
+  idOrigenTecnico?: string
+  pacienteId?: string
+  pacienteNombre?: string
+  fecha?: string
+  hora?: string
+  medicoNombre?: string
+  consultorioNombre?: string
+  estadoProceso?: string
+  // Auditor (campo futuro que el backend incorporará en una mejora)
+  auditorNombre?: string
+  auditorApepaterno?: string
+  auditorApematerno?: string
+  auditorNombres?: string
+  auditorDocumento?: string | null
+}
+
+export interface AtencionSeguroResponse {
+  content: AtencionSeguro[]
+  number: number
+  size: number
+  totalPages: number
+  totalElements: number
+}
+
+export interface BuscarAtencionesSeguroParams {
+  desde: Date
+  hasta: Date
+  origen?: "EM" | "HO" | "CE" | "AD"
+  especialidadSolicitudArray?: string[]  // IDs de especialidad (repeated query param)
+  consultorio?: string
+  medico?: string
+  tipoPrestacion?: string       // código de tipo de prestación (ej: "056")
+  estadoFua?: boolean           // true = activo, false = inactivo, undefined = todos
+  estadoCuenta?: string         // "0" | "1" | "2" | "4"
+  sis?: boolean                  // por defecto true
+  page?: number
+  size?: number
+}
+
+// GET /api/atencion-seguro/buscar
+export async function buscarAtencionesSeguro(
+  params: BuscarAtencionesSeguroParams
+): Promise<AtencionSeguroResponse> {
+  const qs = new URLSearchParams()
+  qs.append("desde", formatDateDDMMYYYY(params.desde))
+  qs.append("hasta", formatDateDDMMYYYY(params.hasta))
+  if (params.origen) qs.append("origen", params.origen)
+  if (params.especialidadSolicitudArray && params.especialidadSolicitudArray.length > 0) {
+    for (const id of params.especialidadSolicitudArray) {
+      qs.append("especialidadSolicitudArray", id)
+    }
+  }
+  if (params.consultorio) qs.append("consultorio", params.consultorio)
+  if (params.medico) qs.append("medico", params.medico)
+  if (params.tipoPrestacion) qs.append("tipoPrestacion", params.tipoPrestacion)
+  if (params.estadoFua !== undefined) qs.append("estadoFua", String(params.estadoFua))
+  if (params.estadoCuenta) qs.append("estadoCuenta", params.estadoCuenta)
+  // SIS por defecto en true
+  qs.append("sis", String(params.sis ?? true))
+  qs.append("page", String(params.page ?? 0))
+  qs.append("size", String(params.size ?? 20))
+
+  const url = `${API_BASE}/atencion-seguro/buscar?${qs.toString()}`
+  const res = await fetch(url, { headers: { accept: "application/json" } })
+  if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+  const data = await res.json()
+  // Normalizar: algunos endpoints devuelven directamente un array, otros con .content
+  if (Array.isArray(data)) {
+    return {
+      content: data,
+      number: 0,
+      size: data.length,
+      totalPages: 1,
+      totalElements: data.length,
+    }
+  }
+  return data as AtencionSeguroResponse
+}
+
+// GET /api/atencion-seguro/buscar/excel
+// Descarga un archivo .xlsx con TODOS los registros que cumplen los filtros
+// (sin paginación). Acepta los mismos parámetros que /buscar excepto page/size.
+export async function exportarAtencionesSeguroExcel(
+  params: Omit<BuscarAtencionesSeguroParams, "page" | "size">
+): Promise<Blob> {
+  const qs = new URLSearchParams()
+  qs.append("desde", formatDateDDMMYYYY(params.desde))
+  qs.append("hasta", formatDateDDMMYYYY(params.hasta))
+  if (params.origen) qs.append("origen", params.origen)
+  if (params.especialidadSolicitudArray && params.especialidadSolicitudArray.length > 0) {
+    for (const id of params.especialidadSolicitudArray) {
+      qs.append("especialidadSolicitudArray", id)
+    }
+  }
+  if (params.consultorio) qs.append("consultorio", params.consultorio)
+  if (params.medico) qs.append("medico", params.medico)
+  if (params.tipoPrestacion) qs.append("tipoPrestacion", params.tipoPrestacion)
+  if (params.estadoFua !== undefined) qs.append("estadoFua", String(params.estadoFua))
+  if (params.estadoCuenta) qs.append("estadoCuenta", params.estadoCuenta)
+  qs.append("sis", String(params.sis ?? true))
+
+  const url = `${API_BASE}/atencion-seguro/buscar/excel?${qs.toString()}`
+  const res = await fetch(url, {
+    headers: {
+      accept:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    },
+  })
+  if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+  return await res.blob()
+}
+
+// ============================================================================
+// Médicos-Consultorios (para selectores de médico y consultorio en /insurance)
+// ============================================================================
+
+export interface MedicoConsultorioItem {
+  medico: string
+  nombreMedico: string
+  consultorio: string
+  nombreConsultorio: string
+}
+
+// GET /api/cita/medicos-consultorios?desde=dd/MM/yyyy&hasta=dd/MM/yyyy
+export async function listarMedicosConsultorios(
+  desde: Date,
+  hasta: Date
+): Promise<MedicoConsultorioItem[]> {
+  const qs = new URLSearchParams()
+  qs.append("desde", formatDateDDMMYYYY(desde))
+  qs.append("hasta", formatDateDDMMYYYY(hasta))
+  const url = `${API_BASE}/cita/medicos-consultorios?${qs.toString()}`
+  const res = await fetch(url, { headers: { accept: "*/*" } })
+  if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+  const data = await res.json()
+  const list = Array.isArray(data) ? data : data?.content || []
+  return list.map((m: any) => ({
+    medico: String(m.medico ?? "").trim(),
+    nombreMedico: String(m.nombreMedico ?? "").trim(),
+    consultorio: String(m.consultorio ?? "").trim(),
+    nombreConsultorio: String(m.nombreConsultorio ?? "").trim(),
+  }))
+}
+
+// Mapeo para estadoCuenta
+// 0 ANULADA, 1 ACTIVO, 2 LIQUIDADO, 4 AUDITADO
+export const ESTADO_CUENTA_LABEL: Record<string, string> = {
+  "0": "Anulada",
+  "1": "Activa",
+  "2": "Liquidada",
+  "4": "Auditada",
+}
+
+export const ESTADO_CUENTA_BADGE: Record<string, string> = {
+  "0": "bg-red-100 text-red-800 border border-red-300",
   "1": "bg-green-100 text-green-800 border border-green-300",
   "2": "bg-blue-100 text-blue-800 border border-blue-300",
+  "4": "bg-amber-100 text-amber-800 border border-amber-300",
+}
+
+// Mapeo para origen (módulo que generó la atención)
+export const ORIGEN_LABEL: Record<string, string> = {
+  EM: "Emergencia",
+  HO: "Hospitalización",
+  CE: "Consulta Externa",
+  AD: "Apoyo al Diagnostico",
+}
+
+// ============================================================================
+// FUA por origen: endpoints que reciben numatencion (no citaId)
+// ============================================================================
+//   GET /api/atencion-seguro/fua/consulta-externa?numatencion=...
+//   GET /api/atencion-seguro/fua/emergencia?numatencion=...
+//   GET /api/atencion-seguro/fua/hospitalizacion?numatencion=...
+const FUA_ENDPOINT_BY_ORIGEN: Record<string, string> = {
+  CE: "atencion-seguro/fua/consulta-externa",
+  EM: "atencion-seguro/fua/emergencia",
+  HO: "atencion-seguro/fua/hospitalizacion",
+  AD: "atencion-seguro/fua/apoyo-diagnostico",
+}
+
+export function getFuaUrlByOrigen(
+  origen: string | undefined | null,
+  numatencion: string | undefined | null
+): string {
+  if (!origen || !numatencion) return ""
+  const path = FUA_ENDPOINT_BY_ORIGEN[origen.trim().toUpperCase()]
+  if (!path) return ""
+  return `${API_BASE}/${path}?numatencion=${encodeURIComponent(numatencion.toString().trim())}`
+}
+
+// GET /api/atencion-seguro/fua/{origen}?numatencion=...
+// Devuelve la información del FUA en formato JSON (no es un PDF).
+// Se usa para mostrar el registro como una fila en la tabla cuando se busca
+// directamente por N° de FUA.
+export async function obtenerFuaPorOrigen(
+  origen: string,
+  numatencion: string
+): Promise<AtencionSeguro> {
+  const path = FUA_ENDPOINT_BY_ORIGEN[origen.trim().toUpperCase()]
+  if (!path) throw new Error(`Origen inválido: ${origen}`)
+  const url = `${API_BASE}/${path}?numatencion=${encodeURIComponent(numatencion.trim())}`
+  const res = await fetch(url, { headers: { accept: "*/*" } })
+  if (!res.ok) throw new Error(`No se encontró el FUA ${numatencion}`)
+  const data = await res.json()
+  // Algunas respuestas pueden venir como array o como objeto
+  const item = Array.isArray(data) ? data[0] : data
+  if (!item || (typeof item === "object" && Object.keys(item).length === 0)) {
+    throw new Error(`No se encontró el FUA ${numatencion}`)
+  }
+  // Normalizar campos: los endpoints /fua/{origen} usan nombres distintos a /buscar
+  //   paciente        → pacienteId
+  //   nombres         → pacienteNombre
+  //   fechaAtencion   → fecha
+  //   horaAtencion    → hora
+  //   detalleId       → idOrigenTecnico (para abrir FUA/Liquidación)
+  const normalized: AtencionSeguro = {
+    ...item,
+    origen: origen.trim().toUpperCase(),
+    pacienteId: item.pacienteId ?? item.paciente ?? undefined,
+    pacienteNombre: item.pacienteNombre ?? item.nombres ?? undefined,
+    fecha: item.fecha ?? item.fechaAtencion ?? undefined,
+    hora: item.hora ?? item.horaAtencion ?? undefined,
+    idOrigenTecnico:
+      item.idOrigenTecnico ?? item.detalleId ?? item.cuentaId ?? undefined,
+    medicoNombre:
+      item.medicoNombre ?? item.detalleMedicoNombre ?? undefined,
+    consultorioNombre:
+      item.consultorioNombre ?? item.detalleConsultorioNombre ?? undefined,
+    idCuenta: item.idCuenta ?? item.cuentaId ?? undefined,
+  }
+  return normalized
+}
+
+// ============================================================================
+// Catálogo: consultorios por tipo
+// ============================================================================
+//   CE (Consulta Externa)  → tipo=C
+//   EM (Emergencia)        → tipo=E
+//   HO (Hospitalización)   → tipo=H
+//   TODOS (sin filtro)     → tipo=undefined (omite el parámetro tipo)
+export interface ConsultorioMaestroItem {
+  consultorio: string        // código (ej: "1015")
+  nombreConsultorio: string
+  tipo?: string
+  activo?: number | boolean
+}
+
+export const ORIGEN_TO_CONSULTORIO_TIPO: Record<string, "C" | "E" | "H" | "D" | undefined> = {
+  TODOS: undefined,
+  CE: "C",
+  EM: "E",
+  HO: "H",
+  AD: "D",
+}
+
+// GET /api/maestro/consultorio/buscar?tipo=X&soloActivos=true
+// Si tipo es undefined, no se incluye el parámetro tipo (retorna todos los consultorios)
+export async function listarConsultoriosPorTipo(
+  tipo: "C" | "E" | "H" | "D" | undefined,
+  soloActivos: boolean = true
+): Promise<ConsultorioMaestroItem[]> {
+  const qs = new URLSearchParams()
+  if (tipo) qs.append("tipo", tipo)
+  qs.append("soloActivos", String(soloActivos))
+  const url = `${API_BASE}/maestro/consultorio/buscar?${qs.toString()}`
+  const res = await fetch(url, { headers: { accept: "*/*" } })
+  if (!res.ok) throw new Error(`Error al cargar consultorios: ${res.status}`)
+  const data = await res.json()
+  const list = Array.isArray(data) ? data : data?.content || []
+  return list
+    .map((c: any) => ({
+      consultorio: String(
+        c.consultorio ?? c.codigo ?? c.idConsultorio ?? ""
+      ).trim(),
+      nombreConsultorio: String(
+        c.nombreConsultorio ?? c.nombre ?? c.descripcion ?? ""
+      ).trim(),
+      tipo: c.tipo,
+      activo: c.activo,
+    }))
+    .filter((c: ConsultorioMaestroItem) => c.consultorio)
+}
+
+// ============================================================================
+// Catálogo: tipos de prestación
+// ============================================================================
+
+export interface TipoPrestacionItem {
+  tipoPrestacion: string  // código (ej: "056")
+  nombre: string
+}
+
+// GET /api/maestro/tipo-prestacion/obtener-todos
+export async function listarTiposPrestacion(): Promise<TipoPrestacionItem[]> {
+  const url = `${API_BASE}/maestro/tipo-prestacion/obtener-todos`
+  const res = await fetch(url, { headers: { accept: "*/*" } })
+  if (!res.ok) throw new Error(`Error al cargar tipos de prestación: ${res.status}`)
+  const data = await res.json()
+  const list = Array.isArray(data) ? data : data?.content || []
+  return list
+    .map((t: any) => ({
+      tipoPrestacion: String(t.tipoPrestacion ?? t.codigo ?? "").trim(),
+      nombre: String(t.nombre ?? t.descripcion ?? "").trim(),
+    }))
+    .filter((t: TipoPrestacionItem) => t.tipoPrestacion)
+}
+
+export const ORIGEN_BADGE: Record<string, string> = {
+  EM: "bg-red-100 text-red-800 border border-red-300",
+  HO: "bg-blue-100 text-blue-800 border border-blue-300",
+  CE: "bg-green-100 text-green-800 border border-green-300",
+  AD: "bg-purple-100 text-purple-800 border border-purple-300",
 }

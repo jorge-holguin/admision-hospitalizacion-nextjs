@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Table,
@@ -40,166 +39,272 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { Calendar } from "@/components/ui/calendar"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   RefreshCw,
   FilterX,
   Loader2,
-  Check,
-  CalendarIcon,
-  ChevronsUpDown,
   House,
   FileText,
+  Search,
+  ChevronsUpDown,
+  Check,
+  ChevronDown,
+  Receipt,
+  Eye,
+  FileSpreadsheet,
 } from "lucide-react"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Navbar } from "@/components/Navbar"
 import ProtectedRoute from "@/components/ProtectedRoute"
-import { TurnoSelector } from "@/components/insurance/TurnoSelector"
 import { FuaViewerModal } from "@/components/insurance/FuaViewerModal"
-import { EspecialidadSelector } from "@/components/insurance/EspecialidadSelector"
+import { LiquidacionViewerModal } from "@/components/insurance/LiquidacionViewerModal"
+import { DateRangePicker } from "@/components/insurance/DateRangePicker"
 import {
-  buscarCitas,
-  buscarCitaPorId,
-  buscarCitaIdPorNumAtencion,
-  listarMedicos,
+  buscarAtencionesSeguro,
+  exportarAtencionesSeguroExcel,
+  obtenerFuaPorOrigen,
+  listarTiposPrestacion,
+  listarConsultoriosPorTipo,
+  ORIGEN_TO_CONSULTORIO_TIPO,
   ESTADO_FUA_LABEL,
   ESTADO_FUA_BADGE,
-  type Cita,
-  type MedicoItem,
+  ESTADO_CUENTA_LABEL,
+  ESTADO_CUENTA_BADGE,
+  ORIGEN_LABEL,
+  ORIGEN_BADGE,
+  type AtencionSeguro,
+  type TipoPrestacionItem,
+  type ConsultorioMaestroItem,
 } from "@/services/insurance/insuranceAuditService"
 
-const PAGE_SIZE = 20
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200]
+const DEFAULT_PAGE_SIZE = 20
+
+// Primer día del mes actual
+function firstDayOfMonth(): Date {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), 1)
+}
 
 export default function InsurancePage() {
-  // Filtros
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [calendarOpen, setCalendarOpen] = useState(false)
-  const [especialidadId, setEspecialidadId] = useState<string>("")
-  const [medico, setMedico] = useState<string>("todos")
-  const [turno, setTurno] = useState<"M" | "T" | "TODOS">("TODOS")
-  const [estadoFua, setEstadoFua] = useState<string>("TODOS") // "TODOS" = sin filtro
+  // Filtros (rango de fechas obligatorio)
+  const [desde, setDesde] = useState<Date | undefined>(firstDayOfMonth())
+  const [hasta, setHasta] = useState<Date | undefined>(new Date())
+  const [origen, setOrigen] = useState<string>("TODOS")            // "TODOS" | "EM" | "HO" | "CE" | "AD"
+  const [consultorio, setConsultorio] = useState<string>("")
+  const [tipoPrestacion, setTipoPrestacion] = useState<string>("")
+  const [estadoCuenta, setEstadoCuenta] = useState<string>("TODOS")
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE)
 
-  // Búsqueda por FUA
+  // Estado FUA tri-estado: "activo" | "anulado" | "todos". Por defecto: activo.
+  const [estadoFuaFiltro, setEstadoFuaFiltro] = useState<"activo" | "anulado" | "todos">("activo")
+  const estadoFuaBool: boolean | undefined =
+    estadoFuaFiltro === "activo" ? true : estadoFuaFiltro === "anulado" ? false : undefined
+
+  // Búsqueda avanzada por N° FUA (oculta tras checkbox)
+  const [mostrarBusquedaFua, setMostrarBusquedaFua] = useState(false)
+  const [fuaSearchOrigen, setFuaSearchOrigen] = useState<"CE" | "EM" | "HO" | "AD">("CE")
   const [fuaAnio, setFuaAnio] = useState(
     new Date().getFullYear().toString().slice(-2)
   )
   const [fuaNumero, setFuaNumero] = useState("")
 
-  // Búsqueda por ID de cita
-  const [mostrarBusquedaCita, setMostrarBusquedaCita] = useState(false)
-  const [citaIdInput, setCitaIdInput] = useState("")
-
   // Datos y estado
-  const [atenciones, setAtenciones] = useState<Cita[]>([])
+  const [atenciones, setAtenciones] = useState<AtencionSeguro[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
     page: 0,
-    size: PAGE_SIZE,
+    size: DEFAULT_PAGE_SIZE,
     totalPages: 0,
     totalElements: 0,
   })
 
-  // Médicos
-  const [medicos, setMedicos] = useState<MedicoItem[]>([])
-  const [loadingMedicos, setLoadingMedicos] = useState(false)
-  const [medicoOpen, setMedicoOpen] = useState(false)
-  const [medicoSearch, setMedicoSearch] = useState("")
+  // Selectores de consultorio
+  const [consultorioOpen, setConsultorioOpen] = useState(false)
+  const [consultorioSearch, setConsultorioSearch] = useState("")
+
+  // Catálogo de tipos de prestación
+  const [tiposPrestacion, setTiposPrestacion] = useState<TipoPrestacionItem[]>([])
+  const [tipoPrestacionOpen, setTipoPrestacionOpen] = useState(false)
+  const [tipoPrestacionSearch, setTipoPrestacionSearch] = useState("")
+
+  // Catálogo de consultorios (según origen seleccionado)
+  const [consultoriosMaestro, setConsultoriosMaestro] = useState<ConsultorioMaestroItem[]>([])
+  const [loadingConsultorios, setLoadingConsultorios] = useState(false)
 
   // Modal de visualización de FUA
   const [fuaModalOpen, setFuaModalOpen] = useState(false)
-  const [fuaModalCita, setFuaModalCita] = useState<Cita | null>(null)
+  const [fuaModalRow, setFuaModalRow] = useState<AtencionSeguro | null>(null)
 
-  // Cargar médicos cuando cambia la especialidad o la fecha
-  useEffect(() => {
-    if (!especialidadId || !selectedDate) {
-      setMedicos([])
-      setMedico("todos")
+  // Modal de visualización de Liquidación
+  const [liquidacionModalOpen, setLiquidacionModalOpen] = useState(false)
+  const [liquidacionModalRow, setLiquidacionModalRow] = useState<AtencionSeguro | null>(null)
+
+  // Exportar a Excel
+  const [exportando, setExportando] = useState(false)
+
+  const handleExportarExcel = async () => {
+    if (!desde || !hasta) {
+      setError("Seleccione un rango de fechas")
       return
     }
+    setExportando(true)
+    setError(null)
+    try {
+      const blob = await exportarAtencionesSeguroExcel({
+        desde,
+        hasta,
+        origen: origen !== "TODOS" ? (origen as "EM" | "HO" | "CE" | "AD") : undefined,
+        consultorio: consultorio || undefined,
+        tipoPrestacion: tipoPrestacion.trim() || undefined,
+        estadoFua: estadoFuaBool,
+        estadoCuenta: estadoCuenta !== "TODOS" ? estadoCuenta : undefined,
+        sis: true,
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      const dd = (d: Date) =>
+        `${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, "0")}${d
+          .getDate()
+          .toString()
+          .padStart(2, "0")}`
+      a.href = url
+      a.download = `atenciones-sis_${dd(desde)}_${dd(hasta)}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al exportar a Excel")
+    } finally {
+      setExportando(false)
+    }
+  }
+
+  // Cargar catálogo de tipos de prestación al montar
+  useEffect(() => {
     let active = true
-    setLoadingMedicos(true)
-    listarMedicos(selectedDate, selectedDate, especialidadId)
+    listarTiposPrestacion()
       .then((data) => {
-        if (active) setMedicos(data)
+        if (active) setTiposPrestacion(data)
       })
       .catch(() => {
-        if (active) setMedicos([])
-      })
-      .finally(() => {
-        if (active) setLoadingMedicos(false)
+        if (active) setTiposPrestacion([])
       })
     return () => {
       active = false
     }
-  }, [especialidadId, selectedDate])
+  }, [])
 
-  // Función principal: listar FUAs
-  const cargarCitas = useCallback(
+  // Cargar catálogo de consultorios cuando cambia el origen
+  //   TODOS → sin filtro, CE → tipo=C, EM → tipo=E, HO → tipo=H, AD → tipo=D
+  useEffect(() => {
+    let active = true
+    const tipo = ORIGEN_TO_CONSULTORIO_TIPO[origen]
+    setLoadingConsultorios(true)
+    listarConsultoriosPorTipo(tipo, true)
+      .then((data) => {
+        if (!active) return
+        setConsultoriosMaestro(data)
+      })
+      .catch(() => {
+        if (!active) return
+        setConsultoriosMaestro([])
+      })
+      .finally(() => {
+        if (active) setLoadingConsultorios(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [origen])
+
+  // Limpiar consultorio seleccionado si ya no está en el catálogo actual
+  useEffect(() => {
+    if (!consultorio) return
+    if (consultoriosMaestro.length === 0) return
+    const exists = consultoriosMaestro.some((c) => c.consultorio === consultorio)
+    if (!exists) setConsultorio("")
+  }, [consultoriosMaestro, consultorio])
+
+  // Consultorios: vienen del catálogo maestro filtrado por origen
+  const consultoriosUnicos = consultoriosMaestro
+
+  const consultorioLabel = (() => {
+    if (!consultorio) return "Todos los consultorios"
+    const f = consultoriosMaestro.find((c) => c.consultorio === consultorio)
+    return f ? `${f.consultorio} - ${f.nombreConsultorio}` : consultorio
+  })()
+
+  // Función principal: listar atenciones de seguro
+  const cargarAtenciones = useCallback(
     async (page: number = 0) => {
+      if (!desde || !hasta) {
+        setError("Seleccione un rango de fechas")
+        return
+      }
       setLoading(true)
       setError(null)
       try {
-        const response = await buscarCitas({
-          desde: selectedDate,
-          hasta: selectedDate,
-          especialidadSolicitudArray: especialidadId ? [especialidadId] : undefined,
-          medico: medico !== "todos" ? medico : undefined,
-          turnoConsulta: turno !== "TODOS" ? turno : undefined,
-          estadoFua: estadoFua !== "TODOS" ? estadoFua : undefined,
-          sis: true,
+        const response = await buscarAtencionesSeguro({
+          desde,
+          hasta,
+          origen: origen !== "TODOS" ? (origen as "EM" | "HO" | "CE" | "AD") : undefined,
+          consultorio: consultorio || undefined,
+          tipoPrestacion: tipoPrestacion.trim() || undefined,
+          estadoFua: estadoFuaBool,
+          estadoCuenta: estadoCuenta !== "TODOS" ? estadoCuenta : undefined,
+          sis: true, // siempre SIS
           page,
-          size: PAGE_SIZE,
+          size: pageSize,
         })
-        setAtenciones(response.content || [])
+        // Defensivo: el backend puede devolver items null dentro de content
+        // (p. ej. cuando tipoPrestacion=117 no existe en el maestro).
+        const items = (response.content || []).filter(
+          (x): x is AtencionSeguro => x != null && typeof x === "object"
+        )
+        setAtenciones(items)
         setPagination({
           page: response.number ?? 0,
-          size: response.size ?? PAGE_SIZE,
+          size: response.size ?? pageSize,
           totalPages: response.totalPages ?? 0,
           totalElements: response.totalElements ?? 0,
         })
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al cargar las citas")
+        setError(err instanceof Error ? err.message : "Error al cargar las atenciones")
         setAtenciones([])
       } finally {
         setLoading(false)
       }
     },
-    [selectedDate, especialidadId, medico, turno, estadoFua]
+    [desde, hasta, origen, consultorio, tipoPrestacion, estadoFuaBool, estadoCuenta, pageSize]
   )
 
-  // Auto-cargar al cambiar filtros
+  // Auto-cargar al cambiar filtros (con pequeño debounce para evitar lag al cambiar selects)
   useEffect(() => {
-    if (mostrarBusquedaCita && citaIdInput.trim()) return
-    if (fuaNumero.trim()) return
-    cargarCitas(0)
+    if (mostrarBusquedaFua && fuaNumero.trim()) return
+    const t = setTimeout(() => {
+      cargarAtenciones(0)
+    }, 250)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, especialidadId, medico, turno, estadoFua])
+  }, [desde, hasta, origen, consultorio, tipoPrestacion, estadoFuaBool, estadoCuenta, pageSize])
 
-  // Búsqueda por ID de cita
-  const buscarPorCitaId = async () => {
-    if (!citaIdInput.trim()) {
-      setError("Ingrese un ID de cita")
-      return
-    }
-    setLoading(true)
-    setError(null)
-    try {
-      const cita = await buscarCitaPorId(citaIdInput.trim())
-      setAtenciones([cita])
-      setPagination({ page: 0, size: 1, totalPages: 1, totalElements: 1 })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al buscar la cita")
-      setAtenciones([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Búsqueda por N° FUA
+  // Búsqueda por N° FUA: consulta el endpoint JSON correspondiente al origen y
+  // muestra el registro como una fila en la tabla.
+  //   CE → /api/atencion-seguro/fua/consulta-externa?numatencion=...
+  //   EM → /api/atencion-seguro/fua/emergencia?numatencion=...
+  //   HO → /api/atencion-seguro/fua/hospitalizacion?numatencion=...
   const buscarPorFua = async () => {
     if (!fuaNumero.trim()) {
       setError("Ingrese un número de FUA")
@@ -209,48 +314,40 @@ export default function InsurancePage() {
     setLoading(true)
     setError(null)
     try {
-      // 1) Obtener citaId a partir del numatencion
-      const citaId = await buscarCitaIdPorNumAtencion(numatencion)
-      if (!citaId || citaId === "undefined") {
-        throw new Error(`No se encontró una cita para el FUA ${numatencion}`)
-      }
-      // 2) Obtener el detalle completo de la cita
-      const citaCompleta = await buscarCitaPorId(citaId)
-      setAtenciones([citaCompleta])
+      const item = await obtenerFuaPorOrigen(fuaSearchOrigen, numatencion)
+      setAtenciones([item])
       setPagination({ page: 0, size: 1, totalPages: 1, totalElements: 1 })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al buscar el FUA")
       setAtenciones([])
+      setPagination({ page: 0, size: 0, totalPages: 0, totalElements: 0 })
     } finally {
       setLoading(false)
     }
   }
 
   const handleActualizar = () => {
-    cargarCitas(pagination.page)
+    cargarAtenciones(pagination.page)
   }
 
   const handleLimpiarFiltros = () => {
-    setEspecialidadId("")
-    setMedico("todos")
-    setTurno("TODOS")
-    setEstadoFua("TODOS")
+    setDesde(firstDayOfMonth())
+    setHasta(new Date())
+    setOrigen("TODOS")
+    setConsultorio("")
+    setTipoPrestacion("")
+    setEstadoCuenta("TODOS")
+    setEstadoFuaFiltro("activo")
+    setPageSize(DEFAULT_PAGE_SIZE)
     setFuaAnio(new Date().getFullYear().toString().slice(-2))
     setFuaNumero("")
-    setCitaIdInput("")
-    setMostrarBusquedaCita(false)
-    setSelectedDate(new Date())
+    setFuaSearchOrigen("CE")
+    setMostrarBusquedaFua(false)
   }
 
   const handlePageChange = (newPage: number) => {
-    cargarCitas(newPage)
+    cargarAtenciones(newPage)
   }
-
-  const medicoSeleccionadoLabel = (() => {
-    if (medico === "todos") return "Todos los médicos"
-    const f = medicos.find((m) => m.medico?.trim() === medico?.trim())
-    return f ? `${f.medico?.trim()} - ${f.nombreMedico?.trim()}` : medico
-  })()
 
   return (
     <ProtectedRoute>
@@ -273,9 +370,21 @@ export default function InsurancePage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-[#9CD2D3]/20">
               <h1 className="text-2xl font-semibold text-[#114C5F]">
-                Lista de Atenciones
+                Lista de Atenciones SIS
               </h1>
               <div className="flex gap-3">
+                 <Button
+                  onClick={handleExportarExcel}
+                  disabled={exportando || loading || !desde || !hasta}
+                  className="text-white bg-[#1F7A4D] hover:bg-[#17633D] shadow-md disabled:opacity-60"
+                >
+                  {exportando ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  )}
+                  {exportando ? "Exportando..." : "Exportar Excel"}
+                </Button>
                 <Button
                   onClick={handleActualizar}
                   className="text-white bg-[#4F9BB6] hover:bg-[#4A6EB0] shadow-md"
@@ -294,250 +403,361 @@ export default function InsurancePage() {
               </div>
             </div>
 
-            {/* Filtros */}
+            {/* Filtros principales */}
             <div className="mb-8">
-              {/* Checkbox: Buscar por ID */}
-              <div className="mb-4 flex items-center space-x-2">
-                <Checkbox
-                  id="mostrar-busqueda-cita"
-                  checked={mostrarBusquedaCita}
-                  onCheckedChange={(checked) => {
-                    setMostrarBusquedaCita(checked as boolean)
-                    if (!checked) setCitaIdInput("")
-                  }}
-                />
-                <label
-                  htmlFor="mostrar-busqueda-cita"
-                  className="text-sm font-medium text-[#114C5F] cursor-pointer"
-                >
-                  Buscar por ID de Cita
-                </label>
-              </div>
-
-              {mostrarBusquedaCita && (
-                <div className="mb-6 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
-                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
-                    ID de Cita
-                  </Label>
-                  <div className="flex gap-3">
-                    <Input
-                      value={citaIdInput}
-                      onChange={(e) => setCitaIdInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && buscarPorCitaId()}
-                      placeholder="Ej: 260086047"
-                      className="flex-1"
-                    />
-                    <Button
-                      onClick={buscarPorCitaId}
-                      disabled={!citaIdInput.trim() || loading}
-                      className="bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white"
-                    >
-                      Buscar
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Al buscar por ID, los demás filtros se ignorarán
-                  </p>
-                </div>
-              )}
-
-              {/* Grid de filtros */}
+              {/* Fila 1: Rango de fechas | Origen | Consultorio */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Fecha */}
-                <div>
-                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
-                    Fecha
-                  </Label>
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-between font-normal h-[38px] border-[#9CD2D3] text-[#114C5F]",
-                          !selectedDate && "text-muted-foreground"
-                        )}
-                      >
-                        {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Seleccione"}
-                        <CalendarIcon className="h-4 w-4 opacity-60" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(d) => {
-                          if (d) setSelectedDate(d)
-                          setCalendarOpen(false)
-                        }}
-                        locale={es}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Buscar por N° FUA */}
-                <div>
-                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
-                    Buscar por N° FUA
-                  </Label>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-mono text-[#114C5F] bg-gray-100 px-2 py-1.5 rounded-l-md border border-r-0 border-[#9CD2D3] h-[38px] flex items-center">
-                      00005947
-                    </span>
-                    <span className="text-sm text-gray-400">-</span>
-                    <select
-                      value={fuaAnio}
-                      onChange={(e) => setFuaAnio(e.target.value)}
-                      className="w-16 text-sm font-mono px-1 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
-                    >
-                      {Array.from({ length: 5 }, (_, i) => {
-                        const y = new Date().getFullYear() - 2 + i
-                        return (
-                          <option key={y} value={y.toString().slice(-2)}>
-                            {y.toString().slice(-2)}
-                          </option>
-                        )
-                      })}
-                    </select>
-                    <span className="text-sm text-gray-400">-</span>
-                    <input
-                      type="text"
-                      value={fuaNumero}
-                      onChange={(e) =>
-                        setFuaNumero(e.target.value.replace(/\D/g, "").slice(0, 8))
-                      }
-                      onKeyDown={(e) => e.key === "Enter" && buscarPorFua()}
-                      placeholder="00071055"
-                      maxLength={8}
-                      className="w-28 text-sm font-mono px-2 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
-                    />
-                    <Button
-                      onClick={buscarPorFua}
-                      disabled={!fuaNumero.trim() || loading}
-                      className="ml-2 bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white h-[38px] px-4"
-                    >
-                      Buscar
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Turno */}
-                <TurnoSelector value={turno} onChange={setTurno} />
-
-                {/* Especialidad (single-select) */}
-                <EspecialidadSelector
-                  value={especialidadId}
-                  onChange={setEspecialidadId}
-                  label="Especialidad"
+                {/* Rango de fechas */}
+                <DateRangePicker
+                  from={desde}
+                  to={hasta}
+                  onSelect={(range) => {
+                    setDesde(range.from)
+                    setHasta(range.to)
+                  }}
+                  label="Rango de fechas *"
+                  placeholder="Seleccione rango"
                 />
 
-                {/* Médico */}
+                {/* Origen */}
                 <div>
                   <Label className="block text-sm font-medium text-[#114C5F] mb-2">
-                    Médico
+                    Origen
                   </Label>
-                  {especialidadId ? (
-                    <Popover open={medicoOpen} onOpenChange={setMedicoOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className="w-full justify-between h-[38px] border-[#9CD2D3] font-normal"
-                        >
-                          <span className="truncate">{medicoSeleccionadoLabel}</span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[360px] p-0" align="start">
-                        <Command>
-                          <CommandInput
-                            placeholder="Buscar médico..."
-                            value={medicoSearch}
-                            onValueChange={setMedicoSearch}
-                          />
-                          <CommandList>
-                            {loadingMedicos && (
-                              <div className="px-3 py-2 text-sm text-gray-500">
-                                Cargando...
-                              </div>
-                            )}
-                            <CommandEmpty>No se encontraron médicos</CommandEmpty>
-                            <CommandGroup>
-                              <CommandItem
-                                value="todos"
-                                onSelect={() => {
-                                  setMedico("todos")
-                                  setMedicoOpen(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    medico === "todos" ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                Todos los médicos
-                              </CommandItem>
-                              {medicos
-                                .filter((m) => {
-                                  const s = medicoSearch.toLowerCase()
-                                  return (
-                                    m.nombreMedico?.toLowerCase().includes(s) ||
-                                    m.medico?.toLowerCase().includes(s)
-                                  )
-                                })
-                                .map((m, idx) => {
-                                  const cod = m.medico?.trim() || ""
-                                  return (
-                                    <CommandItem
-                                      key={`${cod}-${idx}`}
-                                      value={`${cod} ${m.nombreMedico}`}
-                                      onSelect={() => {
-                                        setMedico(cod)
-                                        setMedicoOpen(false)
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          medico === cod ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                      {cod} - {m.nombreMedico?.trim()}
-                                    </CommandItem>
-                                  )
-                                })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <div className="h-[38px] px-3 flex items-center text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded-md">
-                      Seleccione una especialidad primero
-                    </div>
-                  )}
-                </div>
-
-                {/* Estado */}
-                <div>
-                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
-                    Estado del FUA
-                  </Label>
-                  <Select value={estadoFua} onValueChange={setEstadoFua}>
+                  <Select value={origen} onValueChange={setOrigen}>
                     <SelectTrigger className="h-[38px] border-[#9CD2D3]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="TODOS">Todos</SelectItem>
-                      <SelectItem value="0">Anulado</SelectItem>
-                      <SelectItem value="1">Activo</SelectItem>
-                      <SelectItem value="2">Liquidado</SelectItem>
+                      <SelectItem value="CE">Consulta Externa (CE)</SelectItem>
+                      <SelectItem value="HO">Hospitalización (HO)</SelectItem>
+                      <SelectItem value="EM">Emergencia (EM)</SelectItem>
+                      <SelectItem value="AD">Apoyo al Diagnóstico (AD)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Consultorio */}
+                <div>
+                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
+                    Consultorio
+                  </Label>
+                  <Popover open={consultorioOpen} onOpenChange={setConsultorioOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between h-[38px] border-[#9CD2D3] font-normal"
+                      >
+                        <span className="truncate">{consultorioLabel}</span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[360px] p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Buscar consultorio..."
+                          value={consultorioSearch}
+                          onValueChange={setConsultorioSearch}
+                        />
+                        <CommandList>
+                          {loadingConsultorios && (
+                            <div className="px-3 py-2 text-sm text-gray-500 flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Cargando consultorios...
+                            </div>
+                          )}
+                          <CommandEmpty>No se encontraron consultorios</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="todos"
+                              onSelect={() => {
+                                setConsultorio("")
+                                setConsultorioOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  !consultorio ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              Todos los consultorios
+                            </CommandItem>
+                            {consultoriosUnicos
+                              .filter((c) => {
+                                const s = consultorioSearch.toLowerCase()
+                                return (
+                                  c.nombreConsultorio.toLowerCase().includes(s) ||
+                                  c.consultorio.toLowerCase().includes(s)
+                                )
+                              })
+                              .map((c, idx) => (
+                                <CommandItem
+                                  key={`${c.consultorio}-${idx}`}
+                                  value={`${c.consultorio} ${c.nombreConsultorio}`}
+                                  onSelect={() => {
+                                    setConsultorio(c.consultorio)
+                                    setConsultorioOpen(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      consultorio === c.consultorio
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {c.consultorio} - {c.nombreConsultorio}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+              </div>
+
+              {/* Fila 2: Tipo de Prestación | Estado del FUA | Estado de Cuenta */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                {/* Tipo de Prestación (combobox con catálogo) */}
+                <div>
+                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
+                    Tipo de Prestación
+                  </Label>
+                  <Popover open={tipoPrestacionOpen} onOpenChange={setTipoPrestacionOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between h-[38px] border-[#9CD2D3] font-normal"
+                      >
+                        <span className="truncate">
+                          {(() => {
+                            if (!tipoPrestacion) return "Todos los tipos"
+                            const found = tiposPrestacion.find(
+                              (t) => t.tipoPrestacion === tipoPrestacion
+                            )
+                            return found
+                              ? `${found.tipoPrestacion} - ${found.nombre}`
+                              : tipoPrestacion
+                          })()}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[360px] p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Buscar tipo de prestación..."
+                          value={tipoPrestacionSearch}
+                          onValueChange={setTipoPrestacionSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No se encontraron tipos</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="todos"
+                              onSelect={() => {
+                                setTipoPrestacion("")
+                                setTipoPrestacionOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  !tipoPrestacion ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              Todos los tipos
+                            </CommandItem>
+                            {tiposPrestacion
+                              .filter((t) => {
+                                const s = tipoPrestacionSearch.toLowerCase()
+                                return (
+                                  t.tipoPrestacion.toLowerCase().includes(s) ||
+                                  t.nombre.toLowerCase().includes(s)
+                                )
+                              })
+                              .map((t) => (
+                                <CommandItem
+                                  key={t.tipoPrestacion}
+                                  value={`${t.tipoPrestacion} ${t.nombre}`}
+                                  onSelect={() => {
+                                    setTipoPrestacion(t.tipoPrestacion)
+                                    setTipoPrestacionOpen(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      tipoPrestacion === t.tipoPrestacion
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="font-mono text-xs mr-2">{t.tipoPrestacion}</span>
+                                  {t.nombre}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Estado del FUA (tri-estado: Activo / Anulado / Todos) */}
+                <div>
+                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
+                    Estado del FUA
+                  </Label>
+                  <div className="flex items-center h-[38px] p-0.5 border border-[#9CD2D3] rounded-md bg-white">
+                    {(["activo", "anulado", "todos"] as const).map((opt) => {
+                      const isActive = estadoFuaFiltro === opt
+                      const label =
+                        opt === "activo" ? "Activo" : opt === "anulado" ? "Anulado" : "Todos"
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setEstadoFuaFiltro(opt)}
+                          className={cn(
+                            "flex-1 h-full text-xs font-medium rounded transition-colors",
+                            isActive
+                              ? opt === "activo"
+                                ? "bg-green-100 text-green-800 border border-green-300 shadow-sm"
+                                : opt === "anulado"
+                                  ? "bg-red-100 text-red-800 border border-red-300 shadow-sm"
+                                  : "bg-[#4F9BB6] text-white shadow-sm"
+                              : "text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Estado de Cuenta */}
+                <div>
+                  <Label className="block text-sm font-medium text-[#114C5F] mb-2">
+                    Estado de la Cuenta
+                  </Label>
+                  <Select value={estadoCuenta} onValueChange={setEstadoCuenta}>
+                    <SelectTrigger className="h-[38px] border-[#9CD2D3]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TODOS">Todos</SelectItem>
+                      <SelectItem value="0">Anulada</SelectItem>
+                      <SelectItem value="1">Activa</SelectItem>
+                      <SelectItem value="2">Liquidada</SelectItem>
+                      <SelectItem value="4">Auditada</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {/* Checkbox: búsqueda por N° FUA (oculto por defecto) */}
+              <div className="mt-6 flex items-center space-x-2">
+                <Checkbox
+                  id="mostrar-busqueda-fua"
+                  checked={mostrarBusquedaFua}
+                  onCheckedChange={(checked) => {
+                    setMostrarBusquedaFua(checked as boolean)
+                    if (!checked) setFuaNumero("")
+                  }}
+                />
+                <label
+                  htmlFor="mostrar-busqueda-fua"
+                  className="text-sm font-medium text-[#114C5F] cursor-pointer"
+                >
+                  Búsqueda por N° de FUA
+                </label>
+              </div>
+
+              {mostrarBusquedaFua && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
+                  <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-4 items-end">
+                    {/* Origen del FUA */}
+                    <div>
+                      <Label className="block text-sm font-medium text-[#114C5F] mb-2">
+                        Origen
+                      </Label>
+                      <Select
+                        value={fuaSearchOrigen}
+                        onValueChange={(v) =>
+                          setFuaSearchOrigen(v as "CE" | "EM" | "HO" | "AD")
+                        }
+                      >
+                        <SelectTrigger className="h-[38px] border-[#9CD2D3]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CE">Consulta Externa (CE)</SelectItem>
+                          <SelectItem value="HO">Hospitalización (HO)</SelectItem>
+                          <SelectItem value="EM">Emergencia (EM)</SelectItem>
+                          <SelectItem value="AD">Apoyo al Diagnóstico (AD)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* N° FUA */}
+                    <div>
+                      <Label className="block text-sm font-medium text-[#114C5F] mb-2">
+                        N° FUA
+                      </Label>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-mono text-[#114C5F] bg-gray-100 px-2 py-1.5 rounded-l-md border border-r-0 border-[#9CD2D3] h-[38px] flex items-center">
+                          00005947
+                        </span>
+                        <select
+                          value={fuaAnio}
+                          onChange={(e) => setFuaAnio(e.target.value)}
+                          className="w-16 text-sm font-mono px-1 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
+                        >
+                          {Array.from({ length: 5 }, (_, i) => {
+                            const y = new Date().getFullYear() - 2 + i
+                            return (
+                              <option key={y} value={y.toString().slice(-2)}>
+                                {y.toString().slice(-2)}
+                              </option>
+                            )
+                          })}
+                        </select>
+                        <input
+                          type="text"
+                          value={fuaNumero}
+                          onChange={(e) =>
+                            setFuaNumero(e.target.value.replace(/\D/g, "").slice(0, 8))
+                          }
+                          onKeyDown={(e) => e.key === "Enter" && buscarPorFua()}
+                          placeholder="00073838"
+                          maxLength={8}
+                          className="flex-1 text-sm font-mono px-2 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
+                        />
+                        <Button
+                          onClick={buscarPorFua}
+                          disabled={!fuaNumero.trim() || loading}
+                          className="ml-2 bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white h-[38px] px-4"
+                        >
+                          <Search className="w-4 h-4 mr-2" />
+                          Buscar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Al buscar por N° de FUA, se abre directamente el documento usando el endpoint del origen seleccionado.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Tabla */}
@@ -545,22 +765,25 @@ export default function InsurancePage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-[#4F9BB6]/10 to-[#9CD2D3]/10">
+                    <TableHead className="font-semibold text-[#114C5F]">ORIGEN</TableHead>
                     <TableHead className="font-semibold text-[#114C5F]">N° FUA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">CITA ID</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F]">ID ORIGEN</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F]">CUENTA</TableHead>
                     <TableHead className="font-semibold text-[#114C5F]">PACIENTE</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">HISTORIA</TableHead>
                     <TableHead className="font-semibold text-[#114C5F]">CONSULTORIO</TableHead>
                     <TableHead className="font-semibold text-[#114C5F]">MÉDICO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F]">AUDITOR</TableHead>
                     <TableHead className="font-semibold text-[#114C5F] text-center">PRESTACIÓN</TableHead>
                     <TableHead className="font-semibold text-[#114C5F]">FECHA Y HORA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">ESTADO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-center">FUA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-center">CUENTA</TableHead>
                     <TableHead className="font-semibold text-[#114C5F] text-center">ACCIONES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-12">
+                      <TableCell colSpan={13} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <Loader2 className="w-8 h-8 animate-spin text-[#4F9BB6]" />
                           <p className="text-gray-500">Cargando atenciones...</p>
@@ -569,12 +792,12 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-12">
+                      <TableCell colSpan={13} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <p className="text-red-500 font-medium">Error al cargar datos</p>
                           <p className="text-gray-500 text-sm">{error}</p>
                           <Button
-                            onClick={() => cargarCitas(0)}
+                            onClick={() => cargarAtenciones(0)}
                             variant="outline"
                             className="mt-2"
                           >
@@ -586,7 +809,7 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : atenciones.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-12">
+                      <TableCell colSpan={13} className="text-center py-12">
                         <p className="text-gray-500">
                           No se encontraron atenciones con los filtros seleccionados
                         </p>
@@ -595,47 +818,92 @@ export default function InsurancePage() {
                   ) : (
                     atenciones.map((a, index) => {
                       const estadoFuaKey = a.estadoFua != null ? String(a.estadoFua) : ""
+                      const estadoCuentaKey = a.estadoCuenta != null ? String(a.estadoCuenta) : ""
+                      const origenKey = (a.origen || "").trim()
                       return (
-                        <TableRow key={`${a.citaId}-${index}`}>
-                          <TableCell className="font-mono text-sm">
-                            {a.numAtencion?.toString().trim() ||
-                              a.numeroFua?.toString().trim() ||
-                              "—"}
+                        <TableRow key={`${a.rowId || a.atencionSeguroId}-${index}`}>
+                          <TableCell>
+                            <span
+                              className={cn(
+                                "px-2 py-1 rounded-md text-xs font-semibold",
+                                ORIGEN_BADGE[origenKey] ||
+                                  "bg-gray-100 text-gray-800 border border-gray-300"
+                              )}
+                            >
+                              {ORIGEN_LABEL[origenKey] || origenKey || "—"}
+                            </span>
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {a.citaId}
+                            {a.numeroFua?.toString().trim() || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {a.idOrigenTecnico?.toString().trim() || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {a.idCuenta?.toString().trim() || "—"}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium">
-                                {a.pacienteNombre?.trim() || a.nombre}
+                                {a.pacienteNombre?.trim() || "—"}
                               </span>
                               <span className="text-xs text-gray-500">
-                                {a.pacienteId || a.paciente}
+                                {a.pacienteId || "—"}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {a.numeroHistoria?.trim() || a.historia || "—"}
+                          <TableCell className="text-sm">
+                            {a.consultorioNombre?.trim() || "—"}
                           </TableCell>
-                          <TableCell>{a.consultorioNombre}</TableCell>
-                          <TableCell>{a.medicoNombre}</TableCell>
-                          <TableCell className="text-center font-mono text-sm">
-                            {a.tipoPrestacion?.trim() || "—"}
+                          <TableCell className="text-sm">
+                            {a.medicoNombre?.trim() || "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {(() => {
+                              const nombre =
+                                a.auditorNombre?.trim() ||
+                                [a.auditorApepaterno, a.auditorApematerno, a.auditorNombres]
+                                  .filter((s) => s && s.trim())
+                                  .join(" ")
+                                  .trim()
+                              if (!nombre) return <span className="text-gray-400">—</span>
+                              return (
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{nombre}</span>
+                                  {a.auditorDocumento && (
+                                    <span className="text-xs text-gray-500 font-mono">
+                                      {a.auditorDocumento}
+                                    </span>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col">
+                              <span className="font-mono text-xs text-gray-500">
+                                {a.tipoPrestacion?.trim() || "—"}
+                              </span>
+                              <span className="text-xs">
+                                {a.tipoPrestacionNombre?.trim() || ""}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            {a.fecha && a.hora ? (
+                            {a.fecha ? (
                               <div className="flex flex-col">
                                 <span>
                                   {new Date(a.fecha).toLocaleDateString("es-PE")}
                                 </span>
-                                <span className="text-xs text-gray-500">{a.hora}</span>
+                                <span className="text-xs text-gray-500">
+                                  {a.hora?.trim() || ""}
+                                </span>
                               </div>
                             ) : (
                               "—"
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-center">
                             <span
                               className={cn(
                                 "px-3 py-1 rounded-full text-xs font-semibold",
@@ -647,17 +915,61 @@ export default function InsurancePage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setFuaModalCita(a)
-                                setFuaModalOpen(true)
-                              }}
-                              className="bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white shadow-sm"
+                            <span
+                              className={cn(
+                                "px-3 py-1 rounded-full text-xs font-semibold",
+                                ESTADO_CUENTA_BADGE[estadoCuentaKey] ||
+                                  "bg-gray-100 text-gray-800 border border-gray-300"
+                              )}
                             >
-                              <FileText className="w-4 h-4 mr-1" />
-                              Ver FUA
-                            </Button>
+                              {ESTADO_CUENTA_LABEL[estadoCuentaKey] || "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {origenKey === "CE" ? (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    className="bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white shadow-sm"
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Ver
+                                    <ChevronDown className="w-4 h-4 ml-1" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuLabel className="text-[#114C5F]">
+                                    Documentos disponibles
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setFuaModalRow(a)
+                                      setFuaModalOpen(true)
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <FileText className="w-4 h-4 mr-2 text-[#4F9BB6]" />
+                                    FUA
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setLiquidacionModalRow(a)
+                                      setLiquidacionModalOpen(true)
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <Receipt className="w-4 h-4 mr-2 text-[#4F9BB6]" />
+                                    Liquidación
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">
+                                Sin acciones
+                              </span>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -668,16 +980,37 @@ export default function InsurancePage() {
             </div>
 
             {/* Paginación */}
-            {!loading && atenciones.length > 0 && pagination.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Mostrando {pagination.page * pagination.size + 1} -{" "}
-                  {Math.min(
-                    (pagination.page + 1) * pagination.size,
-                    pagination.totalElements
-                  )}{" "}
-                  de {pagination.totalElements} resultados
-                </p>
+            {!loading && atenciones.length > 0 && (
+              <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-gray-600">
+                    Mostrando {pagination.page * pagination.size + 1} -{" "}
+                    {Math.min(
+                      (pagination.page + 1) * pagination.size,
+                      pagination.totalElements
+                    )}{" "}
+                    de {pagination.totalElements} resultados
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-gray-600 whitespace-nowrap">Por página:</Label>
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(v) => setPageSize(Number(v))}
+                    >
+                      <SelectTrigger className="h-8 w-[80px] border-[#9CD2D3]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((s) => (
+                          <SelectItem key={s} value={String(s)}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {pagination.totalPages > 1 && (
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
@@ -723,20 +1056,32 @@ export default function InsurancePage() {
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
+                )}
               </div>
             )}
           </div>
         </main>
 
-        {/* Modal de visualización de FUA */}
+        {/* Modal de visualización de FUA:
+              1° intento: FUA firmado por idDocumento (detalleId / idOrigenTecnico)
+              2° intento: /reporte/fua?citaId=... */}
         <FuaViewerModal
           open={fuaModalOpen}
           onClose={() => setFuaModalOpen(false)}
-          citaId={fuaModalCita?.citaId || ""}
-          numeroFua={
-            fuaModalCita?.numAtencion?.toString().trim() ||
-            fuaModalCita?.numeroFua?.toString().trim()
-          }
+          citaId={fuaModalRow?.idOrigenTecnico?.toString().trim() || ""}
+          idDocumento={fuaModalRow?.idOrigenTecnico?.toString().trim()}
+          numeroFua={fuaModalRow?.numeroFua?.toString().trim()}
+        />
+
+        {/* Modal de visualización de Liquidación:
+              1° intento: Liquidación firmada por idDocumento (detalleId / idOrigenTecnico)
+              2° intento: /reporte/liquidacion?citaId=... */}
+        <LiquidacionViewerModal
+          open={liquidacionModalOpen}
+          onClose={() => setLiquidacionModalOpen(false)}
+          citaId={liquidacionModalRow?.idOrigenTecnico?.toString().trim() || ""}
+          idDocumento={liquidacionModalRow?.idOrigenTecnico?.toString().trim()}
+          cuentaId={liquidacionModalRow?.idCuenta}
         />
       </div>
     </ProtectedRoute>
