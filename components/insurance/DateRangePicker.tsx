@@ -93,17 +93,27 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-white" align="start">
-          <div className="p-4 space-y-4">
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-[#114C5F]">
-                Seleccione rango de fechas
-              </h4>
-              <p className="text-xs text-gray-500">
+          <div className="p-2 space-y-2">
+            {/* Cabecera compacta con accesos rápidos */}
+            <div className="flex items-center justify-between gap-2 px-1">
+              <p className="text-xs text-gray-600 flex-1 truncate">
                 {tempFrom && !tempTo && "Seleccione la fecha final"}
                 {tempFrom && tempTo &&
                   `${format(tempFrom, "dd/MM/yyyy")} - ${format(tempTo, "dd/MM/yyyy")}`}
                 {!tempFrom && "Seleccione la fecha inicial"}
               </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs border-[#9CD2D3]"
+                onClick={() => {
+                  const today = new Date()
+                  setTempFrom(today)
+                  setTempTo(today)
+                }}
+              >
+                Hoy
+              </Button>
             </div>
             <Calendar
               mode="single"
@@ -136,15 +146,14 @@ export function DateRangePicker({
                 },
               }}
             />
-            <div className="flex">
-              <Button
-                onClick={handleApply}
-                className="w-full bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white"
-                disabled={!tempFrom}
-              >
-                Aplicar
-              </Button>
-            </div>
+            {/* Botón Aplicar visible al pie del popover */}
+            <Button
+              onClick={handleApply}
+              disabled={!tempFrom}
+              className="w-full h-10 bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white font-semibold shadow-md"
+            >
+              Aplicar
+            </Button>
           </div>
         </PopoverContent>
       </Popover>

@@ -89,16 +89,23 @@ import {
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200]
 const DEFAULT_PAGE_SIZE = 20
 
-// Primer día del mes actual
+// Primer día del mes actual (mantenido por si se reutiliza en otras pantallas)
 function firstDayOfMonth(): Date {
   const d = new Date()
   return new Date(d.getFullYear(), d.getMonth(), 1)
 }
 
+// Por defecto se busca solo el día actual para evitar saturar la búsqueda.
+function startOfToday(): Date {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
 export default function InsurancePage() {
   // Filtros (rango de fechas obligatorio)
-  const [desde, setDesde] = useState<Date | undefined>(firstDayOfMonth())
-  const [hasta, setHasta] = useState<Date | undefined>(new Date())
+  // Por defecto: solo el día actual (evita cargar demasiados resultados al ingresar).
+  const [desde, setDesde] = useState<Date | undefined>(startOfToday())
+  const [hasta, setHasta] = useState<Date | undefined>(startOfToday())
   const [origen, setOrigen] = useState<string>("TODOS")            // "TODOS" | "EM" | "HO" | "CE" | "AD"
   const [consultorio, setConsultorio] = useState<string>("")
   const [tipoPrestacion, setTipoPrestacion] = useState<string>("")
@@ -331,8 +338,8 @@ export default function InsurancePage() {
   }
 
   const handleLimpiarFiltros = () => {
-    setDesde(firstDayOfMonth())
-    setHasta(new Date())
+    setDesde(startOfToday())
+    setHasta(startOfToday())
     setOrigen("TODOS")
     setConsultorio("")
     setTipoPrestacion("")
@@ -761,29 +768,27 @@ export default function InsurancePage() {
             </div>
 
             {/* Tabla */}
-            <div className="border border-[#9CD2D3]/30 rounded-xl overflow-hidden shadow-sm">
-              <Table>
+            <div className="border border-[#9CD2D3]/30 rounded-xl overflow-x-auto shadow-sm">
+              <Table className="text-sm">
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-[#4F9BB6]/10 to-[#9CD2D3]/10">
-                    <TableHead className="font-semibold text-[#114C5F]">ORIGEN</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">N° FUA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">ID ORIGEN</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">CUENTA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">PACIENTE</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">CONSULTORIO</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">MÉDICO</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">AUDITOR</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-center">PRESTACIÓN</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F]">FECHA Y HORA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-center">FUA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-center">CUENTA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-center">ACCIONES</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 w-[110px]">ORIGEN</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">N° FUA / ID</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">CUENTA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 w-[200px]">PACIENTE</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">CONSULTORIO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">MÉDICO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">PRESTACIÓN</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">FECHA / HORA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">FUA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">CUENTA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">ACCIONES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center py-12">
+                      <TableCell colSpan={11} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <Loader2 className="w-8 h-8 animate-spin text-[#4F9BB6]" />
                           <p className="text-gray-500">Cargando atenciones...</p>
@@ -792,7 +797,7 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center py-12">
+                      <TableCell colSpan={11} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <p className="text-red-500 font-medium">Error al cargar datos</p>
                           <p className="text-gray-500 text-sm">{error}</p>
@@ -809,7 +814,7 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : atenciones.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center py-12">
+                      <TableCell colSpan={11} className="text-center py-12">
                         <p className="text-gray-500">
                           No se encontraron atenciones con los filtros seleccionados
                         </p>
@@ -822,10 +827,10 @@ export default function InsurancePage() {
                       const origenKey = (a.origen || "").trim()
                       return (
                         <TableRow key={`${a.rowId || a.atencionSeguroId}-${index}`}>
-                          <TableCell>
+                          <TableCell className="px-3 py-2 w-[110px]">
                             <span
                               className={cn(
-                                "px-2 py-1 rounded-md text-xs font-semibold",
+                                "px-2 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap",
                                 ORIGEN_BADGE[origenKey] ||
                                   "bg-gray-100 text-gray-800 border border-gray-300"
                               )}
@@ -833,65 +838,46 @@ export default function InsurancePage() {
                               {ORIGEN_LABEL[origenKey] || origenKey || "—"}
                             </span>
                           </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {a.numeroFua?.toString().trim() || "—"}
+                          <TableCell className="px-3 py-2 font-mono text-sm">
+                            <div className="flex flex-col leading-tight">
+                              <span>{a.numeroFua?.toString().trim() || "—"}</span>
+                              <span className="text-xs text-gray-500">
+                                ID: {a.idOrigenTecnico?.toString().trim() || "—"}
+                              </span>
+                            </div>
                           </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {a.idOrigenTecnico?.toString().trim() || "—"}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
+                          <TableCell className="px-3 py-2 font-mono text-sm">
                             {a.idCuenta?.toString().trim() || "—"}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">
+                          <TableCell className="px-3 py-2 w-[200px]">
+                            <div className="flex flex-col leading-tight">
+                              <span className="font-medium text-sm">
                                 {a.pacienteNombre?.trim() || "—"}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-500 font-mono">
                                 {a.pacienteId || "—"}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="px-3 py-2 text-sm">
                             {a.consultorioNombre?.trim() || "—"}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="px-3 py-2 text-sm">
                             {a.medicoNombre?.trim() || "—"}
                           </TableCell>
-                          <TableCell className="text-sm">
-                            {(() => {
-                              const nombre =
-                                a.auditorNombre?.trim() ||
-                                [a.auditorApepaterno, a.auditorApematerno, a.auditorNombres]
-                                  .filter((s) => s && s.trim())
-                                  .join(" ")
-                                  .trim()
-                              if (!nombre) return <span className="text-gray-400">—</span>
-                              return (
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{nombre}</span>
-                                  {a.auditorDocumento && (
-                                    <span className="text-xs text-gray-500 font-mono">
-                                      {a.auditorDocumento}
-                                    </span>
-                                  )}
-                                </div>
-                              )
-                            })()}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col">
+                          <TableCell className="px-3 py-2 text-center">
+                            <div className="flex flex-col leading-tight">
                               <span className="font-mono text-xs text-gray-500">
                                 {a.tipoPrestacion?.trim() || "—"}
                               </span>
-                              <span className="text-xs">
+                              <span className="text-sm">
                                 {a.tipoPrestacionNombre?.trim() || ""}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="px-3 py-2 text-sm">
                             {a.fecha ? (
-                              <div className="flex flex-col">
+                              <div className="flex flex-col leading-tight">
                                 <span>
                                   {new Date(a.fecha).toLocaleDateString("es-PE")}
                                 </span>
@@ -903,10 +889,10 @@ export default function InsurancePage() {
                               "—"
                             )}
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="px-3 py-2 text-center">
                             <span
                               className={cn(
-                                "px-3 py-1 rounded-full text-xs font-semibold",
+                                "px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap",
                                 ESTADO_FUA_BADGE[estadoFuaKey] ||
                                   "bg-gray-100 text-gray-800 border border-gray-300"
                               )}
@@ -914,10 +900,10 @@ export default function InsurancePage() {
                               {ESTADO_FUA_LABEL[estadoFuaKey] || "—"}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="px-3 py-2 text-center">
                             <span
                               className={cn(
-                                "px-3 py-1 rounded-full text-xs font-semibold",
+                                "px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap",
                                 ESTADO_CUENTA_BADGE[estadoCuentaKey] ||
                                   "bg-gray-100 text-gray-800 border border-gray-300"
                               )}
@@ -925,17 +911,17 @@ export default function InsurancePage() {
                               {ESTADO_CUENTA_LABEL[estadoCuentaKey] || "—"}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="px-3 py-2 text-center">
                             {origenKey === "CE" ? (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
                                     size="sm"
-                                    className="bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white shadow-sm"
+                                    className="h-7 px-2 text-xs bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white shadow-sm"
                                   >
-                                    <Eye className="w-4 h-4 mr-1" />
+                                    <Eye className="w-3.5 h-3.5 mr-1" />
                                     Ver
-                                    <ChevronDown className="w-4 h-4 ml-1" />
+                                    <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
