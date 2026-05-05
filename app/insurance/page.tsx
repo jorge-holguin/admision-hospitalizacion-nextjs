@@ -81,6 +81,9 @@ import {
   ESTADO_CUENTA_BADGE,
   ORIGEN_LABEL,
   ORIGEN_BADGE,
+  ORIGEN_ABBR,
+  ESTADO_PROCESO_LABEL,
+  estadoProcesoDisplay,
   type AtencionSeguro,
   type TipoPrestacionItem,
   type ConsultorioMaestroItem,
@@ -772,23 +775,24 @@ export default function InsurancePage() {
               <Table className="text-sm">
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-[#4F9BB6]/10 to-[#9CD2D3]/10">
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 w-[110px]">ORIGEN</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">N° FUA / ID</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">CUENTA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 w-[200px]">PACIENTE</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">CONSULTORIO</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">MÉDICO</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">PRESTACIÓN</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2">FECHA / HORA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">FUA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">CUENTA</TableHead>
-                    <TableHead className="font-semibold text-[#114C5F] text-sm px-3 py-2 text-center">ACCIONES</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 w-[56px] text-center" title="Origen: E=Emergencia, AD=Apoyo al Diagnóstico, HO=Hospitalización, CE=Consulta Externa">ORIG.</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2">N° FUA / ID</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2">CUENTA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 w-[200px]">PACIENTE</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 w-[220px]">CONSULTORIO / MÉDICO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 text-center">PREST.</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2">FECHA / HORA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 w-[170px]">USUARIO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 text-center">ESTADO</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 text-center">FUA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 text-center">CUENTA</TableHead>
+                    <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 text-center">ACCIONES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-12">
+                      <TableCell colSpan={12} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <Loader2 className="w-8 h-8 animate-spin text-[#4F9BB6]" />
                           <p className="text-gray-500">Cargando atenciones...</p>
@@ -797,7 +801,7 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-12">
+                      <TableCell colSpan={12} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <p className="text-red-500 font-medium">Error al cargar datos</p>
                           <p className="text-gray-500 text-sm">{error}</p>
@@ -814,7 +818,7 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : atenciones.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-12">
+                      <TableCell colSpan={12} className="text-center py-12">
                         <p className="text-gray-500">
                           No se encontraron atenciones con los filtros seleccionados
                         </p>
@@ -822,23 +826,28 @@ export default function InsurancePage() {
                     </TableRow>
                   ) : (
                     atenciones.map((a, index) => {
-                      const estadoFuaKey = a.estadoFua != null ? String(a.estadoFua) : ""
-                      const estadoCuentaKey = a.estadoCuenta != null ? String(a.estadoCuenta) : ""
+                      const estadoFuaKey = String(a.estadoFua ?? "")
+                      const estadoCuentaKey = String(a.estadoCuenta ?? "")
+                      const estadoProcesoKey = String(a.estadoProceso ?? "").trim()
                       const origenKey = (a.origen || "").trim()
+                      const origenAbbr = ORIGEN_ABBR[origenKey] || origenKey || "—"
+                      const origenLabel = ORIGEN_LABEL[origenKey] || origenKey || "—"
+                      const estadoProcesoInfo = estadoProcesoDisplay(origenKey, estadoProcesoKey)
+                      const estadoProcesoTitle = origenKey === "CE" ? (ESTADO_PROCESO_LABEL[estadoProcesoKey] || "Sin estado") : estadoProcesoInfo.label
                       return (
                         <TableRow key={`${a.rowId || a.atencionSeguroId}-${index}`}>
-                          <TableCell className="px-3 py-2 w-[110px]">
+                          <TableCell className="px-2 py-2 w-[56px] text-center" title={origenLabel}>
                             <span
                               className={cn(
-                                "px-2 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap",
+                                "px-2 py-0.5 rounded-md text-xs font-bold whitespace-nowrap",
                                 ORIGEN_BADGE[origenKey] ||
                                   "bg-gray-100 text-gray-800 border border-gray-300"
                               )}
                             >
-                              {ORIGEN_LABEL[origenKey] || origenKey || "—"}
+                              {origenAbbr}
                             </span>
                           </TableCell>
-                          <TableCell className="px-3 py-2 font-mono text-sm">
+                          <TableCell className="px-2 py-2 font-mono text-sm">
                             <div className="flex flex-col leading-tight">
                               <span>{a.numeroFua?.toString().trim() || "—"}</span>
                               <span className="text-xs text-gray-500">
@@ -846,10 +855,10 @@ export default function InsurancePage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="px-3 py-2 font-mono text-sm">
+                          <TableCell className="px-2 py-2 font-mono text-sm">
                             {a.idCuenta?.toString().trim() || "—"}
                           </TableCell>
-                          <TableCell className="px-3 py-2 w-[200px]">
+                          <TableCell className="px-2 py-2 w-[200px]">
                             <div className="flex flex-col leading-tight">
                               <span className="font-medium text-sm">
                                 {a.pacienteNombre?.trim() || "—"}
@@ -859,13 +868,17 @@ export default function InsurancePage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-sm">
-                            {a.consultorioNombre?.trim() || "—"}
+                          <TableCell className="px-2 py-2 w-[220px] text-sm">
+                            <div className="flex flex-col leading-tight">
+                              <span className="font-medium">
+                                {a.consultorioNombre?.trim() || "—"}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {a.medicoNombre?.trim() || "—"}
+                              </span>
+                            </div>
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-sm">
-                            {a.medicoNombre?.trim() || "—"}
-                          </TableCell>
-                          <TableCell className="px-3 py-2 text-center">
+                          <TableCell className="px-2 py-2 text-center">
                             <div className="flex flex-col leading-tight">
                               <span className="font-mono text-xs text-gray-500">
                                 {a.tipoPrestacion?.trim() || "—"}
@@ -875,7 +888,7 @@ export default function InsurancePage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-sm">
+                          <TableCell className="px-2 py-2 text-sm">
                             {a.fecha ? (
                               <div className="flex flex-col leading-tight">
                                 <span>
@@ -889,7 +902,32 @@ export default function InsurancePage() {
                               "—"
                             )}
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-center">
+                          <TableCell className="px-2 py-2 w-[170px] text-sm">
+                            {a.usuario || a.usuarioNombre ? (
+                              <div className="flex flex-col leading-tight">
+                                <span className="font-medium" title={a.usuarioNombre?.trim() || ""}>
+                                  {a.usuarioNombre?.trim() || "—"}
+                                </span>
+                                <span className="text-xs text-gray-500 font-mono">
+                                  {a.usuario?.trim() || "—"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-2 py-2 text-center">
+                            <span
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap",
+                                estadoProcesoInfo.className
+                              )}
+                              title={estadoProcesoTitle}
+                            >
+                              {estadoProcesoInfo.label}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-2 py-2 text-center">
                             <span
                               className={cn(
                                 "px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap",
@@ -900,7 +938,7 @@ export default function InsurancePage() {
                               {ESTADO_FUA_LABEL[estadoFuaKey] || "—"}
                             </span>
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-center">
+                          <TableCell className="px-2 py-2 text-center">
                             <span
                               className={cn(
                                 "px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap",
@@ -911,7 +949,7 @@ export default function InsurancePage() {
                               {ESTADO_CUENTA_LABEL[estadoCuentaKey] || "—"}
                             </span>
                           </TableCell>
-                          <TableCell className="px-3 py-2 text-center">
+                          <TableCell className="px-2 py-2 text-center">
                             {origenKey === "CE" ? (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

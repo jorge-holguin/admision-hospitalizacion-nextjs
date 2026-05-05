@@ -247,7 +247,10 @@ export interface AtencionSeguro {
   hora?: string
   medicoNombre?: string
   consultorioNombre?: string
-  estadoProceso?: string
+  estadoProceso?: string | number | null
+  // Usuario que registró / procesó la atención
+  usuario?: string
+  usuarioNombre?: string
   // Auditor (campo futuro que el backend incorporará en una mejora)
   auditorNombre?: string
   auditorApepaterno?: string
@@ -406,6 +409,118 @@ export const ORIGEN_LABEL: Record<string, string> = {
   HO: "Hospitalización",
   CE: "Consulta Externa",
   AD: "Apoyo al Diagnostico",
+}
+
+// Abreviatura compacta para mostrar en tablas donde el espacio es crítico.
+// E = Emergencia, AD = Apoyo al Diagnóstico, HO = Hospitalización, CE = Consulta Externa
+export const ORIGEN_ABBR: Record<string, string> = {
+  EM: "E",
+  HO: "HO",
+  CE: "CE",
+  AD: "AD",
+}
+
+// ============================================================================
+// ESTADO PROCESO (estado interno de la atención)
+// 0: ANULADO
+// 1: SIN ASIGNAR CITA
+// 2: CITA ASIGNADA SIN FUA
+// 3: YA TIENE FUA O ESTÁ PAGADO
+// 4: ATENDIDO
+// 5: DESERCIÓN
+// ============================================================================
+export const ESTADO_PROCESO_LABEL: Record<string, string> = {
+  "0": "ANULADO",
+  "1": "SIN ASIGNAR CITA",
+  "2": "CITA ASIGNADA SIN PAGO O SIN FUA",
+  "3": "PAGADO O CON FUA",
+  "4": "ATENDIDO",
+  "5": "DESERCION",
+}
+
+// Versión compacta para mostrar en badges de tabla donde el espacio es limitado.
+// El texto completo (arriba) se muestra en el tooltip (title) al pasar el mouse.
+export const ESTADO_PROCESO_SHORT_LABEL: Record<string, string> = {
+  "0": "ANULADO",
+  "1": "SIN CITA",
+  "2": "SIN PAGO/FUA",
+  "3": "CON FUA",
+  "4": "ATENDIDO",
+  "5": "DESERCION",
+}
+
+export const ESTADO_PROCESO_BADGE: Record<string, string> = {
+  "0": "bg-gray-200 text-gray-700 border border-gray-400",           // Plomo
+  "1": "bg-yellow-100 text-yellow-800 border border-yellow-300",     // Amarillo
+  "2": "bg-orange-100 text-orange-800 border border-orange-300",     // Naranja
+  "3": "bg-blue-100 text-blue-800 border border-blue-300",           // Azul
+  "4": "bg-green-100 text-green-800 border border-green-300",        // Verde
+  "5": "bg-red-100 text-red-800 border border-red-300",              // Rojo
+}
+
+// ============================================================================
+// ESTADO PROCESO POR ORIGEN
+// EM = Emergencia  |  HO = Hospitalización  |  AD = Apoyo al Diagnóstico
+// ============================================================================
+export const EM_ESTADO_LABEL: Record<string, string> = {
+  "0": "ANULADO",
+  "2": "REGISTRADO",
+  "3": "EN ATENCIÓN",
+  "4": "ATENDIDO",
+  "5": "CERRADO",
+  "6": "AUSENCIA",
+}
+export const EM_ESTADO_BADGE: Record<string, string> = {
+  "0": "bg-gray-200 text-gray-800",
+  "2": "bg-blue-200 text-blue-800",
+  "3": "bg-yellow-200 text-yellow-800",
+  "4": "bg-green-200 text-green-800",
+  "5": "bg-purple-200 text-purple-800",
+  "6": "bg-indigo-200 text-indigo-800",
+}
+
+export const HO_ESTADO_LABEL: Record<string, string> = {
+  "0": "ANULADO",
+  "2": "ACTIVO",
+  "3": "ACEPTADA",
+}
+export const HO_ESTADO_BADGE: Record<string, string> = {
+  "0": "bg-gray-200 text-gray-800",
+  "2": "bg-yellow-200 text-yellow-800",
+  "3": "bg-green-200 text-green-800",
+}
+
+export const AD_ESTADO_LABEL = "POR DETERMINAR"
+export const AD_ESTADO_BADGE = "bg-gray-300 text-gray-600"
+
+export function estadoProcesoDisplay(origen: string, estado: string) {
+  const o = (origen || "").trim()
+  const e = (estado || "").trim()
+
+  if (o === "AD") {
+    return { label: AD_ESTADO_LABEL, className: AD_ESTADO_BADGE }
+  }
+
+  if (o === "EM") {
+    return {
+      label: EM_ESTADO_LABEL[e] || e || "—",
+      className: EM_ESTADO_BADGE[e] || "bg-gray-100 text-gray-800",
+    }
+  }
+
+  if (o === "HO") {
+    return {
+      label: HO_ESTADO_LABEL[e] || e || "—",
+      className: HO_ESTADO_BADGE[e] || "bg-gray-100 text-gray-800",
+    }
+  }
+
+  // Default: CE (Consulta Externa)
+  return {
+    label: ESTADO_PROCESO_SHORT_LABEL[e] || e || "—",
+    fullLabel: ESTADO_PROCESO_LABEL[e] || "Sin estado",
+    className: ESTADO_PROCESO_BADGE[e] || "bg-gray-100 text-gray-800 border border-gray-300",
+  }
 }
 
 // ============================================================================
