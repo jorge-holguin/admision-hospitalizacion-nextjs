@@ -7,6 +7,8 @@ interface ReniecData {
   dni: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
+  /** Apellido de casada (se concatena al apellidoMaterno si viene presente). */
+  apellidoCasada?: string;
   nombres: string;
   fechaNacimiento: string;
   sexo: string;

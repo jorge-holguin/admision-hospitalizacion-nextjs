@@ -218,6 +218,28 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
     
     autoConsultReniec();
   }, [patient])
+
+  // ✅ Auto-validar SIS al abrir el modal (independiente de RENIEC).
+  //    Antes, la validación SIS solo ocurría dentro del flujo de RENIEC,
+  //    por lo que cuando el paciente ya tenía foto, el tipo de seguro nunca
+  //    se sincronizaba con la API /api/sis/validar.
+  //    Ahora siempre se consulta al abrir el modal si hay DNI disponible.
+  useEffect(() => {
+    if (!patient) return
+    const dni = patient.DOCUMENTO || patient.dni || patient.documento
+    if (!dni) return
+    // Tipo de documento: solo DNI o Carné de Extranjería (9 dígitos) son soportados por SIS
+    const tipoDocStr = (typeof patient.TIPO_DOCUMENTO === 'string' ? patient.TIPO_DOCUMENTO : '')
+      || (typeof patient.tipoDocumento === 'string' ? patient.tipoDocumento : '')
+      || (typeof patient.tipoDocumento === 'object' ? (patient.tipoDocumento?.tipoDocumento || '').trim() : '')
+    const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI'
+    const esCE = tipoDocStr.trim() === 'CE' || String(dni).trim().length === 9
+    if (!esDNI && !esCE) return
+
+    console.log('🏥 Auto-validando SIS al abrir el modal para DNI:', dni)
+    validateSISAndUpdateSeguro(String(dni).trim(), false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient])
   
   const [formData, setFormData] = useState({
     // Datos básicos

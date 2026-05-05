@@ -6,6 +6,12 @@ interface ReniecData {
   dni: string;
   apellidoPaterno: string;
   apellidoMaterno: string;
+  /**
+   * Apellido de casada (solo aplica en casos donde la persona adoptó el
+   * apellido del cónyuge, ej: "VDA DE ASENCIOS"). Si viene, se concatena
+   * al `apellidoMaterno` en el formulario.
+   */
+  apellidoCasada?: string;
   nombres: string;
   fechaNacimiento: string;
   sexo: string;
@@ -233,7 +239,12 @@ export async function mapReniecToPatientForm(reniecData: ReniecData): Promise<Pa
 
     // Datos Personales
     paternalSurname: reniecData.apellidoPaterno,
-    maternalSurname: reniecData.apellidoMaterno,
+    // Si RENIEC devuelve apellidoCasada (ej. viudas/casadas), se concatena
+    // al apellido materno. Ejemplo: "SAENZ" + "VDA DE ASENCIOS" -> "SAENZ VDA DE ASENCIOS".
+    maternalSurname: [reniecData.apellidoMaterno, reniecData.apellidoCasada]
+      .map((s) => (s || '').trim())
+      .filter((s) => s && s !== 'SIN DATOS')
+      .join(' '),
     names: reniecData.nombres,
     birthDate: convertDateFormat(reniecData.fechaNacimiento),
     sex: mapSex(reniecData.sexo),
