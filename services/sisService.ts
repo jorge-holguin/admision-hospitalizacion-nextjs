@@ -107,8 +107,13 @@ export async function consultarSIS(documentNumber: string): Promise<{
 
       const data: SISValidationResponse = await response.json()
 
-      // Verificar si la respuesta fue exitosa
-      if (data.idError === '0' && data.resultado === 'DATOS EXITOSOS') {
+      // ⚠️ La API devuelve campos con espacios en blanco al final
+      // (ej: "idError": "0   ", "resultado": "DATOS EXITOSOS"). Si comparamos
+      // con '===' sin trim, la validación falla y se asigna PAGANTE incorrectamente.
+      const idErrorNormalized = (data.idError || '').trim()
+      const resultadoNormalized = (data.resultado || '').trim().toUpperCase()
+
+      if (idErrorNormalized === '0' && resultadoNormalized === 'DATOS EXITOSOS') {
         return {
           success: true,
           data
