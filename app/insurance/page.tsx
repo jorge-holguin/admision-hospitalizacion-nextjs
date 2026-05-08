@@ -444,6 +444,7 @@ export default function InsurancePage() {
                       <SelectItem value="HO">Hospitalización (HO)</SelectItem>
                       <SelectItem value="EM">Emergencia (EM)</SelectItem>
                       <SelectItem value="AD">Apoyo al Diagnóstico (AD)</SelectItem>
+                      <SelectItem value="AA">Atención Ambulatoria (AA)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

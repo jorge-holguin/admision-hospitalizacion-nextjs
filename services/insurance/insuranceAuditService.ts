@@ -409,15 +409,17 @@ export const ORIGEN_LABEL: Record<string, string> = {
   HO: "Hospitalización",
   CE: "Consulta Externa",
   AD: "Apoyo al Diagnostico",
+  AA: "Atención Ambulatoria",
 }
 
 // Abreviatura compacta para mostrar en tablas donde el espacio es crítico.
-// E = Emergencia, AD = Apoyo al Diagnóstico, HO = Hospitalización, CE = Consulta Externa
+// E = Emergencia, AD = Apoyo al Diagnóstico, HO = Hospitalización, CE = Consulta Externa, AA = Atención Ambulatoria
 export const ORIGEN_ABBR: Record<string, string> = {
   EM: "E",
   HO: "HO",
   CE: "CE",
   AD: "AD",
+  AA: "AA",
 }
 
 // ============================================================================
@@ -497,7 +499,7 @@ export function estadoProcesoDisplay(origen: string, estado: string) {
   const o = (origen || "").trim()
   const e = (estado || "").trim()
 
-  if (o === "AD") {
+  if (o === "AD" || o === "AA") {
     return { label: AD_ESTADO_LABEL, className: AD_ESTADO_BADGE }
   }
 
@@ -533,7 +535,8 @@ const FUA_ENDPOINT_BY_ORIGEN: Record<string, string> = {
   CE: "atencion-seguro/fua/consulta-externa",
   EM: "atencion-seguro/fua/emergencia",
   HO: "atencion-seguro/fua/hospitalizacion",
-  AD: "atencion-seguro/fua/apoyo-diagnostico",
+  AD: "atencion-seguro/fua/atencion-ambulatoria",
+  AA: "atencion-seguro/fua/atencion-ambulatoria",
 }
 
 export function getFuaUrlByOrigen(
@@ -609,6 +612,7 @@ export const ORIGEN_TO_CONSULTORIO_TIPO: Record<string, "C" | "E" | "H" | "D" | 
   EM: "E",
   HO: "H",
   AD: "D",
+  AA: "D",
 }
 
 // GET /api/maestro/consultorio/buscar?tipo=X&soloActivos=true
@@ -668,4 +672,5 @@ export const ORIGEN_BADGE: Record<string, string> = {
   HO: "bg-blue-100 text-blue-800 border border-blue-300",
   CE: "bg-green-100 text-green-800 border border-green-300",
   AD: "bg-purple-100 text-purple-800 border border-purple-300",
+  AA: "bg-indigo-100 text-indigo-800 border border-indigo-300",
 }
