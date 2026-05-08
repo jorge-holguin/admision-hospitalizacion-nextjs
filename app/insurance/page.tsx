@@ -92,6 +92,9 @@ import {
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200]
 const DEFAULT_PAGE_SIZE = 20
 
+// Tipos de origen para búsqueda de FUA
+type FuaSearchOrigen = "CE" | "EM" | "HO" | "AD" | "AA"
+
 // Primer día del mes actual (mantenido por si se reutiliza en otras pantallas)
 function firstDayOfMonth(): Date {
   const d = new Date()
@@ -122,7 +125,7 @@ export default function InsurancePage() {
 
   // Búsqueda avanzada por N° FUA (oculta tras checkbox)
   const [mostrarBusquedaFua, setMostrarBusquedaFua] = useState(false)
-  const [fuaSearchOrigen, setFuaSearchOrigen] = useState<"CE" | "EM" | "HO" | "AD">("CE")
+  const [fuaSearchOrigen, setFuaSearchOrigen] = useState<FuaSearchOrigen>("CE")
   const [fuaAnio, setFuaAnio] = useState(
     new Date().getFullYear().toString().slice(-2)
   )
@@ -704,7 +707,7 @@ export default function InsurancePage() {
                       <Select
                         value={fuaSearchOrigen}
                         onValueChange={(v) =>
-                          setFuaSearchOrigen(v as "CE" | "EM" | "HO" | "AD")
+                          setFuaSearchOrigen(v as FuaSearchOrigen)
                         }
                       >
                         <SelectTrigger className="h-[38px] border-[#9CD2D3]">
@@ -715,6 +718,7 @@ export default function InsurancePage() {
                           <SelectItem value="HO">Hospitalización (HO)</SelectItem>
                           <SelectItem value="EM">Emergencia (EM)</SelectItem>
                           <SelectItem value="AD">Apoyo al Diagnóstico (AD)</SelectItem>
+                          <SelectItem value="AA">Atención Ambulatoria (AA)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
