@@ -37,15 +37,17 @@ export function PatientRegistrationModal({
   const [selectedDocType, setSelectedDocType] = useState(documentType || "DNI")
   const [selectedDocNumber, setSelectedDocNumber] = useState(documentNumber || "")
   
-  // Actualizar cuando cambien las props
+  // Actualizar cuando cambien las props o reniecData
   useEffect(() => {
     if (documentType) {
       setSelectedDocType(documentType)
     }
-    if (documentNumber) {
-      setSelectedDocNumber(documentNumber)
+    // Sincronizar número de documento desde props o reniecData
+    const docNum = documentNumber || reniecData?.document || reniecData?.dni || ""
+    if (docNum) {
+      setSelectedDocNumber(docNum)
     }
-  }, [documentType, documentNumber])
+  }, [documentType, documentNumber, reniecData?.document, reniecData?.dni])
 
   // ✅ Función para aplicar valores por defecto cuando es tipo "0" (Ninguno/RN)
   const applyDefaultValuesForNoDocument = () => {
@@ -103,17 +105,14 @@ export function PatientRegistrationModal({
         duration: 5000
       })
     } else if (prevType !== newType) {
-      // Si cambió el tipo de documento (y no es "0"), limpiar el número
-      // para que el usuario ingrese uno nuevo del tipo correcto
-      setSelectedDocNumber("")
-      
-      // Mostrar toast informativo
+      // Solo mostrar toast informativo, NO limpiar el número de documento
+      // para que persista el valor del paso anterior (búsqueda)
       const tipoNombre = newType === "D" ? "DNI" : 
                          newType === "CE" ? "Carnet de Extranjería" : 
                          newType === "PP" ? "Pasaporte" : newType
       toast({
         title: `📋 Tipo de documento: ${tipoNombre}`,
-        description: "Ingrese el número de documento correspondiente.",
+        description: "Verifique el número de documento correspondiente.",
         duration: 3000
       })
     }
@@ -522,7 +521,12 @@ export function PatientRegistrationModal({
   }
 
   return (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-blue-800">
             Registro de Nuevo Paciente

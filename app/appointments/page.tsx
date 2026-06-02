@@ -895,7 +895,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                     {/* Botón Horario de Médicos */}
                 <div className="p-4 border-t flex justify-center">
                   <a
-                    href="https://www.hospitalchosica.gob.pe/horario-profesional/"
+                    href="https://citas.hospitalchosica.gob.pe/horario-medicos"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"

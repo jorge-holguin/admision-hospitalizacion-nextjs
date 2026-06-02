@@ -237,8 +237,8 @@ export function Step1BasicData({
                   <Hash className="w-4 h-4 mr-1" />
                   N° Documento <span className="text-red-600">*</span>
                 </Label>
-                {/* Si hay patientData (modo edición) o reniecData, el número NO es editable */}
-                {(reniecData || patientData) ? (
+                {/* El número es NO editable si: hay patientData (modo edición) O hay reniecData y el tipo es DNI */}
+                {(patientData || (reniecData && (documentType === "D" || documentType === "DNI"))) ? (
                   <Input
                     id="dni"
                     value={reniecData?.document || reniecData?.dni || patientData?.documento || patientData?.DOCUMENTO || documentNumber}
