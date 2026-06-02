@@ -22,14 +22,13 @@ export async function GET(
 
     console.log(`🔍 Buscando UBIGEO para código RENIEC: ${codigoReniec}`);
 
-    // Consultar tabla UBIGEO usando código RENIEC
-    const result = await prisma.$queryRaw<Array<{ UBIGEO: string }>>`
-      SELECT TOP 1 UBIGEO 
-      FROM UBIGEO 
-      WHERE UBIGEORENIEC = ${codigoReniec}
-    `;
+    // Consultar tabla UBIGEO usando Prisma Client (modelo mapeado en schema)
+    const result = await prisma.uBIGEO.findFirst({
+      where: { UBIGEORENIEC: codigoReniec },
+      select: { UBIGEO: true, UBIGEORENIEC: true }
+    });
 
-    if (!result || result.length === 0) {
+    if (!result) {
       console.warn(`⚠️ No se encontró UBIGEO para código RENIEC: ${codigoReniec}`);
       return NextResponse.json(
         { error: 'No se encontró UBIGEO para el código RENIEC proporcionado' },
@@ -37,7 +36,7 @@ export async function GET(
       );
     }
 
-    const ubigeo = result[0].UBIGEO?.trim();
+    const ubigeo = result.UBIGEO?.trim();
 
     return NextResponse.json({ 
       ubigeo,

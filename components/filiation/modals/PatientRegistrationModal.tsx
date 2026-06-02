@@ -9,8 +9,10 @@ import { StepIndicator } from "../register/StepIndicator"
 import { Step1BasicData } from "../register/Step1BasicData"
 import { Step2AdditionalData } from "../register/Step2AdditionalData"
 import { Step3FamilyData } from "../register/Step3FamilyData"
+import { ReniecUpdateButton } from "../ReniecUpdateButton"
 import { mapSISSeguroToLocal } from "@/services/sisService"
 import { transformFormDataToAPIPayload, saveHistoriaClinica } from "@/services/filiation/historiaClinicaService"
+import { getUbigeoByReniecCode } from "@/utils/reniecMapper"
 import { toast } from "@/hooks/use-toast"
 
 interface PatientRegistrationModalProps {
@@ -119,6 +121,9 @@ export function PatientRegistrationModal({
   }
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
+  const [reniecPhotoHex, setReniecPhotoHex] = useState<string | null>(null)
+  // ✅ Datos de RENIEC actualizados desde el botón (para que Step1BasicData muestre foto y otros cambios)
+  const [localReniecData, setLocalReniecData] = useState<any>(null)
   
   // ✅ Estados para alertas visuales de APIs
   const [apiAlerts, setApiAlerts] = useState<Array<{
@@ -171,6 +176,8 @@ export function PatientRegistrationModal({
     direccionAcompanante: "",
     telefonoAcompanante1: "",
     telefonoAcompanante2: "",
+    // Foto desde RENIEC
+    stringFoto: "",
   })
 
   // ✅ useEffect para aplicar seguro: SIS si existe, PAGANTE si no
@@ -486,6 +493,79 @@ export function PatientRegistrationModal({
     }
   }
 
+  const handleReniecSuccess = async (data: any) => {
+    // Consultar ubigeos correctos usando códigos RENIEC
+    let lugarNacimientoUbigeo = formData.lugarNacimiento
+    let distritoProcedenciaUbigeo = formData.distritoProcedencia
+
+    if (data.ubigeoReniecNacimiento) {
+      const ubigeoNac = await getUbigeoByReniecCode(data.ubigeoReniecNacimiento)
+      if (ubigeoNac) lugarNacimientoUbigeo = ubigeoNac
+    }
+    if (data.ubigeoReniecProcedencia) {
+      const ubigeoProc = await getUbigeoByReniecCode(data.ubigeoReniecProcedencia)
+      if (ubigeoProc) distritoProcedenciaUbigeo = ubigeoProc
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      apellidoPaterno: data.paternalSurname || prev.apellidoPaterno,
+      apellidoMaterno: data.maternalSurname || prev.apellidoMaterno,
+      nombres: data.names || prev.nombres,
+      fechaNacimiento: data.birthDate || prev.fechaNacimiento,
+      sexo: data.sex || prev.sexo,
+      estadoCivil: data.maritalStatus || prev.estadoCivil,
+      direccion: data.address || data.direccionReniec || prev.direccion,
+      paisNacimiento: "146",
+      lugarNacimiento: lugarNacimientoUbigeo,
+      distritoProcedencia: distritoProcedenciaUbigeo,
+      gradoInstruccion: data.educationLevel || prev.gradoInstruccion,
+      padre: data.fatherName || prev.padre,
+      madre: data.motherName || prev.madre,
+      lugarNacimientoReniec: data.ubigeoReniecNacimiento || "",
+      ubigeoReniec: data.ubigeoReniecProcedencia || "",
+      direccionReniec: data.direccionReniec || data.address || "",
+      distritoReniec: data.ubigeoReniecProcedencia || "",
+      ubigeoNacReniec: data.ubigeoReniecNacimiento || "",
+      stringFoto: data.photoReniec || prev.stringFoto,
+    }))
+
+    setReniecPhotoHex(data.photoReniec || null)
+
+    // ✅ Guardar datos actualizados para que Step1BasicData muestre la foto y otros cambios
+    setLocalReniecData({
+      photoReniec: data.photoReniec,
+      document: data.document,
+      dni: data.document,
+      paternalSurname: data.paternalSurname,
+      maternalSurname: data.maternalSurname,
+      names: data.names,
+      birthDate: data.birthDate,
+      sex: data.sex,
+      maritalStatus: data.maritalStatus,
+      address: data.address,
+      ubigeoReniecNacimiento: data.ubigeoReniecNacimiento,
+      ubigeoReniecProcedencia: data.ubigeoReniecProcedencia,
+      age: data.age,
+      fatherName: data.fatherName,
+      motherName: data.motherName,
+    })
+
+    setApiAlerts(prev => [
+      ...prev,
+      {
+        type: 'success',
+        title: '✅ Datos obtenidos de RENIEC',
+        message: 'Se cargaron datos personales, dirección y ubigeos desde el servicio RENIEC.'
+      }
+    ])
+
+    toast({
+      title: "✅ Actualización desde RENIEC Exitosa",
+      description: "Se actualizaron los datos personales, dirección y ubigeos desde RENIEC.",
+    })
+  }
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -495,7 +575,7 @@ export function PatientRegistrationModal({
             onInputChange={handleInputChange}
             documentType={selectedDocType}
             documentNumber={selectedDocNumber}
-            reniecData={reniecData}
+            reniecData={localReniecData || reniecData}
             onDocumentTypeChange={handleDocumentTypeChange}
             onDocumentNumberChange={setSelectedDocNumber}
           />
@@ -581,6 +661,15 @@ export function PatientRegistrationModal({
 
         <div className="min-h-[400px]">
           {renderStepContent()}
+          {currentStep === 1 && selectedDocType === "D" && selectedDocNumber?.trim().length === 8 && (
+            <div className="flex justify-center mt-4">
+              <ReniecUpdateButton
+                dni={selectedDocNumber.trim()}
+                onSuccess={handleReniecSuccess}
+                disabled={!selectedDocNumber || selectedDocNumber.trim().length !== 8}
+              />
+            </div>
+          )}
         </div>
 
         {/* Navigation Footer */}
