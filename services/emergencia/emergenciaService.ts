@@ -450,49 +450,52 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
         console.log(`📅 Edad calculada para emergencia: ${edadCalculada} (desde ${data.FECHA_NACIMIENTO})`);
       }
       
-      // Preparar datos para la creación
+      // Preparar datos para la creación - truncar a tamaño máximo de cada columna
+      // para evitar error "Los datos de cadena o binarios se truncarían"
+      const t = (val: string | undefined | null, maxLen: number, defaultVal = ''): string => 
+        (val || defaultVal).slice(0, maxLen);
+
       const emergenciaData: any = {
-        EMERGENCIA_ID: emergenciaId,
-        FECHA: data.FECHA || format(new Date(), 'yyyyMMdd'),
-        HORA: data.HORA || format(new Date(), 'HH:mm'),
-        ORDEN: data.ORDEN || '',
-        PATERNO: data.PATERNO || '',
-        MATERNO: data.MATERNO || '',
-        NOMBRE: data.NOMBRE || '',
-        NOMBRES: data.NOMBRES || '',
-        PACIENTE: data.PACIENTE || '',
-        FECHA_NACIMIENTO: data.FECHA_NACIMIENTO || '',
-        EDAD: edadCalculada,
-        SEXO: data.SEXO || '',
-        ESTADO_CIVIL: data.ESTADO_CIVIL || '',
-        // Limitar DIRECCION a 60 caracteres para evitar problemas con la vista de BD
-        DIRECCION: (data.DIRECCION || '').slice(0, 60),
-        DISTRITO: data.DISTRITO || '',
-        TELEFONO1: data.TELEFONO1 || '',
-        TELEFONO2: data.TELEFONO2 || '',
-        TIPO_DOCUMENTO: data.TIPO_DOCUMENTO || 'D',
-        DOCUMENTO: data.DOCUMENTO || '',
-        ACOMPANANTE: data.ACOMPANANTE || '',
-        TIPO_DOCUMENTOA: data.TIPO_DOCUMENTOA || '',
-        DOCUMENTOA: data.DOCUMENTOA || '',
-        CONSULTORIO: data.CONSULTORIO || '',
-        MOTIVO_EMERGENCIA: data.MOTIVO_EMERGENCIA || '0',
-        SEGURO: data.SEGURO || '',
-        OBSERVACION1: data.OBSERVACION1 || '',
-        OBSERVACION2: data.OBSERVACION2 || '',
-        ESTADO: data.ESTADO || '1', // 1 = Activo por defecto
-        CUENTAID: data.CUENTAID || '',
-        USUARIO: data.USUARIO || 'SISTEMA',
-        PRE_AFILIACION: data.PRE_AFILIACION || '',
-        LOCALIDAD: data.LOCALIDAD || '',
-        TIPOATENCION: data.TIPOATENCION || 'E',
-        RELIGION: data.RELIGION || '0',
-        SEGUROLIQ: data.SEGUROLIQ || '',
-        FORMA_INGRESO: data.FORMA_INGRESO || '1',
-        HISTORIA: data.HISTORIA || '',
-        CIEX1: data.CIEX1 || '0',
-        TIPO_CIEX1: data.TIPO_CIEX1 || '0',
-        EMPRESASEGURO: data.EMPRESASEG || '',
+        EMERGENCIA_ID: t(emergenciaId, 8),                          // char(8)
+        FECHA: t(data.FECHA as any || format(new Date(), 'yyyyMMdd'), 10),
+        HORA: t(data.HORA || format(new Date(), 'HH:mm'), 5),       // char(5)
+        ORDEN: t(data.ORDEN, 3),                                     // char(3)
+        PATERNO: t(data.PATERNO, 50),                                // varchar(50)
+        MATERNO: t(data.MATERNO, 50),                                // varchar(50)
+        NOMBRE: t(data.NOMBRE, 50),                                  // varchar(50)
+        NOMBRES: t(data.NOMBRES, 100),                               // varchar(100)
+        PACIENTE: t(data.PACIENTE, 10),                              // char(10)
+        FECHA_NACIMIENTO: t(data.FECHA_NACIMIENTO as any, 10),       // genérico
+        EDAD: t(edadCalculada, 10),                                  // char(10)
+        SEXO: t(data.SEXO, 1),                                      // char(1)
+        ESTADO_CIVIL: t(data.ESTADO_CIVIL, 2),                       // char(2)
+        DIRECCION: t(data.DIRECCION, 90),                            // varchar(90)
+        DISTRITO: t(data.DISTRITO, 7),                               // char(7)
+        TELEFONO1: t(data.TELEFONO1, 15),                            // varchar(15)
+        TELEFONO2: t(data.TELEFONO2, 15),                            // varchar(15)
+        TIPO_DOCUMENTO: t(data.TIPO_DOCUMENTO, 2, 'D'),              // char(2)
+        DOCUMENTO: t(data.DOCUMENTO, 20),                            // varchar(20)
+        ACOMPANANTE: t(data.ACOMPANANTE, 50),                        // varchar(50)
+        TIPO_DOCUMENTOA: t(data.TIPO_DOCUMENTOA, 2),                 // char(2)
+        DOCUMENTOA: t(data.DOCUMENTOA, 50),                          // varchar(50)
+        CONSULTORIO: t(data.CONSULTORIO, 6),                         // char(6)
+        MOTIVO_EMERGENCIA: t(data.MOTIVO_EMERGENCIA, 2, '0'),        // char(2)
+        SEGURO: t(data.SEGURO, 3),                                   // char(3)
+        OBSERVACION1: t(data.OBSERVACION1, 200),                     // varchar(200)
+        OBSERVACION2: t(data.OBSERVACION2, 200),                     // varchar(200)
+        ESTADO: t(data.ESTADO, 1, '1'),                              // char(1)
+        CUENTAID: t(data.CUENTAID, 7),                               // char(7)
+        USUARIO: t(data.USUARIO, 15, 'SISTEMA'),                     // char(15)
+        PRE_AFILIACION: t(data.PRE_AFILIACION, 1),                   // char(1)
+        LOCALIDAD: t(data.LOCALIDAD, 12),                            // char(12)
+        TIPOATENCION: t(data.TIPOATENCION, 1, 'E'),                 // char(1)
+        RELIGION: t(data.RELIGION, 2, '0'),                          // varchar(2)
+        SEGUROLIQ: t(data.SEGUROLIQ, 2),                             // varchar(2)
+        FORMA_INGRESO: t(data.FORMA_INGRESO, 1, '1'),               // char(1)
+        HISTORIA: t(data.HISTORIA, 20),                              // char(20)
+        CIEX1: t(data.CIEX1, 10, '0'),                              // char(10)
+        TIPO_CIEX1: t(data.TIPO_CIEX1, 1, '0'),                     // char(1)
+        EMPRESASEGURO: t(data.EMPRESASEG, 2),                        // char(2)
       };
       
       // Crear la emergencia usando SQL nativo en lugar de Prisma ORM
@@ -571,9 +574,13 @@ WHERE RowNum BETWEEN ${skip + 1} AND ${skip + pageSize};
       `;
       
       return Array.isArray(emergencia) && emergencia.length > 0 ? emergencia[0] : null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear emergencia:', error);
-      throw new Error('Error al crear emergencia');
+      // Propagar el error original con información de Prisma para mejor diagnóstico
+      const err = new Error(error?.meta?.message || error?.message || 'Error al crear emergencia');
+      (err as any).code = error?.code;
+      (err as any).meta = error?.meta;
+      throw err;
     }
   }
 

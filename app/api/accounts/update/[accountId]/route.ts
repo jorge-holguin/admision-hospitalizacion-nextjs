@@ -3,12 +3,10 @@ import { cuentaService } from '@/services/emergencia/cuentaService';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { accountId: string } }
+  { params }: { params: Promise<{ accountId: string }> }
 ) {
   try {
-    // Ensure params is awaited before accessing properties
-    const resolvedParams = await Promise.resolve(params);
-    const cuentaId = resolvedParams.accountId;
+    const { accountId: cuentaId } = await params;
     
     console.log('📝 API: Actualizando cuenta con ID:', cuentaId);
     

@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { emergenciaId: string } }
+  { params }: { params: Promise<{ emergenciaId: string }> }
 ) {
   try {
-    const emergencyId = params.emergenciaId;
+    const { emergenciaId: emergencyId } = await params;
 
     if (!emergencyId) {
       return NextResponse.json(

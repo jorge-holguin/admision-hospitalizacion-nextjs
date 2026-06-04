@@ -7,10 +7,10 @@ import { getEmpresaSeguroById } from "@/services/emergencia/empresaSeguroService
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const empresaId = params.id;
+    const { id: empresaId } = await params;
 
     if (!empresaId) {
       return NextResponse.json(

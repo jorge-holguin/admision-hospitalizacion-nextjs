@@ -9,10 +9,10 @@ const prisma = new PrismaClient();
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const emergenciaId = params.id;
+    const { id: emergenciaId } = await params;
     const body = await req.json();
     const { consultorio, cuentaId, usuario } = body;
 

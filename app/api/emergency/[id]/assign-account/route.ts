@@ -10,13 +10,13 @@ const prisma = new PrismaClient();
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Registrar tiempo de inicio para medir duración de la transacción
     const startTime = Date.now();
     // Obtener el ID de emergencia de los parámetros de ruta
-    const idEmergencia = params.id;
+    const { id: idEmergencia } = await params;
     console.log(`ID de emergencia recibido: ${idEmergencia}`);
     
     // Obtener los datos del cuerpo de la solicitud
@@ -84,10 +84,11 @@ export async function POST(
       }
 
       // Extraer datos de la emergencia para usar en el SP (prioridad: BD > body > default)
-      const consultorioEmergencia = emergencia.CONSULTORIO?.trim() || consultorio || "2090";
-      const empresaEmergencia = empresa || "0"; // Empresa siempre es '0' para emergencias
-      const nombreEmergencia = emergencia.NOMBRES?.trim() || nombre || "";
-      const observacionEmergencia = emergencia.OBSERVACION1?.trim() || observa || ".";
+      // Truncar a tamaños máximos de columnas en tabla CUENTA para evitar error 8152
+      const consultorioEmergencia = (emergencia.CONSULTORIO?.trim() || consultorio || "2090").slice(0, 6);   // varchar(6)
+      const empresaEmergencia = (empresa || "0").slice(0, 4);                                                // char(4)
+      const nombreEmergencia = (emergencia.NOMBRES?.trim() || nombre || "").slice(0, 90);                    // varchar(90)
+      const observacionEmergencia = (emergencia.OBSERVACION1?.trim() || observa || ".").slice(0, 50);        // varchar(50)
       
       // ✅ CORRECCIÓN: Usar la fecha ACTUAL del servidor para FECHA_APERTURA de la cuenta
       // La cuenta se apertura en el momento actual, no en la fecha de la emergencia
@@ -231,21 +232,30 @@ export async function POST(
         console.log(`   - fecha: ${fechaFormateada}`);
         console.log(`   - hora: ${horaFormateada}`);
         
+        // Truncar parámetros del SP a tamaños de columna CUENTA
+        const spPaciente = (paciente || "").slice(0, 10);               // char(10)
+        const spSeguro = (seguro || "02").slice(0, 3);                  // char(3)
+        const spOrigen = (origen || "EM").slice(0, 2);                  // char(2)
+        const spUsuario = (usuario || "SISTEMA").slice(0, 20);          // varchar(20)
+        const spNrofua = (nrofua || ".").slice(0, 18);                  // varchar(18)
+        const spPresta = (presta || ".").slice(0, 3);                   // varchar(3)
+        const spHora = horaFormateada.slice(0, 8);                      // char(8)
+
         const resultado = await tx.$queryRaw`
           EXEC SP_LIQUIDA_NUEVA_CUENTA 
-            @paciente = ${paciente},
-            @seguro = ${seguro || "02"},
+            @paciente = ${spPaciente},
+            @seguro = ${spSeguro},
             @empresa = ${empresaEmergencia},
             @consultorio = ${consultorioEmergencia},
             @observa = ${observacionEmergencia},
             @fecha = ${fechaFormateada},
             @estado = ${estado},
-            @hora = ${horaFormateada},
+            @hora = ${spHora},
             @nombre = ${nombreEmergencia},
-            @origen = ${origen || "EM"},
-            @usuario = ${usuario},
-            @nrofua = ${nrofua || "."},
-            @presta = ${presta || "."}
+            @origen = ${spOrigen},
+            @usuario = ${spUsuario},
+            @nrofua = ${spNrofua},
+            @presta = ${spPresta}
         ` as any[];
 
         // Verificar el resultado del SP
@@ -328,19 +338,21 @@ export async function POST(
       
       // 5.1 Si hay empresaSeguro, actualizar tanto en emergencia como en cuenta
       if (empresaSeguro) {
-        console.log(`📋 Actualizando EMPRESASEGURO en emergencia y cuenta: ${empresaSeguro}`);
+        const empresaSegEmergencia = (empresaSeguro || "").slice(0, 2);  // EMERGENCIA.EMPRESASEGURO char(2)
+        const empresaSegCuenta = (empresaSeguro || "").slice(0, 4);     // CUENTA.EMPRESASEGURO char(4)
+        console.log(`📋 Actualizando EMPRESASEGURO en emergencia (${empresaSegEmergencia}) y cuenta (${empresaSegCuenta})`);
         
         // Actualizar EMPRESASEGURO en la emergencia
         await tx.$executeRaw`
           UPDATE EMERGENCIA 
-          SET EMPRESASEGURO = ${empresaSeguro}
+          SET EMPRESASEGURO = ${empresaSegEmergencia}
           WHERE EMERGENCIA_ID = ${idEmergencia}
         `;
         
         // Actualizar EMPRESASEGURO en la cuenta
         await tx.$executeRaw`
           UPDATE CUENTA 
-          SET EMPRESASEGURO = ${empresaSeguro}
+          SET EMPRESASEGURO = ${empresaSegCuenta}
           WHERE CUENTAID = ${cuentaId}
         `;
         
@@ -349,10 +361,11 @@ export async function POST(
       
       // 5.2 Actualizar observaciones en la cuenta si vienen en el body
       if (observa && observa.trim() !== '' && observa !== '.') {
-        console.log(`📋 Actualizando OBSERVACION en cuenta: ${observa}`);
+        const observaTruncada = observa.slice(0, 50); // CUENTA.OBSERVACION varchar(50)
+        console.log(`📋 Actualizando OBSERVACION en cuenta: ${observaTruncada}`);
         await tx.$executeRaw`
           UPDATE CUENTA 
-          SET OBSERVACION = ${observa}
+          SET OBSERVACION = ${observaTruncada}
           WHERE CUENTAID = ${cuentaId}
         `;
       }
@@ -385,8 +398,38 @@ export async function POST(
     }, {
       timeout: 15000 // Extender el timeout a 15 segundos (15000ms)
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error al asegurar cuenta:", error);
+    
+    const errorMsg = error?.message || '';
+    const metaMessage = error?.meta?.message || '';
+    
+    // Error 8152: truncamiento de datos
+    if (metaMessage.includes('truncar') || metaMessage.includes('truncate') || 
+        metaMessage.includes('8152') || errorMsg.includes('8152')) {
+      return NextResponse.json(
+        { 
+          ok: false, 
+          mensaje: "Los datos ingresados exceden el tamaño permitido. Verifique observaciones, nombres y dirección.",
+          error: "FIELD_TOO_LONG",
+          detalle: "Los datos de cadena o binarios se truncarían en la base de datos."
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Timeout de transacción
+    if (errorMsg.includes('timeout') || errorMsg.includes('Transaction')) {
+      return NextResponse.json(
+        { 
+          ok: false, 
+          mensaje: "La operación tardó demasiado. Intente nuevamente en unos segundos.",
+          error: "TIMEOUT"
+        },
+        { status: 504 }
+      );
+    }
+
     return NextResponse.json(
       { 
         ok: false, 

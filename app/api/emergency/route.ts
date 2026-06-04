@@ -155,10 +155,44 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     console.error('Error al crear emergencia:', error);
+    
+    // Detectar errores específicos de SQL Server para dar mensajes útiles al usuario
+    const errorMsg = error?.message || '';
+    const prismaCode = error?.code || '';
+    const metaMessage = error?.meta?.message || '';
+    
+    // Error 8152: "Los datos de cadena o binarios se truncarían"
+    if (metaMessage.includes('truncar') || metaMessage.includes('truncate') || 
+        metaMessage.includes('8152') || errorMsg.includes('8152')) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Uno o más campos exceden el tamaño máximo permitido. Verifique los datos ingresados (dirección, nombres, observaciones).',
+          code: 'FIELD_TOO_LONG',
+          details: 'Los datos de cadena o binarios se truncarían en la base de datos.'
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Error de llave duplicada
+    if (metaMessage.includes('duplicate') || metaMessage.includes('duplica') || 
+        prismaCode === 'P2002') {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Ya existe un registro de emergencia con ese identificador. Intente nuevamente.',
+          code: 'DUPLICATE_KEY'
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { 
         success: false,
-        error: error.message || 'Error al crear emergencia' 
+        error: error.message || 'Error al crear emergencia',
+        code: 'INTERNAL_ERROR'
       },
       { status: 500 }
     );

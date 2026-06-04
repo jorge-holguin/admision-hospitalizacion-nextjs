@@ -3,10 +3,10 @@ import { entidadSisService } from '@/services/citas/entidadSisService'
 
 export async function GET(
   request: Request,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const code = params.code
+    const { code } = await params
     
     console.log('API: Obteniendo nombre de entidad SIS por código:', code)
     

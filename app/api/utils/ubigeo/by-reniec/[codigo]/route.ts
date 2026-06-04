@@ -4,14 +4,14 @@ import { prisma } from '@/lib/prisma';
 /**
  * GET /api/ubigeo/by-reniec/[codigo]
  * Busca el UBIGEO correcto usando el código RENIEC
- * Ejemplo: RENIEC 140133 → UBIGEO 150113
+ * Ejemplo: RENIEC 190801 → UBIGEO 200801
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { codigo: string } }
+  { params }: { params: Promise<{ codigo: string }> }
 ) {
   try {
-    const codigoReniec = params.codigo;
+    const { codigo: codigoReniec } = await params;
 
     if (!codigoReniec || codigoReniec.length !== 6) {
       return NextResponse.json(
@@ -22,13 +22,14 @@ export async function GET(
 
     console.log(`🔍 Buscando UBIGEO para código RENIEC: ${codigoReniec}`);
 
-    // Consultar tabla UBIGEO usando Prisma Client (modelo mapeado en schema)
-    const result = await prisma.uBIGEO.findFirst({
-      where: { UBIGEORENIEC: codigoReniec },
-      select: { UBIGEO: true, UBIGEORENIEC: true }
-    });
+    // Usar $queryRaw para evitar el error OFFSET en SQL Server antiguo
+    const result = await prisma.$queryRaw<Array<{ UBIGEO: string }>>`
+      SELECT TOP 1 UBIGEO 
+      FROM UBIGEO WITH (NOLOCK)
+      WHERE UBIGEORENIEC = ${codigoReniec}
+    `;
 
-    if (!result) {
+    if (!result || result.length === 0) {
       console.warn(`⚠️ No se encontró UBIGEO para código RENIEC: ${codigoReniec}`);
       return NextResponse.json(
         { error: 'No se encontró UBIGEO para el código RENIEC proporcionado' },
@@ -36,7 +37,7 @@ export async function GET(
       );
     }
 
-    const ubigeo = result.UBIGEO?.trim();
+    const ubigeo = result[0].UBIGEO?.trim();
 
     return NextResponse.json({ 
       ubigeo,
