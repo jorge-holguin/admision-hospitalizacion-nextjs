@@ -75,6 +75,8 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
   }, [tiposDocumento, formData.tipoDocumentoA, formData.tipoDocumentoADisplay]);
   // Estado local para el checkbox "paciente vino solo"
   const [pacienteVinoSolo, setPacienteVinoSolo] = useState(false);
+  // Estado local para mensaje de error de longitud del acompañante
+  const [acompananteLengthError, setAcompananteLengthError] = useState<string | null>(null);
 
   // Efecto para detectar si ya tiene datos de "SOLO"
   useEffect(() => {
@@ -89,9 +91,21 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
     if (checked) {
       onFormChange('acompanante', 'SOLO');
       onFormChange('documentoA', '-');
+      setAcompananteLengthError(null);
     } else {
       onFormChange('acompanante', '');
       onFormChange('documentoA', '');
+    }
+  };
+
+  // Handler para validar longitud máxima del nombre del acompañante (varchar(50))
+  const handleAcompananteChange = (value: string) => {
+    if (value.length > 50) {
+      setAcompananteLengthError('El nombre del acompañante no puede exceder los 50 caracteres');
+      onFormChange('acompanante', value.slice(0, 50));
+    } else {
+      setAcompananteLengthError(null);
+      onFormChange('acompanante', value);
     }
   };
 
@@ -122,12 +136,16 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
             <Input
               id="acompanante"
               value={formData.acompanante || ''}
-              onChange={(e) => onFormChange('acompanante', e.target.value)}
+              onChange={(e) => handleAcompananteChange(e.target.value)}
               disabled={disabled || pacienteVinoSolo}
               placeholder={pacienteVinoSolo ? "SOLO" : "Nombre completo..."}
               required
+              maxLength={50}
               className={`${validationErrors?.acompanante ? 'border-red-500' : ''} ${pacienteVinoSolo ? 'bg-gray-200' : ''}`}
             />
+            {acompananteLengthError && (
+              <p className="text-orange-600 text-sm mt-1">{acompananteLengthError}</p>
+            )}
             {validationErrors?.acompanante && (
               <p className="text-red-500 text-sm mt-1">{validationErrors.acompanante}</p>
             )}
