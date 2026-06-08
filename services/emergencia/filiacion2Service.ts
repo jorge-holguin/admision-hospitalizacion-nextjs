@@ -499,6 +499,9 @@ export const filiacionService = {
         LEFT JOIN dbo.UBIGEO U2 ON P.LUGAR_NACIMIENTO = U2.UBIGEO
         LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
         WHERE P.DOCUMENTO LIKE '%${documento}%'
+          AND P.HISTORIA IS NOT NULL
+          AND P.HISTORIA <> ''
+          AND P.HISTORIA <> '0'
         ORDER BY P.NOMBRES ASC
       `;
       
