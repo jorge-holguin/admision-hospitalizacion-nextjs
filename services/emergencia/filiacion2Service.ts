@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils';
 
 const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
@@ -77,7 +77,7 @@ export interface Filiacion {
   TELEFONO2: string;
   SEGURO: string;
   Expr2: string;
-  // Código de ubigeo del distrito
+  // CÃ³digo de ubigeo del distrito
   COD_DISTRITO: string;
   // Campos adicionales para debugging
   [key: string]: any;
@@ -93,13 +93,13 @@ export const filiacionService = {
   ) {
     try {
       const skip = (page - 1) * pageSize;
-      console.log('Buscando registros de filiación con parámetros:', { skip, take: pageSize, filter });
+      console.log('Buscando registros de filiaciÃ³n con parÃ¡metros:', { skip, take: pageSize, filter });
       
-      // Si es una búsqueda por nombre, usar la API externa
+      // Si es una bÃºsqueda por nombre, usar la API externa
       if (filter.nombres && filter.nombres.trim() !== '') {
-        console.log('Usando API externa para búsqueda por nombre:', filter.nombres);
+        console.log('Usando API externa para bÃºsqueda por nombre:', filter.nombres);
         try {
-          // Llamar a la API externa para búsqueda por nombre
+          // Llamar a la API externa para bÃºsqueda por nombre
           const apiUrl = `${API_BACKEND_URL}/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(filter.nombres)}`;
           console.log('Llamando a API externa:', apiUrl);
           
@@ -114,12 +114,12 @@ export const filiacionService = {
           }
           
           const apiData = await response.json();
-          console.log(`API externa devolvió ${Array.isArray(apiData) ? apiData.length : 'no'} resultados`, apiData);
+          console.log(`API externa devolviÃ³ ${Array.isArray(apiData) ? apiData.length : 'no'} resultados`, apiData);
           
           // Verificar que apiData sea un array
           if (!Array.isArray(apiData)) {
-            console.error('La API externa no devolvió un array:', apiData);
-            // Si no es un array, devolver un array vacío para evitar errores
+            console.error('La API externa no devolviÃ³ un array:', apiData);
+            // Si no es un array, devolver un array vacÃ­o para evitar errores
             return serializeBigInt({
               data: [],
               pagination: {
@@ -165,7 +165,7 @@ export const filiacionService = {
           });
         } catch (apiError) {
           console.error('Error al consultar API externa:', apiError);
-          // En lugar de lanzar un error, devolver un resultado vacío
+          // En lugar de lanzar un error, devolver un resultado vacÃ­o
           return serializeBigInt({
             data: [],
             pagination: {
@@ -178,12 +178,17 @@ export const filiacionService = {
         }
       }
       
-      // Para otros tipos de búsqueda, usar consulta directa a tablas (sin vista)
-      console.log('🔍 Usando consulta directa a tablas PACIENTE (sin vista V_FILIACION2)');
+      // Para otros tipos de bÃºsqueda, usar consulta directa a tablas (sin vista)
+      console.log('ðŸ” Usando consulta directa a tablas PACIENTE (sin vista V_FILIACION2)');
       
-      // Construir la cláusula WHERE basada en los filtros proporcionados
+      // Construir la clÃ¡usula WHERE basada en los filtros proporcionados
       let whereClause = '';
       const conditions = [];
+
+      // Filtro permanente: excluir registros con HISTORIA vacía, solo espacios, NULL o '0'
+      conditions.push(`P.HISTORIA IS NOT NULL`);
+      conditions.push(`LTRIM(RTRIM(P.HISTORIA)) <> ''`);
+      conditions.push(`LTRIM(RTRIM(P.HISTORIA)) <> '0'`);
       
       if (filter.historia) {
         conditions.push(`P.HISTORIA LIKE '%${filter.historia}%'`);
@@ -244,7 +249,7 @@ export const filiacionService = {
       
       const data = await prisma.$queryRawUnsafe(dataQuery);
       
-      // Depuración de fechas de nacimiento
+      // DepuraciÃ³n de fechas de nacimiento
       console.log('Ejemplo de registro con fecha:', data[0] ? {
         PACIENTE: data[0].PACIENTE,
         HISTORIA: data[0].HISTORIA,
@@ -254,13 +259,13 @@ export const filiacionService = {
         FECHA_NACIMIENTO_JSON: JSON.stringify(data[0].FECHA_NACIMIENTO)
       } : 'No hay datos');
       
-      console.log(`Encontrados ${data.length} registros de filiación de un total de ${total}`);
+      console.log(`Encontrados ${data.length} registros de filiaciÃ³n de un total de ${total}`);
       
       // Convertir fechas a formato string ISO para mejor manejo en el frontend
       const processedData = data.map((record: any) => {
         if (record.FECHA_NACIMIENTO) {
           try {
-            // Intentar convertir la fecha a un formato estándar
+            // Intentar convertir la fecha a un formato estÃ¡ndar
             const fecha = new Date(record.FECHA_NACIMIENTO);
             if (!isNaN(fecha.getTime())) {
               // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
@@ -299,26 +304,26 @@ export const filiacionService = {
    */
   async getFiliacionById(id: string) {
     try {
-      console.log(`🔍 Buscando registro de filiación con ID: ${id} (consulta directa a tablas)`);
+      console.log(`ðŸ” Buscando registro de filiaciÃ³n con ID: ${id} (consulta directa a tablas)`);
       
       // Validar el ID antes de usarlo en la consulta SQL
       if (!id || typeof id !== 'string') {
-        console.error(`ID inválido: ${id}`);
-        throw new Error(`ID inválido: ${id}`);
+        console.error(`ID invÃ¡lido: ${id}`);
+        throw new Error(`ID invÃ¡lido: ${id}`);
       }
       
-      // Verificar formato del ID (asumiendo que debe ser numérico)
+      // Verificar formato del ID (asumiendo que debe ser numÃ©rico)
       if (!/^\d+$/.test(id)) {
-        console.error(`Formato de ID inválido (debe ser numérico): ${id}`);
-        throw new Error(`Formato de ID inválido (debe ser numérico): ${id}`);
+        console.error(`Formato de ID invÃ¡lido (debe ser numÃ©rico): ${id}`);
+        throw new Error(`Formato de ID invÃ¡lido (debe ser numÃ©rico): ${id}`);
       }
       
       // Escapar comillas simples en el ID para prevenir SQL injection
       const safeId = id.replace(/'/g, "''");
       
       // Consulta directa a tablas (sin vista) - replica estructura de V_FILIACION2
-      // Buscar por PACIENTE (numérico) o HISTORIA (string)
-      // PACIENTE es numérico, HISTORIA es varchar
+      // Buscar por PACIENTE (numÃ©rico) o HISTORIA (string)
+      // PACIENTE es numÃ©rico, HISTORIA es varchar
       const query = `
         SELECT TOP 1
           P.PACIENTE, P.HISTORIA, P.NOMBRES, P.SEXO, P.DIRECCION, P.TELEFONO1,
@@ -340,7 +345,7 @@ export const filiacionService = {
         LEFT JOIN dbo.RELIGION R ON P.RELIGION = R.RELIGION
         WHERE P.PACIENTE = ${safeId} OR P.HISTORIA = '${safeId}'
       `;
-      console.log('🔍 Ejecutando consulta directa a tablas (PACIENTE numérico, HISTORIA string):', query);
+      console.log('ðŸ” Ejecutando consulta directa a tablas (PACIENTE numÃ©rico, HISTORIA string):', query);
       
       let result;
       try {
@@ -357,12 +362,12 @@ export const filiacionService = {
       }
       
       if (Array.isArray(result) && result.length > 0) {
-        console.log(`Registro de filiación encontrado con ID ${id}`);
+        console.log(`Registro de filiaciÃ³n encontrado con ID ${id}`);
         
         // Procesar el registro para manejar correctamente las fechas
         const record = {...result[0]}; // Crear una copia para evitar modificar el objeto original
         
-        // Log para verificar si los campos requeridos están presentes
+        // Log para verificar si los campos requeridos estÃ¡n presentes
         console.log('Campos requeridos en el resultado de la base de datos:',
           {
             TIPO_DOCUMENTO: record.TIPO_DOCUMENTO !== undefined ? 'presente' : 'ausente',
@@ -380,7 +385,7 @@ export const filiacionService = {
           record.COD_DISTRITO = record.Expr2;
         }
         
-        // Log específico para el campo COD_DISTRITO (ubigeo)
+        // Log especÃ­fico para el campo COD_DISTRITO (ubigeo)
         if (record.COD_DISTRITO !== undefined) {
           console.log('Valor de COD_DISTRITO (ubigeo):', record.COD_DISTRITO, 'Tipo:', typeof record.COD_DISTRITO);
         } else {
@@ -397,7 +402,7 @@ export const filiacionService = {
         for (const fieldName of dateFields) {
           if (record[fieldName]) {
             try {
-              // Intentar convertir la fecha a un formato estándar
+              // Intentar convertir la fecha a un formato estÃ¡ndar
               const fecha = new Date(record[fieldName]);
               if (!isNaN(fecha.getTime())) {
                 // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
@@ -417,7 +422,7 @@ export const filiacionService = {
         return serializeBigInt(record);
       }
       
-      console.log(`No se encontró registro de filiación con ID ${id}`);
+      console.log(`No se encontrÃ³ registro de filiaciÃ³n con ID ${id}`);
       return null;
     } catch (error) {
       console.error(`Error en getFiliacionById(${id}):`, error);
@@ -435,7 +440,7 @@ export const filiacionService = {
    */
   async searchByHistoria(historia: string) {
     try {
-      console.log(`🔍 Buscando registros de filiación por historia: ${historia} (consulta directa)`);
+      console.log(`ðŸ” Buscando registros de filiaciÃ³n por historia: ${historia} (consulta directa)`);
       
       // Consulta directa a tablas (sin vista)
       const query = `
@@ -462,7 +467,7 @@ export const filiacionService = {
       `;
       
       const result = await prisma.$queryRawUnsafe(query);
-      console.log(`✅ Encontrados ${result.length} registros de filiación por historia`);
+      console.log(`âœ… Encontrados ${result.length} registros de filiaciÃ³n por historia`);
       
       return serializeBigInt(result);
     } catch (error) {
@@ -476,7 +481,7 @@ export const filiacionService = {
    */
   async searchByDocumento(documento: string) {
     try {
-      console.log(`🔍 Buscando registros de filiación por documento: ${documento} (consulta directa)`);
+      console.log(`ðŸ” Buscando registros de filiaciÃ³n por documento: ${documento} (consulta directa)`);
       
       // Consulta directa a tablas (sin vista)
       const query = `
@@ -506,7 +511,7 @@ export const filiacionService = {
       `;
       
       const result = await prisma.$queryRawUnsafe(query);
-      console.log(`✅ Encontrados ${result.length} registros de filiación por documento`);
+      console.log(`âœ… Encontrados ${result.length} registros de filiaciÃ³n por documento`);
       
       return serializeBigInt(result);
     } catch (error) {
@@ -520,7 +525,7 @@ export const filiacionService = {
    */
   async searchByName(name: string) {
     try {
-      console.log(`🔍 Buscando registros de filiación por nombre: ${name} (consulta directa)`);
+      console.log(`ðŸ” Buscando registros de filiaciÃ³n por nombre: ${name} (consulta directa)`);
       
       // Consulta directa a tablas (sin vista)
       const query = `
@@ -550,7 +555,7 @@ export const filiacionService = {
       `;
       
       const result = await prisma.$queryRawUnsafe(query);
-      console.log(`✅ Encontrados ${result.length} registros de filiación por nombre`);
+      console.log(`âœ… Encontrados ${result.length} registros de filiaciÃ³n por nombre`);
       
       return serializeBigInt(result);
     } catch (error) {
@@ -564,9 +569,9 @@ export const filiacionService = {
    */
   async countFiliacion(filter: FiliacionFilter = {}): Promise<CountResponse> {
     try {
-      console.log('Contando registros de filiación con filtros:', filter);
+      console.log('Contando registros de filiaciÃ³n con filtros:', filter);
       
-      // Construir la cláusula WHERE basada en los filtros proporcionados
+      // Construir la clÃ¡usula WHERE basada en los filtros proporcionados
       let whereClause = '';
       const conditions = [];
       
@@ -597,7 +602,7 @@ export const filiacionService = {
       const result = await prisma.$queryRawUnsafe(countQuery);
       const total = Number(result[0]?.total || 0);
       
-      console.log(`✅ Total de registros de filiación: ${total}`);
+      console.log(`âœ… Total de registros de filiaciÃ³n: ${total}`);
       
       return serializeBigInt({
         success: true,
@@ -609,7 +614,7 @@ export const filiacionService = {
       console.error('Error en countFiliacion:', error instanceof Error ? error.message : 'Error desconocido');
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Error desconocido al contar registros de filiación'
+        message: error instanceof Error ? error.message : 'Error desconocido al contar registros de filiaciÃ³n'
       };
     }
   },
