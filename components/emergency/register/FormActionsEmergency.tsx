@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Loader2, Save, X } from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import FuaEmergencyStatusAlert from './FuaEmergencyStatusAlert';
+import { extractDocumentFromToken } from '@/utils/jwtUtils';
 
 interface FormActionsEmergencyProps {
   onSave: () => Promise<void>;
@@ -38,6 +39,15 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
 }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [fuaValidationPassed, setFuaValidationPassed] = useState(false);
+  const [userDocument, setUserDocument] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      setUserDocument(extractDocumentFromToken());
+    } catch {
+      setUserDocument('');
+    }
+  }, []);
   
   // Verificar si hay una cuenta válida o si es un tipo de seguro que no requiere validación
   const paganteOrSoatInsuranceCodes = ['0', '00', '02'];
@@ -117,8 +127,10 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
               {isUpdate ? 'Actualizar registro de emergencia' : 'Crear nuevo registro de emergencia'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Está seguro que desea {isUpdate ? 'actualizar' : 'crear'} este
-              registro de emergencia?
+              ¿Está seguro que desea {isUpdate ? 'actualizar' : 'crear'} este registro de emergencia?
+              <div className="mt-2 text-sm text-gray-600">
+                Operación bajo usuario: <strong>{userDocument || 'No identificado'}</strong>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           

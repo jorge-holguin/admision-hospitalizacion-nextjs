@@ -17,6 +17,16 @@ import {
   Edit
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import ImageWithLoader from "@/components/ui/ImageWithLoader"
 import { UbigeoSelector, EstadoCivilSelector, PaisSelector } from "@/components/filiation/selectors"
 import { TipoDocumentoSelector } from "@/components/filiation/selectors/TipoDocumentoSelector"
@@ -51,6 +61,8 @@ export function Step1BasicData({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoTimestamp, setPhotoTimestamp] = useState<number>(Date.now())
   const [distritoReniecNombre, setDistritoReniecNombre] = useState<string>('')
+  const [docEditEnabled, setDocEditEnabled] = useState<boolean>(false)
+  const [showEditDocConfirm, setShowEditDocConfirm] = useState<boolean>(false)
   
   
   // Actualizar foto cuando cambien los datos
@@ -237,22 +249,32 @@ export function Step1BasicData({
                   <Hash className="w-4 h-4 mr-1" />
                   N° Documento <span className="text-red-600">*</span>
                 </Label>
-                {/* El número es NO editable si: hay patientData (modo edición) O hay reniecData y el tipo es DNI */}
-                {(patientData || (reniecData && (documentType === "D" || documentType === "DNI"))) ? (
+                <div className="flex items-center gap-2">
                   <Input
                     id="dni"
-                    value={reniecData?.document || reniecData?.dni || patientData?.documento || patientData?.DOCUMENTO || documentNumber}
-                    disabled
-                    className="bg-gray-50 text-gray-600"
-                  />
-                ) : (
-                  <Input
-                    id="dni"
-                    value={documentNumber || ""}
+                    value={
+                      isEditMode && docEditEnabled
+                        ? (documentNumber ?? patientData?.documento ?? patientData?.DOCUMENTO ?? '')
+                        : (reniecData?.document ?? reniecData?.dni ?? documentNumber ?? patientData?.documento ?? patientData?.DOCUMENTO ?? '')
+                    }
                     onChange={(e) => onDocumentNumberChange?.(e.target.value)}
                     placeholder="Ingrese número de documento"
+                    disabled={isEditMode ? !docEditEnabled : Boolean(reniecData && (documentType === 'D' || documentType === 'DNI'))}
+                    className={`${isEditMode && !docEditEnabled ? 'bg-gray-50 text-gray-600' : ''}`}
                   />
-                )}
+                  {isEditMode && !docEditEnabled && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowEditDocConfirm(true)}
+                      title="Editar número de documento"
+                      className="shrink-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <div>
                 <Label htmlFor="edad" className="flex items-center text-sm font-medium text-gray-700">
@@ -458,6 +480,28 @@ export function Step1BasicData({
   </CardContent>
 </Card>
 
+      {/* Confirmación para habilitar edición de N° Documento */}
+      <AlertDialog open={showEditDocConfirm} onOpenChange={setShowEditDocConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar número de documento</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro que desea habilitar la edición del número de documento? Esta acción puede afectar la identificación del paciente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setDocEditEnabled(true)
+                setShowEditDocConfirm(false)
+              }}
+            >
+              Habilitar edición
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   )

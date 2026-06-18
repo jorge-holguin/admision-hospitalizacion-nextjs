@@ -149,7 +149,8 @@ export function HospitalizationRegistrationModal({
   if (!isOpen) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
         className="max-w-7xl max-h-[95vh] flex flex-col overflow-hidden p-0"
         onInteractOutside={(e) => e.preventDefault()}
@@ -236,14 +237,6 @@ export function HospitalizationRegistrationModal({
         <div id="alertas-container" className="fixed top-4 right-4 z-50 space-y-2" />
       </DialogContent>
 
-      {/* Alerta de error grande y visible */}
-      <ErrorAlert
-        show={showErrorAlert}
-        title="Error al Guardar Hospitalización"
-        message={errorMessage || "Ha ocurrido un error al guardar la hospitalización"}
-        onClose={handleCloseErrorAlert}
-      />
-
       {/* Modal de edición de paciente con providers necesarios */}
       {showPatientEditModal && fullPatientData && (
         <Dialog open={showPatientEditModal} onOpenChange={(open) => {
@@ -285,5 +278,14 @@ export function HospitalizationRegistrationModal({
         </Dialog>
       )}
     </Dialog>
+
+    {/* Alerta de error grande y visible - Fuera del Dialog principal para permitir cerrar */}
+    <ErrorAlert
+      show={showErrorAlert}
+      title="Error al Guardar Hospitalización"
+      message={errorMessage || "Ha ocurrido un error al guardar la hospitalización"}
+      onClose={handleCloseErrorAlert}
+    />
+    </>
   )
 }

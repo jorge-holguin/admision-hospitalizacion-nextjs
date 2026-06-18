@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Save, AlertCircle, CheckCircle2, X } from "lucide-react"
 import { useRouter } from 'next/navigation'
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePatientAccount } from '@/contexts/PatientAccountContext'
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
 
 interface FormActionsProps {
   onSave: () => void
@@ -35,6 +36,15 @@ export function FormActions({
   const [fuaId, setFuaId] = useState<string | null>(null)
   const [bypassFuaCheck, setBypassFuaCheck] = useState(false)
   const [showFuaWarning, setShowFuaWarning] = useState(false)
+  const [userDocument, setUserDocument] = useState<string>('')
+
+  useEffect(() => {
+    try {
+      setUserDocument(extractDocumentFromToken())
+    } catch {
+      setUserDocument('')
+    }
+  }, [])
 
   // List of SIS insurance codes that require FUA validation
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25']
@@ -139,7 +149,7 @@ export function FormActions({
         onClose={handleCancelConfirm}
         onConfirm={handleConfirmSave}
         title="Confirmar Hospitalización"
-        description="¿Está seguro que desea guardar esta hospitalización?"
+        description={`¿Está seguro que desea guardar esta hospitalización?`}
         confirmText="Guardar"
         cancelText="Cancelar"
         isConfirming={isConfirming}
@@ -171,6 +181,11 @@ export function FormActions({
                 </div>
               </div>
             )}
+
+            {/* Información del usuario que ejecuta la operación */}
+            <div className="mt-4 text-sm text-gray-600">
+              Operación bajo usuario: <strong>{userDocument || 'No identificado'}</strong>
+            </div>
           </>
         }
       />

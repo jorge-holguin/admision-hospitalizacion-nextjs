@@ -794,8 +794,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.paisNacimiento) updateData.pais = formData.paisNacimiento
       if (formData.direccion?.trim()) updateData.direccion = formData.direccion.trim()
       // ✅ Campos obligatorios: documento y tipoDocumento
-      // El número de documento NO es editable, siempre usar el original del paciente
-      const documentoValue = (patient.DOCUMENTO || patient.dni || patient.documento || '').trim()
+      // Usar el número de documento desde el estado editable
+      const documentoValue = (selectedDocNumber || '').trim()
       if (documentoValue) {
         updateData.documento = documentoValue
       }
