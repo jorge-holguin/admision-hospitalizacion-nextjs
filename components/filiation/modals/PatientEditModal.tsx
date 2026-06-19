@@ -146,7 +146,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         return 'D' // Default DNI
       })()
       setSelectedDocType(tipoDoc)
-      setSelectedDocNumber(patient.DOCUMENTO || patient.dni || '')
+      setSelectedDocNumber(patient.DOCUMENTO || patient.documento || patient.dni || '')
       
       // Inicializar número de historia clínica
       const historia = patient.HISTORIA || patient.hc || patient.historia || ''

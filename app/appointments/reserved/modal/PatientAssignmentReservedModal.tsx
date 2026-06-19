@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
 import { PatientPendingAppointmentsModal, type PendingAppointment } from "../../../../components/appointments/patient/PatientPendingAppointmentsModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle, Edit } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle } from "lucide-react"
 import { TipoCitaSelector } from "../../../../components/appointments/selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../../../../components/appointments/selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../../../../components/appointments/selectors/EntidadSisSelector"
@@ -24,8 +24,7 @@ import { datetimeService } from '@/services/datetimeService'
 import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS, actualizarEstadoRefcon } from "@/services/appointments/refconSyncService"
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import { convertTo12HourFormat } from "@/utils/timeUtils"
-import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
-import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
+import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/UpdateClinicalHistoryButton"
 
 interface Patient {
   HISTORIA: string
@@ -209,9 +208,6 @@ function PatientAssignmentReservedModalContent({
   const [refconSyncSuccess, setRefconSyncSuccess] = useState(false)
   const [refconSyncError, setRefconSyncError] = useState<string | null>(null)
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
-  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
-  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
-  const [fullPatientData, setFullPatientData] = useState<any>(null)
   const [refreshedPatient, setRefreshedPatient] = useState<any>(null)
   const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([])
   
@@ -341,31 +337,6 @@ function PatientAssignmentReservedModalContent({
     return seguro?.Seguro === '21' || seguro?.Nombre?.toUpperCase().includes('SIS') || false
   }
 
-  // Función para cargar datos completos del paciente
-  const loadFullPatientData = async (pacienteId: string) => {
-    try {
-      setIsLoadingFullPatient(true)
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-      const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${pacienteId}`)
-      
-      if (!response.ok) {
-        throw new Error('Error al cargar datos del paciente')
-      }
-      
-      const data = await response.json()
-      setFullPatientData(data)
-    } catch (error) {
-      console.error('❌ Error al cargar datos del paciente:', error)
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos completos del paciente",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingFullPatient(false)
-    }
-  }
 
   const handleApprove = async () => {
     if (!patient || !appointment) return
@@ -827,45 +798,10 @@ function PatientAssignmentReservedModalContent({
             {/* Columna izquierda: Información del paciente */}
             <div className="space-y-3 flex flex-col">
               <PatientInfoCardAppointment patient={refreshedPatient || patient} className="flex-1" />
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  console.log('🔘 Click en Actualizar Historia Clínica')
-                  console.log('   - patient:', patient)
-                  console.log('   - patient?.PACIENTE:', patient?.PACIENTE)
-                  console.log('   - patient?.HISTORIA:', patient?.HISTORIA)
-                  
-                  const pacienteId = patient?.PACIENTE || patient?.HISTORIA
-                  console.log('   - pacienteId seleccionado:', pacienteId)
-                  
-                  if (pacienteId) {
-                    await loadFullPatientData(pacienteId)
-                    console.log('✅ Abriendo modal de edición')
-                    setShowPatientEditModal(true)
-                  } else {
-                    console.error('❌ No se encontró pacienteId')
-                    toast({
-                      title: "Error",
-                      description: "No se pudo identificar al paciente",
-                      variant: "destructive"
-                    })
-                  }
-                }}
-                disabled={isLoadingFullPatient}
-                className="w-full justify-center px-6 py-2.5 h-11 border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 relative z-10"
-              >
-                {isLoadingFullPatient ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                    Cargando...
-                  </>
-                ) : (
-                  <>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Actualizar Historia Clínica
-                  </>
-                )}
-              </Button>
+              <UpdateClinicalHistoryButton
+                patient={patient}
+                onPatientUpdated={(updated) => setRefreshedPatient(updated)}
+              />
             </div>
 
             {/* Columna derecha: Información de la cita y datos de asignación */}
@@ -1166,76 +1102,6 @@ function PatientAssignmentReservedModalContent({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de edición de paciente */}
-      <Dialog open={showPatientEditModal} onOpenChange={setShowPatientEditModal}>
-        {fullPatientData && (
-          <FiliationProvider>
-            <PatientEditModal
-              patient={fullPatientData}
-              onCancel={() => {
-                setShowPatientEditModal(false)
-                setFullPatientData(null)
-              }}
-              onSuccess={async () => {
-                setShowPatientEditModal(false)
-                setFullPatientData(null)
-                
-                // Recargar datos del paciente
-                const pacienteId = patient?.PACIENTE || patient?.HISTORIA
-                if (pacienteId) {
-                  try {
-                    console.log('🔄 Recargando datos del paciente:', pacienteId)
-                    const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-                    const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${pacienteId}`)
-                    
-                    if (response.ok) {
-                      const data = await response.json()
-                      console.log('✅ Datos del paciente recargados:', data)
-                      
-                      // Mapear los datos al formato esperado por PatientInfoCardAppointment
-                      const mappedPatient = {
-                        ...patient, // Mantener campos originales
-                        HISTORIA: data.historia || patient.HISTORIA,
-                        NOMBRES: data.nombres ? `${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''} ${data.nombres || ''}`.trim() : patient.NOMBRES,
-                        NOMBRE: data.nombres || patient.NOMBRE,
-                        PATERNO: data.apellidoPaterno || patient.PATERNO,
-                        MATERNO: data.apellidoMaterno || patient.MATERNO,
-                        SEXO: data.sexo || patient.SEXO,
-                        DOCUMENTO: data.numeroDocumento || patient.DOCUMENTO,
-                        TIPO_DOCUMENTO: data.tipoDocumento || patient.TIPO_DOCUMENTO,
-                        FECHA_NACIMIENTO: data.fechaNacimiento || patient.FECHA_NACIMIENTO,
-                        EDAD: data.edad || patient.EDAD,
-                        ESTADO_CIVIL: (data.estadoCivil?.estadoCivil ?? data.estadoCivil)?.toString().trim() || patient.ESTADO_CIVIL,
-                        DIRECCION: data.direccion || patient.DIRECCION,
-                        DISTRITO: data.distrito || patient.DISTRITO,
-                        Distrito_Dir: data.distritoNacimiento || data.Distrito_Dir || patient.Distrito_Dir,
-                        TELEFONO1: data.telefono || patient.TELEFONO1,
-                        CORREO: data.correo || patient.CORREO,
-                        SEGURO: data.seguro?.seguro?.trim() || data.seguro || patient.SEGURO,
-                        NOMBRE_SEGURO: data.seguro?.nombre || data.nombreSeguro || patient.NOMBRE_SEGURO,
-                        STRING_FOTO: data.foto || patient.STRING_FOTO,
-                        PACIENTE: data.paciente || patient.PACIENTE
-                      }
-                      
-                      console.log('✅ Paciente mapeado:', mappedPatient)
-                      setRefreshedPatient(mappedPatient)
-                    } else {
-                      console.error('❌ Error al recargar datos del paciente')
-                    }
-                  } catch (error) {
-                    console.error('❌ Error al recargar datos del paciente:', error)
-                  }
-                }
-                
-                toast({
-                  title: "Éxito",
-                  description: "Historia clínica actualizada correctamente",
-                })
-              }}
-            />
-          </FiliationProvider>
-        )}
-      </Dialog>
       
       {/* Diálogo de confirmación de conflicto de horario */}
       <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>

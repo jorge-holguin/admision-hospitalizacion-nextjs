@@ -24,7 +24,7 @@ import { extractNombreCompletoFromToken, extractDocumentFromToken } from "@/util
 import { datetimeService } from '@/services/datetimeService'
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS, actualizarEstadoRefcon } from "@/services/appointments/refconSyncService"
-import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
+import { UpdateClinicalHistoryButton } from "../patient/UpdateClinicalHistoryButton"
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 
 interface Patient {
@@ -112,9 +112,6 @@ function PatientAssignmentModalContent({
   const [eessOrigenReferencia, setEessOrigenReferencia] = useState("")
   const [eessNombreOrigen, setEessNombreOrigen] = useState("")
   const [skipRefconSync, setSkipRefconSync] = useState(false) // Flag para omitir sincronización con REFCON (estados 5, 7, manual)
-  const [showPatientEditModal, setShowPatientEditModal] = useState(false)
-  const [fullPatientData, setFullPatientData] = useState<any>(null)
-  const [isLoadingFullPatient, setIsLoadingFullPatient] = useState(false)
   const [refreshedPatient, setRefreshedPatient] = useState<any>(null)
   const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -299,33 +296,6 @@ function PatientAssignmentModalContent({
     }
   }
 
-  const loadFullPatientData = async (pacienteId: string) => {
-    if (!pacienteId) return
-    
-    setIsLoadingFullPatient(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}`)
-      
-      if (response.ok) {
-        const fullData = await response.json()
-        setFullPatientData(fullData)
-      } else {
-        toast({
-          title: "Advertencia",
-          description: "No se pudo cargar la historia clínica completa del paciente",
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al cargar la historia clínica del paciente",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingFullPatient(false)
-    }
-  }
 
   const imprimirCitaAsignada = async (citaId: string) => {
     try {
@@ -796,37 +766,13 @@ function PatientAssignmentModalContent({
                   patient={enhancedPatient || patient!}
                   className="h-full"
                 />
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    const pacienteId = patient?.PACIENTE || patient?.HISTORIA
-                    
-                    if (pacienteId) {
-                      await loadFullPatientData(pacienteId)
-                      setShowPatientEditModal(true)
-                    } else {
-                      toast({
-                        title: "Error",
-                        description: "No se pudo identificar al paciente",
-                        variant: "destructive"
-                      })
-                    }
+                <UpdateClinicalHistoryButton
+                  patient={patient!}
+                  onPatientUpdated={(updated) => {
+                    setEnhancedPatient(updated as Patient)
+                    setRefreshedPatient(updated)
                   }}
-                  disabled={isLoadingFullPatient}
-                  className="w-full justify-center px-6 py-2.5 h-11 border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 relative z-10"
-                >
-                  {isLoadingFullPatient ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      Cargando...
-                    </>
-                  ) : (
-                    <>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Actualizar Historia Clínica
-                    </>
-                  )}
-                </Button>
+                />
               </div>
             )}
           </div>
@@ -1288,50 +1234,6 @@ function PatientAssignmentModalContent({
       </DialogContent>
     </Dialog>
 
-    {/* Modal de Actualización de Historia Clínica */}
-    {showPatientEditModal && patient && (
-      <Dialog open={showPatientEditModal} onOpenChange={setShowPatientEditModal}>
-        <PatientEditModal
-          patient={fullPatientData || enhancedPatient || patient}
-          onCancel={() => {
-            setShowPatientEditModal(false)
-            setFullPatientData(null) // Limpiar datos precargados
-          }}
-          onSuccess={async () => {
-            setShowPatientEditModal(false)
-            setFullPatientData(null) // Limpiar datos precargados
-            
-            // ✅ Recargar datos del paciente después de actualizar
-            const pacienteId = patient?.PACIENTE || patient?.HISTORIA
-            if (pacienteId) {
-              console.log('🔄 Recargando datos del paciente después de actualizar HC...')
-              await loadFullPatientData(pacienteId)
-              
-              // También recargar enhancedPatient si existe
-              if (patient?.HISTORIA) {
-                try {
-                  const response = await fetch(`/api/filiation/search?page=1&pageSize=10&documento=${patient.DOCUMENTO || patient.HISTORIA}`)
-                  if (response.ok) {
-                    const data = await response.json()
-                    if (data.data && data.data.length > 0) {
-                      console.log('✅ Datos del paciente actualizados')
-                      setEnhancedPatient(data.data[0])
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error recargando datos del paciente:', error)
-                }
-              }
-            }
-            
-            toast({
-              title: "✅ Historia actualizada",
-              description: "Los cambios se han guardado correctamente y los datos se han actualizado.",
-            })
-          }}
-        />
-      </Dialog>
-    )}
 
     {/* Dialog de resultado de sincronización REFCON */}
     <AlertDialog open={showRefconResultDialog} onOpenChange={setShowRefconResultDialog}>
