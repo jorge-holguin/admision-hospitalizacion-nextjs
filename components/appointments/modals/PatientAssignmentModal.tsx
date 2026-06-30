@@ -841,7 +841,7 @@ function PatientAssignmentModalContent({
                     pacienteId={patient.PACIENTE}
                     currentConsultorio={appointment?.consultorioNombre}
                     currentEspecialidad={(appointment as any)?.especialidadSolicitud}
-                    limite={5}
+                    limite={25}
                     highlight={hasConsultorioMatch || hasEspecialidadMatch}
                     onAppointmentsLoaded={setPendingAppointments}
                     timeConflict={timeValidation}

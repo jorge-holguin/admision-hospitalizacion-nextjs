@@ -188,7 +188,7 @@ function AdditionalAppointmentModalContent({
       setLoadingExistingAppointments(true)
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
-        const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=5`)
+        const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=25`)
         
         if (response.ok) {
           const data = await response.json()
@@ -1212,7 +1212,7 @@ function AdditionalAppointmentModalContent({
                         pacienteId={patient.PACIENTE}
                         currentConsultorio={consultorioNombreSel}
                         currentEspecialidad={especialidadConsultorio || undefined}
-                        limite={5}
+                        limite={25}
                         highlight={hasConsultorioMatch || hasEspecialidadMatch}
                         onAppointmentsLoaded={setPendingAppointments}
                         timeConflict={timeValidation}

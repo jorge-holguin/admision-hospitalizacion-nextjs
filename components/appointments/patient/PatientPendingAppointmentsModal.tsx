@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, User, Stethoscope, AlertCircle, Eye, X } from "lucide-react"
+import { Calendar, User, Stethoscope, AlertCircle, Eye, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { formatDateToDDMMYYYY } from "@/services/appointments/printService"
 
 export interface PendingAppointment {
@@ -41,7 +41,7 @@ export function PatientPendingAppointmentsModal({
   pacienteId, 
   currentConsultorio,
   currentEspecialidad,
-  limite = 5,
+  limite = 100,
   onAppointmentsLoaded,
   highlight = false,
   timeConflict
@@ -50,6 +50,16 @@ export function PatientPendingAppointmentsModal({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const PAGE_SIZE = 10
+
+  const totalPages = useMemo(() => Math.ceil(appointments.length / PAGE_SIZE), [appointments])
+
+  const pagedAppointments = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return appointments.slice(start, start + PAGE_SIZE)
+  }, [appointments, currentPage])
 
   useEffect(() => {
     if (pacienteId) {
@@ -180,7 +190,32 @@ export function PatientPendingAppointmentsModal({
             </div>
           ) : (
             <div className="space-y-3">
-              {appointments.map((appointment) => {
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between text-sm text-gray-600 pb-2 border-b">
+                  <span>{appointments.length} citas en total — Página {currentPage} de {totalPages}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(p => p - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(p => p + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {pagedAppointments.map((appointment) => {
                 const matchType = getMatchType(appointment)
                 const hasMatch = matchType !== 'none'
                 const isConflicting = timeConflict?.conflictingAppointment?.citaId === appointment.citaId
@@ -258,11 +293,24 @@ export function PatientPendingAppointmentsModal({
             </div>
           )}
 
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={() => setIsOpen(false)} variant="outline">
-              <X className="h-4 w-4 mr-2" />
-              Cerrar
-            </Button>
+          <div className="flex items-center justify-between pt-4 border-t">
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                  <ChevronLeft className="h-4 w-4 mr-1" />Anterior
+                </Button>
+                <span className="text-sm text-gray-500">{currentPage} / {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                  Siguiente<ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+            <div className="ml-auto">
+              <Button onClick={() => setIsOpen(false)} variant="outline">
+                <X className="h-4 w-4 mr-2" />
+                Cerrar
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -65,11 +65,14 @@ import {
   AppointmentHistoryModal
 } from "@/components/appointments"
 import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
+import { PatientAssignDiagnosticSupportModal } from "@/components/appointments/modals/PatientAssignDiagnosticSupportModal"
 import { PatientSearchModal as FiliationPatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
 
   // Lista vacía para almacenar citas
   const emptyAppointments: any[] = []
+  const APOYO_DIAGNOSTICO_CONSULTORIOS = ['7010', '7020']
+  const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 
   export default function AppointmentsPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -94,9 +97,11 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
     const [showAssignModal, setShowAssignModal] = useState(false)
     const [showPatientAssignmentModal, setShowPatientAssignmentModal] = useState(false)
+    const [showApoyoDiagnosticoAssignModal, setShowApoyoDiagnosticoAssignModal] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState<any>(null)
     const [showRescheduleModal, setShowRescheduleModal] = useState(false)
     const [showReleaseModal, setShowReleaseModal] = useState(false)
+    const [isApoyoDiagnosticoRelease, setIsApoyoDiagnosticoRelease] = useState(false)
     const [showReleaseSuccessDialog, setShowReleaseSuccessDialog] = useState(false)
     const [showReleaseErrorDialog, setShowReleaseErrorDialog] = useState(false)
     const [releaseErrorMessage, setReleaseErrorMessage] = useState('')
@@ -241,6 +246,97 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const searchAppointmentsByParams = useCallback(async (dateOverride?: Date) => {
       setIsRefreshing(true)
       try {
+        // Detectar si es consultorio de Apoyo Diagnóstico (ECOGRAFIA 1: 7010, ECOGRAFIA 2: 7020)
+        const consultorioTrimmed = (filters.consultorio || '').trim()
+        const isApoyoDiagnostico = APOYO_DIAGNOSTICO_CONSULTORIOS.includes(consultorioTrimmed)
+
+        if (isApoyoDiagnostico) {
+          try {
+            const targetDate = dateOverride || selectedDate
+            const dateIso = format(targetDate, 'yyyy-MM-dd')
+            const adQs = new URLSearchParams()
+            adQs.set('fechaInicio', dateIso)
+            adQs.set('fechaFin', dateIso)
+            adQs.set('consultorio', consultorioTrimmed)
+
+            if (filters.turno !== 'ALL') {
+              adQs.set('turno', filters.turno === 'MAÑANA' ? 'M' : 'T')
+            }
+
+            const estadoAD = (filters.estado && filters.estado !== 'all') ? filters.estado : '2'
+            adQs.set('estado', estadoAD)
+            adQs.set('page', String(pageParam))
+            adQs.set('size', String(sizeParam))
+
+            const url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/citas?${adQs.toString()}`
+            console.log('🏥 Apoyo Diagnóstico - Buscando citas:', url)
+
+            const res = await fetch(url)
+            if (!res.ok) {
+              setFilteredAppointments([])
+              setTotalCount(0)
+              return
+            }
+
+            const data = await res.json()
+            const list = Array.isArray(data) ? data :
+                         Array.isArray(data?.data?.content) ? data.data.content :
+                         Array.isArray(data?.content) ? data.content :
+                         Array.isArray(data?.items) ? data.items : []
+
+            const mapped = list.map((it: any, idx: number) => {
+              const turnoRaw = (it.turnoConsulta ?? it.turno ?? '').toString().trim()
+              return {
+                id: String(it.idAtencion || it.id || it.ID || `AD${idx}`),
+                estado: Number(it.idEstadoCita ?? it.estado ?? 2),
+                fecha: String(it.fechaCita ?? it.fecha ?? new Date().toISOString().slice(0, 10)),
+                hora: String(it.horaCita ?? it.hora ?? '08:00'),
+                turno: turnoRaw === 'T' ? 'TARDE' : turnoRaw === 'M' ? 'MAÑANA' : turnoRaw,
+                turnoConsulta: turnoRaw,
+                consultorio: (it.consultorio ?? consultorioTrimmed).toString().trim(),
+                consultorioNombre: String(it.consultorioNombre ?? it.nombreConsultorio ?? selectedConsultorioData?.NOMBRE ?? '').trim(),
+                medico: String(it.idMedicoEjecuta ?? it.medico ?? ''),
+                medicoNombre: String(it.medicoNombre ?? it.nombreMedico ?? '').trim(),
+                seguro: (it.seguro ?? '').toString().trim(),
+                seguroNombre: String(it.seguroNombre ?? it.nombreSeguro ?? '').trim(),
+                especialidadSolicitud: '',
+                paciente: String(it.nombre ?? it.nombrePaciente ?? it.paciente ?? it.idPaciente ?? '').trim(),
+                nombre: String(it.nombre ?? it.nombrePaciente ?? it.paciente ?? it.idPaciente ?? '').trim(),
+                codigoPaciente: String(it.idPaciente ?? it.codigoPaciente ?? '').trim(),
+                numero: String(it.numero ?? ''),
+                historia: it.historia ? String(it.historia).trim() : null,
+                usuario: String(it.regUsuarioCreacion ?? it.usuario ?? ''),
+                userLiberacion: null,
+                userEliminacion: null,
+                fechaProgramada: String(it.regFechaCreacion ?? ''),
+                fechaPago: null,
+                fechaOtorgada: '',
+                pagoId: '',
+                orden: String(it.numero ?? ''),
+                numRef: String(it.nroFormulario ?? ''),
+                entidadSis: '',
+                idRefcon: null,
+                _apoyoDiagnostico: true,
+              }
+            })
+
+            setFilteredAppointments(mapped)
+            const total = (typeof data?.data?.totalElements === 'number') ? data.data.totalElements
+              : (typeof data?.total === 'number') ? data.total
+              : (typeof data?.totalElements === 'number') ? data.totalElements
+              : mapped.length
+            setTotalCount(total)
+            setLastRemote(true)
+          } catch (e) {
+            console.error('Error al buscar citas de apoyo diagnóstico:', e)
+            setFilteredAppointments([])
+            setTotalCount(0)
+          } finally {
+            setIsRefreshing(false)
+          }
+          return
+        }
+
         const qs = new URLSearchParams()
         const targetDate = dateOverride || selectedDate
         const dateStr = targetDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -509,10 +605,41 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       }
     }
 
+    const handleApoyoDiagnosticoAsignar = useCallback(async (idAtencion: string) => {
+      try {
+        const url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/citas/${idAtencion}/asignar`
+        console.log('🏥 Apoyo Diagnóstico - Asignando cita:', url)
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' }
+        })
+
+        if (!response.ok) {
+          throw new Error(`Error al asignar: ${response.status}`)
+        }
+
+        toast({
+          title: "¡Éxito!",
+          description: "Cita de apoyo diagnóstico asignada correctamente",
+        })
+        searchAppointmentsByParams()
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo asignar la cita",
+          variant: "destructive"
+        })
+      }
+    }, [searchAppointmentsByParams])
+
     const handleAction = async (action: string, appointment: any) => {
       setSelectedAppointment(appointment)
       switch (action) {
         case "assign":
+          if (appointment._apoyoDiagnostico) {
+            setShowAssignModal(true)
+            break
+          }
           const tieneReserva = await validarReservaActiva(appointment.id)
           
           if (tieneReserva) {
@@ -526,6 +653,12 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           setShowRescheduleModal(true)
           break
         case "release":
+          if (appointment._apoyoDiagnostico) {
+            setIsApoyoDiagnosticoRelease(true)
+            setShowReleaseModal(true)
+            break
+          }
+          setIsApoyoDiagnosticoRelease(false)
           // Validar que solo se pueda liberar citas con estado '3' y seguros '05' o '13'
           const seguro = appointment.seguro?.trim()
           const estado = String(appointment.estado)
@@ -620,13 +753,21 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         const usuario = extractDocumentFromToken()
         
         // Llamar al endpoint para liberar la cita con el motivo en el body
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}/liberar`, {
+        const releaseUrl = isApoyoDiagnosticoRelease
+          ? `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/citas/${citaId}/liberar`
+          : `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}/liberar`
+
+        const releaseBody = isApoyoDiagnosticoRelease
+          ? JSON.stringify({ motivo: motivo.trim(), numero: selectedAppointment?.numero ? Number(selectedAppointment.numero) : null })
+          : JSON.stringify(motivo.trim())
+
+        const response = await fetch(releaseUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'usuario': usuario
           },
-          body: JSON.stringify(motivo.trim())
+          body: releaseBody
         })
         
         // El backend puede devolver texto plano o JSON
@@ -673,7 +814,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         setReleaseErrorMessage(error.message || 'No se pudo liberar la cita. Intente nuevamente.')
         setShowReleaseErrorDialog(true)
       }
-    }, [searchAppointmentsByParams, searchAppointmentById])
+    }, [searchAppointmentsByParams, searchAppointmentById, isApoyoDiagnosticoRelease, selectedAppointment])
     
     const handleCloseReleaseModal = useCallback(() => {
       setShowReleaseModal(false)
@@ -1255,11 +1396,35 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               isOpen={showAssignModal}
               onClose={() => setShowAssignModal(false)}
               onPatientSelect={(patient, searchType) => {
-                setSelectedPatient(patient)
+                const enriched = {...patient, _searchType: searchType}
+                setSelectedPatient(enriched)
                 setShowAssignModal(false)
-                setShowPatientAssignmentModal(true)
-                // Guardar el tipo de búsqueda en un atributo del paciente para pasarlo al modal de asignación
-                setSelectedPatient({...patient, _searchType: searchType})
+                if (selectedAppointment?._apoyoDiagnostico) {
+                  setShowApoyoDiagnosticoAssignModal(true)
+                } else {
+                  setShowPatientAssignmentModal(true)
+                }
+              }}
+            />
+
+            {/* Patient Assignment Modal — Apoyo Diagnóstico (Ecografía) */}
+            <PatientAssignDiagnosticSupportModal
+              isOpen={showApoyoDiagnosticoAssignModal}
+              onClose={() => {
+                setShowApoyoDiagnosticoAssignModal(false)
+                setSelectedPatient(null)
+              }}
+              onBack={() => {
+                setShowApoyoDiagnosticoAssignModal(false)
+                setShowAssignModal(true)
+              }}
+              patient={selectedPatient}
+              appointment={selectedAppointment}
+              searchType={selectedPatient?._searchType || 'document'}
+              onAssign={async () => {}}
+              onSuccess={(citaId) => {
+                setShowApoyoDiagnosticoAssignModal(false)
+                searchAppointmentsByParams()
               }}
             />
 

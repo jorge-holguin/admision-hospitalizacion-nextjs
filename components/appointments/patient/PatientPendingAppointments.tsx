@@ -33,7 +33,7 @@ interface PatientPendingAppointmentsProps {
 export function PatientPendingAppointments({ 
   pacienteId, 
   currentConsultorio,
-  limite = 5 
+  limite = 25
 }: PatientPendingAppointmentsProps) {
   const [appointments, setAppointments] = useState<PendingAppointment[]>([])
   const [isLoading, setIsLoading] = useState(false)
