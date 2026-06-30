@@ -268,8 +268,12 @@ export const filiacionService = {
             // Intentar convertir la fecha a un formato estÃ¡ndar
             const fecha = new Date(record.FECHA_NACIMIENTO);
             if (!isNaN(fecha.getTime())) {
-              // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
-              record.FECHA_NACIMIENTO = fecha.toISOString().split('T')[0];
+              // Usar componentes UTC para evitar desfase por zona horaria (GMT-5)
+              // La fecha en BD representa la fecha local de nacimiento, no un instante UTC
+              const year = fecha.getUTCFullYear()
+              const month = String(fecha.getUTCMonth() + 1).padStart(2, '0')
+              const day = String(fecha.getUTCDate()).padStart(2, '0')
+              record.FECHA_NACIMIENTO = `${year}-${month}-${day}`
             } else {
               // Si no se puede convertir, asegurarse de que sea un string
               record.FECHA_NACIMIENTO = String(record.FECHA_NACIMIENTO);

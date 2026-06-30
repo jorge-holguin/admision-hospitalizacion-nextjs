@@ -49,6 +49,13 @@ export function formatDateForSQL(date: Date): string {
  * @returns Fecha en formato "DD/MM/YYYY"
  */
 export function convertISOToSQLDate(isoString: string | Date): string {
+  if (typeof isoString === 'string') {
+    // Si viene como YYYY-MM-DD (sin hora), tratarlo como fecha local para evitar desfase de zona horaria
+    const parts = isoString.split('-')
+    if (parts.length === 3 && parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`
+    }
+  }
   const date = typeof isoString === 'string' ? new Date(isoString) : isoString
   return formatDateForSQL(date)
 }
