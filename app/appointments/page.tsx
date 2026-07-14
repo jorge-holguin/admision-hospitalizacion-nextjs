@@ -605,33 +605,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       }
     }
 
-    const handleApoyoDiagnosticoAsignar = useCallback(async (idAtencion: string) => {
-      try {
-        const url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/citas/${idAtencion}/asignar`
-        console.log('🏥 Apoyo Diagnóstico - Asignando cita:', url)
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' }
-        })
-
-        if (!response.ok) {
-          throw new Error(`Error al asignar: ${response.status}`)
-        }
-
-        toast({
-          title: "¡Éxito!",
-          description: "Cita de apoyo diagnóstico asignada correctamente",
-        })
-        searchAppointmentsByParams()
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || "No se pudo asignar la cita",
-          variant: "destructive"
-        })
-      }
-    }, [searchAppointmentsByParams])
-
     const handleAction = async (action: string, appointment: any) => {
       setSelectedAppointment(appointment)
       switch (action) {
@@ -1034,7 +1007,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
 
 
                     {/* Botón Horario de Médicos */}
-                <div className="p-4 border-t flex justify-center">
+                <div className="p-4 border-t flex justify-center gap-2">
                   <a
                     href="https://citas.hospitalchosica.gob.pe/horario-medicos"
                     target="_blank"
@@ -1042,6 +1015,14 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
                   >
                     Horario de Médicos
+                  </a>
+                  <a
+                    href="https://docs.google.com/spreadsheets/d/1oEWDwywEwqqhlyDC97ZA6Rn287evILLYW_vsdB3HLB4/edit?gid=0#gid=0"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+                  >
+                    Ver citas de endoscopia
                   </a>
                 </div>
                                     </Card>

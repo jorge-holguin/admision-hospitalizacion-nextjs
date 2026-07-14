@@ -98,6 +98,7 @@ interface PatientAssignDiagnosticSupportModalProps {
 
 const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
 
 const SIS_SEGUROS_CODES = ['20', '21', '22', '23', '24', '25']
 
@@ -132,6 +133,7 @@ function PatientAssignDiagnosticSupportModalContent({
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [assignedCitaId, setAssignedCitaId] = useState<string | null>(null)
+  const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showErrorDialog, setShowErrorDialog] = useState(false)
@@ -244,6 +246,7 @@ function PatientAssignDiagnosticSupportModalContent({
     setIsLoadingPatientData(false)
     setShowSuccess(false)
     setAssignedCitaId("")
+    setFhirSyncResult(null)
     setShowErrorDialog(false)
     setErrorMessage("")
     setErrorTitle("Error")
@@ -330,6 +333,30 @@ function PatientAssignDiagnosticSupportModalContent({
       setAssignedCitaId(appointment.id)
       setShowSuccess(true)
 
+      // Registrar paciente en RENHICE/FHIR
+      const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+      console.log('📡 FHIR: Intentando registrar paciente en RENHICE:', pacienteId)
+      if (pacienteId) {
+        try {
+          const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteId}/registrar`
+          console.log('📡 FHIR: URL:', fhirUrl)
+          const fhirRes = await fetch(
+            fhirUrl,
+            { method: 'POST', headers: { 'accept': 'application/json' } }
+          )
+          console.log('📡 FHIR: Respuesta status:', fhirRes.status)
+          const fhirData = await fhirRes.json()
+          console.log('📡 FHIR: Respuesta data:', fhirData)
+          setFhirSyncResult({
+            ok: fhirData.ok === true,
+            scusUuid: fhirData.data?.scusUuid,
+            message: fhirData.message,
+          })
+        } catch {
+          setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
+        }
+      }
+
       await onAssign({ ...requestBody, appointmentId: appointment.id, success: true, responseData })
 
       onSuccess?.(appointment.id)
@@ -393,12 +420,37 @@ function PatientAssignDiagnosticSupportModalContent({
 
             {/* Éxito */}
             {showSuccess && (
-              <Alert className="mb-6 bg-green-50 border-green-200">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  ¡Cita asignada exitosamente! ID: <strong>{assignedCitaId}</strong>
-                </AlertDescription>
-              </Alert>
+              <div className="mb-6 space-y-2">
+                <Alert className="bg-green-50 border-green-200">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    ¡Cita asignada exitosamente! ID: <strong>{assignedCitaId}</strong>
+                  </AlertDescription>
+                </Alert>
+                {fhirSyncResult === null && (
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <AlertDescription className="text-blue-700 text-sm">
+                      Sincronizando con RENHICE...
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {fhirSyncResult?.ok && (
+                  <Alert className="bg-teal-50 border-teal-200">
+                    <CheckCircle className="h-4 w-4 text-teal-600" />
+                    <AlertDescription className="text-teal-800 text-sm">
+                      Paciente sincronizado con RENHICE.{fhirSyncResult.scusUuid ? <> SCUS UUID: <strong>{fhirSyncResult.scusUuid}</strong></> : null}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {fhirSyncResult !== null && !fhirSyncResult.ok && (
+                  <Alert className="bg-orange-50 border-orange-200">
+                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                    <AlertDescription className="text-orange-800 text-sm">
+                      Sincronización RENHICE: {fhirSyncResult.message || 'Error desconocido'}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

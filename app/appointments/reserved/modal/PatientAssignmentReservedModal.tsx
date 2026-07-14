@@ -25,6 +25,9 @@ import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS, actualiz
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/UpdateClinicalHistoryButton"
+import { AlertCircle } from "lucide-react"
+
+const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
 
 interface Patient {
   HISTORIA: string
@@ -207,6 +210,7 @@ function PatientAssignmentReservedModalContent({
   // Estados para el resultado de sincronización REFCON
   const [refconSyncSuccess, setRefconSyncSuccess] = useState(false)
   const [refconSyncError, setRefconSyncError] = useState<string | null>(null)
+  const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
   const [refreshedPatient, setRefreshedPatient] = useState<any>(null)
   const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([])
@@ -241,6 +245,7 @@ function PatientAssignmentReservedModalContent({
       setSisVerificationResult(null)
       setRefconSyncSuccess(false)
       setRefconSyncError(null)
+      setFhirSyncResult(null)
       setPendingAssignmentData(null)
     }
   }, [isOpen, patient])
@@ -588,6 +593,30 @@ function PatientAssignmentReservedModalContent({
         }
       }
       
+      // Registrar paciente en RENHICE/FHIR
+      const pacienteIdFhir = patient?.PACIENTE || patient?.HISTORIA
+      console.log('📡 FHIR: Intentando registrar paciente en RENHICE:', pacienteIdFhir)
+      if (pacienteIdFhir) {
+        try {
+          const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteIdFhir}/registrar`
+          console.log('📡 FHIR: URL:', fhirUrl)
+          const fhirRes = await fetch(
+            fhirUrl,
+            { method: 'POST', headers: { 'accept': 'application/json' } }
+          )
+          console.log('📡 FHIR: Respuesta status:', fhirRes.status)
+          const fhirData = await fhirRes.json()
+          console.log('📡 FHIR: Respuesta data:', fhirData)
+          setFhirSyncResult({
+            ok: fhirData.ok === true,
+            scusUuid: fhirData.data?.scusUuid,
+            message: fhirData.message,
+          })
+        } catch {
+          setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
+        }
+      }
+
       // Mostrar modal de éxito
       setShowSuccess(true)
       
@@ -701,6 +730,20 @@ function PatientAssignmentReservedModalContent({
                     {refconSyncError}
                   </pre>
                 </details>
+              </div>
+            )}
+
+            {/* Resultado de sincronización FHIR/RENHICE */}
+            {fhirSyncResult?.ok && (
+              <div className="w-full bg-teal-50 border border-teal-200 text-teal-800 rounded-lg p-3 text-sm text-left">
+                <p className="font-semibold mb-1 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Sincronización RENHICE</p>
+                <p>Paciente registrado correctamente en RENHICE.{fhirSyncResult.scusUuid ? ` SCUS UUID: ${fhirSyncResult.scusUuid}` : ''}</p>
+              </div>
+            )}
+            {fhirSyncResult !== null && !fhirSyncResult.ok && (
+              <div className="w-full bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left">
+                <p className="font-semibold flex items-center gap-1"><AlertCircle className="h-4 w-4" /> Sincronización RENHICE</p>
+                <p>{fhirSyncResult.message || 'No se pudo sincronizar con RENHICE'}</p>
               </div>
             )}
 
