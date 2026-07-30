@@ -235,10 +235,11 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       
       const data = await response.json()
       
-      setAppointments(data.content || [])
+      const fetchedAppointments: HistoryAppointment[] = data.content || []
+      setAppointments(fetchedAppointments)
       setTotalCount(data.totalElements || 0)
       setHasSearched(true)
-      fetchPatientInfo(searchTerm.trim(), searchType)
+      fetchPatientInfo(searchTerm.trim(), searchType, fetchedAppointments[0])
       
     } catch (err) {
       console.error('Error searching appointment history:', err)
@@ -390,7 +391,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     return edad
   }
 
-  const fetchPatientInfo = async (term: string, type: string) => {
+  const fetchPatientInfo = async (term: string, type: string, fallbackAppt?: HistoryAppointment) => {
     try {
       setIsLoadingPatientInfo(true)
       setPatientInfo(null)
@@ -426,13 +427,75 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
             patient = data as PatientInfo
           }
         }
+        if (!patient && fallbackAppt) {
+          patient = {
+            paciente: fallbackAppt.paciente || '',
+            historia: fallbackAppt.paciente || '',
+            nombres: (fallbackAppt as any).nombre || fallbackAppt.paciente || '',
+            sexo: '',
+            direccion: '',
+            fechaNacimiento: '',
+            distrito: '',
+            nombreDocumento: type === 'documento' ? 'DOC' : '',
+            documento: type === 'documento' ? term : '',
+            nombreSeguro: fallbackAppt.seguroNombre || '',
+            nombreLocalidad: '',
+            distritoDir: '',
+            seguro: fallbackAppt.seguro || '',
+            tipoDocumento: '',
+            telefono1: '',
+            telefono2: '',
+          }
+        }
         setPatientInfo(patient)
       } else {
         const errorText = await res.text()
         console.error('❌ Error del proxy:', res.status, errorText)
+        if (fallbackAppt) {
+          const patient: PatientInfo = {
+            paciente: fallbackAppt.paciente || '',
+            historia: fallbackAppt.paciente || '',
+            nombres: (fallbackAppt as any).nombre || fallbackAppt.paciente || '',
+            sexo: '',
+            direccion: '',
+            fechaNacimiento: '',
+            distrito: '',
+            nombreDocumento: type === 'documento' ? 'DOC' : '',
+            documento: type === 'documento' ? term : '',
+            nombreSeguro: fallbackAppt.seguroNombre || '',
+            nombreLocalidad: '',
+            distritoDir: '',
+            seguro: fallbackAppt.seguro || '',
+            tipoDocumento: '',
+            telefono1: '',
+            telefono2: '',
+          }
+          setPatientInfo(patient)
+        }
       }
     } catch (e) {
       console.error('Error fetching patient info:', e)
+      if (fallbackAppt) {
+        const patient: PatientInfo = {
+          paciente: fallbackAppt.paciente || '',
+          historia: fallbackAppt.paciente || '',
+          nombres: (fallbackAppt as any).nombre || fallbackAppt.paciente || '',
+          sexo: '',
+          direccion: '',
+          fechaNacimiento: '',
+          distrito: '',
+          nombreDocumento: type === 'documento' ? 'DOC' : '',
+          documento: type === 'documento' ? term : '',
+          nombreSeguro: fallbackAppt.seguroNombre || '',
+          nombreLocalidad: '',
+          distritoDir: '',
+          seguro: fallbackAppt.seguro || '',
+          tipoDocumento: '',
+          telefono1: '',
+          telefono2: '',
+        }
+        setPatientInfo(patient)
+      }
     } finally {
       setIsLoadingPatientInfo(false)
     }
@@ -874,54 +937,48 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
               <>
                 {/* Results Table */}
                 <div className="border rounded-lg overflow-x-auto w-full">
-                  <Table className="text-xs min-w-full">
+                  <Table className="text-sm w-full">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
-                        <TableHead className="whitespace-nowrap px-2">ID Cita</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Fecha y Hora</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Estado</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Consultorio</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Médico</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Tipo Consulta</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Tipo Seguro</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Num Referencia</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Paciente</TableHead>
-                        <TableHead className="whitespace-nowrap px-2">Diagnóstico</TableHead>
-                        <TableHead className="text-center whitespace-nowrap px-2">Acciones</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Fecha y Hora</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Estado</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Consultorio</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Médico</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Tipo Consulta</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Tipo Seguro</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Num Referencia</TableHead>
+                        <TableHead className="px-1.5 py-1.5">Diagnóstico</TableHead>
+                        <TableHead className="text-center px-1.5 py-1.5">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {appointments.map((appointment) => (
                         <TableRow key={appointment.id} className="hover:bg-gray-50">
-                          <TableCell className="font-medium text-blue-600 whitespace-nowrap px-2">
-                            {appointment.id}
+                          <TableCell className="px-1.5 py-1.5">
+                            <span className="font-medium whitespace-nowrap">{formatFecha(appointment.fecha)}</span>
+                            {appointment.hora && <span className="text-gray-500 ml-1 whitespace-nowrap">{appointment.hora}</span>}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-2">
-                            <span className="font-medium">{formatFecha(appointment.fecha)}</span>
-                            {appointment.hora && <span className="text-gray-500 ml-1">{appointment.hora}</span>}
-                          </TableCell>
-                          <TableCell className="px-2">{getEstadoBadge(appointment.estado)}</TableCell>
-                          <TableCell className="px-2">
+                          <TableCell className="px-1.5 py-1.5">{getEstadoBadge(appointment.estado)}</TableCell>
+                          <TableCell className="px-1.5 py-1.5 leading-tight">
                             {appointment.consultorioNombre || appointment.consultorio}
                           </TableCell>
-                          <TableCell className="px-2 font-medium">
+                          <TableCell className="px-1.5 py-1.5 leading-tight font-medium">
                             {appointment.medicoNombre || appointment.medico}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-2">
+                          <TableCell className="px-1.5 py-1.5 leading-tight">
                             {getTipoConsultaNombre(appointment.tipoConsulta || '')}
                           </TableCell>
-                          <TableCell className="px-2">
+                          <TableCell className="px-1.5 py-1.5 leading-tight">
                             {appointment.seguro + ' - ' + appointment.seguroNombre || '-'}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-2">
+                          <TableCell className="px-1.5 py-1.5 leading-tight">
                             {appointment.numRef || '-'}
                           </TableCell>
-                          <TableCell className="px-2 font-medium">{appointment.nombre}</TableCell>
-                          <TableCell className="px-2 text-xs text-gray-600" title={appointment.diagnostico || ''}>
+                          <TableCell className="px-1.5 py-1.5 leading-tight text-gray-600" title={appointment.diagnostico || ''}>
                             {appointment.diagnostico || <span className="text-gray-400">-</span>}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
+                          <TableCell className="px-1.5 py-1.5">
+                            <div className="flex items-center justify-center gap-1">
                               <Button
                                 size="sm"
                                 variant="outline"
