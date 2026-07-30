@@ -55,7 +55,29 @@ interface HistoryAppointment {
   numRef?: string
   seguro?: string
   seguroNombre?: string
+  diagnostico?: string
   [key: string]: any
+}
+
+interface PatientInfo {
+  paciente: string
+  historia: string
+  nombres: string
+  sexo: string
+  direccion: string
+  fechaNacimiento: string
+  distrito: string
+  nombreDocumento: string
+  documento: string
+  nombreSeguro: string
+  nombreLocalidad: string
+  distritoDir: string
+  seguro: string
+  tipoDocumento: string
+  telefono1: string
+  telefono2: string
+  stringFoto?: string
+  foto?: string
 }
 
 export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryModalProps) {
@@ -79,6 +101,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       setHasSearched(false)
       setError(null)
       setCurrentPage(0)
+      setPatientInfo(null)
       // Resetear fecha a 1 año atrás
       const oneYearAgo = new Date()
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
@@ -108,6 +131,10 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const [showTicketPreview, setShowTicketPreview] = useState(false)
   const [ticketData, setTicketData] = useState<TicketData | null>(null)
   const [isLoadingTicket, setIsLoadingTicket] = useState<string | null>(null)
+  const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null)
+  const [isLoadingPatientInfo, setIsLoadingPatientInfo] = useState(false)
+  const [photoError, setPhotoError] = useState(false)
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(0)
@@ -211,6 +238,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       setAppointments(data.content || [])
       setTotalCount(data.totalElements || 0)
       setHasSearched(true)
+      fetchPatientInfo(searchTerm.trim(), searchType)
       
     } catch (err) {
       console.error('Error searching appointment history:', err)
@@ -269,7 +297,6 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const handlePrintClick = async (citaId: string) => {
     try {
       setIsLoadingTicket(citaId)
-      console.log('🎫 Obteniendo datos de la cita para preview:', citaId)
       
       // Obtener datos completos de la cita
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
@@ -279,7 +306,6 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       }
       
       const citaData = await response.json()
-      console.log('📋 Datos de cita recibidos:', citaData)
       
       // Obtener el operador desde el JWT
       const operador = extractNombreCompletoFromToken() || 'OPERADOR'
@@ -339,6 +365,79 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     return `${day}/${month}/${year}`
   }
 
+  const getPatientPhotoSrc = (stringFoto?: string): string | null => {
+    if (!stringFoto || stringFoto.trim() === '') return null
+    const cleaned = stringFoto.replace(/\s+/g, '')
+    if (cleaned.startsWith('data:')) return cleaned
+
+    // Detectar formato por prefijo base64
+    let mime = 'image/jpeg'
+    if (cleaned.startsWith('iVBORw0KGgo')) mime = 'image/png'
+    else if (cleaned.startsWith('R0lGOD')) mime = 'image/gif'
+    else if (cleaned.startsWith('UklGR')) mime = 'image/webp'
+
+    return `data:${mime};base64,${cleaned}`
+  }
+
+  const calcularEdad = (fechaNacimiento: string): number => {
+    const hoy = new Date()
+    const nacimiento = new Date(fechaNacimiento)
+    let edad = hoy.getFullYear() - nacimiento.getFullYear()
+    const m = hoy.getMonth() - nacimiento.getMonth()
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--
+    }
+    return edad
+  }
+
+  const fetchPatientInfo = async (term: string, type: string) => {
+    try {
+      setIsLoadingPatientInfo(true)
+      setPatientInfo(null)
+      let url = ''
+      if (type === 'documento') {
+        url = `/api/busqueda?tipo=documento&tipoDocumento=D&documento=${encodeURIComponent(term)}`
+      } else {
+        url = `/api/busqueda?tipo=nombre&nombres=${encodeURIComponent(term)}`
+      }
+      const res = await fetch(url)
+      if (res.ok) {
+        const data = await res.json()
+
+        if (data && data.error) {
+          console.error('❌ El proxy devolvió error:', data.error)
+          setPatientInfo(null)
+          return
+        }
+
+        let patient: PatientInfo | null = null
+        if (Array.isArray(data) && data.length > 0) {
+          patient = data[0]
+        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+          if (Array.isArray(data.data) && data.data.length > 0) {
+            patient = data.data[0]
+          } else if (Array.isArray(data.pacientes) && data.pacientes.length > 0) {
+            patient = data.pacientes[0]
+          } else if (Array.isArray(data.content) && data.content.length > 0) {
+            patient = data.content[0]
+          } else if (Array.isArray(data.result) && data.result.length > 0) {
+            patient = data.result[0]
+          } else if (data.paciente || data.documento || data.nombres) {
+            patient = data as PatientInfo
+          }
+        }
+        setPatientInfo(patient)
+      } else {
+        const errorText = await res.text()
+        console.error('❌ Error del proxy:', res.status, errorText)
+      }
+    } catch (e) {
+      console.error('Error fetching patient info:', e)
+    } finally {
+      setIsLoadingPatientInfo(false)
+    }
+  }
+
   const resetFilters = () => {
     // NO borrar searchTerm ni cerrar showAdditionalFilters
     // Solo resetear los filtros adicionales
@@ -369,13 +468,25 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     }
   }, [currentPage])
 
+  // Compute photo source when patient info changes
+  useEffect(() => {
+    if (patientInfo) {
+      const raw = patientInfo.foto || patientInfo.stringFoto
+      const src = getPatientPhotoSrc(raw)
+      setPhotoError(false)
+      setPhotoSrc(src)
+    } else {
+      setPhotoSrc(null)
+    }
+  }, [patientInfo])
+
   const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="max-w-6xl max-h-[90vh] overflow-y-auto"
+          className="w-[90vw] max-w-[90vw] max-h-[90vh] overflow-y-auto"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -618,6 +729,101 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
               </div>
             )}
 
+            {/* Patient Info Card */}
+            {hasSearched && (
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="bg-blue-600 px-4 py-2 flex items-center gap-2">
+                  <User className="h-4 w-4 text-white" />
+                  <span className="text-sm font-semibold text-white">Ficha del Paciente</span>
+                </div>
+                <div className="p-4">
+                  {isLoadingPatientInfo ? (
+                    <div className="flex items-center gap-2 text-sm text-blue-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando datos del paciente...
+                    </div>
+                  ) : patientInfo ? (
+                    <div className="flex items-start gap-4">
+                      {/* Foto */}
+                      {photoSrc && !photoError ? (
+                        <img
+                          key={photoSrc}
+                          src={photoSrc}
+                          alt="Foto paciente"
+                          onError={(e) => {
+                            console.error('❌ Error cargando foto base64:', e)
+                            setPhotoError(true)
+                          }}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-blue-300 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center flex-shrink-0">
+                          <User className="h-8 w-8 text-blue-400" />
+                        </div>
+                      )}
+                      {/* Datos */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-base font-bold text-gray-900">{patientInfo.nombres}</h3>
+                          <span className="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">
+                            {patientInfo.sexo === 'M' ? 'Masculino' : patientInfo.sexo === 'F' ? 'Femenino' : patientInfo.sexo}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 text-xs text-gray-600">
+                          <div>
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Edad</span>
+                            <p className="font-bold text-gray-900 text-sm">
+                              {patientInfo.fechaNacimiento
+                                ? `${calcularEdad(patientInfo.fechaNacimiento)} años`
+                                : '-'}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Documento</span>
+                            <p className="font-medium text-gray-800">{patientInfo.nombreDocumento?.trim()} {patientInfo.documento}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Seguro</span>
+                            <p className="font-medium text-gray-800">{patientInfo.nombreSeguro || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Historia</span>
+                            <p className="font-medium text-gray-800">{patientInfo.historia}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Teléfono</span>
+                            <p className="font-medium text-gray-800">
+                              {patientInfo.telefono1?.trim() || '-'}
+                              {patientInfo.telefono2?.trim() && patientInfo.telefono2.trim() !== '' && ` / ${patientInfo.telefono2.trim()}`}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">F. Nacimiento</span>
+                            <p className="font-medium text-gray-800">
+                              {patientInfo.fechaNacimiento
+                                ? new Date(patientInfo.fechaNacimiento).toLocaleDateString('es-ES')
+                                : '-'}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Dirección</span>
+                            <p className="font-medium text-gray-800 truncate">
+                              {patientInfo.direccion?.trim() || '-'}{patientInfo.distritoDir ? `, ${patientInfo.distritoDir}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-amber-600">
+                      <AlertCircle className="h-4 w-4" />
+                      No se encontró información del paciente en el servicio de búsqueda.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Results Section */}
             {isLoading && (
               <div className="text-center py-8">
@@ -667,50 +873,53 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
             {hasSearched && !isLoading && !error && appointments.length > 0 && (
               <>
                 {/* Results Table */}
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
+                <div className="border rounded-lg overflow-x-auto w-full">
+                  <Table className="text-xs min-w-full">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
-                        <TableHead>ID Cita</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Hora</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Consultorio</TableHead>
-                        <TableHead>Médico</TableHead>
-                        <TableHead>Tipo Consulta</TableHead>
-                        <TableHead>Tipo Seguro</TableHead>
-                        <TableHead>Num Referencia</TableHead>
-                        <TableHead>Paciente</TableHead>
-                        <TableHead className="text-center">Acciones</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">ID Cita</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Fecha y Hora</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Estado</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Consultorio</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Médico</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Tipo Consulta</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Tipo Seguro</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Num Referencia</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Paciente</TableHead>
+                        <TableHead className="whitespace-nowrap px-2">Diagnóstico</TableHead>
+                        <TableHead className="text-center whitespace-nowrap px-2">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {appointments.map((appointment) => (
                         <TableRow key={appointment.id} className="hover:bg-gray-50">
-                          <TableCell className="font-medium text-blue-600">
+                          <TableCell className="font-medium text-blue-600 whitespace-nowrap px-2">
                             {appointment.id}
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {formatFecha(appointment.fecha)}
+                          <TableCell className="whitespace-nowrap px-2">
+                            <span className="font-medium">{formatFecha(appointment.fecha)}</span>
+                            {appointment.hora && <span className="text-gray-500 ml-1">{appointment.hora}</span>}
                           </TableCell>
-                          <TableCell>{appointment.hora}</TableCell>
-                          <TableCell>{getEstadoBadge(appointment.estado)}</TableCell>
-                          <TableCell>
+                          <TableCell className="px-2">{getEstadoBadge(appointment.estado)}</TableCell>
+                          <TableCell className="px-2">
                             {appointment.consultorioNombre || appointment.consultorio}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="px-2 font-medium">
                             {appointment.medicoNombre || appointment.medico}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="whitespace-nowrap px-2">
                             {getTipoConsultaNombre(appointment.tipoConsulta || '')}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="px-2">
                             {appointment.seguro + ' - ' + appointment.seguroNombre || '-'}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="whitespace-nowrap px-2">
                             {appointment.numRef || '-'}
                           </TableCell>
-                          <TableCell>{appointment.nombre}</TableCell>
+                          <TableCell className="px-2 font-medium">{appointment.nombre}</TableCell>
+                          <TableCell className="px-2 text-xs text-gray-600" title={appointment.diagnostico || ''}>
+                            {appointment.diagnostico || <span className="text-gray-400">-</span>}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button

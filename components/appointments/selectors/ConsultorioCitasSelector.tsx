@@ -38,6 +38,8 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
       if (!res.ok) return
       const data = await res.json()
       setItems(Array.isArray(data?.items) ? data.items : [])
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') console.error('Error cargando consultorios:', err)
     } finally {
       setLoading(false)
     }

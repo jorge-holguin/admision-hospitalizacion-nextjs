@@ -29,6 +29,7 @@ export interface CitaHistorial {
   tipoConsulta?: string
   entidadSis?: string
   numRef?: string
+  diagnostico?: string
 }
 
 export interface CitaSearchResult {
@@ -122,12 +123,17 @@ export async function searchCitasByDocumento(
           c.OBSERVACION,
           c.SEGURO,
           s.NOMBRE as SEGURO_NOMBRE,
-          c.TIPO_CITA
+          c.TIPO_CITA,
+          (SELECT STUFF((
+            SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
+            FROM dbo.ATENCIOND WITH (NOLOCK)
+            WHERE ID_CITA = c.CITA_ID AND DX LIKE '[A-Z]%'
+            FOR XML PATH('')), 1, 2, '')) AS DIAGNOSTICO
         FROM CITA c
         LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
         LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
         LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
-      LEFT JOIN SEGURO s ON c.SEGURO = s.SEGURO
+        LEFT JOIN SEGURO s ON c.SEGURO = s.SEGURO
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
@@ -164,7 +170,8 @@ export async function searchCitasByDocumento(
       observacion: cita.OBSERVACION || undefined,
       seguroNombre: cita.SEGURO_NOMBRE || undefined,
       seguro: cita.SEGURO || undefined,
-      tipoConsulta: cita.TIPO_CITA || undefined
+      tipoConsulta: cita.TIPO_CITA || undefined,
+      diagnostico: cita.DIAGNOSTICO?.trim() || undefined
     }))
 
     return {
@@ -241,9 +248,14 @@ export async function searchCitasByNombres(
           c.NUMREF,
           c.TURNO_CONSULTA,
           c.OBSERVACION,
-          c.SEGURO, 
+          c.SEGURO,
           c.TIPO_CITA,
-          s.NOMBRE as SEGURO_NOMBRE
+          s.NOMBRE as SEGURO_NOMBRE,
+          (SELECT STUFF((
+            SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
+            FROM dbo.ATENCIOND WITH (NOLOCK)
+            WHERE ID_CITA = c.CITA_ID AND DX LIKE '[A-Z]%'
+            FOR XML PATH('')), 1, 2, '')) AS DIAGNOSTICO
         FROM CITA c
         LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
         LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
@@ -285,7 +297,8 @@ export async function searchCitasByNombres(
       observacion: cita.OBSERVACION || undefined,
       seguroNombre: cita.SEGURO_NOMBRE || undefined,
       seguro: cita.SEGURO || undefined,
-      tipoConsulta: cita.TIPO_CITA || undefined
+      tipoConsulta: cita.TIPO_CITA || undefined,
+      diagnostico: cita.DIAGNOSTICO?.trim() || undefined
     }))
 
     return {

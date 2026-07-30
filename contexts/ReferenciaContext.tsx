@@ -19,6 +19,13 @@ interface ReferenciaData {
   numeroDocumento: string
   codigoEspecialidad: string
   especialidad: string
+  diagnosticos?: Array<{
+    id?: string
+    codigoCiex?: string
+    codigo_ciex?: string
+    tipoDiagnostico?: string
+    tipo_diagnostico?: string
+  }>
 }
 
 interface Referencia {
@@ -97,6 +104,7 @@ export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode 
       // Siempre intentar leer el cuerpo JSON, incluso si el status HTTP es 4xx/5xx,
       // porque el servicio REFCON envía "codigo" y "mensaje" útiles (6000, 9000, etc.)
       const data: ReferenciaAPIResponse = await response.json()
+      console.log('[REFCON CONTEXT] Respuesta completa:', JSON.stringify(data, null, 2))
 
       if (data.codigo === '0000' && data.datos?.datos) {
         setReferencias(data.datos.datos)

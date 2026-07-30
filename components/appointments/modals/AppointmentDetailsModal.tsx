@@ -1,12 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { extractDocumentFromToken } from "@/utils/jwtUtils"
-import { Calendar, Clock, User, Stethoscope, Building, CreditCard, FileText, Hospital, Hash, Shield, Clipboard, MapPin, AlertCircle } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, Building, FileText, Hospital, Hash, Clipboard, MapPin, AlertCircle, Activity, Phone, X } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 
 interface AppointmentDetailsModalProps {
@@ -15,6 +12,18 @@ interface AppointmentDetailsModalProps {
   appointment: any
   getEstadoBadge: (estado: number) => React.ReactNode
   formatTurno?: (turno: string) => string
+}
+
+function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <span className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1">
+        {icon}
+        {label}
+      </span>
+      <p className="text-sm font-medium text-gray-900">{value || '-'}</p>
+    </div>
+  )
 }
 
 export function AppointmentDetailsModal({
@@ -29,6 +38,8 @@ export function AppointmentDetailsModal({
   const [loadingLiberacion, setLoadingLiberacion] = useState(false)
   const [patientData, setPatientData] = useState<any>(null)
   const [loadingPatient, setLoadingPatient] = useState(false)
+  const [diagnosticos, setDiagnosticos] = useState<any[]>([])
+  const [loadingDiagnosticos, setLoadingDiagnosticos] = useState(false)
 
   // Cargar datos del paciente (teléfonos y código) cuando se abre el modal
   useEffect(() => {
@@ -64,6 +75,35 @@ export function AppointmentDetailsModal({
     }
 
     fetchPatientData()
+  }, [isOpen, appointment])
+
+  // Cargar diagnósticos de la cita
+  useEffect(() => {
+    if (!isOpen || !appointment) {
+      setDiagnosticos([])
+      return
+    }
+
+    const fetchDiagnosticos = async () => {
+      try {
+        setLoadingDiagnosticos(true)
+        const res = await fetch(`/api/appointments/${appointment.id}/diagnostics`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.success && Array.isArray(data.diagnosticos)) {
+            setDiagnosticos(data.diagnosticos)
+          }
+        } else {
+          console.error('Error fetching diagnosticos:', await res.text())
+        }
+      } catch (error) {
+        console.error('Error al cargar diagnósticos:', error)
+      } finally {
+        setLoadingDiagnosticos(false)
+      }
+    }
+
+    fetchDiagnosticos()
   }, [isOpen, appointment])
 
   // Cargar datos de liberación en cualquier estado (para saber quién liberó inicialmente)
@@ -122,213 +162,235 @@ export function AppointmentDetailsModal({
 
   if (!appointment) return null
 
-  const currentUser = extractDocumentFromToken()
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        className="w-[90vw] max-w-5xl max-h-[90vh] overflow-y-auto p-0"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="text-blue-800 font-semibold flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Detalles de la Cita
-          </DialogTitle>
-          
-          {/* Estado como etiqueta */}
-          <div className="mt-2">
-            {getEstadoBadge(appointment.estado)}
+        {/* Header compacto */}
+        <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-5 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 rounded-lg p-2">
+                <FileText className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Detalles de la Cita</h2>
+                <p className="text-blue-100 text-sm">ID #{appointment.id}</p>
+              </div>
+            </div>
+            <div className="shrink-0 pt-1">
+              {getEstadoBadge(appointment.estado)}
+            </div>
           </div>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Primera fila */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Hash className="h-4 w-4 text-gray-500" /> ID CITA
-              </Label>
-              <p className="text-sm font-medium flex items-center gap-2">{appointment.id}</p>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Cita - Card azul */}
+          <div className="bg-white border border-blue-100 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-blue-50/70 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-semibold text-blue-800">Información de la Cita</span>
             </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Calendar className="h-4 w-4 text-gray-500" /> FECHA
-              </Label>
-              <p className="text-sm font-medium">
-                {new Date(appointment.fecha).toLocaleDateString('es-ES')}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Clock className="h-4 w-4 text-gray-500" /> HORA
-              </Label>
-              <p className="text-sm font-medium">{appointment.hora}</p>
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <InfoItem icon={<Hash className="h-4 w-4" />} label="ID Cita" value={appointment.id} />
+              <InfoItem icon={<Calendar className="h-4 w-4" />} label="Fecha" value={new Date(appointment.fecha).toLocaleDateString('es-ES')} />
+              <InfoItem icon={<Clock className="h-4 w-4" />} label="Hora" value={appointment.hora} />
+              <InfoItem icon={<AlertCircle className="h-4 w-4" />} label="Turno" value={formatTurno ? formatTurno(appointment.turno) : appointment.turno || '-'} />
             </div>
           </div>
 
-          {/* Segunda fila */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4 text-gray-500" /> TURNO
-              </Label>
-              <p className="text-sm font-medium">{formatTurno ? formatTurno(appointment.turno) : appointment.turno || '-'}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Stethoscope className="h-4 w-4 text-gray-500" /> MÉDICO
-              </Label>
-              <p className="text-sm font-medium">
+          {/* Ubicación y médico */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-indigo-100 p-1.5 rounded-lg">
+                  <Stethoscope className="h-4 w-4 text-indigo-600" />
+                </div>
+                <h3 className="text-sm font-semibold text-gray-800">Médico</h3>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
                 {(appointment.medicoNombre || appointment.MEDICO_NOMBRE)
-                  ? `${appointment.medico || appointment.MEDICO} - ${appointment.medicoNombre || appointment.MEDICO_NOMBRE}`
+                  ? `${appointment.medicoNombre || appointment.MEDICO_NOMBRE}`
                   : appointment.medico || appointment.MEDICO || '-'
                 }
               </p>
+              <p className="text-xs text-gray-500 mt-1">Código: {appointment.medico || appointment.MEDICO || '-'}</p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Building className="h-4 w-4 text-gray-500" /> CONSULTORIO
-              </Label>
-              <p className="text-sm font-medium">
+            <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-emerald-100 p-1.5 rounded-lg">
+                  <Building className="h-4 w-4 text-emerald-600" />
+                </div>
+                <h3 className="text-sm font-semibold text-gray-800">Consultorio</h3>
+              </div>
+              <p className="text-sm font-medium text-gray-900">
                 {(appointment.consultorioNombre || appointment.CONSULTORIO_NOMBRE)
-                  ? `${appointment.consultorio || appointment.CONSULTORIO} - ${appointment.consultorioNombre || appointment.CONSULTORIO_NOMBRE}`
+                  ? `${appointment.consultorioNombre || appointment.CONSULTORIO_NOMBRE}`
                   : appointment.consultorio || appointment.CONSULTORIO || '-'
                 }
               </p>
+              <p className="text-xs text-gray-500 mt-1">Código: {appointment.consultorio || appointment.CONSULTORIO || '-'}</p>
             </div>
           </div>
 
-          {/* Tercera fila */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <User className="h-4 w-4 text-gray-500" /> PACIENTE
-              </Label>
-              {loadingPatient ? (
-                <div className="flex items-center gap-2">
-                  <Spinner className="h-4 w-4" />
-                  <span className="text-sm text-gray-500">Cargando...</span>
-                </div>
-              ) : (
-                <p className="text-sm font-medium">
-                  {patientData?.paciente || appointment.PACIENTE || appointment.paciente || '-'} - {patientData?.nombres || appointment.nombre || appointment.NOMBRE || '-'}
-                </p>
-              )}
+          {/* Paciente */}
+          <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-gray-50/70 px-4 py-2 border-b border-gray-100 flex items-center gap-2">
+              <User className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-semibold text-gray-800">Paciente</span>
             </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Shield className="h-4 w-4 text-gray-500" /> SEGURO
-              </Label>
-              <p className="text-sm font-medium">
-                {(appointment.seguroNombre || appointment.NOMBRE_SEGURO)
-                  ? `${appointment.seguro || appointment.SEGURO} - ${appointment.seguroNombre || appointment.NOMBRE_SEGURO}`
-                  : appointment.seguro || appointment.SEGURO || '-'
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Nombre</span>
+                {loadingPatient ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Spinner className="h-4 w-4" /> Cargando...
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-gray-900">
+                    {patientData?.nombres || appointment.nombre || appointment.NOMBRE || '-'}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Código Paciente</span>
+                <p className="text-sm font-medium text-gray-900">
+                  {patientData?.paciente || appointment.PACIENTE || appointment.paciente || '-'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Seguro</span>
+                <p className="text-sm font-medium text-gray-900">
+                  {(appointment.seguroNombre || appointment.NOMBRE_SEGURO)
+                    ? `${(appointment.seguro || appointment.SEGURO || '').trim()} - ${appointment.seguroNombre || appointment.NOMBRE_SEGURO}`
+                    : appointment.seguro || appointment.SEGURO || '-'
+                  }
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono 1</span>
+                <p className="text-sm font-medium text-gray-900">{patientData?.telefono1 || appointment.telefono1 || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono 2</span>
+                <p className="text-sm font-medium text-gray-900">{patientData?.telefono2 || appointment.telefono2 || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Pago ID</span>
+                <p className="text-sm font-medium text-gray-900">{appointment.pagoId || '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Adicionales */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Clipboard className="h-4 w-4 text-amber-600" />
+                <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Orden</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900">{appointment.numero || '-'}</p>
+            </div>
+            <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Hospital className="h-4 w-4 text-purple-600" />
+                <span className="text-xs font-semibold text-purple-800 uppercase tracking-wide">Establecimiento</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900">{appointment.entidadSis || appointment.ENTIDADSIS || '-'}</p>
+            </div>
+            <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="h-4 w-4 text-cyan-600" />
+                <span className="text-xs font-semibold text-cyan-800 uppercase tracking-wide">N° Referencia</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900">{appointment.numRef || appointment.NUMREF || '-'}</p>
+            </div>
+          </div>
+
+          {/* Diagnósticos */}
+          <div className="bg-white border border-green-100 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-green-50/70 px-4 py-2 border-b border-green-100 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-semibold text-green-800">Diagnósticos</span>
+            </div>
+            <div className="p-4">
+              {(() => {
+                if (loadingDiagnosticos) {
+                  return (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Spinner className="h-4 w-4" />
+                      Cargando diagnósticos...
+                    </div>
+                  )
                 }
+                if (diagnosticos.length > 0) {
+                  return (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-700">DX</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-700">Descripción</th>
+                            <th className="px-3 py-2 text-center font-semibold text-gray-700">Tipo</th>
+                            <th className="px-3 py-2 text-center font-semibold text-gray-700">Lab</th>
+                            <th className="px-3 py-2 text-center font-semibold text-gray-700">Ord</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {diagnosticos.map((d) => (
+                            <tr key={`${d.dx}-${d.dxDes}-${d.ord}`} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 font-medium text-blue-700 whitespace-nowrap">{d.dx}</td>
+                              <td className="px-3 py-2">{d.dxDes}</td>
+                              <td className="px-3 py-2 text-center">{d.tipodx || '-'}</td>
+                              <td className="px-3 py-2 text-center">{d.lab || '-'}</td>
+                              <td className="px-3 py-2 text-center">{d.ord || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                }
+                if (appointment.diagnostico) {
+                  return <p className="text-sm font-medium text-gray-800">{appointment.diagnostico}</p>
+                }
+                return <p className="text-sm text-gray-500">No se encontraron diagnósticos para esta cita.</p>
+              })()}
+            </div>
+          </div>
+
+          {/* Usuario y Liberación */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg ${appointment.estado == '0' ? 'bg-red-100' : 'bg-blue-100'}`}>
+                <User className={`h-4 w-4 ${appointment.estado == '0' ? 'text-red-600' : 'text-blue-600'}`} />
+              </div>
+              <p className="text-sm font-semibold text-gray-800">
+                {appointment.estado == '0' ? 'Usuario que anuló la cita' : 'Usuario que asignó la cita'}
+                <span className={`ml-2 font-mono ${appointment.estado == '0' ? 'text-red-600' : 'text-blue-600'}`}>
+                  ({appointment.userEliminacion?.trim() || appointment.usuario?.trim() || '-'})
+                </span>
               </p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <CreditCard className="h-4 w-4 text-gray-500" /> PAGO ID
-              </Label>
-              <p className="text-sm font-medium">{appointment.pagoId || '-'}</p>
-            </div>
-          </div>
 
-          {/* Quinta fila - Teléfonos */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <FileText className="h-4 w-4 text-gray-500" /> TELÉFONO 1
-              </Label>
-              {loadingPatient ? (
-                <div className="flex items-center gap-2">
-                  <Spinner className="h-4 w-4" />
-                  <span className="text-sm text-gray-500">Cargando...</span>
-                </div>
-              ) : (
-                <p className="text-sm font-medium">{patientData?.telefono1 || appointment.telefono1 || '-'}</p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <FileText className="h-4 w-4 text-gray-500" /> TELÉFONO 2
-              </Label>
-              {loadingPatient ? (
-                <div className="flex items-center gap-2">
-                  <Spinner className="h-4 w-4" />
-                  <span className="text-sm text-gray-500">Cargando...</span>
-                </div>
-              ) : (
-                <p className="text-sm font-medium">{patientData?.telefono2 || appointment.telefono2 || '-'}</p>
-              )}
-            </div>
-            <div className="space-y-1">
-              {/* Espacio vacío para mantener grid */}
-            </div>
-          </div>
-
-          {/* Cuarta fila */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Clipboard className="h-4 w-4 text-gray-500" /> ORDEN
-              </Label>
-              <p className="text-sm font-medium">{appointment.numero  || '-'}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <Hospital className="h-4 w-4 text-gray-500" /> ESTABLECIMIENTO
-              </Label>
-              <p className="text-sm font-medium">{appointment.entidadSis || appointment.ENTIDADSIS || '-'}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                <MapPin className="h-4 w-4 text-gray-500" /> NUM REFERENCIA
-              </Label>
-              <p className="text-sm font-medium">{appointment.numRef || appointment.NUMREF || '-'}</p>
-            </div>
-          </div>
-
-          {/* Usuario - Condicional según estado */}
-          <div className="border-t pt-4 bg-gray-50 rounded-md p-4 space-y-4">
-            {/* Información del usuario según estado */}
-            {appointment.estado == '0' ? (
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-red-600" />
-                <p className="text-base font-medium text-gray-700">
-                  Usuario que anuló la cita: <span className="text-red-600 font-semibold">({appointment.userEliminacion?.trim() || '-'})</span>
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-600" />
-                <p className="text-base font-medium text-gray-700">
-                  Usuario que asignó la cita: <span className="text-blue-600 font-semibold">({appointment.usuario?.trim() || '-'})</span>
-                </p>
-              </div>
-            )}
-
-            {/* Detalles de Liberación - Mostrar en cualquier estado si hay datos */}
             {loadingLiberacion ? (
-              <div className="flex items-center justify-center py-4">
-                <Spinner className="h-6 w-6" />
-                <span className="ml-2 text-sm text-gray-500">Cargando historial de liberación...</span>
+              <div className="flex items-center gap-2 text-sm text-gray-500 bg-white p-3 rounded-lg border">
+                <Spinner className="h-4 w-4" /> Cargando historial de liberación...
               </div>
             ) : liberacionData ? (
-              <div className="space-y-3 border-t pt-3">
-                <div className="flex items-center gap-2 border-b pb-2">
-                  <AlertCircle className="h-5 w-5 text-orange-600" />
-                  <p className="text-lg font-semibold text-orange-600">Historial de Liberación</p>
+              <div className="bg-white rounded-lg border border-orange-200 overflow-hidden">
+                <div className="bg-orange-50 px-4 py-2 border-b border-orange-100 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-800">Historial de Liberación</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                      <Calendar className="h-4 w-4 text-gray-500" /> Fecha de Liberación
-                    </Label>
-                    <p className="text-sm font-medium">
-                      {liberacionData.fechaLiberacion 
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Fecha de Liberación</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      {liberacionData.fechaLiberacion
                         ? new Date(liberacionData.fechaLiberacion).toLocaleString('es-ES', {
                             day: '2-digit',
                             month: '2-digit',
@@ -341,45 +403,38 @@ export function AppointmentDetailsModal({
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                      <User className="h-4 w-4 text-gray-500" /> Usuario que Liberó
-                    </Label>
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Usuario que Liberó</span>
                     <p className="text-sm font-medium">
-                      <span className="text-orange-600 font-semibold">
-                        {liberacionData.usuarioLiberacion?.trim() || '-'}
-                      </span>
+                      <span className="text-orange-700 font-semibold">{liberacionData.usuarioLiberacion?.trim() || '-'}</span>
                       {usuarioLiberador && usuarioLiberador !== liberacionData.usuarioLiberacion?.trim() && (
                         <span className="block text-xs text-gray-600 mt-1">{usuarioLiberador}</span>
                       )}
                     </p>
                   </div>
                   {liberacionData.observacion && liberacionData.observacion.trim() !== '""' && (
-                    <div className="space-y-1 md:col-span-2">
-                      <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                        <FileText className="h-4 w-4 text-gray-500" /> Motivo de Liberación
-                      </Label>
-                      <p className="text-sm font-medium bg-white p-2 rounded border">
+                    <div className="sm:col-span-2 space-y-1">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Motivo de Liberación</span>
+                      <p className="text-sm font-medium bg-gray-50 p-3 rounded border text-gray-800">
                         {liberacionData.observacion.replace(/^"|"$/g, '')}
                       </p>
                     </div>
                   )}
                 </div>
               </div>
-            ) : !loadingLiberacion && (
-              <div className="flex items-center gap-2 text-gray-500 bg-gray-100 p-3 rounded border border-gray-300">
-                <AlertCircle className="h-5 w-5" />
-                <p className="text-sm font-medium">
-                  No se encontraron registros de liberación para esta cita
-                </p>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-gray-500 bg-white p-3 rounded-lg border">
+                <AlertCircle className="h-4 w-4" />
+                No se encontraron registros de liberación para esta cita
               </div>
             )}
           </div>
-          {/* Botones */}
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={onClose}>
-              Cerrar
-            </Button>
-          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t bg-gray-50 flex justify-end">
+          <Button variant="outline" onClick={onClose} className="gap-1">
+            <X className="h-4 w-4" /> Cerrar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
