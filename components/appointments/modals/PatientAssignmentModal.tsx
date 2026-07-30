@@ -88,7 +88,7 @@ interface PatientAssignmentModalProps {
 }
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
+// const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
 
 // Componente interno que usa el contexto de referencias
 function PatientAssignmentModalContent({ 
@@ -128,7 +128,7 @@ function PatientAssignmentModalContent({
   const [showRefconResultDialog, setShowRefconResultDialog] = useState(false)
   const [refconSyncSuccess, setRefconSyncSuccess] = useState(false)
   const [refconSyncError, setRefconSyncError] = useState<string | null>(null)
-  const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
+  // const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
   
   // Estados para el AlertDialog de error
   const [showErrorDialog, setShowErrorDialog] = useState(false)
@@ -155,7 +155,7 @@ function PatientAssignmentModalContent({
       setShowRefconResultDialog(false)
       setRefconSyncSuccess(false)
       setRefconSyncError(null)
-      setFhirSyncResult(null)
+      // setFhirSyncResult(null)
     }
   }, [isOpen])
   
@@ -466,11 +466,9 @@ function PatientAssignmentModalContent({
       /* ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' (COMENTADA - Ahora se maneja en backend) =====
       const seguroTrimmed = selectedSeguro.trim()
       if (seguroTrimmed === '05' || seguroTrimmed === '13') {
-        console.log(`💰 Seguro ${seguroTrimmed} detectado - Procesando FECHA_PAGO y ARCHIVO_MOV...`)
         
         try {
           // 1. Actualizar FECHA_PAGO de la cita
-          console.log('📅 Paso 1: Actualizando FECHA_PAGO...')
           const fechaActual = new Date()
           const updateFechaPagoResponse = await fetch(`/api/appointments/${appointment.id}`, {
             method: 'PATCH',
@@ -484,11 +482,9 @@ function PatientAssignmentModalContent({
           if (!updateFechaPagoResponse.ok) {
             console.warn('⚠️ No se pudo actualizar FECHA_PAGO:', updateFechaPagoResponse.status)
           } else {
-            console.log('✅ FECHA_PAGO actualizada')
           }
           
           // 2. Consultar datos completos de la cita desde la API
-          console.log('🔍 Paso 2: Consultando datos completos de la cita...')
           const citaResponse = await fetch(`${apiBaseUrl}/cita/${appointment.id}`)
           
           if (!citaResponse.ok) {
@@ -496,10 +492,8 @@ function PatientAssignmentModalContent({
           }
           
           const citaData = await citaResponse.json()
-          console.log('📄 Datos de cita obtenidos:', citaData)
           
           // 3. Crear registro en ARCHIVO_MOV
-          console.log('📝 Paso 3: Creando registro en ARCHIVO_MOV...')
           
           const archivoMovData = {
             ID_CITA: citaData.citaId || appointment.id,
@@ -522,7 +516,6 @@ function PatientAssignmentModalContent({
             TIPO_PACIENTE: citaData.tipoPaciente || 'C',
          }
           
-          console.log('📤 Datos para ARCHIVO_MOV:', archivoMovData)
           
           const archivoMovResponse = await fetch('/api/appointments/archivo-mov', {
             method: 'POST',
@@ -539,7 +532,6 @@ function PatientAssignmentModalContent({
               console.error('❌ Error al crear ARCHIVO_MOV:', errorData)
             }
           } else {
-            console.log('✅ ARCHIVO_MOV creado exitosamente')
           }
         } catch (archivoMovError) {
           console.error('❌ Error en proceso de ARCHIVO_MOV:', archivoMovError)
@@ -559,29 +551,25 @@ function PatientAssignmentModalContent({
       setAssignedCitaId(appointment.id)
       setShowSuccess(true)
 
-      // Registrar paciente en RENHICE/FHIR
-      const pacienteIdFhir = patient?.PACIENTE || patient?.HISTORIA
-      console.log('📡 FHIR: Intentando registrar paciente en RENHICE:', pacienteIdFhir)
-      if (pacienteIdFhir) {
-        try {
-          const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteIdFhir}/registrar`
-          console.log('📡 FHIR: URL:', fhirUrl)
-          const fhirRes = await fetch(
-            fhirUrl,
-            { method: 'POST', headers: { 'accept': 'application/json' } }
-          )
-          console.log('📡 FHIR: Respuesta status:', fhirRes.status)
-          const fhirData = await fhirRes.json()
-          console.log('📡 FHIR: Respuesta data:', fhirData)
-          setFhirSyncResult({
-            ok: fhirData.ok === true,
-            scusUuid: fhirData.data?.scusUuid,
-            message: fhirData.message,
-          })
-        } catch {
-          setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
-        }
-      }
+      // Registrar paciente en RENHICE/FHIR (deshabilitado temporalmente)
+      // const pacienteIdFhir = patient?.PACIENTE || patient?.HISTORIA
+      // if (pacienteIdFhir) {
+      //   try {
+      //     const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteIdFhir}/registrar`
+      //     const fhirRes = await fetch(
+      //       fhirUrl,
+      //       { method: 'POST', headers: { 'accept': 'application/json' } }
+      //     )
+      //     const fhirData = await fhirRes.json()
+      //     setFhirSyncResult({
+      //       ok: fhirData.ok === true,
+      //       scusUuid: fhirData.data?.scusUuid,
+      //       message: fhirData.message,
+      //     })
+      //   } catch {
+      //     setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
+      //   }
+      // }
       
       // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
       const esReferenciaManualSync = referenciaIdSeleccionada?.startsWith('manual-')
@@ -775,6 +763,7 @@ function PatientAssignmentModalContent({
                 Redirigiendo en unos segundos...
               </AlertDescription>
             </Alert>
+            {/* Sincronización RENHICE/FHIR deshabilitada temporalmente
             {fhirSyncResult === null && (
               <Alert className="bg-blue-50 border-blue-200">
                 <AlertDescription className="text-blue-700 text-sm">Sincronizando con RENHICE...</AlertDescription>
@@ -796,6 +785,7 @@ function PatientAssignmentModalContent({
                 </AlertDescription>
               </Alert>
             )}
+            */}
           </div>
         )}
         
@@ -862,7 +852,6 @@ function PatientAssignmentModalContent({
                           const displayText = appointment.consultorioNombre 
                             ? `${appointment.consultorio} - ${appointment.consultorioNombre}`
                             : appointment.consultorio;
-                          console.log('🏥 Mostrando consultorio:', displayText);
                           return displayText;
                         })()}
                       </span>
@@ -877,7 +866,6 @@ function PatientAssignmentModalContent({
                           const displayText = appointment.medicoNombre 
                             ? `${appointment.medico} - ${appointment.medicoNombre}`
                             : appointment.medico;
-                          console.log('👨‍⚕️ Mostrando médico:', displayText);
                           return displayText;
                         })()}
                       </span>
@@ -932,7 +920,6 @@ function PatientAssignmentModalContent({
                         if (result.isSuccess) {
                           // ✅ Cambiar tipo de cita a "D" (Demanda) cuando SIS es exitoso
                           setSelectedTipoCita('D')
-                          console.log('✅ SIS verificado exitosamente - Tipo de cita establecido a DEMANDA')
                           
                           if (result.eess) {
                             // Hacer trim a los ceros del código de establecimiento
@@ -942,7 +929,6 @@ function PatientAssignmentModalContent({
                             
                             // Forzar un retraso para asegurar que el estado se actualice
                             setTimeout(() => {
-                              console.log('Establecimiento autocompletado:', trimmedEess)
                             }, 100)
                           }
                         }
@@ -975,7 +961,6 @@ function PatientAssignmentModalContent({
                           
                           const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                           if (result.success && result.data) {
-                            console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
                             setEessNombreOrigen(result.data.NOMBRE)
                           } else {
                             console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
@@ -988,7 +973,6 @@ function PatientAssignmentModalContent({
                         }
                       }}
                       onEessChange={(eess) => {
-                        console.log('🏥 EESS origen actualizado:', eess)
                         setEessOrigenReferencia(eess)
                       }}
                     />
@@ -996,7 +980,6 @@ function PatientAssignmentModalContent({
                       key={sisVerificationResult?.eess || eessOrigenReferencia || 'entidad-sis-selector'}
                       value={selectedEntidadSis}
                       onChange={(value) => {
-                        console.log('🏥 EntidadSisSelector onChange:', value)
                         setSelectedEntidadSis(value)
                       }}
                       sisEstablecimiento={

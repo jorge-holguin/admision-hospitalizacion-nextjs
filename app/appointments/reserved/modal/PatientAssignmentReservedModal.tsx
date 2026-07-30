@@ -25,9 +25,8 @@ import { sincronizarCitaConRefcon, obtenerDatosCitaRefcon, esSeguroSIS, actualiz
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/UpdateClinicalHistoryButton"
-import { AlertCircle } from "lucide-react"
 
-const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
+// const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
 
 interface Patient {
   HISTORIA: string
@@ -210,7 +209,7 @@ function PatientAssignmentReservedModalContent({
   // Estados para el resultado de sincronización REFCON
   const [refconSyncSuccess, setRefconSyncSuccess] = useState(false)
   const [refconSyncError, setRefconSyncError] = useState<string | null>(null)
-  const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
+  // const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
   const [sisVerificationResult, setSisVerificationResult] = useState<any>(null)
   const [refreshedPatient, setRefreshedPatient] = useState<any>(null)
   const [pendingAppointments, setPendingAppointments] = useState<PendingAppointment[]>([])
@@ -245,7 +244,7 @@ function PatientAssignmentReservedModalContent({
       setSisVerificationResult(null)
       setRefconSyncSuccess(false)
       setRefconSyncError(null)
-      setFhirSyncResult(null)
+      // setFhirSyncResult(null)
       setPendingAssignmentData(null)
     }
   }, [isOpen, patient])
@@ -358,7 +357,6 @@ function PatientAssignmentReservedModalContent({
       return
     }
     
-    console.log('✅ Validación de doble cita pasada, continuando con aprobación...')
 
     setIsLoading(true)
     try {
@@ -434,11 +432,9 @@ function PatientAssignmentReservedModalContent({
 /*       // ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' =====
       const seguroTrimmed = selectedSeguro.trim()
       if (seguroTrimmed === '05' || seguroTrimmed === '13') {
-        console.log(`💰 Seguro ${seguroTrimmed} detectado - Procesando FECHA_PAGO y ARCHIVO_MOV...`)
         
         try {
           // 1. Actualizar FECHA_PAGO de la cita
-          console.log('📅 Paso 1: Actualizando FECHA_PAGO...')
           const fechaActual = new Date()
           const updateFechaPagoResponse = await fetch(`/api/appointments/${appointment.citaId}`, {
             method: 'PATCH',
@@ -452,11 +448,9 @@ function PatientAssignmentReservedModalContent({
           if (!updateFechaPagoResponse.ok) {
             console.warn('⚠️ No se pudo actualizar FECHA_PAGO:', updateFechaPagoResponse.status)
           } else {
-            console.log('✅ FECHA_PAGO actualizada')
           }
           
           // 2. Consultar datos completos de la cita desde la API
-          console.log('🔍 Paso 2: Consultando datos completos de la cita...')
           const citaResponse = await fetch(`${apiBaseUrl}/cita/${appointment.citaId}`)
           
           if (!citaResponse.ok) {
@@ -464,10 +458,8 @@ function PatientAssignmentReservedModalContent({
           }
           
           const citaData = await citaResponse.json()
-          console.log('📄 Datos de cita obtenidos:', citaData)
           
           // 3. Crear registro en ARCHIVO_MOV
-          console.log('📝 Paso 3: Creando registro en ARCHIVO_MOV...')
           
           const archivoMovData = {
             ID_CITA: citaData.citaId || appointment.citaId,
@@ -490,7 +482,6 @@ function PatientAssignmentReservedModalContent({
             TIPO_PACIENTE: citaData.tipoPaciente || 'C',
           }
           
-          console.log('📤 Datos para ARCHIVO_MOV:', archivoMovData)
           
           const archivoMovResponse = await fetch('/api/appointments/archivo-mov', {
             method: 'POST',
@@ -507,7 +498,6 @@ function PatientAssignmentReservedModalContent({
               console.error('❌ Error al crear ARCHIVO_MOV:', errorData)
             }
           } else {
-            console.log('✅ ARCHIVO_MOV creado exitosamente')
           }
         } catch (archivoMovError) {
           console.error('❌ Error en proceso de ARCHIVO_MOV:', archivoMovError)
@@ -593,29 +583,25 @@ function PatientAssignmentReservedModalContent({
         }
       }
       
-      // Registrar paciente en RENHICE/FHIR
-      const pacienteIdFhir = patient?.PACIENTE || patient?.HISTORIA
-      console.log('📡 FHIR: Intentando registrar paciente en RENHICE:', pacienteIdFhir)
-      if (pacienteIdFhir) {
-        try {
-          const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteIdFhir}/registrar`
-          console.log('📡 FHIR: URL:', fhirUrl)
-          const fhirRes = await fetch(
-            fhirUrl,
-            { method: 'POST', headers: { 'accept': 'application/json' } }
-          )
-          console.log('📡 FHIR: Respuesta status:', fhirRes.status)
-          const fhirData = await fhirRes.json()
-          console.log('📡 FHIR: Respuesta data:', fhirData)
-          setFhirSyncResult({
-            ok: fhirData.ok === true,
-            scusUuid: fhirData.data?.scusUuid,
-            message: fhirData.message,
-          })
-        } catch {
-          setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
-        }
-      }
+      // Registrar paciente en RENHICE/FHIR (deshabilitado temporalmente)
+      // const pacienteIdFhir = patient?.PACIENTE || patient?.HISTORIA
+      // if (pacienteIdFhir) {
+      //   try {
+      //     const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteIdFhir}/registrar`
+      //     const fhirRes = await fetch(
+      //       fhirUrl,
+      //       { method: 'POST', headers: { 'accept': 'application/json' } }
+      //     )
+      //     const fhirData = await fhirRes.json()
+      //     setFhirSyncResult({
+      //       ok: fhirData.ok === true,
+      //       scusUuid: fhirData.data?.scusUuid,
+      //       message: fhirData.message,
+      //     })
+      //   } catch {
+      //     setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
+      //   }
+      // }
 
       // Mostrar modal de éxito
       setShowSuccess(true)
@@ -733,7 +719,7 @@ function PatientAssignmentReservedModalContent({
               </div>
             )}
 
-            {/* Resultado de sincronización FHIR/RENHICE */}
+            {/* Sincronización RENHICE/FHIR deshabilitada temporalmente
             {fhirSyncResult?.ok && (
               <div className="w-full bg-teal-50 border border-teal-200 text-teal-800 rounded-lg p-3 text-sm text-left">
                 <p className="font-semibold mb-1 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Sincronización RENHICE</p>
@@ -746,6 +732,7 @@ function PatientAssignmentReservedModalContent({
                 <p>{fhirSyncResult.message || 'No se pudo sincronizar con RENHICE'}</p>
               </div>
             )}
+            */}
 
             <Button
               onClick={async () => {

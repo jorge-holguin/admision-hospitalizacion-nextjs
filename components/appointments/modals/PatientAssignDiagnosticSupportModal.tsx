@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { PatientInfoCardAppointment } from "../patient/PatientInfoCardAppointment"
 import { PatientPendingAppointmentsModal, type PendingAppointment } from "../patient/PatientPendingAppointmentsModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, AlertCircle, Printer, Loader2, MapPin, ClipboardList, Pencil, Trash2 } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer, Loader2, MapPin, ClipboardList, Pencil, Trash2 } from "lucide-react"
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
@@ -133,7 +133,7 @@ interface PatientAssignDiagnosticSupportModalProps {
 
 const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
+// const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
 const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
 const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
 
@@ -180,7 +180,7 @@ function PatientAssignDiagnosticSupportModalContent({
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [assignedCitaId, setAssignedCitaId] = useState<string | null>(null)
-  const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
+  // const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
   const [seguroFiliacion, setSeguroFiliacion] = useState<string>("")
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -249,7 +249,6 @@ function PatientAssignDiagnosticSupportModalContent({
       if (res.ok) {
         const data = await res.json()
         const seguroEncontrado = data?.seguro?.toString().trim() || data?.SEGURO?.toString().trim() || ''
-        console.log('[FILIACION] Seguro obtenido:', seguroEncontrado, 'para documento:', documento)
         setSeguroFiliacion(seguroEncontrado)
       }
     } catch (e: any) {
@@ -286,7 +285,6 @@ function PatientAssignDiagnosticSupportModalContent({
   // Limpiar datos de REFCON detalle cuando cambia la referencia SIS seleccionada en el contexto
   useEffect(() => {
     if (!selectedSisReferencia || !isPacientePeriferico) return
-    console.log('[REFCON] selectedSisReferencia cambió, limpiando referencias detalladas para refetch:', selectedSisReferencia.numeroReferencia)
     setReferenciaItems([])
     setSelectedRefItem(null)
   }, [selectedSisReferencia?.numeroReferencia, selectedSisReferencia?.idReferencia, isPacientePeriferico])
@@ -411,7 +409,6 @@ function PatientAssignDiagnosticSupportModalContent({
 
   const buscarReferenciaDetalle = async () => {
     const doc = patient?.DOCUMENTO
-    console.log('[REFCON] Iniciando búsqueda. Documento:', doc, 'TIPO_DOCUMENTO:', patient?.TIPO_DOCUMENTO)
     if (!doc) {
       toast({ title: 'Sin documento', description: 'El paciente no tiene número de documento registrado.', variant: 'destructive' })
       return
@@ -424,13 +421,11 @@ function PatientAssignDiagnosticSupportModalContent({
     try {
       const tipoDoc = (patient.TIPO_DOCUMENTO === 'CE' || patient.TIPO_DOCUMENTO === 'C') ? '2' : '1'
       const body = { establecimientoDestino: EESS_DESTINO, limite: '25', numerodocumento: doc, pagina: '1', tipodocumento: tipoDoc }
-      console.log('[REFCON] POST', `${REFERENCIA_BASE_URL}/api/referencia/detalle`, body)
       const res = await fetch(`${REFERENCIA_BASE_URL}/api/referencia/detalle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      console.log('[REFCON] Response status:', res.status)
       if (!res.ok) {
         const errText = await res.text().catch(() => res.statusText)
         console.error('[REFCON] Error response:', errText)
@@ -438,10 +433,7 @@ function PatientAssignDiagnosticSupportModalContent({
         return
       }
       const json = await res.json()
-      console.log('[REFCON] Response JSON keys:', Object.keys(json))
-      console.log('[REFCON] Response JSON sample:', Array.isArray(json) ? `array(${json.length})` : typeof json)
       // Estructura esperada: { codigo: '0000', mensaje: '...', datos: { paginas, porPagina, total, datos: [...] } }
-      console.log('[REFCON] Response codigo/mensaje:', json?.codigo, json?.mensaje)
       if (json?.codigo && json.codigo !== '0000') {
         console.error('[REFCON] API respondió con código de error:', json?.codigo, json?.mensaje)
         toast({ title: 'Error al buscar referencias', description: json?.mensaje || `Código ${json?.codigo}`, variant: 'destructive' })
@@ -458,22 +450,16 @@ function PatientAssignDiagnosticSupportModalContent({
         return []
       }
       const rawLista = extractLista(json)
-      console.log('[REFCON] Referencias extraídas:', rawLista.length)
       if (rawLista.length > 0) {
-        console.log('[REFCON] Primer item extraído keys:', Object.keys(rawLista[0]))
-        console.log('[REFCON] Primer item sample:', { rownum: rawLista[0]?.rownum, numero_referencia: rawLista[0]?.datos_referencia?.numero_referencia, servicio_destino: rawLista[0]?.datos_referencia?.servicio_destino, cpt_imagenes: rawLista[0]?.cpt_imagenes })
       }
       const filteredLista = rawLista.filter(isReferenciaValida)
-      console.log('[REFCON] Referencias filtradas por estado permitido y CPMS:', filteredLista.length, 'de', rawLista.length)
 
       if (filteredLista.length === 0 && selectedSisReferencia) {
         const fallbackRef = mapSisReferenciaToItem(selectedSisReferencia)
         if (!isReferenciaValida(fallbackRef)) {
-          console.log('[REFCON] Fallback SIS sin CPMS, no se muestra:', selectedSisReferencia.numeroReferencia)
           toast({ title: 'Sin referencias', description: 'No se encontraron referencias de apoyo diagnóstico con CPMS para este paciente.', variant: 'default' })
           return
         }
-        console.log('[REFCON] Sin resultados en /detalle con estado permitido, usando referencia SIS seleccionada:', selectedSisReferencia.numeroReferencia)
         setReferenciaItems([fallbackRef])
         setSelectedRefItem(fallbackRef)
         setShowCrearOrdenModal(true)
@@ -491,30 +477,23 @@ function PatientAssignDiagnosticSupportModalContent({
           r.datos_referencia?.numero_referencia === selectedSisReferencia.numeroReferencia ||
           r.datos_referencia?.id_referencia === selectedSisReferencia.idReferencia
         )
-        if (autoSelected) console.log('[REFCON] Match exacto por numero_referencia SIS:', autoSelected.datos_referencia?.numero_referencia)
       }
       if (!autoSelected) {
         const ups = getUPSDestino()
         autoSelected = filteredLista.find(r => ups.includes(r.datos_referencia?.servicio_destino || '')) ?? filteredLista[0]
-        console.log('[REFCON] Fallback UPS/primera:', autoSelected?.datos_referencia?.numero_referencia)
       }
-      console.log('[REFCON] Auto-seleccionada:', autoSelected?.datos_referencia?.numero_referencia)
-      console.log('[REFCON] Auto-seleccionada CPT data:', { cpt_imagenes: autoSelected?.cpt_imagenes, cpt_procedimiento: autoSelected?.cpt_procedimiento, cpt_laboratorio: autoSelected?.cpt_laboratorio, diagnosticos: autoSelected?.diagnosticos })
       setSelectedRefItem(autoSelected)
       // Abrir modal directamente para que el usuario valide y cree la orden
-      console.log('[REFCON] Abriendo modal de orden...')
       setShowCrearOrdenModal(true)
     } catch (e: any) {
       console.error('[REFCON] Excepción:', e)
       if (selectedSisReferencia) {
         const fallbackRef = mapSisReferenciaToItem(selectedSisReferencia)
         if (isReferenciaValida(fallbackRef)) {
-          console.log('[REFCON] Error en /detalle, usando referencia SIS seleccionada como fallback')
           setReferenciaItems([fallbackRef])
           setSelectedRefItem(fallbackRef)
           setShowCrearOrdenModal(true)
         } else {
-          console.log('[REFCON] Fallback SIS sin CPMS, no se muestra tras error')
           toast({ title: 'Sin referencias', description: 'No se encontraron referencias de apoyo diagnóstico con CPMS para este paciente.', variant: 'default' })
         }
       } else {
@@ -541,7 +520,7 @@ function PatientAssignDiagnosticSupportModalContent({
     setIsLoadingPatientData(false)
     setShowSuccess(false)
     setAssignedCitaId("")
-    setFhirSyncResult(null)
+    // setFhirSyncResult(null)
     setShowErrorDialog(false)
     setErrorMessage("")
     setErrorTitle("Error")
@@ -645,29 +624,25 @@ function PatientAssignDiagnosticSupportModalContent({
       setAssignedCitaId(appointment.id)
       setShowSuccess(true)
 
-      // Registrar paciente en RENHICE/FHIR
-      const pacienteId = patient?.PACIENTE || patient?.HISTORIA
-      console.log('📡 FHIR: Intentando registrar paciente en RENHICE:', pacienteId)
-      if (pacienteId) {
-        try {
-          const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteId}/registrar`
-          console.log('📡 FHIR: URL:', fhirUrl)
-          const fhirRes = await fetch(
-            fhirUrl,
-            { method: 'POST', headers: { 'accept': 'application/json' } }
-          )
-          console.log('📡 FHIR: Respuesta status:', fhirRes.status)
-          const fhirData = await fhirRes.json()
-          console.log('📡 FHIR: Respuesta data:', fhirData)
-          setFhirSyncResult({
-            ok: fhirData.ok === true,
-            scusUuid: fhirData.data?.scusUuid,
-            message: fhirData.message,
-          })
-        } catch {
-          setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
-        }
-      }
+      // Registrar paciente en RENHICE/FHIR (deshabilitado temporalmente)
+      // const pacienteId = patient?.PACIENTE || patient?.HISTORIA
+      // if (pacienteId) {
+      //   try {
+      //     const fhirUrl = `${FHIR_BASE_URL}/api/fhir/ips/pacientes/${pacienteId}/registrar`
+      //     const fhirRes = await fetch(
+      //       fhirUrl,
+      //       { method: 'POST', headers: { 'accept': 'application/json' } }
+      //     )
+      //     const fhirData = await fhirRes.json()
+      //     setFhirSyncResult({
+      //       ok: fhirData.ok === true,
+      //       scusUuid: fhirData.data?.scusUuid,
+      //       message: fhirData.message,
+      //     })
+      //   } catch {
+      //     setFhirSyncResult({ ok: false, message: 'No se pudo conectar con el servicio FHIR' })
+      //   }
+      // }
 
       await onAssign({ ...requestBody, appointmentId: appointment.id, success: true, responseData })
 
@@ -740,6 +715,7 @@ function PatientAssignDiagnosticSupportModalContent({
                     ¡Cita asignada exitosamente! ID: <strong>{assignedCitaId}</strong>
                   </AlertDescription>
                 </Alert>
+                {/* Sincronización RENHICE/FHIR deshabilitada temporalmente
                 {fhirSyncResult === null && (
                   <Alert className="bg-blue-50 border-blue-200">
                     <AlertDescription className="text-blue-700 text-sm">
@@ -763,6 +739,7 @@ function PatientAssignDiagnosticSupportModalContent({
                     </AlertDescription>
                   </Alert>
                 )}
+                */}
               </div>
             )}
 
@@ -969,7 +946,6 @@ function PatientAssignDiagnosticSupportModalContent({
                               <Button
                                 size="sm"
                                 onClick={async () => {
-                                  console.log('[PERIFERICO] Click en botón acción. loadingReferencia:', loadingReferencia, 'ordenCreadaId:', ordenCreadaId, 'referenciaItems:', referenciaItems.length, 'selectedSisReferencia:', !!selectedSisReferencia)
                                   if (loadingReferencia) return
                                   if (ordenCreadaId) return
 
@@ -982,19 +958,16 @@ function PatientAssignDiagnosticSupportModalContent({
                                         r.datos_referencia?.id_referencia === selectedSisReferencia.idReferencia
                                       )
                                     if (matching) {
-                                      console.log('[PERIFERICO] Usando referencia detallada ya cargada para SIS:', matching.datos_referencia?.numero_referencia)
                                       setSelectedRefItem(matching)
                                       setShowCrearOrdenModal(true)
                                       return
                                     }
-                                    console.log('[PERIFERICO] No hay detalle cargado para SIS, consultando REFCON:', selectedSisReferencia.numeroReferencia)
                                     await buscarReferenciaDetalle()
                                     return
                                   }
 
                                   const allowedRefs = referenciaItems.filter(isReferenciaValida)
                                   if (allowedRefs.length === 0) {
-                                    console.log('[PERIFERICO] No hay referencias locales ni SIS con CPMS, llamando buscarReferenciaDetalle')
                                     await buscarReferenciaDetalle()
                                     return
                                   }
@@ -1002,7 +975,6 @@ function PatientAssignDiagnosticSupportModalContent({
                                     ? selectedRefItem
                                     : (allowedRefs.find(r => getUPSDestino().includes(r.datos_referencia?.servicio_destino || '')) ?? allowedRefs[0])
                                   if (targetRef) {
-                                    console.log('[PERIFERICO] Abriendo modal con referencia local:', targetRef.datos_referencia?.numero_referencia)
                                     setSelectedRefItem(targetRef)
                                     setShowCrearOrdenModal(true)
                                   }
