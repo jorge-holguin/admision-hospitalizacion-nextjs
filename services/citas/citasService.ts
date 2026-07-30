@@ -137,6 +137,7 @@ export async function searchCitasByDocumento(
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
+      ORDER BY ROWNUM
     `)
 
     // Contar total de registros
@@ -264,6 +265,7 @@ export async function searchCitasByNombres(
         WHERE ${whereClause}
       ) subquery
       WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
+      ORDER BY ROWNUM
     `)
 
     // Contar total de registros
