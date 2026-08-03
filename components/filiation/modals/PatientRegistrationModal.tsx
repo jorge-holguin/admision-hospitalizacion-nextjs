@@ -14,6 +14,7 @@ import { mapSISSeguroToLocal } from "@/services/sisService"
 import { transformFormDataToAPIPayload, saveHistoriaClinica } from "@/services/filiation/historiaClinicaService"
 import { getUbigeoByReniecCode } from "@/utils/reniecMapper"
 import { toast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/AuthProvider"
 
 interface PatientRegistrationModalProps {
   reniecData?: any
@@ -35,6 +36,7 @@ export function PatientRegistrationModal({
   onSuccessWithDocument
 }: PatientRegistrationModalProps) {
   
+  const { logout } = useAuth()
 
   const [selectedDocType, setSelectedDocType] = useState(documentType || "DNI")
   const [selectedDocNumber, setSelectedDocNumber] = useState(documentNumber || "")
@@ -475,6 +477,10 @@ export function PatientRegistrationModal({
         } else {
           onSuccess()
         }
+      } else if (result.error === 'No se pudo obtener el usuario del token JWT') {
+        // Avisar al usuario y cerrar sesión porque el token ya no es válido
+        window.alert('Su sesión ha expirado o el token no es válido. Será redirigido al inicio de sesión para volver a ingresar.')
+        logout()
       } else {
         toast({
           title: "❌ Error al guardar",
