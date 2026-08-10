@@ -28,16 +28,19 @@ import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesS
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { AppointmentCalendar } from "../utils/AppointmentCalendar"
 import { Checkbox } from "@/components/ui/checkbox"
-import { format, startOfMonth, endOfMonth } from "date-fns"
+import { startOfMonth, endOfMonth } from "date-fns"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
 import { datetimeService } from '@/services/datetimeService'
+
+const ECOGRAFIA_CONSULTORIOS = ['7010', '7020']
 
 interface AdditionalAppointmentModalProps {
   isOpen: boolean
   onClose: () => void
   onBack: () => void
   patient: any
-  onAppointmentCreated?: (appointment: any) => void  // Callback para posicionar en la cita creada
+  onAppointmentCreated?: (appointment: any) => void
+  onEcoConsultorioSelected?: (consultorio: string) => void
 }
 
 // Componente interno
@@ -46,7 +49,8 @@ function AdditionalAppointmentModalContent({
   onClose,
   onBack,
   patient,
-  onAppointmentCreated
+  onAppointmentCreated,
+  onEcoConsultorioSelected
 }: AdditionalAppointmentModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -99,7 +103,8 @@ function AdditionalAppointmentModalContent({
   
   // Estado para controlar si la fecha está confirmada (desbloquea PASO 4)
   const [isFechaConfirmed, setIsFechaConfirmed] = useState(false)
-  
+
+
   // Verificar si el usuario es DEVOPS
   const userPuesto = extractPuestoFromToken()
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
@@ -592,7 +597,7 @@ function AdditionalAppointmentModalContent({
           console.error('Error al imprimir cita:', printError)
         }
       }
-      
+
       // Notificar al componente padre que se creó la cita
       if (onAppointmentCreated) {
         onAppointmentCreated(responseData)
@@ -971,12 +976,14 @@ function AdditionalAppointmentModalContent({
                       value={consultorio}
                       onChange={(value) => {
                         setConsultorio(value)
-                        // Resetear campos dependientes (mantener fecha seleccionada)
                         setTurno("")
                         setMedico("")
                         setDatesWithAppointments([])
                         setDatesWithoutAppointments([])
                         setExistingAppointmentsWarning(null)
+                        if (ECOGRAFIA_CONSULTORIOS.includes(value?.trim()) && onEcoConsultorioSelected) {
+                          onEcoConsultorioSelected(value)
+                        }
                       }}
                       onConsultorioDataChange={(data) => {
                         if (data && data.ESPECIALIDAD) {
@@ -1353,6 +1360,7 @@ function AdditionalAppointmentModalContent({
                       />
                     </>
                   )}
+
                 </div>
               </CardContent>
             </Card>

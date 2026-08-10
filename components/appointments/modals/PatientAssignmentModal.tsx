@@ -418,7 +418,7 @@ function PatientAssignmentModalContent({
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
-        estado: '2', // Estado asignado
+        estado: '1', // ATENCION_CITA se crea con estado 1; la cita (cita) cambia a estado 2
         horaOtorga: serverDateTime.time,
         usuario: usuarioDni,
         numRef: referencia || '',

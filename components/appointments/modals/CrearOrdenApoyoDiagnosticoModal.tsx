@@ -13,6 +13,13 @@ import { extractDocumentFromToken } from "@/utils/jwtUtils"
 const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 const API_CITAS_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api'
 
+const MAESTRO_TYPE_MAP: Record<string, string> = {
+  'ECO': 'ECO',
+  'RX': 'RX',
+  'LAB': 'LAB',
+  'TOMO': 'TOMO',
+}
+
 const UPS_LABELS: Record<string, { label: string; tipoServicio: string; grupo: string }> = {
   '080900': { label: 'Ecografía (Diagnóstico por Imágenes - Ultrasonido)', tipoServicio: 'ECO', grupo: 'ECO' },
   '080400': { label: 'Rayos X (Diagnóstico por Imágenes - Radiodiagnóstico)', tipoServicio: 'RX', grupo: 'RX' },
@@ -127,7 +134,8 @@ export function CrearOrdenApoyoDiagnosticoModal({
   ordenToEdit,
 }: CrearOrdenApoyoDiagnosticoModalProps) {
   const ups = referencia?.datos_referencia?.servicio_destino || ''
-  const upsInfo = UPS_LABELS[ups] ?? { label: ups, tipoServicio: 'ECO', grupo: 'ECO' }
+  const ordenTipoServicio = ordenToEdit?.tipoServicio?.trim().toUpperCase() || ''
+  const upsInfo = UPS_LABELS[ups] ?? { label: ordenTipoServicio || 'Ecografía', tipoServicio: ordenTipoServicio || 'ECO', grupo: ordenTipoServicio || 'ECO' }
   const diag = referencia?.diagnosticos?.[0]
 
   const [detalles, setDetalles] = useState<DetalleItem[]>([emptyDetalle()])
@@ -233,11 +241,12 @@ export function CrearOrdenApoyoDiagnosticoModal({
       setLoadingExam(true)
       try {
         const base = APOYO_DIAGNOSTICO_BASE_URL.replace(/\/+$/, '')
-        const params = new URLSearchParams({ tipo: 'examen' })
-        const res = await fetch(`${base}/api/maestros?${params}`)
+        const tipoMaestro = MAESTRO_TYPE_MAP[upsInfo.tipoServicio?.toUpperCase() || 'ECO'] || 'ECO'
+        const params = new URLSearchParams({ tipo: 'EXAMEN', estado: '1' })
+        const res = await fetch(`${base}/api/apoyo-diagnostico/maestros/${tipoMaestro}?${params}`)
         if (res.ok) {
           const json = await res.json()
-          const lista: MaestroExamen[] = Array.isArray(json?.data) ? json.data : []
+          const lista: MaestroExamen[] = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []
           setAllExamenes(lista.filter((e) => e.cpms))
         }
       } catch {
@@ -247,7 +256,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
       }
     }
     cargar()
-  }, [isOpen])
+  }, [isOpen, referencia?.datos_referencia?.servicio_destino, ordenToEdit?.idOrden])
 
   // Buscar CIEX en servidor (compartido)
   const buscarCiex = useCallback(async (idx: number, q: string) => {

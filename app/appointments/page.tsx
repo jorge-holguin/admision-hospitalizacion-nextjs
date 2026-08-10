@@ -66,6 +66,7 @@ import {
 } from "@/components/appointments"
 import { PrintingModal } from "@/components/appointments/modals/PrintingModal"
 import { PatientAssignDiagnosticSupportModal } from "@/components/appointments/modals/PatientAssignDiagnosticSupportModal"
+import { AdditionalAppointmentDiagnosticSupportModal } from "@/components/appointments/modals/AdditionalAppointmentDiagnosticSupportModal"
 import { PatientSearchModal as FiliationPatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
 
@@ -110,6 +111,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [showAdditionalAppointmentModal, setShowAdditionalAppointmentModal] = useState(false)
     const [showAdditionalPatientSearchModal, setShowAdditionalPatientSearchModal] = useState(false)
     const [selectedPatientForAdditional, setSelectedPatientForAdditional] = useState<any>(null)
+    const [showAdditionalEcoModal, setShowAdditionalEcoModal] = useState(false)
     const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [showPrintingModal, setShowPrintingModal] = useState(false)
   const [showTicketPreview, setShowTicketPreview] = useState(false)
@@ -1471,26 +1473,47 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               onClose={() => {
                 setShowAdditionalAppointmentModal(false)
                 setSelectedPatientForAdditional(null)
-                // NO recargar aquí, el callback onAppointmentCreated ya maneja la búsqueda
               }}
               onBack={() => {
                 setShowAdditionalAppointmentModal(false)
                 setShowAdditionalPatientSearchModal(true)
               }}
               patient={selectedPatientForAdditional}
+              onEcoConsultorioSelected={() => {
+                setShowAdditionalAppointmentModal(false)
+                setShowAdditionalEcoModal(true)
+              }}
               onAppointmentCreated={(appointment) => {
-                // Obtener el ID de la cita creada
                 const citaId = appointment?.citaId || appointment?.id || appointment?.data?.citaId
                 if (citaId) {
-                  // Enfocar búsqueda por ID para posicionarse en la cita creada
                   setShowSearchById(true)
                   setSearchQuery(String(citaId))
-                  // Buscar específicamente por ID después de un pequeño delay
-                  setTimeout(() => {
-                    searchAppointmentById(String(citaId))
-                  }, 300)
+                  setTimeout(() => { searchAppointmentById(String(citaId)) }, 300)
                 } else {
-                  // Si no hay ID, solo recargar
+                  searchAppointmentsByParams()
+                }
+              }}
+            />
+
+            {/* Additional Appointment Modal — Apoyo Diagnóstico (Ecografía 1 y 2) */}
+            <AdditionalAppointmentDiagnosticSupportModal
+              isOpen={showAdditionalEcoModal}
+              onClose={() => {
+                setShowAdditionalEcoModal(false)
+                setSelectedPatientForAdditional(null)
+              }}
+              onBack={() => {
+                setShowAdditionalEcoModal(false)
+                setShowAdditionalAppointmentModal(true)
+              }}
+              patient={selectedPatientForAdditional}
+              onAppointmentCreated={(appointment) => {
+                const citaId = appointment?.citaId || appointment?.id || appointment?.data?.citaId
+                if (citaId) {
+                  setShowSearchById(true)
+                  setSearchQuery(String(citaId))
+                  setTimeout(() => { searchAppointmentById(String(citaId)) }, 300)
+                } else {
                   searchAppointmentsByParams()
                 }
               }}

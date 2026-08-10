@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -27,6 +27,7 @@ import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/UpdateClinicalHistoryButton"
 
 // const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
+
 
 interface Patient {
   HISTORIA: string
@@ -376,7 +377,7 @@ function PatientAssignmentReservedModalContent({
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
-        estado: '2', // Estado asignado
+        estado: '1', // ATENCION_CITA se crea con estado 1; la cita cambia a estado 2
         horaOtorga: serverDateTime.time,
         usuario: usuarioApellido,
         numRef: referencia || '',
@@ -1037,6 +1038,7 @@ function PatientAssignmentReservedModalContent({
                       />
                     </>
                   )}
+
                 </CardContent>
               </Card>
             </div>
@@ -1269,6 +1271,7 @@ function PatientAssignmentReservedModalContent({
           </div>
         </DialogContent>
       </Dialog>
+
       </>
   )
 }

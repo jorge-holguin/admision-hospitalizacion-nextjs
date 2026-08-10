@@ -583,7 +583,7 @@ function PatientAssignDiagnosticSupportModalContent({
         idPaciente: (patient?.PACIENTE || patient?.HISTORIA || '').toString().trim(),
         nombre: (patient?.NOMBRES || fullName).trim(),
         seguro: selectedSeguro.toString().trim(),
-        estado: '2',
+        estado: '1',
         horaOtorga: serverDateTime.time,
         numRef: referencia || '',
         entidadSis: eessOrigenReferencia || selectedEntidadSis || '',

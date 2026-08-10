@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Eye, Search, RefreshCw, Calendar, User, Clock, FileText, UserCheck, XCircle, RotateCcw } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { PatientAssignmentReservedModal } from "@/app/appointments/reserved/modal/PatientAssignmentReservedModal"
+import { PatientAssignmentReservedDiagnosticSupportModal } from "@/app/appointments/reserved/modal/PatientAssignmentReservedDiagnosticSupportModal"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
@@ -177,6 +178,8 @@ export default function ReservedAppointmentsPage() {
   const [selectedReserva, setSelectedReserva] = useState<ReservaData | null>(null)
   const [patientData, setPatientData] = useState<PatientData | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEcoModalOpen, setIsEcoModalOpen] = useState(false)
+  const ECO_CONSULTORIOS_RES = ['7010', '7020']
   const [loadingPatient, setLoadingPatient] = useState(false)
   const [loadingReservas, setLoadingReservas] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(0)
@@ -501,7 +504,11 @@ export default function ReservedAppointmentsPage() {
     // Buscar información del paciente por documento
     const found = await searchPatientByDocument(reserva.numeroDocumento, reserva.codigo)
     if (found) {
-      setIsModalOpen(true)
+      if (ECO_CONSULTORIOS_RES.includes((reservaCompleta.consultorio || '').trim())) {
+        setIsEcoModalOpen(true)
+      } else {
+        setIsModalOpen(true)
+      }
     } else {
       // Mostrar modal de advertencia de paciente no encontrado
       setReservaSinPaciente(reserva)
@@ -1212,6 +1219,76 @@ export default function ReservedAppointmentsPage() {
               }}
             />
           )}
+
+          {/* Modal de asignación de paciente — Apoyo Diagnóstico (Ecografía 1 y 2) */}
+          {isEcoModalOpen && patientData && selectedReserva && (
+            <PatientAssignmentReservedDiagnosticSupportModal
+              isOpen={isEcoModalOpen}
+              onClose={() => {
+                setIsEcoModalOpen(false)
+                setSelectedReserva(null)
+                setPatientData(null)
+              }}
+              patient={patientData}
+              appointment={{
+                codigo: selectedReserva.codigo,
+                citaId: selectedReserva.citaId?.toString() || '',
+                idSolicitudCita: selectedReserva.idSolicitudCita,
+                fecha: selectedReserva.fecha,
+                hora: selectedReserva.hora,
+                especialidad: selectedReserva.especialidad,
+                especialidadNombre: selectedReserva.especialidadNombre,
+                medico: selectedReserva.medico,
+                medicoNombre: selectedReserva.medicoNombre,
+                estado: selectedReserva.estado,
+                consultorio: selectedReserva.consultorio || undefined,
+                tipoCita: selectedReserva.tipoCita,
+                especialidadInterconsulta: selectedReserva.especialidadInterconsulta,
+                observacionPaciente: selectedReserva.observacionPaciente,
+                observacion: selectedReserva.observacion
+              }}
+              onApprove={async (data: any) => {
+                if (selectedReserva) {
+                  const usuarioApellido = extractDocumentFromToken()
+                  const cambioExitoso = await cambiarEstadoSolicitud(selectedReserva.codigo, "CITADO", undefined, usuarioApellido)
+                  if (cambioExitoso) {
+                    toast({ title: "Reserva Aprobada", description: "La solicitud ha sido aprobada correctamente" })
+                    setSearchTerm(selectedReserva.codigo)
+                    setSolicitudEnRevision(null)
+                    setIsEcoModalOpen(false)
+                    setSelectedReserva(null)
+                    setPatientData(null)
+                    loadReservas()
+                  }
+                }
+              }}
+              onDeny={async (motivo: string) => {
+                if (selectedReserva) {
+                  const usuarioApellido = extractDocumentFromToken()
+                  const cambioExitoso = await cambiarEstadoSolicitud(selectedReserva.codigo, "DENEGADO", motivo, usuarioApellido)
+                  if (cambioExitoso) {
+                    toast({ title: "Solicitud Denegada", description: "La solicitud ha sido denegada correctamente" })
+                    setSearchTerm(selectedReserva.codigo)
+                    setSolicitudEnRevision(null)
+                    setIsEcoModalOpen(false)
+                    setSelectedReserva(null)
+                    setPatientData(null)
+                    loadReservas()
+                  }
+                }
+              }}
+              onObserve={() => Promise.resolve()}
+              onSuccess={() => {
+                toast({ title: "Éxito", description: "Reserva procesada correctamente" })
+                setIsEcoModalOpen(false)
+                setSelectedReserva(null)
+                setPatientData(null)
+                setSearchTerm("")
+                loadReservas()
+              }}
+            />
+          )}
+
           <Dialog open={showPacienteNoEncontradoModal} onOpenChange={(open) => {
             setShowPacienteNoEncontradoModal(open)
             if (!open) {
