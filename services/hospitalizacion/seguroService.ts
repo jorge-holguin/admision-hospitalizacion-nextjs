@@ -1,54 +1,67 @@
-import { prisma } from '@/lib/prisma/client'
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 export interface Seguro {
-  Seguro: string
-  Nombre: string
-  CREA_CUENTA: string
+  seguro: string
+  nombre: string
+  activo?: number
+  tipoSeguro?: string
+  codseg?: string
+  codhis?: number
+  codcita?: number
+  flatEmeWeb?: number
+  flatLiqWeb?: number
+  codsis?: string
 }
 
+/**
+ * Servicio para seguros
+ * MIGRADO: Ahora usa backend Spring Boot
+ */
 export class SeguroService {
-  async findAll() {
+  async findAll(): Promise<Seguro[]> {
     try {
-      console.log('Buscando seguros disponibles')
+      console.log('🔍 SeguroService: Obteniendo seguros desde Spring Boot');
       
-      // Ejecutar la consulta SQL para obtener los seguros
-      const seguros = await prisma.$queryRaw<Seguro[]>`
-        SELECT Seguro, Nombre, CASE WHEN seguro IN ('0','02') THEN 'SI' ELSE 'NO' END CREA_CUENTA 
-        FROM SEGURO 
-        WHERE flat_liq_web='1' 
-        ORDER BY nombre
-      `
+      const response = await fetch(API_ENDPOINTS.utils.insurances, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ SeguroService: ${data.length} seguros obtenidos`);
       
-      console.log(`Se encontraron ${seguros.length} seguros`)
-      return seguros
+      // Filtrar solo los activos con flat_liq_web=1
+      const filtrados = data.filter((s: Seguro) => s.flatLiqWeb === 1);
+      return filtrados;
     } catch (error) {
-      console.error('Error al buscar seguros:', error)
-      throw new Error(`Error al buscar seguros: ${error}`)
+      console.error('❌ Error al buscar seguros:', error);
+      throw new Error(`Error al buscar seguros: ${error}`);
     }
   }
 
-  async findByCode(code: string) {
+  async findByCode(code: string): Promise<Seguro | null> {
     try {
-      console.log(`Buscando seguro con código: ${code}`)
+      console.log(`🔍 SeguroService: Buscando seguro con código: ${code}`);
       
-      // Ejecutar la consulta SQL para obtener un seguro específico
-      const seguro = await prisma.$queryRaw<Seguro[]>`
-        SELECT Seguro, Nombre, CASE WHEN seguro IN ('0','02') THEN 'SI' ELSE 'NO' END CREA_CUENTA 
-        FROM SEGURO 
-        WHERE flat_liq_web='1' AND Seguro = ${code}
-        ORDER BY nombre
-      `
+      const seguros = await this.findAll();
+      const seguro = seguros.find(s => s.seguro.trim() === code.trim());
       
-      if (seguro.length === 0) {
-        console.log(`No se encontró seguro con código: ${code}`)
-        return null
+      if (!seguro) {
+        console.log(`⚠️ No se encontró seguro con código: ${code}`);
+        return null;
       }
       
-      console.log(`Seguro encontrado: ${seguro[0].Nombre}`)
-      return seguro[0]
+      console.log(`✅ Seguro encontrado: ${seguro.nombre}`);
+      return seguro;
     } catch (error) {
-      console.error(`Error al buscar seguro con código ${code}:`, error)
-      throw new Error(`Error al buscar seguro con código ${code}: ${error}`)
+      console.error(`❌ Error al buscar seguro con código ${code}:`, error);
+      throw new Error(`Error al buscar seguro con código ${code}: ${error}`);
     }
   }
 }

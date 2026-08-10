@@ -1,7 +1,9 @@
-import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils';
+// filiacionService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface FiliacionFilter {
   historia?: string;
@@ -14,27 +16,19 @@ export interface PaginationOptions {
   pageSize: number;
 }
 
-export interface CountResponse {
-  success: boolean;
-  data?: {
-    total: number;
-  };
-  message?: string;
-}
-
 export interface Filiacion {
   PACIENTE: string;
   HISTORIA: string;
   NOMBRES: string;
   SEXO: string;
   NOMBRE_ESTADO_CIVIL: string;
-  FECHA_APERTURA: Date;
+  FECHA_APERTURA: Date | string;
   HORA_APERTURA: string;
   PADRE: string;
   MADRE: string;
   DIRECCION: string;
   TELEFONO1: string;
-  FECHA_NACIMIENTO: Date;
+  FECHA_NACIMIENTO: Date | string;
   DISTRITO: string;
   NOMBRE_DOCUMENTO: string;
   DOCUMENTO: string;
@@ -54,9 +48,9 @@ export interface Filiacion {
   CONSUL: string;
   EDAD: number;
   ESTADO_CIVIL: string;
-  SYSINSERT: Date;
-  SYSUPDATE: Date;
-  FECHA_CONSULTA: Date;
+  SYSINSERT: Date | string;
+  SYSUPDATE: Date | string;
+  FECHA_CONSULTA: Date | string;
   TURNO_CONSULTA: string;
   Nombre_Localidad: string;
   Provincia_Nac: string;
@@ -72,429 +66,266 @@ export interface Filiacion {
   HISTORIA_ANT: string;
   CODIGOBARRAS: string;
   STRING_FOTO: string;
-  // Campos adicionales para debugging
+  TIPO_DOCUMENTO: string;
+  LOCALIDAD: string;
+  TELEFONO2: string;
+  SEGURO: string;
+  Expr2: string;
+  COD_DISTRITO: string;
   [key: string]: any;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+
+// ============================================================================
+// SERVICIOS DE FILIACIÓN - SPRING BOOT API
+// ============================================================================
+
 export const filiacionService = {
   /**
-   * Get paginated filiacion records with optional filtering using raw SQL
+   * Get paginated filiacion records with optional filtering
    */
   async getPaginatedFiliacion(
     filter: FiliacionFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
-  ) {
+  ): Promise<PaginatedResponse<Filiacion>> {
     try {
-      const skip = (page - 1) * pageSize;
-      console.log('Buscando registros de filiación con parámetros:', { skip, take: pageSize, filter });
+      console.log('🔍 [Hospitalización] Buscando registros de filiación:', { page, pageSize, filter });
       
-      // Si es una búsqueda por nombre, usar la API externa
-      if (filter.nombres && filter.nombres.trim() !== '') {
-        console.log('Usando API externa para búsqueda por nombre:', filter.nombres);
-        try {
-          // Llamar a la API externa para búsqueda por nombre
-          const apiUrl = `${API_BACKEND_URL}/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(filter.nombres)}`;
-          console.log('Llamando a API externa:', apiUrl);
-          
-          const response = await fetch(apiUrl, { 
-            // Aumentar el tiempo de espera para la respuesta
-            signal: AbortSignal.timeout(10000) // 10 segundos de timeout
-          });
-          
-          if (!response.ok) {
-            console.error(`Error en la consulta externa: Status ${response.status}`);
-            throw new Error(`Error en la consulta externa: ${response.status}`);
-          }
-          
-          const apiData = await response.json();
-          console.log(`API externa devolvió ${Array.isArray(apiData) ? apiData.length : 'no'} resultados`, apiData);
-          
-          // Verificar que apiData sea un array
-          if (!Array.isArray(apiData)) {
-            console.error('La API externa no devolvió un array:', apiData);
-            // Si no es un array, devolver un array vacío para evitar errores
-            return serializeBigInt({
-              data: [],
-              pagination: {
-                total: 0,
-                page,
-                pageSize,
-                totalPages: 0,
-              },
-            });
-          }
-          
-          // Mapear los datos de la API al formato esperado por el frontend
-          const processedData = apiData.map((item: any) => ({
-            PACIENTE: item.paciente || '',
-            HISTORIA: item.historia || '',
-            NOMBRES: item.nombres || '',
-            SEXO: item.sexo || '',
-            DIRECCION: item.direccion || '',
-            FECHA_NACIMIENTO: item.fechaNacimiento || '',
-            DISTRITO: item.distrito || '',
-            NOMBRE_DOCUMENTO: item.nombreDocumento || '',
-            DOCUMENTO: item.documento || '',
-            NOMBRE_SEGURO: item.nombreSeguro || '',
-            Nombre_Localidad: item.nombreLocalidad || '',
-            Distrito_Dir: item.distritoDir || ''
-          }));
-          
-          // Devolver los resultados en el formato esperado
-          return serializeBigInt({
-            data: processedData,
-            pagination: {
-              total: processedData.length,
-              page,
-              pageSize,
-              totalPages: Math.ceil(processedData.length / pageSize),
-            },
-          });
-        } catch (apiError) {
-          console.error('Error al consultar API externa:', apiError);
-          // En lugar de lanzar un error, devolver un resultado vacío
-          return serializeBigInt({
-            data: [],
-            pagination: {
-              total: 0,
-              page,
-              pageSize,
-              totalPages: 0,
-            },
-          });
-        }
+      const params: Record<string, string> = {
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      };
+      
+      if (filter.historia) params.historia = filter.historia;
+      if (filter.documento) params.documento = filter.documento;
+      if (filter.nombres) params.nombres = filter.nombres;
+      
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      console.log('🏥 Consultando filiación:', url);
+      
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error en la respuesta:', errorData);
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      // Para otros tipos de búsqueda, usar la consulta SQL original
-      // Verificar primero si la vista existe
-      try {
-        const checkView = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION'`;
-        console.log('Verificación de vista V_FILIACION:', checkView);
-      } catch (checkError) {
-        console.error('Error al verificar la vista V_FILIACION:', checkError);
+      const data = await response.json();
+      console.log('✅ Filiación obtenida:', data);
+      
+      if (data.data && Array.isArray(data.data)) {
+        data.data = data.data.map((record: any) => processDateFields(record));
       }
       
-      // Construir la cláusula WHERE basada en los filtros proporcionados
-      let whereClause = '';
-      const conditions = [];
-      
-      if (filter.historia) {
-        conditions.push(`HISTORIA LIKE '%${filter.historia}%'`);
-      }
-      
-      if (filter.documento) {
-        conditions.push(`DOCUMENTO LIKE '%${filter.documento}%'`);
-      }
-      
-      // Nota: Ya no necesitamos esta condición para nombres, ya que se maneja arriba
-      // pero la mantenemos por si acaso se llama sin el filtro de nombres
-      if (filter.nombres) {
-        conditions.push(`(NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`);
-      }
-      
-      if (conditions.length > 0) {
-        whereClause = `WHERE ${conditions.join(' AND ')}`;
-      }
-      
-      // Consulta para obtener el total de registros
-      const countQuery = `SELECT COUNT(*) as total FROM V_FILIACION ${whereClause}`;
-      console.log('Consulta de conteo:', countQuery);
-      
-      const countResult = await prisma.$queryRawUnsafe(countQuery);
-      const total = Number(countResult[0]?.total || 0);
-      
-      // Consulta para obtener los datos paginados usando una técnica compatible con SQL Server 2008
-      const dataQuery = `
-        WITH NumberedData AS (
-          SELECT *, ROW_NUMBER() OVER (ORDER BY NOMBRES ASC) AS RowNum
-          FROM V_FILIACION
-          ${whereClause}  
-        )
-        SELECT * FROM NumberedData
-        WHERE RowNum > ${skip} AND RowNum <= ${skip + pageSize}
-      `;
-      console.log('Consulta de datos:', dataQuery);
-      
-      const data = await prisma.$queryRawUnsafe(dataQuery);
-      
-      // Depuración de fechas de nacimiento
-      console.log('Ejemplo de registro con fecha:', data[0] ? {
-        PACIENTE: data[0].PACIENTE,
-        HISTORIA: data[0].HISTORIA,
-        NOMBRES: data[0].NOMBRES,
-        FECHA_NACIMIENTO: data[0].FECHA_NACIMIENTO,
-        FECHA_NACIMIENTO_TIPO: typeof data[0].FECHA_NACIMIENTO,
-        FECHA_NACIMIENTO_JSON: JSON.stringify(data[0].FECHA_NACIMIENTO)
-      } : 'No hay datos');
-      
-      console.log(`Encontrados ${data.length} registros de filiación de un total de ${total}`);
-      
-      // Convertir fechas a formato string ISO para mejor manejo en el frontend
-      const processedData = data.map((record: any) => {
-        if (record.FECHA_NACIMIENTO) {
-          try {
-            // Intentar convertir la fecha a un formato estándar
-            const fecha = new Date(record.FECHA_NACIMIENTO);
-            if (!isNaN(fecha.getTime())) {
-              // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
-              record.FECHA_NACIMIENTO = fecha.toISOString().split('T')[0];
-            } else {
-              // Si no se puede convertir, asegurarse de que sea un string
-              record.FECHA_NACIMIENTO = String(record.FECHA_NACIMIENTO);
-            }
-          } catch (error) {
-            console.error('Error al procesar fecha:', error);
-            // En caso de error, mantener el valor original como string
-            record.FECHA_NACIMIENTO = String(record.FECHA_NACIMIENTO);
-          }
-        }
-        return record;
-      });
-      
-      // Formato esperado por useFiliacion hook
-      return serializeBigInt({
-        data: processedData,
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getPaginatedFiliacion:', error);
+      return {
+        data: [],
         pagination: {
-          total,
+          total: 0,
           page,
           pageSize,
-          totalPages: Math.ceil(total / pageSize),
+          totalPages: 0,
         },
-      });
-    } catch (error) {
-      console.error('Error en getPaginatedFiliacion:', error instanceof Error ? error.message : 'Error desconocido', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Get a single filiacion record by ID using raw SQL
-   */
-  async getFiliacionById(id: string) {
-    try {
-      console.log(`Buscando registro de filiación con ID: ${id}`);
-      
-      // Verificar primero si la vista existe
-      let viewExists = false;
-      try {
-        const viewCheck = await prisma.$queryRaw`SELECT TOP 1 * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME = 'V_FILIACION'`;
-        console.log('Verificación de vista V_FILIACION:', viewCheck);
-        
-        // Verificar si la vista existe basado en el resultado
-        if (Array.isArray(viewCheck) && viewCheck.length > 0) {
-          viewExists = true;
-          console.log('Vista V_FILIACION encontrada');
-        } else {
-          console.error('Vista V_FILIACION no encontrada en la base de datos');
-          throw new Error('Vista V_FILIACION no existe en la base de datos');
-        }
-      } catch (checkError) {
-        console.error('Error al verificar la vista V_FILIACION:', checkError);
-        throw new Error(`Error al verificar la vista V_FILIACION: ${checkError instanceof Error ? checkError.message : 'Error desconocido'}`);
-      }
-      
-      // Validar el ID antes de usarlo en la consulta SQL
-      if (!id || typeof id !== 'string') {
-        console.error(`ID inválido: ${id}`);
-        throw new Error(`ID inválido: ${id}`);
-      }
-      
-      // Verificar formato del ID (asumiendo que debe ser numérico)
-      if (!/^\d+$/.test(id)) {
-        console.error(`Formato de ID inválido (debe ser numérico): ${id}`);
-        throw new Error(`Formato de ID inválido (debe ser numérico): ${id}`);
-      }
-      
-      // Escapar comillas simples en el ID para prevenir SQL injection
-      const safeId = id.replace(/'/g, "''");
-      
-      // Usar una consulta más robusta con TOP para asegurar compatibilidad con SQL Server 2008
-      const query = `SELECT TOP 1 * FROM V_FILIACION WHERE PACIENTE = '${safeId}'`;
-      console.log('Ejecutando consulta:', query);
-      
-      let result;
-      try {
-        result = await prisma.$queryRawUnsafe(query);
-        console.log('Resultado de la consulta:', result ? 'Datos obtenidos' : 'Sin resultados');
-      } catch (queryError) {
-        console.error('Error al ejecutar la consulta SQL:', queryError);
-        throw new Error(`Error al ejecutar la consulta SQL: ${queryError instanceof Error ? queryError.message : 'Error desconocido'}`);
-      }
-      
-      if (!result) {
-        console.log(`Resultado nulo para ID ${id}`);
-        return null;
-      }
-      
-      if (Array.isArray(result) && result.length > 0) {
-        console.log(`Registro de filiación encontrado con ID ${id}`);
-        
-        // Procesar el registro para manejar correctamente las fechas
-        const record = {...result[0]}; // Crear una copia para evitar modificar el objeto original
-        
-        // Procesar todas las fechas en el registro
-        const dateFields = ['FECHA_NACIMIENTO', 'FECHA_APERTURA', 'SYSINSERT', 'SYSUPDATE', 'FECHA_CONSULTA'];
-        
-        for (const fieldName of dateFields) {
-          if (record[fieldName]) {
-            try {
-              // Intentar convertir la fecha a un formato estándar
-              const fecha = new Date(record[fieldName]);
-              if (!isNaN(fecha.getTime())) {
-                // Convertir a formato YYYY-MM-DD para que el frontend pueda procesarlo correctamente
-                record[fieldName] = fecha.toISOString().split('T')[0];
-              } else {
-                // Si no se puede convertir, asegurarse de que sea un string
-                record[fieldName] = String(record[fieldName]);
-              }
-            } catch (error) {
-              console.error(`Error al procesar fecha ${fieldName}:`, error);
-              // En caso de error, mantener el valor original como string
-              record[fieldName] = String(record[fieldName]);
-            }
-          }
-        }
-        
-        return serializeBigInt(record);
-      }
-      
-      console.log(`No se encontró registro de filiación con ID ${id}`);
-      return null;
-    } catch (error) {
-      console.error(`Error en getFiliacionById(${id}):`, error);
-      if (error instanceof Error) {
-        console.error('Mensaje de error:', error.message);
-        console.error('Stack trace:', error.stack);
-      }
-      // Propagar el error para que la API pueda manejarlo adecuadamente
-      throw error;
-    }
-  },
-  
-  /**
-   * Search filiacion records by historia clinica using raw SQL
-   */
-  async searchByHistoria(historia: string) {
-    try {
-      console.log(`Buscando registros de filiación por historia: ${historia}`);
-      
-      // Consulta compatible con SQL Server 2008
-      const query = `
-        SELECT TOP 10 * FROM V_FILIACION 
-        WHERE HISTORIA LIKE '%${historia}%' 
-        ORDER BY NOMBRES ASC
-      `;
-      
-      const result = await prisma.$queryRawUnsafe(query);
-      console.log(`Encontrados ${result.length} registros de filiación por historia`);
-      
-      return serializeBigInt(result);
-    } catch (error) {
-      console.error(`Error en searchByHistoria(${historia}):`, error instanceof Error ? error.message : 'Error desconocido');
-      throw error;
-    }
-  },
-  
-  /**
-   * Search filiacion records by DNI/documento using raw SQL
-   */
-  async searchByDocumento(documento: string) {
-    try {
-      console.log(`Buscando registros de filiación por documento: ${documento}`);
-      
-      // Consulta compatible con SQL Server 2008
-      const query = `
-        SELECT TOP 10 * FROM V_FILIACION 
-        WHERE DOCUMENTO LIKE '%${documento}%' 
-        ORDER BY NOMBRES ASC
-      `;
-      
-      const result = await prisma.$queryRawUnsafe(query);
-      console.log(`Encontrados ${result.length} registros de filiación por documento`);
-      
-      return serializeBigInt(result);
-    } catch (error) {
-      console.error(`Error en searchByDocumento(${documento}):`, error instanceof Error ? error.message : 'Error desconocido');
-      throw error;
-    }
-  },
-  
-  /**
-   * Search filiacion records by name or apellidos using raw SQL
-   */
-  async searchByName(name: string) {
-    try {
-      console.log(`Buscando registros de filiación por nombre: ${name}`);
-      
-      // Consulta compatible con SQL Server 2008
-      const query = `
-        SELECT TOP 100 * FROM V_FILIACION 
-        WHERE NOMBRES LIKE '%${name}%' 
-          OR PATERNO LIKE '%${name}%' 
-          OR MATERNO LIKE '%${name}%' 
-          OR NOMBRE LIKE '%${name}%' 
-        ORDER BY NOMBRES ASC
-      `;
-      
-      const result = await prisma.$queryRawUnsafe(query);
-      console.log(`Encontrados ${result.length} registros de filiación por nombre`);
-      
-      return serializeBigInt(result);
-    } catch (error) {
-      console.error(`Error en searchByName(${name}):`, error instanceof Error ? error.message : 'Error desconocido');
-      throw error;
-    }
-  },
-  
-  /**
-   * Count filiacion records with optional filtering using raw SQL
-   */
-  async countFiliacion(filter: FiliacionFilter = {}): Promise<CountResponse> {
-    try {
-      console.log('Contando registros de filiación con filtros:', filter);
-      
-      // Construir la cláusula WHERE basada en los filtros proporcionados
-      let whereClause = '';
-      const conditions = [];
-      
-      if (filter.historia) {
-        conditions.push(`HISTORIA LIKE '%${filter.historia}%'`);
-      }
-      
-      if (filter.documento) {
-        conditions.push(`DOCUMENTO LIKE '%${filter.documento}%'`);
-      }
-      
-      if (filter.nombres) {
-        conditions.push(`(NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`);
-      }
-      
-      if (conditions.length > 0) {
-        whereClause = `WHERE ${conditions.join(' AND ')}`;
-      }
-      
-      // Consulta para obtener el total de registros
-      const countQuery = `SELECT COUNT(*) as total FROM V_FILIACION ${whereClause}`;
-      console.log('Consulta de conteo:', countQuery);
-      
-      const result = await prisma.$queryRawUnsafe(countQuery);
-      const total = Number(result[0]?.total || 0);
-      
-      console.log(`Total de registros de filiación: ${total}`);
-      
-      return serializeBigInt({
-        success: true,
-        data: {
-          total
-        }
-      });
-    } catch (error) {
-      console.error('Error en countFiliacion:', error instanceof Error ? error.message : 'Error desconocido');
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Error desconocido al contar registros de filiación'
       };
     }
   },
-};
   
+  /**
+   * Get a single filiacion record by ID (PACIENTE or HISTORIA)
+   */
+  async getFiliacionById(id: string): Promise<Filiacion | null> {
+    try {
+      console.log(`🔍 [Hospitalización] Buscando registro de filiación con ID: ${id}`);
+      
+      if (!id || typeof id !== 'string') {
+        console.error(`ID inválido: ${id}`);
+        return null;
+      }
+      
+      const url = API_ENDPOINTS.filiation.byId(id);
+      console.log('🏥 Consultando filiación por ID:', url);
+      
+      const response = await fetchApi(url);
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró registro de filiación con ID ${id}`);
+        return null;
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Registro de filiación encontrado:', data);
+      
+      return processDateFields(data);
+    } catch (error) {
+      console.error(`❌ Error en getFiliacionById(${id}):`, error);
+      return null;
+    }
+  },
+  
+  /**
+   * Search filiacion records by historia clinica
+   */
+  async searchByHistoria(historia: string): Promise<Filiacion[]> {
+    try {
+      console.log(`🔍 [Hospitalización] Buscando por historia: ${historia}`);
+      
+      const params = { historia, pageSize: '10' };
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} registros por historia`);
+      
+      return (data.data || []).map((record: any) => processDateFields(record));
+    } catch (error) {
+      console.error(`❌ Error en searchByHistoria(${historia}):`, error);
+      return [];
+    }
+  },
+  
+  /**
+   * Search filiacion records by DNI/documento
+   */
+  async searchByDocumento(documento: string): Promise<Filiacion[]> {
+    try {
+      console.log(`🔍 [Hospitalización] Buscando por documento: ${documento}`);
+      
+      const params = { documento, pageSize: '10' };
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} registros por documento`);
+      
+      return (data.data || []).map((record: any) => processDateFields(record));
+    } catch (error) {
+      console.error(`❌ Error en searchByDocumento(${documento}):`, error);
+      return [];
+    }
+  },
+  
+  /**
+   * Search filiacion records by name (nombres, apellidos)
+   */
+  async searchByName(name: string): Promise<Filiacion[]> {
+    try {
+      console.log(`🔍 [Hospitalización] Buscando por nombre: ${name}`);
+      
+      const params = { nombres: name, pageSize: '100' };
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} registros por nombre`);
+      
+      return (data.data || []).map((record: any) => processDateFields(record));
+    } catch (error) {
+      console.error(`❌ Error en searchByName(${name}):`, error);
+      return [];
+    }
+  },
+  
+  /**
+   * Count filiacion records with optional filtering
+   */
+  async countFiliacion(filter: FiliacionFilter = {}): Promise<number> {
+    try {
+      console.log('📊 [Hospitalización] Contando registros con filtros:', filter);
+      
+      const params: Record<string, string> = {
+        page: '1',
+        pageSize: '1',
+      };
+      
+      if (filter.historia) params.historia = filter.historia;
+      if (filter.documento) params.documento = filter.documento;
+      if (filter.nombres) params.nombres = filter.nombres;
+      
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const total = data.pagination?.total || 0;
+      
+      console.log(`✅ Total de registros: ${total}`);
+      return total;
+    } catch (error) {
+      console.error('❌ Error en countFiliacion:', error);
+      return 0;
+    }
+  },
+};
+
+// ============================================================================
+// UTILIDADES
+// ============================================================================
+
+/**
+ * Procesa los campos de fecha en un registro
+ */
+function processDateFields(record: any): any {
+  if (!record) return record;
+  
+  const dateFields = ['FECHA_NACIMIENTO', 'FECHA_APERTURA', 'SYSINSERT', 'SYSUPDATE', 'FECHA_CONSULTA'];
+  const processed = { ...record };
+  
+  for (const fieldName of dateFields) {
+    if (processed[fieldName]) {
+      try {
+        const fecha = new Date(processed[fieldName]);
+        if (!isNaN(fecha.getTime())) {
+          processed[fieldName] = fecha.toISOString().split('T')[0];
+        } else {
+          processed[fieldName] = String(processed[fieldName]);
+        }
+      } catch (error) {
+        processed[fieldName] = String(processed[fieldName]);
+      }
+    }
+  }
+  
+  // Mapear Expr2 a COD_DISTRITO si existe
+  if (processed.Expr2 !== undefined && !processed.COD_DISTRITO) {
+    processed.COD_DISTRITO = processed.Expr2;
+  }
+  
+  return processed;
+}
+
+export default filiacionService;

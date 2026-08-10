@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { FiliacionFilter } from "@/services/hospitalizacion/filiacionService"
+import { API_ENDPOINTS, API_SPRING_URL } from "@/lib/api-config"
 
 interface Filiacion {
   PACIENTE: string
@@ -80,7 +81,17 @@ export function useFiliacion() {
         }
       }
 
-      const response = await fetch(`/api/filiation/search?${params.toString()}`)
+      // Si es búsqueda por nombre, usar endpoint específico con timeout extendido
+      let url
+      if (filter.nombres && filter.nombres.trim() !== '') {
+        url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres.trim())}`
+      } else {
+        url = `${API_ENDPOINTS.filiation.search}?${params.toString()}`
+      }
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000) // 10 segundos de timeout
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
@@ -163,7 +174,12 @@ export function useFiliacion() {
       }
 
       console.log('Fetching count with params:', params.toString())
-      const response = await fetch(`/api/filiation/search/count?${params.toString()}`)
+      // Nota: El endpoint de count puede no existir en la API Spring Boot
+      // Usamos el search normal y contamos los resultados
+      const url = `${API_ENDPOINTS.filiation.search}?${params.toString()}`
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000)
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
@@ -171,8 +187,11 @@ export function useFiliacion() {
       }
 
       const result = await response.json()
-      setCountResult((prev: CountResult) => ({ ...prev, count: result.count || 0, isLoading: false }))
-      return result.count || 0
+      // La API Spring Boot devuelve array directo o {data: [...]}
+      const data = Array.isArray(result) ? result : (result.data || [])
+      const count = data.length
+      setCountResult((prev: CountResult) => ({ ...prev, count, isLoading: false }))
+      return count
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Error desconocido"
       setCountResult((prev: CountResult) => ({ ...prev, error: errorMessage, isLoading: false }))

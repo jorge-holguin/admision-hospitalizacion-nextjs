@@ -1,43 +1,85 @@
-import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
+// citasService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface CitaSearchFilters {
-  fechaDesde?: string
-  fechaHasta?: string
-  estado?: number
-  consultorio?: string
-  medico?: string
+  fechaDesde?: string;
+  fechaHasta?: string;
+  estado?: number;
+  consultorio?: string;
+  medico?: string;
 }
 
 export interface CitaHistorial {
-  id: string
-  fecha: string
-  hora: string
-  estado: number
-  consultorio: string
-  consultorioNombre?: string
-  medico: string
-  medicoNombre?: string
-  paciente: string
-  documento?: string
-  nombre: string
-  numero?: string
-  turno?: string
-  observacion?: string
-  seguro?: string
-  seguroNombre?: string
-  tipoConsulta?: string
-  entidadSis?: string
-  numRef?: string
-  diagnostico?: string
+  id: string;
+  fecha: string;
+  hora: string;
+  estado: number;
+  consultorio: string;
+  consultorioNombre?: string;
+  medico: string;
+  medicoNombre?: string;
+  paciente: string;
+  documento?: string;
+  nombre: string;
+  numero?: string;
+  turno?: string;
+  observacion?: string;
+  seguro?: string;
+  seguroNombre?: string;
+  tipoConsulta?: string;
+  entidadSis?: string;
+  numRef?: string;
+  diagnostico?: string;
 }
 
 export interface CitaSearchResult {
-  content: CitaHistorial[]
-  totalElements: number
-  totalPages: number
-  last: boolean
+  content: CitaHistorial[];
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
 }
+
+export interface MedicoByDate {
+  MEDICO: string;
+  NOMBRE: string;
+}
+
+// ============================================================================
+// FUNCIONES DE NORMALIZACIÓN
+// ============================================================================
+
+function normalizeCita(cita: any): CitaHistorial {
+  return {
+    id: String(cita.CITA_ID || cita.citaId || cita.id || ''),
+    fecha: cita.FECHA || cita.fecha || '',
+    hora: cita.HORA || cita.hora || '',
+    estado: Number(cita.ESTADO || cita.estado || 0),
+    consultorio: cita.CONSULTORIO || cita.consultorio || '',
+    consultorioNombre: cita.CONSULTORIO_NOMBRE || cita.consultorioNombre || undefined,
+    medico: cita.MEDICO || cita.medico || '',
+    medicoNombre: cita.MEDICO_NOMBRE || cita.medicoNombre || undefined,
+    paciente: cita.PACIENTE || cita.paciente || '',
+    documento: cita.DOCUMENTO || cita.documento || undefined,
+    nombre: cita.NOMBRE || cita.nombre || '',
+    numero: cita.NUMERO || cita.numero || undefined,
+    turno: cita.TURNO_CONSULTA || cita.turno || undefined,
+    observacion: cita.OBSERVACION || cita.observacion || undefined,
+    seguro: cita.SEGURO || cita.seguro || undefined,
+    seguroNombre: cita.SEGURO_NOMBRE || cita.seguroNombre || undefined,
+    tipoConsulta: cita.TIPO_CITA || cita.tipoConsulta || undefined,
+    entidadSis: cita.ENTIDADSIS || cita.entidadSis || undefined,
+    numRef: cita.NUMREF || cita.numRef || undefined,
+    diagnostico: cita.DIAGNOSTICO || cita.diagnostico || undefined,
+  };
+}
+
+// ============================================================================
+// SERVICIOS DE CITAS - SPRING BOOT API
+// ============================================================================
 
 /**
  * Busca citas por documento o historia clínica del paciente
@@ -49,142 +91,48 @@ export async function searchCitasByDocumento(
   size: number = 10
 ): Promise<CitaSearchResult> {
   try {
-    // Primero buscar el código de paciente por documento o historia
-    const pacienteData = await prisma.$queryRaw<Array<{
-      PACIENTE: string
-      DOCUMENTO: string
-      HISTORIA: string
-    }>>`
-      SELECT PACIENTE, DOCUMENTO, HISTORIA 
-      FROM PACIENTE 
-      WHERE DOCUMENTO = ${documento} OR HISTORIA = ${documento}
-    `
+    console.log(`🔍 Buscando citas por documento: ${documento}`);
 
-    if (!pacienteData || pacienteData.length === 0) {
-      return {
-        content: [],
-        totalElements: 0,
-        totalPages: 0,
-        last: true
+    const params: Record<string, string> = {
+      documento,
+      page: page.toString(),
+      size: size.toString(),
+    };
+
+    if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
+    if (filters.fechaHasta) params.fechaHasta = filters.fechaHasta;
+    if (filters.estado && filters.estado !== 0) params.estado = filters.estado.toString();
+    if (filters.consultorio && filters.consultorio !== 'all') params.consultorio = filters.consultorio;
+    if (filters.medico && filters.medico !== 'all') params.medico = filters.medico;
+
+    const url = buildUrl(`${API_ENDPOINTS.citas.search}/por-documento`, params);
+    const response = await fetchApi(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return { content: [], totalElements: 0, totalPages: 0, last: true };
       }
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
 
-    const codigoPaciente = pacienteData[0].PACIENTE
+    const result = await response.json();
 
-    // Construir la consulta usando Prisma.sql
-    const offset = page * size
-    
-    // Construir fragmentos de SQL dinámicamente
-    const whereConditions: Prisma.Sql[] = [Prisma.sql`c.PACIENTE = ${codigoPaciente}`]
-    
-    if (filters.fechaDesde) {
-      whereConditions.push(Prisma.sql`c.FECHA >= ${filters.fechaDesde}`)
-    }
-    
-    if (filters.fechaHasta) {
-      whereConditions.push(Prisma.sql`c.FECHA <= ${filters.fechaHasta}`)
-    }
-    
-    if (filters.estado && filters.estado !== 0) {
-      whereConditions.push(Prisma.sql`c.ESTADO = ${filters.estado}`)
-    }
-    
-    if (filters.consultorio && filters.consultorio !== 'all') {
-      whereConditions.push(Prisma.sql`c.CONSULTORIO = ${filters.consultorio}`)
-    }
-    
-    if (filters.medico && filters.medico !== 'all') {
-      whereConditions.push(Prisma.sql`c.MEDICO = ${filters.medico}`)
-    }
+    // Normalizar respuesta del backend
+    const content = (result.content || result.data || []).map(normalizeCita);
+    const totalElements = result.totalElements || result.total || content.length;
+    const totalPages = result.totalPages || Math.ceil(totalElements / size);
 
-    // Unir condiciones con AND
-    const whereClause = Prisma.join(whereConditions, ' AND ')
-    
-    // Consulta principal con joins para obtener nombres
-    const citas = await prisma.$queryRaw(Prisma.sql`
-      SELECT * FROM (
-        SELECT 
-          ROW_NUMBER() OVER (ORDER BY c.FECHA DESC, c.HORA DESC) as ROWNUM,
-          c.CITA_ID,
-          c.FECHA,
-          c.HORA,
-          c.ESTADO,
-          c.CONSULTORIO,
-          cons.NOMBRE as CONSULTORIO_NOMBRE,
-          c.MEDICO,
-          med.NOMBRE as MEDICO_NOMBRE,
-          c.PACIENTE,
-          p.DOCUMENTO,
-          c.NOMBRE,
-          c.NUMERO,
-          c.ENTIDADSIS,
-          c.NUMREF,
-          c.TURNO_CONSULTA,
-          c.OBSERVACION,
-          c.SEGURO,
-          s.NOMBRE as SEGURO_NOMBRE,
-          c.TIPO_CITA,
-          (SELECT STUFF((
-            SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
-            FROM dbo.ATENCIOND WITH (NOLOCK)
-            WHERE ID_CITA = c.CITA_ID AND DX LIKE '[A-Z]%'
-            FOR XML PATH('')), 1, 2, '')) AS DIAGNOSTICO
-        FROM CITA c
-        LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
-        LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
-        LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
-        LEFT JOIN SEGURO s ON c.SEGURO = s.SEGURO
-        WHERE ${whereClause}
-      ) subquery
-      WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
-      ORDER BY ROWNUM
-    `)
-
-    // Contar total de registros
-    const totalCount = await prisma.$queryRaw(Prisma.sql`
-      SELECT COUNT(*) as TOTAL
-      FROM CITA c
-      LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
-      WHERE ${whereClause}
-    `)
-
-    const total = totalCount[0]?.TOTAL || 0
-    const totalPages = Math.ceil(total / size)
-
-    // Mapear resultados
-    const content: CitaHistorial[] = citas.map((cita: any) => ({
-      id: cita.CITA_ID.toString(),
-      fecha: cita.FECHA.toISOString().split('T')[0],
-      hora: cita.HORA,
-      estado: cita.ESTADO,
-      consultorio: cita.CONSULTORIO,
-      consultorioNombre: cita.CONSULTORIO_NOMBRE || undefined,
-      medico: cita.MEDICO,
-      medicoNombre: cita.MEDICO_NOMBRE || undefined,
-      paciente: cita.PACIENTE,
-      documento: cita.DOCUMENTO || undefined,
-      nombre: cita.NOMBRE,
-      numero: cita.NUMERO,
-      entidadSis: cita.ENTIDADSIS,
-      numRef: cita.NUMREF,
-      turno: cita.TURNO_CONSULTA,
-      observacion: cita.OBSERVACION || undefined,
-      seguroNombre: cita.SEGURO_NOMBRE || undefined,
-      seguro: cita.SEGURO || undefined,
-      tipoConsulta: cita.TIPO_CITA || undefined,
-      diagnostico: cita.DIAGNOSTICO?.trim() || undefined
-    }))
+    console.log(`✅ Encontradas ${content.length} citas (total: ${totalElements})`);
 
     return {
       content,
-      totalElements: total,
+      totalElements,
       totalPages,
-      last: page >= totalPages - 1
-    }
-
+      last: page >= totalPages - 1,
+    };
   } catch (error) {
-    console.error('Error searching citas by documento:', error)
-    throw new Error('Error al buscar citas por documento')
+    console.error('❌ Error searching citas by documento:', error);
+    throw new Error('Error al buscar citas por documento');
   }
 }
 
@@ -198,121 +146,47 @@ export async function searchCitasByNombres(
   size: number = 10
 ): Promise<CitaSearchResult> {
   try {
-    // Construir la consulta usando Prisma.sql
-    const offset = page * size
-    const nombrePattern = `%${nombres}%`
-    
-    // Construir fragmentos de SQL dinámicamente
-    const whereConditions: Prisma.Sql[] = [Prisma.sql`UPPER(c.NOMBRE) LIKE UPPER(${nombrePattern})`]
-    
-    if (filters.fechaDesde) {
-      whereConditions.push(Prisma.sql`c.FECHA >= ${filters.fechaDesde}`)
-    }
-    
-    if (filters.fechaHasta) {
-      whereConditions.push(Prisma.sql`c.FECHA <= ${filters.fechaHasta}`)
-    }
-    
-    if (filters.estado && filters.estado !== 0) {
-      whereConditions.push(Prisma.sql`c.ESTADO = ${filters.estado}`)
-    }
-    
-    if (filters.consultorio && filters.consultorio !== 'all') {
-      whereConditions.push(Prisma.sql`c.CONSULTORIO = ${filters.consultorio}`)
-    }
-    
-    if (filters.medico && filters.medico !== 'all') {
-      whereConditions.push(Prisma.sql`c.MEDICO = ${filters.medico}`)
+    console.log(`🔍 Buscando citas por nombre: ${nombres}`);
+
+    const params: Record<string, string> = {
+      nombres,
+      page: page.toString(),
+      size: size.toString(),
+    };
+
+    if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
+    if (filters.fechaHasta) params.fechaHasta = filters.fechaHasta;
+    if (filters.estado && filters.estado !== 0) params.estado = filters.estado.toString();
+    if (filters.consultorio && filters.consultorio !== 'all') params.consultorio = filters.consultorio;
+    if (filters.medico && filters.medico !== 'all') params.medico = filters.medico;
+
+    const url = buildUrl(`${API_ENDPOINTS.citas.search}/por-nombres`, params);
+    const response = await fetchApi(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return { content: [], totalElements: 0, totalPages: 0, last: true };
+      }
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
 
-    // Unir condiciones con AND
-    const whereClause = Prisma.join(whereConditions, ' AND ')
+    const result = await response.json();
 
-    // Consulta principal con joins para obtener nombres
-    const citas = await prisma.$queryRaw(Prisma.sql`
-      SELECT * FROM (
-        SELECT 
-          ROW_NUMBER() OVER (ORDER BY c.FECHA DESC, c.HORA DESC) as ROWNUM,
-          c.CITA_ID,
-          c.FECHA,
-          c.HORA,
-          c.ESTADO,
-          c.CONSULTORIO,
-          cons.NOMBRE as CONSULTORIO_NOMBRE,
-          c.MEDICO,
-          med.NOMBRE as MEDICO_NOMBRE,
-          c.PACIENTE,
-          p.DOCUMENTO,
-          c.NOMBRE,
-          c.NUMERO,
-          c.ENTIDADSIS,
-          c.NUMREF,
-          c.TURNO_CONSULTA,
-          c.OBSERVACION,
-          c.SEGURO,
-          c.TIPO_CITA,
-          s.NOMBRE as SEGURO_NOMBRE,
-          (SELECT STUFF((
-            SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
-            FROM dbo.ATENCIOND WITH (NOLOCK)
-            WHERE ID_CITA = c.CITA_ID AND DX LIKE '[A-Z]%'
-            FOR XML PATH('')), 1, 2, '')) AS DIAGNOSTICO
-        FROM CITA c
-        LEFT JOIN CONSULTORIO cons ON c.CONSULTORIO = cons.CONSULTORIO
-        LEFT JOIN MEDICO med ON c.MEDICO = med.MEDICO
-        LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
-        LEFT JOIN SEGURO s ON c.SEGURO = s.SEGURO
-        WHERE ${whereClause}
-      ) subquery
-      WHERE ROWNUM > ${offset} AND ROWNUM <= ${offset + size}
-      ORDER BY ROWNUM
-    `)
+    const content = (result.content || result.data || []).map(normalizeCita);
+    const totalElements = result.totalElements || result.total || content.length;
+    const totalPages = result.totalPages || Math.ceil(totalElements / size);
 
-    // Contar total de registros
-    const totalCount = await prisma.$queryRaw(Prisma.sql`
-      SELECT COUNT(*) as TOTAL
-      FROM CITA c
-      LEFT JOIN PACIENTE p ON c.PACIENTE = p.PACIENTE
-      WHERE ${whereClause}
-    `)
-
-    const total = totalCount[0]?.TOTAL || 0
-    const totalPages = Math.ceil(total / size)
-
-    // Mapear resultados
-    const content: CitaHistorial[] = citas.map((cita: any) => ({
-      id: cita.CITA_ID.toString(),
-      fecha: cita.FECHA.toISOString().split('T')[0],
-      hora: cita.HORA,
-      estado: cita.ESTADO,
-      consultorio: cita.CONSULTORIO,
-      consultorioNombre: cita.CONSULTORIO_NOMBRE || undefined,
-      medico: cita.MEDICO,
-      medicoNombre: cita.MEDICO_NOMBRE || undefined,
-      paciente: cita.PACIENTE,
-      documento: cita.DOCUMENTO || undefined,
-      nombre: cita.NOMBRE,
-      numero: cita.NUMERO,
-      entidadSis: cita.ENTIDADSIS,
-      numRef: cita.NUMREF,
-      turno: cita.TURNO_CONSULTA,
-      observacion: cita.OBSERVACION || undefined,
-      seguroNombre: cita.SEGURO_NOMBRE || undefined,
-      seguro: cita.SEGURO || undefined,
-      tipoConsulta: cita.TIPO_CITA || undefined,
-      diagnostico: cita.DIAGNOSTICO?.trim() || undefined
-    }))
+    console.log(`✅ Encontradas ${content.length} citas (total: ${totalElements})`);
 
     return {
       content,
-      totalElements: total,
+      totalElements,
       totalPages,
-      last: page >= totalPages - 1
-    }
-
+      last: page >= totalPages - 1,
+    };
   } catch (error) {
-    console.error('Error searching citas by nombres:', error)
-    throw new Error('Error al buscar citas por nombres')
+    console.error('❌ Error searching citas by nombres:', error);
+    throw new Error('Error al buscar citas por nombres');
   }
 }
 
@@ -325,22 +199,27 @@ export async function updateFechaPago(
   estado: string = '3'
 ): Promise<void> {
   try {
-    await prisma.$executeRaw`
-      UPDATE CITA 
-      SET FECHA_PAGO = ${fechaPago}, ESTADO = ${estado}
-      WHERE CITA_ID = ${citaId}
-    `
+    console.log(`🔄 Actualizando fecha de pago para cita: ${citaId}`);
 
-    console.log(`✅ FECHA_PAGO y ESTADO='${estado}' actualizados para cita ${citaId}`)
+    const url = `${API_ENDPOINTS.citas.byId(citaId)}/fecha-pago`;
+    const response = await fetchApi(url, {
+      method: 'PUT',
+      body: JSON.stringify({
+        fechaPago: fechaPago.toISOString(),
+        estado,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+    }
+
+    console.log(`✅ FECHA_PAGO y ESTADO='${estado}' actualizados para cita ${citaId}`);
   } catch (error) {
-    console.error('Error al actualizar FECHA_PAGO y ESTADO:', error)
-    throw new Error('Error al actualizar fecha de pago y estado de la cita')
+    console.error('❌ Error al actualizar FECHA_PAGO y ESTADO:', error);
+    throw new Error('Error al actualizar fecha de pago y estado de la cita');
   }
-}
-
-export interface MedicoByDate {
-  MEDICO: string
-  NOMBRE: string
 }
 
 /**
@@ -354,43 +233,33 @@ export async function getMedicosByDate(
   consultorio?: string
 ): Promise<MedicoByDate[]> {
   try {
-    let result: any[]
+    console.log(`🔍 Obteniendo médicos por fecha: ${fecha}${consultorio ? ` y consultorio ${consultorio}` : ''}`);
 
-    if (consultorio) {
-      // Consulta con filtro de consultorio
-      result = await prisma.$queryRaw`
-        SELECT DISTINCT 
-          C.MEDICO,
-          M.NOMBRE
-        FROM CITA C
-        LEFT JOIN MEDICO M 
-          ON LTRIM(RTRIM(M.MEDICO)) = LTRIM(RTRIM(C.MEDICO))
-        WHERE CONVERT(date, C.FECHA) = CONVERT(date, CONVERT(datetime, ${fecha}, 103))
-          AND LTRIM(RTRIM(C.CONSULTORIO)) = LTRIM(RTRIM(${consultorio}))
-        ORDER BY M.NOMBRE
-      `
-    } else {
-      // Consulta sin filtro de consultorio (todos los médicos del día)
-      result = await prisma.$queryRaw`
-        SELECT DISTINCT 
-          C.MEDICO,
-          M.NOMBRE
-        FROM CITA C
-        LEFT JOIN MEDICO M 
-          ON LTRIM(RTRIM(M.MEDICO)) = LTRIM(RTRIM(C.MEDICO))
-        WHERE CONVERT(date, C.FECHA) = CONVERT(date, CONVERT(datetime, ${fecha}, 103))
-        ORDER BY M.NOMBRE
-      `
+    const params: Record<string, string> = { fecha };
+    if (consultorio) params.consultorio = consultorio;
+
+    const url = buildUrl(`${API_ENDPOINTS.citas.base}/medicos-por-fecha`, params);
+    const response = await fetchApi(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return [];
+      }
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
 
-    console.log(`✅ Médicos encontrados para fecha ${fecha}${consultorio ? ` y consultorio ${consultorio}` : ''}: ${result.length}`)
-    
-    return result.map(item => ({
-      MEDICO: item.MEDICO?.trim() || '',
-      NOMBRE: item.NOMBRE?.trim() || ''
-    }))
+    const result = await response.json();
+    const data = Array.isArray(result) ? result : (result.data || []);
+
+    const medicos = data.map((item: any) => ({
+      MEDICO: (item.MEDICO || item.medico || '').trim(),
+      NOMBRE: (item.NOMBRE || item.nombre || '').trim(),
+    }));
+
+    console.log(`✅ Médicos encontrados: ${medicos.length}`);
+    return medicos;
   } catch (error) {
-    console.error('Error al obtener médicos por fecha:', error)
-    throw new Error('Error al obtener médicos por fecha')
+    console.error('❌ Error al obtener médicos por fecha:', error);
+    throw new Error('Error al obtener médicos por fecha');
   }
 }

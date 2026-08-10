@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Medico } from "./useMedicos";
+import { medicoServerService } from "@/services/master-tables/medicoService";
 
 export function useMedicoById(id: string | null) {
   const [medico, setMedico] = useState<Medico | null>(null);
@@ -17,10 +18,7 @@ export function useMedicoById(id: string | null) {
       setError(null);
 
       try {
-        const res = await fetch(`/api/master-tables/medicos/${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error(`Error ${res.status} al obtener médico`);
-        
-        const data = await res.json();
+        const data = await medicoServerService.getMedicoById(id);
         setMedico(data);
       } catch (err) {
         console.error("Error fetching médico:", err);

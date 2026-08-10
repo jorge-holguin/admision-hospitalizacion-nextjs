@@ -1,6 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+// cuentaService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 
-const prisma = new PrismaClient();
+// ============================================================================
+// SERVICIO DE CUENTAS - SPRING BOOT API
+// ============================================================================
 
 class CuentaService {
   /**
@@ -8,27 +11,36 @@ class CuentaService {
    */
   async getCuentaActivaByPacienteId(pacienteId: string): Promise<string | null> {
     try {
-      console.log(`Buscando cuenta activa para paciente: ${pacienteId}`);
+      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId}`);
       
-      // Obtener la cuenta activa más reciente del paciente
-      const cuenta = await prisma.$queryRaw`
-        SELECT TOP 1 CUENTAID 
-        FROM CUENTA 
-        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = '01'
-        ORDER BY CUENTAID DESC
-      ` as any[];
+      const url = buildUrl(API_ENDPOINTS.cuentas.activaByPaciente(pacienteId), {
+        origen: 'EM',
+        seguro: '01',
+      });
       
-      // Verificar si se encontró una cuenta
-      if (Array.isArray(cuenta) && cuenta.length > 0) {
-        console.log(`Cuenta encontrada para paciente ${pacienteId}:`, cuenta[0].CUENTAID);
-        return cuenta[0].CUENTAID;
+      const response = await fetchApi(url);
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId}`);
+        return null;
       }
       
-      console.log(`No se encontró cuenta activa para paciente ${pacienteId}`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.CUENTAID) {
+        console.log(`✅ Cuenta encontrada para paciente ${pacienteId}:`, data.CUENTAID);
+        return data.CUENTAID;
+      }
+      
+      console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId}`);
       return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener cuenta del paciente ${pacienteId}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return null;
     }
   }
@@ -38,70 +50,80 @@ class CuentaService {
    */
   async getCuentaActivaByPacienteIdAndSeguro(pacienteId: string, tipoSeguro: string): Promise<string | null> {
     try {
-      console.log(`Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro}`);
+      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro}`);
       
       // Mapear el tipo de seguro al código correcto
       let codigoSeguro: string;
       const seguroTrimmed = tipoSeguro.trim();
       
       if (seguroTrimmed === '0' || seguroTrimmed === '00') {
-        codigoSeguro = '0'; // Pagante - usar '0' como está en la base de datos
+        codigoSeguro = '0'; // Pagante
       } else if (seguroTrimmed === '02') {
         codigoSeguro = '02'; // SOAT
       } else if (['20', '21', '22', '23', '24', '25'].includes(seguroTrimmed)) {
-        codigoSeguro = '01'; // SIS - todos los tipos de SIS usan código 01 para buscar cuenta
+        codigoSeguro = '01'; // SIS
       } else {
         codigoSeguro = '01'; // Default SIS
       }
       
       console.log(`Seguro recibido: '${tipoSeguro}' -> Código para búsqueda: '${codigoSeguro}'`);
       
-      // Obtener la cuenta activa más reciente del paciente con el tipo de seguro específico
-      const cuenta = await prisma.$queryRaw`
-        SELECT TOP 1 CUENTAID 
-        FROM CUENTA 
-        WHERE PACIENTE = ${pacienteId} AND ESTADO = '1' AND ORIGEN = 'EM' AND SEGURO = ${codigoSeguro}
-        ORDER BY CUENTAID DESC
-      ` as any[];
+      const url = API_ENDPOINTS.cuentas.activaByPacienteAndSeguro(pacienteId, codigoSeguro);
+      const response = await fetchApi(buildUrl(url, { origen: 'EM' }));
       
-      // Verificar si se encontró una cuenta
-      if (Array.isArray(cuenta) && cuenta.length > 0) {
-        console.log(`Cuenta encontrada para paciente ${pacienteId} con seguro ${codigoSeguro}:`, cuenta[0].CUENTAID);
-        return cuenta[0].CUENTAID;
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);
+        return null;
       }
       
-      console.log(`No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.CUENTAID) {
+        console.log(`✅ Cuenta encontrada para paciente ${pacienteId} con seguro ${codigoSeguro}:`, data.CUENTAID);
+        return data.CUENTAID;
+      }
+      
+      console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);
       return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener cuenta del paciente ${pacienteId} con seguro ${tipoSeguro}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return null;
     }
   }
 
   async getFUAActivaByCuentaId(cuentaId: string): Promise<string | null> {
     try {
-      console.log(`Buscando FUA activa para cuenta: ${cuentaId}`);
+      console.log(`🔍 Buscando FUA activa para cuenta: ${cuentaId}`);
       
-      // Obtener la FUA activa más reciente de la cuenta
-      const fua = await prisma.$queryRaw`
-        SELECT TOP 1 NROFUA
-        FROM CUENTA
-        WHERE CUENTAID = ${cuentaId} AND ESTADO = '1' AND ORIGEN = 'EM'
-        ORDER BY CUENTAID DESC
-      ` as any[];
+      const url = API_ENDPOINTS.cuentas.fua.activaByCuenta(cuentaId);
+      const response = await fetchApi(url);
       
-      // Verificar si se encontró una FUA
-      if (Array.isArray(fua) && fua.length > 0) {
-        console.log(`FUA encontrada para cuenta ${cuentaId}:`, fua[0].NROFUA);
-        return fua[0].NROFUA;
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró FUA activa para cuenta ${cuentaId}`);
+        return null;
       }
       
-      console.log(`No se encontró FUA activa para cuenta ${cuentaId}`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.NROFUA) {
+        console.log(`✅ FUA encontrada para cuenta ${cuentaId}:`, data.NROFUA);
+        return data.NROFUA;
+      }
+      
+      console.log(`⚠️ No se encontró FUA activa para cuenta ${cuentaId}`);
       return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener FUA de la cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return null;
     }
   }
@@ -111,20 +133,23 @@ class CuentaService {
    */
   async updateCUENTA(cuentaId: string): Promise<boolean> {
     try {
-      console.log(`Actualizando estado de cuenta ${cuentaId} a inactivo`);
+      console.log(`🔄 Actualizando estado de cuenta ${cuentaId} a inactivo`);
       
-      // Actualizar el estado de la cuenta a 0 (inactivo)
-      await prisma.$executeRaw`
-        UPDATE CUENTA
-        SET ESTADO = '0'
-        WHERE CUENTAID = ${cuentaId}
-      `;
+      const url = API_ENDPOINTS.cuentas.updateEstado(cuentaId);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+        body: JSON.stringify({ estado: '0' }),
+      });
       
-      console.log(`Cuenta ${cuentaId} actualizada a estado inactivo`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log(`✅ Cuenta ${cuentaId} actualizada a estado inactivo`);
       return true;
     } catch (error: any) {
       const errorMessage = `Error al actualizar estado de cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return false;
     }
   }
@@ -134,34 +159,28 @@ class CuentaService {
    */
   async updateFUA(nroFua: string): Promise<boolean> {
     try {
-      console.log(`Actualizando estado de FUA ${nroFua} a inactivo`);
+      console.log(`🔄 Actualizando estado de FUA ${nroFua} a inactivo`);
       
-      // Buscar el registro en ATENCION_SEGURO por el número de FUA usando NUMATENCION
-      const atencionSeguro = await prisma.$queryRaw`
-        SELECT ATENCION_SEGURO_ID
-        FROM ATENCION_SEGURO
-        WHERE NUMATENCION = ${nroFua}
-      ` as any[];
+      const url = API_ENDPOINTS.cuentas.fua.updateEstado(nroFua);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+        body: JSON.stringify({ estado: '0' }),
+      });
       
-      if (!Array.isArray(atencionSeguro) || atencionSeguro.length === 0) {
-        console.log(`No se encontró FUA ${nroFua} en ATENCION_SEGURO`);
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró FUA ${nroFua} en ATENCION_SEGURO`);
         return false;
       }
       
-      const atencionSeguroId = atencionSeguro[0].ATENCION_SEGURO_ID;
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
       
-      // Actualizar el estado de la FUA a 0 (inactivo)
-      await prisma.$executeRaw`
-        UPDATE ATENCION_SEGURO
-        SET ESTADO = '0'
-        WHERE ATENCION_SEGURO_ID = ${atencionSeguroId}
-      `;
-      
-      console.log(`FUA ${nroFua} (ID: ${atencionSeguroId}) actualizada a estado inactivo`);
+      console.log(`✅ FUA ${nroFua} actualizada a estado inactivo`);
       return true;
     } catch (error: any) {
       const errorMessage = `Error al actualizar estado de FUA ${nroFua}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return false;
     }
   }
@@ -171,41 +190,30 @@ class CuentaService {
    */
   async updateCuentaAndFUA(cuentaId: string): Promise<{ success: boolean, message: string }> {
     try {
-      // Primero obtenemos el número de FUA asociado a la cuenta
-      const nroFua = await this.getFUAActivaByCuentaId(cuentaId);
+      console.log(`🔄 Inactivando cuenta ${cuentaId} y FUA asociada`);
       
-      if (!nroFua) {
+      const url = API_ENDPOINTS.cuentas.updateCuentaAndFua(cuentaId);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
         return { 
           success: false, 
-          message: `No se encontró FUA activa para la cuenta ${cuentaId}` 
+          message: errorData.message || `Error al actualizar cuenta ${cuentaId}` 
         };
       }
       
-      // Actualizamos el estado de la FUA en ATENCION_SEGURO
-      const fuaUpdated = await this.updateFUA(nroFua);
-      if (!fuaUpdated) {
-        return { 
-          success: false, 
-          message: `Error al actualizar la FUA ${nroFua}` 
-        };
-      }
-      
-      // Actualizamos el estado de la cuenta
-      const cuentaUpdated = await this.updateCUENTA(cuentaId);
-      if (!cuentaUpdated) {
-        return { 
-          success: false, 
-          message: `Error al actualizar la cuenta ${cuentaId}` 
-        };
-      }
+      const data = await response.json();
       
       return { 
         success: true, 
-        message: `Cuenta ${cuentaId} y FUA ${nroFua} actualizadas correctamente a estado inactivo` 
+        message: data.message || `Cuenta ${cuentaId} y FUA actualizadas correctamente a estado inactivo` 
       };
     } catch (error: any) {
       const errorMessage = `Error al actualizar cuenta y FUA: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return { success: false, message: errorMessage };
     }
   }
@@ -215,55 +223,42 @@ class CuentaService {
    */
   async updateCuentaSeguro(cuentaId: string, nuevoSeguro: string): Promise<any> {
     try {
-      console.log(`Actualizando cuenta ${cuentaId} con nuevo seguro: ${nuevoSeguro}`);
+      console.log(`🔄 Actualizando cuenta ${cuentaId} con nuevo seguro: ${nuevoSeguro}`);
       
       // Normalizar el código de seguro
       let seguroNormalizado = nuevoSeguro.trim();
-      if (seguroNormalizado === '0') {
-        seguroNormalizado = '0'; // PAGANTE
-      } else if (seguroNormalizado === '02') {
-        seguroNormalizado = '02'; // SOAT
-      }
       
-      // Actualizar el campo SEGURO en la tabla CUENTA
-      const result = await prisma.$executeRaw`
-        UPDATE CUENTA 
-        SET SEGURO = ${seguroNormalizado}
-        WHERE CUENTAID = ${cuentaId}
-      `;
+      const url = API_ENDPOINTS.cuentas.updateSeguro(cuentaId);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+        body: JSON.stringify({ seguro: seguroNormalizado }),
+      });
       
-      console.log(`Cuenta ${cuentaId} actualizada. Filas afectadas: ${result}`);
-      
-      if (result > 0) {
-        // Verificar la actualización
-        const cuentaActualizada = await prisma.$queryRaw`
-          SELECT CUENTAID, PACIENTE, SEGURO, EMPRESASEGURO 
-          FROM CUENTA 
-          WHERE CUENTAID = ${cuentaId}
-        ` as any[];
-        
-        console.log('Cuenta después de la actualización:', cuentaActualizada[0]);
-        
-        return {
-          success: true,
-          message: `Cuenta ${cuentaId} actualizada correctamente con seguro ${seguroNormalizado}`,
-          data: cuentaActualizada[0]
-        };
-      } else {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
         return {
           success: false,
-          message: `No se pudo actualizar la cuenta ${cuentaId}. Cuenta no encontrada.`
+          message: errorData.message || `No se pudo actualizar la cuenta ${cuentaId}`
         };
       }
+      
+      const data = await response.json();
+      console.log(`✅ Cuenta ${cuentaId} actualizada con seguro ${seguroNormalizado}`);
+      
+      return {
+        success: true,
+        message: `Cuenta ${cuentaId} actualizada correctamente con seguro ${seguroNormalizado}`,
+        data: data
+      };
     } catch (error: any) {
       const errorMessage = `Error al actualizar seguro de cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return { success: false, message: errorMessage };
     }
   }
+
   /**
    * Actualiza la OBSERVACION y EMPRESASEGURO de una cuenta específica
-   * Se usa al editar una emergencia/hospitalización para sincronizar con la cuenta
    */
   async updateCuentaObservacionYEmpresa(
     cuentaId: string, 
@@ -275,56 +270,46 @@ class CuentaService {
       console.log(`   - OBSERVACION: ${observacion || '(sin cambio)'}`);
       console.log(`   - EMPRESASEGURO: ${empresaSeguro || '(sin cambio)'}`);
       
-      // Construir la consulta dinámicamente según los campos a actualizar
-      const updates: string[] = [];
-      
+      const body: Record<string, string> = {};
       if (observacion !== undefined && observacion !== null) {
-        updates.push(`OBSERVACION = '${observacion.replace(/'/g, "''")}'`);
+        body.observacion = observacion;
       }
-      
       if (empresaSeguro !== undefined && empresaSeguro !== null) {
-        updates.push(`EMPRESASEGURO = '${empresaSeguro.trim()}'`);
+        body.empresaSeguro = empresaSeguro.trim();
       }
       
-      if (updates.length === 0) {
+      if (Object.keys(body).length === 0) {
         return {
           success: true,
           message: 'No hay campos para actualizar'
         };
       }
       
-      const updateQuery = `UPDATE CUENTA SET ${updates.join(', ')} WHERE CUENTAID = '${cuentaId}'`;
-      console.log(`🔄 Query: ${updateQuery}`);
+      const url = API_ENDPOINTS.cuentas.updateObservacionYEmpresa(cuentaId);
+      const response = await fetchApi(url, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
       
-      // Ejecutar la actualización usando queryRaw para construcción dinámica
-      const result = await prisma.$executeRawUnsafe(updateQuery);
-      
-      console.log(`✅ Filas afectadas: ${result}`);
-      
-      if (result > 0) {
-        // Verificar la actualización
-        const cuentaActualizada = await prisma.$queryRaw`
-          SELECT CUENTAID, PACIENTE, SEGURO, EMPRESASEGURO, OBSERVACION 
-          FROM CUENTA 
-          WHERE CUENTAID = ${cuentaId}
-        ` as any[];
-        
-        console.log('📋 Cuenta después de la actualización:', cuentaActualizada[0]);
-        
-        return {
-          success: true,
-          message: `Cuenta ${cuentaId} actualizada correctamente`,
-          data: cuentaActualizada[0]
-        };
-      } else {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
         return {
           success: false,
-          message: `No se encontró la cuenta ${cuentaId}`
+          message: errorData.message || `No se encontró la cuenta ${cuentaId}`
         };
       }
+      
+      const data = await response.json();
+      console.log(`✅ Cuenta ${cuentaId} actualizada correctamente`);
+      
+      return {
+        success: true,
+        message: `Cuenta ${cuentaId} actualizada correctamente`,
+        data: data
+      };
     } catch (error: any) {
       const errorMessage = `Error al actualizar cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
-      console.error(errorMessage, error);
+      console.error(`❌ ${errorMessage}`, error);
       return { success: false, message: errorMessage };
     }
   }
@@ -334,13 +319,26 @@ class CuentaService {
    */
   async getCuentaById(cuentaId: string): Promise<any | null> {
     try {
-      const cuenta = await prisma.$queryRaw`
-        SELECT * FROM CUENTA WHERE CUENTAID = ${cuentaId}
-      ` as any[];
+      console.log(`🔍 Buscando cuenta: ${cuentaId}`);
       
-      return Array.isArray(cuenta) && cuenta.length > 0 ? cuenta[0] : null;
+      const url = API_ENDPOINTS.cuentas.byId(cuentaId);
+      const response = await fetchApi(url);
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró cuenta ${cuentaId}`);
+        return null;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Cuenta encontrada: ${cuentaId}`);
+      
+      return data;
     } catch (error: any) {
-      console.error(`Error al obtener cuenta ${cuentaId}:`, error);
+      console.error(`❌ Error al obtener cuenta ${cuentaId}:`, error);
       return null;
     }
   }

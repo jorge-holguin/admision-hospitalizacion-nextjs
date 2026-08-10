@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useOptimizedConsultorios } from "@/hooks/master-tables/useOptimizedConsultorios";
 import { useConsultorioById } from "@/hooks/master-tables/useConsultorioById";
+import { API_ENDPOINTS } from "@/lib/api-config";
 import {
   Popover,
   PopoverContent,
@@ -75,21 +76,27 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Cargar especialidades
-        const espResponse = await fetch('/api/master-tables/specialties');
+        // Cargar especialidades desde API Spring Boot directo
+        const espResponse = await fetch(API_ENDPOINTS.masterTables.specialties);
         if (espResponse.ok) {
           const espData = await espResponse.json();
           // Asegurarse de que especialidades sea siempre un array
-          setEspecialidades(Array.isArray(espData) ? espData : 
-                           (espData.data && Array.isArray(espData.data) ? espData.data : []));
+          const data = Array.isArray(espData) ? espData :
+                      (espData.data && Array.isArray(espData.data) ? espData.data : []);
+          // Normalizar datos: API devuelve {Especialidad, Nombre} o {codigo, nombre}
+          const normalized = data.map((e: any) => ({
+            Codigo: e.Especialidad || e.especialidad || e.Codigo || e.codigo,
+            Nombre: e.Nombre || e.nombre
+          }));
+          setEspecialidades(normalized);
         }
 
-        // Cargar tipos (Tabla T)
-        const tipoResponse = await fetch('/api/master-tables/consultorio-types');
+        // Cargar tipos (Tabla T) desde API Spring Boot directo
+        const tipoResponse = await fetch(API_ENDPOINTS.masterTables.consultorios.types);
         if (tipoResponse.ok) {
           const tipoData = await tipoResponse.json();
           // Asegurarse de que tipos sea siempre un array
-          setTipos(Array.isArray(tipoData) ? tipoData : []);
+          setTipos(Array.isArray(tipoData) ? tipoData : (tipoData.data || []));
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -136,13 +143,17 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
 
   const checkCodigoUnique = async (codigo: string) => {
     if (!codigo) return;
-    
+
     setCheckingCodigo(true);
     try {
-      const response = await fetch(`/api/master-tables/consultorios/search/check-codigo?codigo=${codigo}`);
+      // Usar el endpoint de búsqueda de consultorios para verificar existencia
+      const url = `${API_ENDPOINTS.masterTables.consultorios.search}?codigo=${encodeURIComponent(codigo)}`;
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setCodigoExists(data.exists);
+        // Si hay resultados, el código existe
+        const exists = Array.isArray(data) ? data.length > 0 : (data.data && data.data.length > 0);
+        setCodigoExists(exists);
       }
     } catch (error) {
       console.error('Error checking codigo:', error);

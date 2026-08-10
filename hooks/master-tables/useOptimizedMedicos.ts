@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Medico } from "./useMedicos";
+import { medicoServerService } from "@/services/master-tables/medicoService";
 
 export function useOptimizedMedicos() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -11,10 +12,7 @@ export function useOptimizedMedicos() {
     setError(null);
     
     try {
-      const res = await fetch(`/api/master-tables/medicos/${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error(`Error ${res.status} al obtener médico`);
-      
-      const data = await res.json();
+      const data = await medicoServerService.getMedicoById(id);
       return data;
     } catch (err) {
       console.error("Error fetching médico:", err);
@@ -29,15 +27,7 @@ export function useOptimizedMedicos() {
   const createMedico = async (medicoData: Partial<Medico>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/medicos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(medicoData),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al crear médico`);
-      }
+      await medicoServerService.createMedico(medicoData);
       return { success: true };
     } catch (err) {
       console.error("Error creating médico:", err);
@@ -54,15 +44,7 @@ export function useOptimizedMedicos() {
   const updateMedico = async (id: string, medicoData: Partial<Medico>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/medicos/${encodeURIComponent(id)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(medicoData),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al actualizar médico`);
-      }
+      await medicoServerService.updateMedico(id, medicoData);
       return { success: true };
     } catch (err) {
       console.error("Error updating médico:", err);

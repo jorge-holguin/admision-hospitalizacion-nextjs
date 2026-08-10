@@ -1,36 +1,39 @@
-import { prisma } from '@/lib/prisma/client'
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 export interface MotivoEmergencia {
-  MOTIVO_EMERGENCIA: string
-  NOMBRE: string
+  motivoEmergencia: string
+  nombre: string
+  activo?: number
 }
 
+/**
+ * Servicio para motivos de emergencia
+ * MIGRADO: Ahora usa backend Spring Boot
+ */
 export class MotivoEmergenciaService {
-  async findAll() {
+  async findAll(): Promise<MotivoEmergencia[]> {
     try {
-      // Primer intento: con filtro ACTIVO si existe
-      const result = await prisma.$queryRaw<MotivoEmergencia[]>`
-        SELECT MOTIVO_EMERGENCIA, NOMBRE
-        FROM MOTIVO_EMERGENCIA
-        WHERE ACTIVO = '1'
-        ORDER BY NOMBRE
-      `;
-      return result;
-    } catch (error) {
-      console.error('Error al obtener motivo de emergencia (ACTIVO=1):', error);
+      console.log('🔍 MotivoEmergenciaService: Obteniendo motivos de emergencia desde Spring Boot');
+      
+      const response = await fetch(API_ENDPOINTS.emergencia.reasons, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      // Fallback: sin filtro ACTIVO
-      try {
-        const result = await prisma.$queryRaw<MotivoEmergencia[]>`
-          SELECT MOTIVO_EMERGENCIA, NOMBRE
-          FROM MOTIVO_EMERGENCIA
-          ORDER BY NOMBRE
-        `;
-        return result;
-      } catch (fallbackError) {
-        console.error('Error en consulta fallback MOTIVO_EMERGENCIA:', fallbackError);
-        return [];
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      const items = data.items || data.data || data;
+      console.log(`✅ MotivoEmergenciaService: ${items.length} motivos de emergencia obtenidos`);
+      
+      return items;
+    } catch (error) {
+      console.error('❌ Error al obtener motivos de emergencia:', error);
+      return [];
     }
   }
 }

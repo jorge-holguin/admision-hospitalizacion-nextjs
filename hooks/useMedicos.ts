@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
+import { medicoServerService } from '@/services/master-tables/medicoService'
 
 interface Medico {
   MEDICO: string
@@ -16,19 +17,8 @@ export function useMedicos() {
         setLoading(true)
         setError(null)
         
-        const response = await fetch('/api/master-tables/medicos/search')
-        
-        if (!response.ok) {
-          throw new Error(`Error fetching medicos: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        
-        if (data.success && Array.isArray(data.data)) {
-          setMedicos(data.data)
-        } else {
-          throw new Error('Invalid response format')
-        }
+        const data = await medicoServerService.searchMedicos()
+        setMedicos(data)
       } catch (err) {
         console.error('Error loading medicos:', err)
         setError(err instanceof Error ? err.message : 'Unknown error loading medicos')

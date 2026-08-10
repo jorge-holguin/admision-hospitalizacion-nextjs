@@ -1,5 +1,9 @@
-import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils';
+// pacienteService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface PacienteFilter {
   historia?: string;
@@ -12,6 +16,39 @@ export interface PaginationOptions {
   pageSize: number;
 }
 
+export interface Paciente {
+  PACIENTE: string;
+  HISTORIA: string;
+  NOMBRES: string;
+  PATERNO: string;
+  MATERNO: string;
+  NOMBRE: string;
+  SEXO: string;
+  FECHA_NACIMIENTO: string | Date;
+  EDAD: string;
+  DOCUMENTO: string;
+  TIPO_DOCUMENTO: string;
+  DIRECCION: string;
+  TELEFONO1: string;
+  ESTADO_CIVIL: string;
+  SEGURO: string;
+  [key: string]: any;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+
+// ============================================================================
+// SERVICIO DE PACIENTES - SPRING BOOT API
+// ============================================================================
+
 export const pacienteService = {
   /**
    * Obtener pacientes paginados con filtros opcionales
@@ -19,93 +56,43 @@ export const pacienteService = {
   async getPaginatedPacientes(
     filter: PacienteFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
-  ) {
+  ): Promise<PaginatedResponse<Paciente>> {
     try {
-      console.log('Buscando pacientes con parámetros:', { page, pageSize, filter });
+      console.log('🔍 Buscando pacientes con parámetros:', { page, pageSize, filter });
       
-      // Construir el objeto where para los filtros
-      const where: any = {};
+      const params: Record<string, string> = {
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      };
       
-      if (filter.historia) {
-        where.HISTORIA = {
-          contains: filter.historia,
-        };
+      if (filter.historia) params.historia = filter.historia;
+      if (filter.documento) params.documento = filter.documento;
+      if (filter.nombres) params.nombres = filter.nombres;
+      
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      console.log('🏥 Consultando pacientes:', url);
+      
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      if (filter.documento) {
-        where.DOCUMENTO = {
-          contains: filter.documento,
-        };
-      }
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes`);
       
-      if (filter.nombres) {
-        where.OR = [
-          { NOMBRES: { contains: filter.nombres } },
-          { PATERNO: { contains: filter.nombres } },
-          { MATERNO: { contains: filter.nombres } },
-          { NOMBRE: { contains: filter.nombres } },
-        ];
-      }
-      
-      // Obtener el total de registros
-      const total = await prisma.pACIENTE.count({ where });
-      
-      // Para versiones antiguas de SQL Server, usamos TOP y un subquery
-      // en lugar de OFFSET/FETCH
-      
-      // Construir la consulta SQL manualmente
-      let whereClause = '';
-      
-      if (filter.historia) {
-        whereClause += ` AND HISTORIA LIKE '%${filter.historia}%'`;
-      }
-      
-      if (filter.documento) {
-        whereClause += ` AND DOCUMENTO LIKE '%${filter.documento}%'`;
-      }
-      
-      if (filter.nombres) {
-        whereClause += ` AND (NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`;
-      }
-      
-      // Calcular el número de registros a saltar
-      const recordsToSkip = (page - 1) * pageSize;
-      
-      // Consulta SQL compatible con SQL Server 2008 y anteriores
-      const query = `
-        SELECT TOP ${pageSize} * FROM (
-          SELECT 
-            PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO, 
-            FECHA_NACIMIENTO, EDAD, DOCUMENTO, TIPO_DOCUMENTO, DIRECCION, 
-            TELEFONO1, ESTADO_CIVIL, FECHA_APERTURA, HORA_APERTURA, PADRE, 
-            MADRE, DISTRITO, LUGAR_NACIMIENTO, OCUPACION, GRADO_INSTRUCCION, 
-            CONYUGE_NOMBRE, SEGURO, ENTIDAD, ANIO, HIJOS, CONYUGE_OCUPACION, 
-            CONSULTORIO, SYSINSERT, SYSUPDATE, FECHA_CONSULTA, TURNO_CONSULTA, 
-            FLAG, RELIGION, USUARIO_IMP, HISTORIA_ANT,
-            ROW_NUMBER() OVER (ORDER BY NOMBRES ASC) AS RowNum
-          FROM dbo.PACIENTE
-          WHERE 1=1 ${whereClause}
-        ) AS PacientesPaginados
-        WHERE RowNum > ${recordsToSkip}
-        ORDER BY RowNum
-      `;
-      
-      // Ejecutar la consulta nativa
-      const data = await prisma.$queryRawUnsafe(query);
-      
-      console.log(`Encontrados ${Array.isArray(data) ? data.length : 0} pacientes de un total de ${total}`);
-      
-      return serializeBigInt({
-        data: Array.isArray(data) ? data : [],
-        pagination: {
-          total,
+      return {
+        data: data.data || [],
+        pagination: data.pagination || {
+          total: data.data?.length || 0,
           page,
           pageSize,
-          totalPages: Math.ceil(total / pageSize),
+          totalPages: Math.ceil((data.data?.length || 0) / pageSize),
         },
-      });
+      };
     } catch (error) {
-      console.error('Error en getPaginatedPacientes:', error instanceof Error ? error.message : 'Error desconocido', error);
+      console.error('❌ Error en getPaginatedPacientes:', error);
       throw error;
     }
   },
@@ -113,31 +100,28 @@ export const pacienteService = {
   /**
    * Obtener un paciente por su ID
    */
-  async getPacienteById(id: string) {
+  async getPacienteById(id: string): Promise<Paciente | null> {
     try {
-      console.log(`Buscando paciente con ID: ${id}`);
+      console.log(`🔍 Buscando paciente con ID: ${id}`);
       
-      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
-      const query = `
-        SELECT 
-          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
-          FECHA_NACIMIENTO, EDAD, DOCUMENTO, TIPO_DOCUMENTO, DIRECCION,
-          TELEFONO1, ESTADO_CIVIL, FECHA_APERTURA, HORA_APERTURA, PADRE,
-          MADRE, DISTRITO, LUGAR_NACIMIENTO, OCUPACION, GRADO_INSTRUCCION,
-          CONYUGE_NOMBRE, SEGURO, ENTIDAD, ANIO, HIJOS, CONYUGE_OCUPACION,
-          CONSULTORIO, SYSINSERT, SYSUPDATE, FECHA_CONSULTA, TURNO_CONSULTA,
-          FLAG, RELIGION, USUARIO_IMP, HISTORIA_ANT
-        FROM dbo.PACIENTE
-        WHERE PACIENTE = '${id}'
-      `;
+      const url = API_ENDPOINTS.filiation.byId(id);
+      const response = await fetchApi(url);
       
-      const result = await prisma.$queryRawUnsafe(query);
-      const paciente = Array.isArray(result) && result.length > 0 ? result[0] : null;
+      if (response.status === 404) {
+        console.log(`⚠️ Paciente no encontrado: ${id}`);
+        return null;
+      }
       
-      console.log(`Paciente encontrado:`, paciente || 'No encontrado');
-      return serializeBigInt(paciente);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const paciente = await response.json();
+      console.log('✅ Paciente encontrado:', paciente.NOMBRES || paciente.nombres);
+      
+      return paciente;
     } catch (error) {
-      console.error(`Error en getPacienteById(${id}):`, error instanceof Error ? error.message : 'Error desconocido');
+      console.error(`❌ Error en getPacienteById(${id}):`, error);
       throw error;
     }
   },
@@ -145,26 +129,25 @@ export const pacienteService = {
   /**
    * Buscar pacientes por historia clínica
    */
-  async searchByHistoria(historia: string) {
+  async searchByHistoria(historia: string): Promise<Paciente[]> {
     try {
-      console.log(`Buscando pacientes por historia: ${historia}`);
+      console.log(`🔍 Buscando pacientes por historia: ${historia}`);
       
-      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
-      const query = `
-        SELECT TOP 10
-          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
-          DOCUMENTO, FECHA_NACIMIENTO, EDAD
-        FROM dbo.PACIENTE
-        WHERE HISTORIA LIKE '%${historia}%'
-        ORDER BY NOMBRES ASC
-      `;
+      const params = { historia, pageSize: '10' };
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
       
-      const pacientes = await prisma.$queryRawUnsafe(query);
+      const response = await fetchApi(url);
       
-      console.log(`Encontrados ${Array.isArray(pacientes) ? pacientes.length : 0} pacientes por historia`);
-      return serializeBigInt(Array.isArray(pacientes) ? pacientes : []);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes por historia`);
+      
+      return data.data || [];
     } catch (error) {
-      console.error(`Error en searchByHistoria(${historia}):`, error instanceof Error ? error.message : 'Error desconocido');
+      console.error(`❌ Error en searchByHistoria(${historia}):`, error);
       throw error;
     }
   },
@@ -172,26 +155,25 @@ export const pacienteService = {
   /**
    * Buscar pacientes por documento (DNI)
    */
-  async searchByDocumento(documento: string) {
+  async searchByDocumento(documento: string): Promise<Paciente[]> {
     try {
-      console.log(`Buscando pacientes por documento: ${documento}`);
+      console.log(`🔍 Buscando pacientes por documento: ${documento}`);
       
-      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
-      const query = `
-        SELECT TOP 10
-          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
-          DOCUMENTO, FECHA_NACIMIENTO, EDAD
-        FROM dbo.PACIENTE
-        WHERE DOCUMENTO LIKE '%${documento}%'
-        ORDER BY NOMBRES ASC
-      `;
+      const params = { documento, pageSize: '10' };
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
       
-      const pacientes = await prisma.$queryRawUnsafe(query);
+      const response = await fetchApi(url);
       
-      console.log(`Encontrados ${Array.isArray(pacientes) ? pacientes.length : 0} pacientes por documento`);
-      return serializeBigInt(Array.isArray(pacientes) ? pacientes : []);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes por documento`);
+      
+      return data.data || [];
     } catch (error) {
-      console.error(`Error en searchByDocumento(${documento}):`, error instanceof Error ? error.message : 'Error desconocido');
+      console.error(`❌ Error en searchByDocumento(${documento}):`, error);
       throw error;
     }
   },
@@ -199,26 +181,25 @@ export const pacienteService = {
   /**
    * Buscar pacientes por nombre o apellidos
    */
-  async searchByName(name: string) {
+  async searchByName(name: string): Promise<Paciente[]> {
     try {
-      console.log(`Buscando pacientes por nombre: ${name}`);
+      console.log(`🔍 Buscando pacientes por nombre: ${name}`);
       
-      // Usar SQL nativo para evitar problemas con OFFSET/FETCH
-      const query = `
-        SELECT TOP 100
-          PACIENTE, HISTORIA, NOMBRES, PATERNO, MATERNO, NOMBRE, SEXO,
-          DOCUMENTO, FECHA_NACIMIENTO, EDAD
-        FROM dbo.PACIENTE
-        WHERE NOMBRES LIKE '%${name}%' OR PATERNO LIKE '%${name}%' OR MATERNO LIKE '%${name}%' OR NOMBRE LIKE '%${name}%'
-        ORDER BY NOMBRES ASC
-      `;
+      const params = { nombres: name, pageSize: '100' };
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
       
-      const pacientes = await prisma.$queryRawUnsafe(query);
+      const response = await fetchApi(url);
       
-      console.log(`Encontrados ${Array.isArray(pacientes) ? pacientes.length : 0} pacientes por nombre`);
-      return serializeBigInt(Array.isArray(pacientes) ? pacientes : []);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes por nombre`);
+      
+      return data.data || [];
     } catch (error) {
-      console.error(`Error en searchByName(${name}):`, error instanceof Error ? error.message : 'Error desconocido');
+      console.error(`❌ Error en searchByName(${name}):`, error);
       throw error;
     }
   },
@@ -226,46 +207,37 @@ export const pacienteService = {
   /**
    * Contar pacientes con filtros opcionales
    */
-  async countPacientes(filter: PacienteFilter = {}) {
+  async countPacientes(filter: PacienteFilter = {}): Promise<{ success: boolean; data?: { total: number }; message?: string }> {
     try {
-      console.log('Contando pacientes con filtros:', filter);
+      console.log('📊 Contando pacientes con filtros:', filter);
       
-      // Construir la condición WHERE para el SQL nativo
-      let whereClause = '1=1';
+      const params: Record<string, string> = {
+        page: '1',
+        pageSize: '1',
+      };
       
-      if (filter.historia) {
-        whereClause += ` AND HISTORIA LIKE '%${filter.historia}%'`;
+      if (filter.historia) params.historia = filter.historia;
+      if (filter.documento) params.documento = filter.documento;
+      if (filter.nombres) params.nombres = filter.nombres;
+      
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      if (filter.documento) {
-        whereClause += ` AND DOCUMENTO LIKE '%${filter.documento}%'`;
-      }
+      const data = await response.json();
+      const total = data.pagination?.total || 0;
       
-      if (filter.nombres) {
-        whereClause += ` AND (NOMBRES LIKE '%${filter.nombres}%' OR PATERNO LIKE '%${filter.nombres}%' OR MATERNO LIKE '%${filter.nombres}%' OR NOMBRE LIKE '%${filter.nombres}%')`;
-      }
+      console.log(`✅ Total de pacientes: ${total}`);
       
-      // Consulta SQL para contar registros
-      const query = `
-        SELECT COUNT(*) as total
-        FROM dbo.PACIENTE
-        WHERE ${whereClause}
-      `;
-      
-      // Ejecutar la consulta nativa
-      const result = await prisma.$queryRawUnsafe(query);
-      const total = Array.isArray(result) && result.length > 0 ? Number(result[0].total) : 0;
-      
-      console.log(`Total de pacientes: ${total}`);
-      
-      return serializeBigInt({
+      return {
         success: true,
-        data: {
-          total
-        }
-      });
+        data: { total }
+      };
     } catch (error) {
-      console.error('Error en countPacientes:', error instanceof Error ? error.message : 'Error desconocido');
+      console.error('❌ Error en countPacientes:', error);
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Error desconocido al contar pacientes'
@@ -273,3 +245,5 @@ export const pacienteService = {
     }
   },
 };
+
+export default pacienteService;

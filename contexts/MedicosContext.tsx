@@ -56,44 +56,32 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const codigosParam = codigosFaltantes.join(',');
       
-      // Intentar primero con la ruta relativa
-      let response = await fetch(`/api/master-tables/medicos/search?codigos=${codigosParam}`);
+      const { medicoServerService } = await import('@/services/master-tables/medicoService');
+      const nuevosMedicos = await medicoServerService.searchMedicos({ codigos: codigosParam });
       
-      // Si falla, intentar con la URL completa
-      if (!response.ok) {
-        response = await fetch(`http://192.168.0.21:9011/api/master-tables/medicos/search?codigos=${codigosParam}`);
-      }
+      console.log(`Cargados ${nuevosMedicos.length} médicos adicionales`);
       
-      if (response.ok) {
-        const data = await response.json();
-        const nuevosMedicos = Array.isArray(data) ? data : 
-                            Array.isArray(data?.data) ? data.data : 
-                            Array.isArray(data?.items) ? data.items : [];
+      // Actualizar el cache y el estado
+      nuevosMedicos.forEach((medico: MedicoInfo) => {
+        if (medico.MEDICO) {
+          medicoCache.current.set(medico.MEDICO.trim(), medico);
+        }
+      });
+      
+      // Combinar los nuevos médicos con los existentes, evitando duplicados
+      setMedicos(prevMedicos => {
+        const medicoIds = new Set(prevMedicos.map(m => m.MEDICO?.trim()));
+        const medicosUnicos = [...prevMedicos];
         
-        console.log(`Cargados ${nuevosMedicos.length} médicos adicionales`);
-        
-        // Actualizar el cache y el estado
         nuevosMedicos.forEach((medico: MedicoInfo) => {
-          if (medico.MEDICO) {
-            medicoCache.current.set(medico.MEDICO.trim(), medico);
+          if (medico.MEDICO && !medicoIds.has(medico.MEDICO.trim())) {
+            medicosUnicos.push(medico);
+            medicoIds.add(medico.MEDICO.trim());
           }
         });
         
-        // Combinar los nuevos médicos con los existentes, evitando duplicados
-        setMedicos(prevMedicos => {
-          const medicoIds = new Set(prevMedicos.map(m => m.MEDICO?.trim()));
-          const medicosUnicos = [...prevMedicos];
-          
-          nuevosMedicos.forEach((medico: MedicoInfo) => {
-            if (medico.MEDICO && !medicoIds.has(medico.MEDICO.trim())) {
-              medicosUnicos.push(medico);
-              medicoIds.add(medico.MEDICO.trim());
-            }
-          });
-          
-          return medicosUnicos;
-        });
-      }
+        return medicosUnicos;
+      });
     } catch (error) {
       console.error('Error al cargar médicos por códigos:', error);
     } finally {
@@ -110,29 +98,20 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       
-      // Usar el endpoint correcto con especialidad
-      const response = await fetch(`/api/master-tables/medicos/search?especialidad=${especialidad}`);
+      const { medicoServerService } = await import('@/services/master-tables/medicoService');
+      const nuevosMedicos = await medicoServerService.searchMedicos({ especialidad });
       
-      if (response.ok) {
-        const data = await response.json();
-        const nuevosMedicos = Array.isArray(data) ? data : 
-                            Array.isArray(data?.data) ? data.data : 
-                            Array.isArray(data?.items) ? data.items : [];
-        
-        console.log(`Cargados ${nuevosMedicos.length} médicos de especialidad ${especialidad}`);
-        
-        // Actualizar el cache y el estado
-        nuevosMedicos.forEach((medico: MedicoInfo) => {
-          if (medico.MEDICO) {
-            medicoCache.current.set(medico.MEDICO.trim(), medico);
-          }
-        });
-        
-        // Reemplazar médicos con los de la especialidad
-        setMedicos(nuevosMedicos);
-      } else {
-        console.error('Error al cargar médicos por especialidad:', response.statusText);
-      }
+      console.log(`Cargados ${nuevosMedicos.length} médicos de especialidad ${especialidad}`);
+      
+      // Actualizar el cache y el estado
+      nuevosMedicos.forEach((medico: MedicoInfo) => {
+        if (medico.MEDICO) {
+          medicoCache.current.set(medico.MEDICO.trim(), medico);
+        }
+      });
+      
+      // Reemplazar médicos con los de la especialidad
+      setMedicos(nuevosMedicos);
     } catch (error) {
       console.error('Error al cargar médicos por especialidad:', error);
     } finally {

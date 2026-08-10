@@ -1,285 +1,151 @@
-import { prisma } from '@/lib/prisma/client'
+// diagnosticoService.ts - Migrado a Spring Boot API
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
 
 export interface Diagnostico {
-  Codigo: string
-  Nombre: string
+  Codigo: string;
+  Nombre: string;
 }
 
 export interface DiagnosticoDetallado {
-  DX: string
-  DX_DES?: string
+  DX: string;
+  DX_DES?: string;
 }
+
+// ============================================================================
+// SERVICIO DE DIAGNÓSTICOS - SPRING BOOT API
+// ============================================================================
 
 export class DiagnosticoService {
   /**
    * Busca diagnósticos de emergencia con opciones de búsqueda y límite
-   * @param search Término de búsqueda opcional
-   * @param limit Límite de resultados opcional
-   * @returns Lista de diagnósticos filtrados
    */
-  async findAllEmergencia(search?: string, limit?: number) {
+  async findAllEmergencia(search?: string, limit?: number): Promise<Diagnostico[]> {
     try {
-      console.log(`Buscando diagnósticos de emergencia${search ? ` con búsqueda: ${search}` : ''}${limit ? ` (límite: ${limit})` : ''}`)
+      console.log(`🔍 Buscando diagnósticos de emergencia${search ? ` con búsqueda: ${search}` : ''}${limit ? ` (límite: ${limit})` : ''}`);
       
-      // Construir la consulta SQL base
-      let sqlQuery = ''
+      const params: Record<string, string> = {
+        tipo: 'CX',
+      };
       
-      // SQL Server 2008 compatible query con TOP para límite
-      if (limit && limit > 0) {
-        sqlQuery = `
-          SELECT TOP ${limit} Codigo, Nombre 
-          FROM CIEXHIS_V2 
-          WHERE Codigo LIKE '[A-Z]%' AND Tipo = 'CX'
-        `
-      } else {
-        sqlQuery = `
-          SELECT Codigo, Nombre 
-          FROM CIEXHIS_V2 
-          WHERE Codigo LIKE '[A-Z]%' AND Tipo = 'CX'
-        `
+      if (search) params.search = search;
+      if (limit) params.limit = limit.toString();
+      
+      const url = buildUrl(API_ENDPOINTS.diagnosticos.search, params);
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      // Añadir filtro de búsqueda si se proporciona
-      if (search && search.trim()) {
-        // Escapar comillas simples para evitar inyección SQL
-        const safeSearch = search.replace(/'/g, "''");
-        sqlQuery += ` AND (Codigo LIKE '%${safeSearch}%' OR Nombre LIKE '%${safeSearch}%')`
-      }
+      const diagnosticos = await response.json();
+      console.log(`✅ Se encontraron ${Array.isArray(diagnosticos) ? diagnosticos.length : 0} diagnósticos de emergencia`);
       
-      // Añadir ordenamiento
-      sqlQuery += ` ORDER BY Codigo`
-      
-      // Ejecutar la consulta SQL para obtener diagnósticos de emergencia
-      const diagnosticos = await prisma.$queryRawUnsafe<Diagnostico[]>(sqlQuery)
-      
-      console.log(`Se encontraron ${diagnosticos.length} diagnósticos de emergencia`)
-      return diagnosticos
+      return Array.isArray(diagnosticos) ? diagnosticos : diagnosticos.data || [];
     } catch (error) {
-      console.error('Error al buscar diagnósticos de emergencia:', error)
-      throw new Error(`Error al buscar diagnósticos de emergencia: ${error}`)
+      console.error('❌ Error al buscar diagnósticos de emergencia:', error);
+      throw new Error(`Error al buscar diagnósticos de emergencia: ${error}`);
     }
   }
   
-  async findByEmergenciaId(emergenciaId: string) {
+  /**
+   * Busca diagnóstico por ID de emergencia
+   */
+  async findByEmergenciaId(emergenciaId: string): Promise<Diagnostico | null> {
     try {
-      console.log(`Buscando diagnóstico para emergencia con ID: ${emergenciaId}`)
+      console.log(`🔍 Buscando diagnóstico para emergencia con ID: ${emergenciaId}`);
       
-      // Ejecutar la consulta SQL para obtener diagnósticos de emergencia
-      const diagnosticos = await prisma.$queryRaw<DiagnosticoDetallado[]>`
-        SELECT STUFF((
-          SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
-          FROM dbo.ATENCIOND WITH (NOLOCK) 
-          WHERE ID_CITA = ${emergenciaId} AND DX LIKE '[A-Z]%'
-          FOR XML PATH('')), 1, 2, '') AS DX
-      `
+      const url = API_ENDPOINTS.diagnosticos.byEmergencia(emergenciaId);
+      const response = await fetchApi(url);
       
-      if (!diagnosticos.length || !diagnosticos[0].DX) {
-        console.log(`No se encontró diagnóstico para la emergencia: ${emergenciaId}`)
-        return null
-      }
-      
-      // Extraer el primer código de diagnóstico
-      const dxString = diagnosticos[0].DX;
-      console.log(`Diagnósticos encontrados: ${dxString}`);
-      
-      // Extraer el primer código de diagnóstico (formato: "A00 Descripción")
-      const match = dxString.match(/([A-Z][0-9]+(?:\.[0-9]+)?)/i);
-      const codigo = match ? match[0] : null;
-      
-      if (!codigo) {
-        console.log(`No se pudo extraer un código válido de diagnóstico de: ${dxString}`);
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró diagnóstico para la emergencia: ${emergenciaId}`);
         return null;
       }
       
-      // Buscar el nombre del diagnóstico en CIEXHIS_V2
-      const diagnosticoCompleto = await prisma.$queryRaw<Diagnostico[]>`
-        SELECT Codigo, Nombre 
-        FROM CIEXHIS_V2 
-        WHERE Codigo = ${codigo}
-      `
-      
-      if (diagnosticoCompleto.length === 0) {
-        console.log(`Código de diagnóstico encontrado (${codigo}) pero no existe en CIEXHIS_V2`)
-        return { Codigo: codigo, Nombre: 'Diagnóstico no encontrado' }
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      console.log(`Diagnóstico encontrado: ${diagnosticoCompleto[0].Codigo} - ${diagnosticoCompleto[0].Nombre}`)
-      return diagnosticoCompleto[0]
+      const diagnostico = await response.json();
+      console.log(`✅ Diagnóstico encontrado: ${diagnostico.Codigo} - ${diagnostico.Nombre}`);
+      
+      return diagnostico;
     } catch (error) {
-      console.error(`Error al buscar diagnóstico para emergencia ${emergenciaId}:`, error)
-      throw new Error(`Error al buscar diagnóstico para emergencia ${emergenciaId}: ${error}`)
+      console.error(`❌ Error al buscar diagnóstico para emergencia ${emergenciaId}:`, error);
+      throw new Error(`Error al buscar diagnóstico para emergencia ${emergenciaId}: ${error}`);
     }
   }
   
   /**
    * Busca un diagnóstico por ID de consulta externa
-   * @param citaId ID de la cita de consulta externa
-   * @returns Diagnóstico encontrado o null
    */
-  async findByConsultaExterna(citaId: string) {
+  async findByConsultaExterna(citaId: string): Promise<Diagnostico | null> {
     try {
-      console.log(`Buscando diagnóstico para consulta externa con ID: ${citaId}`)
+      console.log(`🔍 Buscando diagnóstico para consulta externa con ID: ${citaId}`);
       
-      // Ejecutar la consulta SQL para obtener diagnósticos de consulta externa
-      const diagnosticos = await prisma.$queryRaw<DiagnosticoDetallado[]>`
-        SELECT STUFF((
-          SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
-          FROM dbo.ATENCIOND WITH (NOLOCK) 
-          WHERE ID_CITA = ${citaId} AND DX LIKE '[A-Z]%'
-          FOR XML PATH('')), 1, 2, '') AS DX
-      `
+      const url = API_ENDPOINTS.diagnosticos.byConsultaExterna(citaId);
+      const response = await fetchApi(url);
       
-      if (!diagnosticos.length || !diagnosticos[0].DX) {
-        console.log(`No se encontró diagnóstico para la consulta externa: ${citaId}`)
-        return null
-      }
-      
-      // Extraer el primer código de diagnóstico
-      const dxString = diagnosticos[0].DX;
-      console.log(`Diagnósticos encontrados: ${dxString}`);
-      
-      // Extraer el primer código de diagnóstico (formato: "A00 Descripción")
-      const match = dxString.match(/([A-Z][0-9]+(?:\.[0-9]+)?)/i);
-      const codigo = match ? match[0] : null;
-      
-      if (!codigo) {
-        console.log(`No se pudo extraer un código válido de diagnóstico de: ${dxString}`);
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró diagnóstico para la consulta externa: ${citaId}`);
         return null;
       }
       
-      // Buscar el nombre del diagnóstico en CIEXHIS_V2
-      const diagnosticoCompleto = await prisma.$queryRaw<Diagnostico[]>`
-        SELECT Codigo, Nombre 
-        FROM CIEXHIS_V2 
-        WHERE Codigo = ${codigo}
-      `
-      
-      if (diagnosticoCompleto.length === 0) {
-        console.log(`Código de diagnóstico encontrado (${codigo}) pero no existe en CIEXHIS_V2`)
-        return { Codigo: codigo, Nombre: 'Diagnóstico no encontrado' }
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      console.log(`Diagnóstico encontrado: ${diagnosticoCompleto[0].Codigo} - ${diagnosticoCompleto[0].Nombre}`)
-      return diagnosticoCompleto[0]
+      const diagnostico = await response.json();
+      console.log(`✅ Diagnóstico encontrado: ${diagnostico.Codigo} - ${diagnostico.Nombre}`);
+      
+      return diagnostico;
     } catch (error) {
-      console.error(`Error al buscar diagnóstico para consulta externa ${citaId}:`, error)
-      throw new Error(`Error al buscar diagnóstico para consulta externa ${citaId}: ${error}`)
+      console.error(`❌ Error al buscar diagnóstico para consulta externa ${citaId}:`, error);
+      throw new Error(`Error al buscar diagnóstico para consulta externa ${citaId}: ${error}`);
     }
   }
 
   /**
    * Busca un diagnóstico por ID, determinando automáticamente si es emergencia o consulta externa
-   * @param id ID de la cita o emergencia
-   * @returns Diagnóstico encontrado o null
    */
-  async findById(id: string) {
+  async findById(id: string): Promise<Diagnostico | null> {
     try {
-      console.log(`Buscando diagnóstico por ID: ${id}`)
+      console.log(`🔍 Buscando diagnóstico por ID: ${id}`);
       
-      // Intentar primero con la consulta combinada para determinar el origen
-      try {
-        console.log('Intentando consulta combinada para determinar origen (CE o EM)...')
-        const query = `
-          SELECT ORIGEN, CODIGO, DX
-          FROM (
-            SELECT 
-              'CE' AS ORIGEN, 
-              A.ID_CITA AS CODIGO,
-              (SELECT STUFF((
-                SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
-                FROM dbo.ATENCIOND WITH (NOLOCK) 
-                WHERE ID_CITA = A.ID_CITA AND DX LIKE '[A-Z]%'
-                FOR XML PATH('')), 1, 2, '')) AS DX
-            FROM dbo.ATENCIONC AS A WITH (NOLOCK)
-            WHERE A.ID_CITA = '${id}'
-            
-            UNION ALL
-            
-            SELECT 
-              'EM' AS ORIGEN, 
-              RTRIM(A.EMERGENCIA_ID) AS CODIGO,
-              (SELECT STUFF((
-                SELECT ', ' + RTRIM(DX) + ' ' + DX_DES
-                FROM dbo.ATENCIOND WITH (NOLOCK) 
-                WHERE ID_CITA = A.EMERGENCIA_ID AND DX LIKE '[A-Z]%'
-                FOR XML PATH('')), 1, 2, '')) AS DX
-            FROM dbo.EMERGENCIA AS A WITH (NOLOCK)
-            WHERE A.EMERGENCIA_ID = '${id}'
-          ) AS CombinedResults
-          WHERE DX IS NOT NULL AND DX <> ''
-          OPTION (RECOMPILE)
-        `;
-        
-        const result = await prisma.$queryRawUnsafe(query);
-        const data = result as any[];
-        
-        if (data && data.length > 0) {
-          const origen = data[0].ORIGEN;
-          const codigo = data[0].CODIGO;
-          const dxString = data[0].DX;
-          
-          if (!dxString) {
-            console.log(`No se encontró diagnóstico para el ID: ${id}`);
-            return null;
-          }
-          
-          console.log(`Diagnósticos encontrados para ${origen} con ID ${id}: ${dxString}`);
-          
-          // Extraer el primer código de diagnóstico (formato: "A00 Descripción")
-          const match = dxString.match(/([A-Z][0-9]+(?:\.[0-9]+)?)/i);
-          const codigoDx = match ? match[0] : null;
-          
-          if (!codigoDx) {
-            console.log(`No se pudo extraer un código válido de diagnóstico de: ${dxString}`);
-            return null;
-          }
-          
-          // Buscar el nombre del diagnóstico en CIEXHIS_V2
-          const diagnosticoCompleto = await prisma.$queryRaw<Diagnostico[]>`
-            SELECT Codigo, Nombre 
-            FROM CIEXHIS_V2 
-            WHERE Codigo = ${codigoDx}
-          `;
-          
-          if (diagnosticoCompleto.length === 0) {
-            console.log(`Código de diagnóstico encontrado (${codigoDx}) pero no existe en CIEXHIS_V2`);
-            return { Codigo: codigoDx, Nombre: 'Diagnóstico no encontrado' };
-          }
-          
-          console.log(`Diagnóstico encontrado: ${diagnosticoCompleto[0].Codigo} - ${diagnosticoCompleto[0].Nombre}`);
-          return diagnosticoCompleto[0];
-        }
-      } catch (error) {
-        console.error(`Error al buscar diagnóstico por ID ${id} con consulta combinada:`, error);
+      const url = API_ENDPOINTS.diagnosticos.byId(id);
+      const response = await fetchApi(url);
+      
+      if (response.status === 404) {
+        console.log(`⚠️ No se encontró diagnóstico para el ID: ${id}`);
+        return null;
       }
       
-      // Si no se encuentra con la consulta combinada, intentar con emergencia
-      try {
-        const resultEM = await this.findByEmergenciaId(id);
-        if (resultEM) {
-          return resultEM;
-        }
-      } catch (error) {
-        console.error(`Error al buscar como emergencia: ${error}`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      // Si no se encuentra como emergencia, intentar como consulta externa
-      try {
-        const resultCE = await this.findByConsultaExterna(id);
-        if (resultCE) {
-          return resultCE;
-        }
-      } catch (error) {
-        console.error(`Error al buscar como consulta externa: ${error}`);
+      const diagnostico = await response.json();
+      
+      if (!diagnostico || (!diagnostico.Codigo && !diagnostico.codigo)) {
+        console.log(`⚠️ No se encontró diagnóstico para el ID: ${id}`);
+        return null;
       }
       
-      console.log(`No se encontró diagnóstico para el ID: ${id}`);
-      return null;
+      console.log(`✅ Diagnóstico encontrado: ${diagnostico.Codigo || diagnostico.codigo} - ${diagnostico.Nombre || diagnostico.nombre}`);
+      
+      return {
+        Codigo: diagnostico.Codigo || diagnostico.codigo,
+        Nombre: diagnostico.Nombre || diagnostico.nombre,
+      };
     } catch (error) {
-      console.error(`Error al buscar diagnóstico por ID ${id}:`, error);
+      console.error(`❌ Error al buscar diagnóstico por ID ${id}:`, error);
       throw new Error(`Error al buscar diagnóstico por ID ${id}: ${error}`);
     }
   }
 }
 
-export const diagnosticoService = new DiagnosticoService()
+export const diagnosticoService = new DiagnosticoService();
