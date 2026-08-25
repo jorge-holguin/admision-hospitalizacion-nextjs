@@ -18,6 +18,20 @@ export interface ProfesionColegio {
 // ============================================================================
 
 /**
+ * Normaliza un registro del backend al formato ProfesionColegio.
+ * El endpoint devuelve snakeCase/camelCase; el frontend espera id_profesion, Profesion, etc.
+ */
+function normalizeProfesionColegio(record: any): ProfesionColegio {
+  return {
+    id_profesion: record.idProfesion ?? record.id_profesion ?? record.ID_PROFESION ?? '',
+    Profesion: record.profesion ?? record.Profesion ?? record.PROFESION ?? '',
+    id_colegio: record.idColegio ?? record.id_colegio ?? record.ID_COLEGIO ?? '',
+    Colegio: record.colegio ?? record.Colegio ?? record.COLEGIO ?? '',
+    ACTIVO: record.activo ?? record.ACTIVO ?? 0,
+  };
+}
+
+/**
  * Obtiene todas las profesiones y colegios activos
  */
 export async function getProfesionesColegio(): Promise<ProfesionColegio[]> {
@@ -32,7 +46,8 @@ export async function getProfesionesColegio(): Promise<ProfesionColegio[]> {
     }
 
     const data = await response.json();
-    const result = Array.isArray(data) ? data : (data.data || []);
+    const list = Array.isArray(data) ? data : (data.data || []);
+    const result = list.map(normalizeProfesionColegio);
     
     console.log(`✅ Encontradas ${result.length} profesiones/colegios`);
     return result;
@@ -63,7 +78,7 @@ export async function getProfesionColegioById(id: string): Promise<ProfesionCole
 
     const data = await response.json();
     console.log(`✅ Profesión/colegio encontrado: ${id}`);
-    return data;
+    return normalizeProfesionColegio(data.data ?? data);
   } catch (error) {
     console.error('❌ Error en getProfesionColegioById:', error);
     throw error;
@@ -88,7 +103,8 @@ export async function searchProfesionesColegio(searchTerm: string): Promise<Prof
     }
 
     const data = await response.json();
-    const result = Array.isArray(data) ? data : (data.data || []);
+    const list = Array.isArray(data) ? data : (data.data || []);
+    const result = list.map(normalizeProfesionColegio);
     
     console.log(`✅ Encontradas ${result.length} profesiones/colegios`);
     return result;

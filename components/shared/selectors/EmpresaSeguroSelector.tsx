@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Check, ChevronsUpDown, Building2, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getAllEmpresasSeguro } from "@/services/emergencia/empresaSeguroApiService"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -48,13 +49,8 @@ export function EmpresaSeguroSelector({
     const fetchEmpresas = async () => {
       setLoading(true)
       try {
-        const response = await fetch('/api/emergency/empresas-seguro')
-        if (response.ok) {
-          const data = await response.json()
-          setEmpresas(data || [])
-        } else {
-          console.error('Error al cargar empresas de seguro')
-        }
+        const all = await getAllEmpresasSeguro()
+        setEmpresas(all.map(e => ({ EMPRESASEGURO: e.EMPRESA, NOMBRE: e.NOMBRE })))
       } catch (error) {
         console.error('Error al cargar empresas de seguro:', error)
       } finally {

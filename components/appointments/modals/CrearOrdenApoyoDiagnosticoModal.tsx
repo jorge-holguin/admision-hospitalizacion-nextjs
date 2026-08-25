@@ -1,17 +1,24 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, type ReactNode } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Search, CheckCircle, FileText, Stethoscope, ClipboardList, X, Plus, Trash2 } from "lucide-react"
+import { Loader2, FileText, Stethoscope, ClipboardList } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import {
+  OrdenDetallesList,
+  MAX_OBSERVACION_LENGTH,
+  emptyDetalle,
+  type DetalleItem,
+  type MaestroExamen,
+  type CiexItem,
+} from "./OrdenDetallesList"
 
 const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 const API_CITAS_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api'
+
+const truncateObservacion = (value?: string | null) => (value || '').trim().slice(0, MAX_OBSERVACION_LENGTH)
 
 const MAESTRO_TYPE_MAP: Record<string, string> = {
   'ECO': 'ECO',
@@ -40,21 +47,6 @@ interface ReferenciaItem {
   cpt_imagenes: Array<{ cpt1: string }> | string | null
 }
 
-interface MaestroExamen {
-  codigo: string
-  grupo: string
-  descripcion: string
-  estado: boolean
-  cpms: string | null
-  item: string | null
-  item2: string | null
-}
-
-interface CiexItem {
-  id: number
-  codigo: string
-  nombre: string
-}
 
 export interface OrdenDetalleEdit {
   cpms: string | null
@@ -78,31 +70,6 @@ export interface OrdenToEdit {
   detalles: OrdenDetalleEdit[]
 }
 
-interface DetalleItem {
-  uid: string
-  examen: MaestroExamen | null
-  examQuery: string
-  examResults: MaestroExamen[]
-  ciex: CiexItem | null
-  ciexQuery: string
-  ciexResults: CiexItem[]
-  ciexLoading: boolean
-  observacion: string
-  estadoDetalle?: string
-}
-
-const emptyDetalle = (): DetalleItem => ({
-  uid: Math.random().toString(36).slice(2),
-  examen: null,
-  examQuery: '',
-  examResults: [],
-  ciex: null,
-  ciexQuery: '',
-  ciexResults: [],
-  ciexLoading: false,
-  observacion: '',
-})
-
 interface CrearOrdenApoyoDiagnosticoModalProps {
   isOpen: boolean
   onClose: () => void
@@ -120,6 +87,41 @@ function obtenerTipoAtencion(servicioOrigen = ''): 'CE' | 'EM' | 'HO' | 'OT' {
   if (servicioOrigen.startsWith('23')) return 'EM'
   if (servicioOrigen.startsWith('24')) return 'HO'
   return 'CE'
+}
+
+/**
+ * Normaliza el código de seguro del selector para enviarlo como idTipoSeguro.
+ * Solo recorta espacios y unifica 00 -> 0 (PAGANTE).
+ */
+function normalizeSeguroCode(seguro: string | undefined): string {
+  const s = (seguro ?? '').toString().trim()
+  if (s === '00') return '0'
+  return s
+}
+
+/**
+ * Normaliza un item del catálogo de exámenes proveniente del API.
+ * El endpoint /api/maestros?tipo=EXAMEN&grupo={grupo}&activo=1 retorna `codigo`,
+ * `descripcion` y `cpms`; `cpms` se usa para el payload de la orden.
+ */
+function normalizeMaestroExamen(raw: any): MaestroExamen | null {
+  if (!raw || typeof raw !== 'object') return null
+  const codigo = (raw.codigo ?? '').toString().trim()
+  const cpms = (raw.cpms ?? '').toString().trim()
+  const key = codigo || cpms
+  if (!key) return null
+  const activo = raw.activo ?? raw.estado
+  const pedidoRaw = raw.pedido ?? raw.PEDIDO
+  return {
+    codigo: key,
+    cpms: cpms || codigo,
+    grupo: (raw.grupo ?? '').toString().trim(),
+    descripcion: (raw.descripcion ?? '').toString().trim(),
+    estado: activo === true || activo === 1 || activo === '1',
+    item: raw.item != null ? String(raw.item) : null,
+    item2: raw.item2 != null ? String(raw.item2) : null,
+    pedido: pedidoRaw === true || pedidoRaw === 1 || pedidoRaw === '1',
+  }
 }
 
 export function CrearOrdenApoyoDiagnosticoModal({
@@ -163,11 +165,11 @@ export function CrearOrdenApoyoDiagnosticoModal({
       const initial: DetalleItem[] = ordenToEdit.detalles.map(d => ({
         ...emptyDetalle(),
         examen: d.cpms
-          ? { cpms: d.cpms, descripcion: d.cpmsDescripcion || d.cpms, codigo: d.cpms, grupo: '', estado: true, item: null, item2: null }
+          ? { cpms: d.cpms, descripcion: d.cpmsDescripcion || d.cpms, codigo: d.cpms, grupo: '', estado: true, item: null, item2: null, pedido: false }
           : null,
         ciex: d.ciex ? { id: 0, codigo: d.ciex, nombre: '' } : null,
         ciexQuery: d.ciex || '',
-        observacion: d.observacion || '',
+        observacion: truncateObservacion(d.observacion),
         estadoDetalle: d.estadoDetalle,
       }))
       setDetalles(initial)
@@ -192,7 +194,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
     const imgs = referencia?.cpt_imagenes
     const cpts: string[] = Array.isArray(imgs) ? imgs.map((i: any) => i.cpt1).filter(Boolean) : []
     const diagnosticos = referencia?.diagnosticos || []
-    const observacion = referencia?.datos_referencia?.resume_exfisico || ''
+    const observacion = truncateObservacion(referencia?.datos_referencia?.resume_exfisico)
 
     const count = Math.max(1, cpts.length)
     const initial: DetalleItem[] = Array.from({ length: count }, (_, i) => {
@@ -227,7 +229,11 @@ export function CrearOrdenApoyoDiagnosticoModal({
         const res = await fetch(`${base}/api/maestros/cpms/${encodeURIComponent(cptCode)}`)
         if (res.ok) {
           const json = await res.json()
-          const lista: MaestroExamen[] = Array.isArray(json?.data) ? json.data : []
+          const raw: unknown[] = Array.isArray(json?.data) ? json.data : []
+          const lista: MaestroExamen[] = raw.reduce<MaestroExamen[]>((acc, item) => {
+            const e = normalizeMaestroExamen(item)
+            return e ? [...acc, e] : acc
+          }, [])
           if (lista.length > 0) setDetalles(prev => prev.map((d, idx) => idx === i ? { ...d, examen: lista[0] } : d))
         }
       } catch { /* ignorar */ }
@@ -242,11 +248,15 @@ export function CrearOrdenApoyoDiagnosticoModal({
       try {
         const base = APOYO_DIAGNOSTICO_BASE_URL.replace(/\/+$/, '')
         const tipoMaestro = MAESTRO_TYPE_MAP[upsInfo.tipoServicio?.toUpperCase() || 'ECO'] || 'ECO'
-        const params = new URLSearchParams({ tipo: 'EXAMEN', estado: '1' })
-        const res = await fetch(`${base}/api/apoyo-diagnostico/maestros/${tipoMaestro}?${params}`)
+        const params = new URLSearchParams({ tipo: 'EXAMEN', grupo: tipoMaestro, activo: '1' })
+        const res = await fetch(`${base}/api/maestros?${params}`)
         if (res.ok) {
           const json = await res.json()
-          const lista: MaestroExamen[] = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []
+          const raw: unknown[] = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []
+          const lista: MaestroExamen[] = raw.reduce<MaestroExamen[]>((acc, item) => {
+            const e = normalizeMaestroExamen(item)
+            return e ? [...acc, e] : acc
+          }, [])
           setAllExamenes(lista.filter((e) => e.cpms))
         }
       } catch {
@@ -294,36 +304,71 @@ export function CrearOrdenApoyoDiagnosticoModal({
     try {
       const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
       const isEditing = !!ordenToEdit
+      const origenDefault = obtenerTipoAtencion(referencia?.datos_referencia?.servicio_origen || '')
+
+      let tipoServicio = upsInfo.tipoServicio
+      if (isEditing && ordenToEdit!.tipoServicio) tipoServicio = ordenToEdit!.tipoServicio
+
+      let idLugar = 0
+      if (isEditing) {
+        idLugar = ordenToEdit!.idLugar != null ? Number(ordenToEdit!.idLugar) : 0
+      } else {
+        idLugar = Number(referencia?.datos_referencia?.codigo_establecimiento_origen) || 0
+      }
+
+      let origen: string = origenDefault
+      if (isEditing && ordenToEdit!.origen) origen = ordenToEdit!.origen
+
+      let origenId = '0'
+      if (isEditing) {
+        origenId = ordenToEdit!.origenId || '0'
+      } else if (isPacientePeriferico) {
+        origenId = '0'
+      } else {
+        origenId = referencia?.datos_referencia?.id_referencia || '0'
+      }
+
+      let idTipoSeguro = '0'
+      if (isEditing) {
+        idTipoSeguro = (ordenToEdit!.idTipoSeguro || '0').toString().trim()
+      } else {
+        idTipoSeguro = (normalizeSeguroCode(selectedSeguro)
+          || normalizeSeguroCode(seguroPaciente)
+          || '0').toString().trim()
+      }
+
+      const idMedico = isEditing ? Number(ordenToEdit!.idMedico || 1) : 1
+      const cama = isEditing ? (ordenToEdit!.cama ?? null) : null
+
+      const isPeriferico = !!isPacientePeriferico
       const body: any = {
         idPaciente: pacienteId,
-        tipoServicio: isEditing ? (ordenToEdit!.tipoServicio || upsInfo.tipoServicio) : upsInfo.tipoServicio,
-        idLugar: isEditing
-          ? (ordenToEdit!.idLugar != null ? Number(ordenToEdit!.idLugar) : 0)
-          : (Number(referencia?.datos_referencia?.codigo_establecimiento_origen) || 0),
-        origen: isEditing
-          ? (ordenToEdit!.origen || obtenerTipoAtencion(referencia?.datos_referencia?.servicio_origen || ''))
-          : obtenerTipoAtencion(referencia?.datos_referencia?.servicio_origen || ''),
-        origenId: isEditing
-          ? (ordenToEdit!.origenId || '0')
-          : (isPacientePeriferico ? '0' : (referencia?.datos_referencia?.id_referencia || '0')),
-        idTipoSeguro: ((isEditing ? ordenToEdit!.idTipoSeguro : '')
-          || seguroPaciente
-          || selectedSeguro
-          || '0').toString().trim(),
-        idMedico: Number(isEditing ? (ordenToEdit!.idMedico || 1) : 1) || 1,
-        cama: isEditing ? (ordenToEdit!.cama ?? null) : null,
+        tipoServicio,
+        idLugar,
+        origen,
+        origenId,
+        idTipoSeguro,
+        idMedico,
+        cama,
+        periferico: isPeriferico,
         detalles: valid.map(d => ({
-          cpms: d.examen!.cpms,
+          cpms: d.examen!.cpms || '',
           cantidad: 1,
           ciex: d.ciex!.codigo,
-          observacion: d.observacion.trim(),
+          observacion: truncateObservacion(d.observacion),
         })),
       }
       if (isEditing) body.idOrden = ordenToEdit!.idOrden
       console.log('[CrearOrden] payload:', JSON.stringify(body, null, 2))
-      const url = isEditing
-        ? `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/${ordenToEdit!.idOrden}`
-        : `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes`
+
+      let url: string
+      if (isEditing) {
+        url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/${ordenToEdit!.idOrden}`
+      } else if (isPeriferico) {
+        url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/perifericas`
+      } else {
+        url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes`
+      }
       const res = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', 'Usuario': usuarioDni },
@@ -337,12 +382,14 @@ export function CrearOrdenApoyoDiagnosticoModal({
       const idOrden = isEditing
         ? ordenToEdit!.idOrden
         : (respuesta?.idOrden ?? respuesta?.data?.idOrden ?? respuesta?.id)
-      toast({
-        title: isEditing ? '✅ Orden actualizada' : '✅ Orden creada',
-        description: isEditing
-          ? `Orden #${idOrden} actualizada con ${valid.length} examen(es).`
-          : `Orden #${idOrden} con ${valid.length} examen(es) creada exitosamente.`
-      })
+
+      let toastTitle = '✅ Orden creada'
+      let toastDescription = `Orden #${idOrden} con ${valid.length} examen(es) creada exitosamente.`
+      if (isEditing) {
+        toastTitle = '✅ Orden actualizada'
+        toastDescription = `Orden #${idOrden} actualizada con ${valid.length} examen(es).`
+      }
+      toast({ title: toastTitle, description: toastDescription })
       onOrdenCreada(idOrden)
       handleClose()
     } catch (e: any) {
@@ -359,6 +406,15 @@ export function CrearOrdenApoyoDiagnosticoModal({
   const handleClose = () => {
     setDetalles([emptyDetalle()])
     onClose()
+  }
+
+  let submitButtonContent: ReactNode
+  if (creando) {
+    submitButtonContent = <><Loader2 className="h-4 w-4 animate-spin mr-2" />Guardando...</>
+  } else if (ordenToEdit) {
+    submitButtonContent = <><ClipboardList className="h-4 w-4 mr-2" />Actualizar Orden</>
+  } else {
+    submitButtonContent = <><ClipboardList className="h-4 w-4 mr-2" />Crear Orden</>
   }
 
   return (
@@ -406,177 +462,17 @@ export function CrearOrdenApoyoDiagnosticoModal({
             </div>
           )}
 
-          {/* ── Lista de detalles ── */}
-          <div className="space-y-3">
-            {detalles.map((detalle, idx) => (
-              <div key={detalle.uid} className="border border-gray-200 rounded-lg p-3 space-y-3 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      Examen #{idx + 1}
-                    </span>
-                    {ordenToEdit && detalle.estadoDetalle && (
-                      detalle.estadoDetalle === '2'
-                        ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 border border-green-300">✓ Completado</span>
-                        : detalle.estadoDetalle === '0'
-                          ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-300">Cancelado</span>
-                          : <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">Pendiente</span>
-                    )}
-                  </div>
-                  {detalles.length > 1 && (
-                    <button
-                      onClick={() => removeDetalle(idx)}
-                      className="text-red-400 hover:text-red-600 p-1 rounded"
-                      title="Eliminar examen"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Examen CPMS */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">
-                    Examen / Procedimiento <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <div className="relative flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                        <Input
-                          placeholder={loadingExam ? 'Cargando exámenes...' : 'Ej: abdominal, mama, obstétrica...'}
-                          value={detalle.examQuery}
-                          disabled={loadingExam || !!detalle.examen}
-                          onChange={(e) => {
-                            const q = e.target.value
-                            const results = q.trim().length > 0
-                              ? allExamenes.filter(ex => ex.descripcion.toLowerCase().includes(q.toLowerCase()) || (ex.cpms ?? '').includes(q)).slice(0, 20)
-                              : []
-                            updateDetalle(idx, { examQuery: q, examResults: results })
-                          }}
-                          className="pl-8 h-9 text-xs"
-                        />
-                      </div>
-                      {loadingExam && <Loader2 className="h-4 w-4 animate-spin text-gray-400 shrink-0" />}
-                    </div>
-                    {detalle.examResults.length > 0 && (
-                      <div className="absolute z-50 w-full border rounded-md mt-1 max-h-44 overflow-y-auto bg-white shadow-lg divide-y">
-                        {detalle.examResults.map((e) => (
-                          <div
-                            key={e.codigo}
-                            onClick={() => updateDetalle(idx, { examen: e, examQuery: '', examResults: [] })}
-                            className="px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 transition-colors"
-                          >
-                            <span className="font-mono font-semibold text-blue-700 mr-2">{e.cpms}</span>
-                            <span className="text-gray-700">{e.descripcion}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {detalle.examen ? (
-                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded px-3 py-2 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                        <span className="font-mono font-bold text-green-800">{detalle.examen.cpms}</span>
-                        <span className="text-green-700">— {detalle.examen.descripcion}</span>
-                      </div>
-                      <button
-                        onClick={() => updateDetalle(idx, { examen: null, examQuery: '' })}
-                        className="text-red-400 hover:text-red-600 ml-2"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-amber-600">⚠️ Escriba para filtrar exámenes</p>
-                  )}
-                </div>
-
-                {/* CIEX */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">
-                    Diagnóstico CIEX <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    {detalle.ciex ? (
-                      <div className="flex items-center justify-between bg-yellow-50 border border-yellow-300 rounded px-3 py-2 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle className="h-3.5 w-3.5 text-yellow-700 shrink-0" />
-                          <span className="font-mono font-bold text-yellow-800">{detalle.ciex.codigo}</span>
-                          {detalle.ciex.nombre && <span className="text-gray-700">— {detalle.ciex.nombre}</span>}
-                        </div>
-                        <button
-                          onClick={() => updateDetalle(idx, { ciex: null, ciexQuery: '', ciexResults: [] })}
-                          className="text-red-400 hover:text-red-600 ml-2"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="relative flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                            <Input
-                              placeholder="Buscar diagnóstico CIE-X (ej: diabetes, fractura...)"
-                              value={detalle.ciexQuery}
-                              onChange={(e) => {
-                                updateDetalle(idx, { ciexQuery: e.target.value })
-                                if (e.target.value.length >= 2) buscarCiex(idx, e.target.value)
-                                else updateDetalle(idx, { ciexResults: [] })
-                              }}
-                              className="pl-8 h-9 text-xs"
-                            />
-                          </div>
-                          {detalle.ciexLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-400 shrink-0" />}
-                        </div>
-                        {detalle.ciexResults.length > 0 && (
-                          <div className="absolute z-50 w-full border rounded-md mt-1 max-h-44 overflow-y-auto bg-white shadow-lg divide-y">
-                            {detalle.ciexResults.map((c) => (
-                              <div
-                                key={c.id}
-                                onClick={() => updateDetalle(idx, { ciex: c, ciexQuery: '', ciexResults: [] })}
-                                className="px-3 py-2 text-xs cursor-pointer hover:bg-yellow-50 transition-colors"
-                              >
-                                <span className="font-mono font-semibold text-yellow-800 mr-2">{c.codigo}</span>
-                                <span className="text-gray-700">{c.nombre}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <p className="text-xs text-amber-600">⚠️ Seleccione el diagnóstico CIEX de la lista</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Observación del detalle */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium text-gray-700">Observación</Label>
-                  <Textarea
-                    value={detalle.observacion}
-                    onChange={(e) => updateDetalle(idx, { observacion: e.target.value })}
-                    rows={2}
-                    className="text-xs resize-none"
-                    placeholder="Observación o indicación para este examen..."
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Botón agregar examen ── */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addDetalle}
-            className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Agregar otro examen
-          </Button>
+          {/* ── Lista de detalles (componente reutilizable) ── */}
+          <OrdenDetallesList
+            detalles={detalles}
+            allExamenes={allExamenes}
+            loadingExam={loadingExam}
+            isEditing={!!ordenToEdit}
+            updateDetalle={updateDetalle}
+            removeDetalle={removeDetalle}
+            addDetalle={addDetalle}
+            buscarCiex={buscarCiex}
+          />
         </div>
 
         <DialogFooter className="gap-2">
@@ -588,13 +484,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
             disabled={detalles.every(d => !d.examen && !d.ciex) || creando}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
-            {creando ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Guardando...</>
-            ) : ordenToEdit ? (
-              <><ClipboardList className="h-4 w-4 mr-2" />Actualizar Orden</>
-            ) : (
-              <><ClipboardList className="h-4 w-4 mr-2" />Crear Orden</>
-            )}
+            {submitButtonContent}
           </Button>
         </DialogFooter>
       </DialogContent>

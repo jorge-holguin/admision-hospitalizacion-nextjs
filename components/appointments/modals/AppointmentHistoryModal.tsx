@@ -22,6 +22,10 @@ import { extractDocumentFromToken, extractNombreCompletoFromToken } from "@/util
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { PatientViewModal } from "@/components/filiation/modals/PatientViewModal"
 import { TicketPreviewModal, type TicketData } from "./TicketPreviewModal"
+import { API_ENDPOINTS, buildUrl } from "@/lib/api-config"
+import { searchCitasByDocumento, searchCitasByNombres } from "@/services/citas/citasService"
+import { TipoDocumentoSelector } from "@/components/filiation/selectors/TipoDocumentoSelector"
+import { useTipoDocumento } from "@/contexts/filiation/TipoDocumentoContext"
 
 // Estado options for appointments
 const ESTADO_OPTIONS = [
@@ -92,11 +96,16 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   // Search filters
   const [searchType, setSearchType] = useState<string>("documento")
   const [searchTerm, setSearchTerm] = useState<string>("")
+  const [documentType, setDocumentType] = useState<string>("D")
+
+  // Contexto de tipos de documento
+  const { getTipoDocumentoByCode } = useTipoDocumento()
   
   // Limpiar filtros cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       setSearchTerm("")
+      setDocumentType("D")
       setAppointments([])
       setHasSearched(false)
       setError(null)
@@ -189,57 +198,46 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
         setIsLoading(false)
         return
       }
-      
-      const qs = new URLSearchParams()
-      
+
+      // Construir filtros para los servicios de Spring
+      const filters: any = {}
+
       // Date range (only if additional filters are enabled and not searching all history)
       if (!searchAllHistory && showAdditionalFilters) {
-        qs.set('fechaDesde', fechaDesde.toISOString().split('T')[0])
-        qs.set('fechaHasta', fechaHasta.toISOString().split('T')[0])
+        filters.fechaDesde = fechaDesde.toISOString().split('T')[0]
+        filters.fechaHasta = fechaHasta.toISOString().split('T')[0]
       }
-      
+
       // Additional filters (only if enabled)
       if (showAdditionalFilters) {
         if (estadoFilter !== 'all') {
-          qs.set('estado', estadoFilter)
+          filters.estado = parseInt(estadoFilter)
         }
         if (consultorioFilter !== 'all') {
-          qs.set('consultorio', consultorioFilter)
+          filters.consultorio = consultorioFilter
         }
         if (medicoFilter !== 'all') {
-          qs.set('medico', medicoFilter)
+          filters.medico = medicoFilter
         }
       }
-      
-      // Pagination
-      qs.set('page', currentPage.toString())
-      qs.set('size', '10')
-      
-      let apiUrl = ''
-      
-      // Determine which API to call based on search type
+
+      const term = searchTerm.trim()
+      let result
+
+      // Llamar directamente a Spring, sin pasar por /api/appointments/search-by-...
       if (searchType === 'documento') {
-        qs.set('documento', searchTerm.trim())
-        apiUrl = `/api/appointments/search-by-document?${qs.toString()}`
+        result = await searchCitasByDocumento(term, filters, currentPage, 10, documentType)
       } else if (searchType === 'nombres') {
-        qs.set('nombres', searchTerm.trim())
-        apiUrl = `/api/appointments/search-by-name?${qs.toString()}`
+        result = await searchCitasByNombres(term, filters, currentPage, 10)
+      } else {
+        throw new Error('Tipo de búsqueda no soportado')
       }
-            
-      const response = await fetch(apiUrl)
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error en la búsqueda')
-      }
-      
-      const data = await response.json()
-      
-      const fetchedAppointments: HistoryAppointment[] = data.content || []
+
+      const fetchedAppointments: HistoryAppointment[] = result.content || []
       setAppointments(fetchedAppointments)
-      setTotalCount(data.totalElements || 0)
+      setTotalCount(result.totalElements || 0)
       setHasSearched(true)
-      fetchPatientInfo(searchTerm.trim(), searchType, fetchedAppointments[0])
+      fetchPatientInfo(searchTerm.trim(), searchType, fetchedAppointments[0], documentType)
       
     } catch (err) {
       console.error('Error searching appointment history:', err)
@@ -274,7 +272,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const handleViewPatient = async (pacienteId: string) => {
     try {
       setIsLoadingPatient(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}`)
+      const response = await fetch(API_ENDPOINTS.filiation.byId(pacienteId))
       
       if (!response.ok) {
         throw new Error('No se pudo cargar los datos del paciente')
@@ -300,7 +298,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       setIsLoadingTicket(citaId)
       
       // Obtener datos completos de la cita
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      const response = await fetch(API_ENDPOINTS.citas.byId(citaId))
       
       if (!response.ok) {
         throw new Error('No se pudo obtener los datos de la cita')
@@ -391,110 +389,95 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     return edad
   }
 
-  const fetchPatientInfo = async (term: string, type: string, fallbackAppt?: HistoryAppointment) => {
+  const buildPatientInfoFromAppointment = (appt: HistoryAppointment, term: string, type: string, documentType: string = ''): PatientInfo => {
+    const a = appt as any
+    const docTypeCode = a.tipoDocumento || (type === 'documento' ? documentType : '')
+    const docTypeName = getTipoDocumentoByCode(docTypeCode)?.nombre?.replace(/^\*/, '') || docTypeCode
+
+    return {
+      paciente: appt.paciente || '',
+      historia: appt.paciente || '',
+      nombres: a.nombre || appt.paciente || term || '',
+      sexo: a.sexo || '',
+      direccion: a.direccion || '',
+      fechaNacimiento: a.fechaNacimiento || '',
+      distrito: a.distrito || '',
+      nombreDocumento: docTypeName,
+      documento: a.documento || (type === 'documento' ? term : ''),
+      nombreSeguro: appt.seguroNombre || '',
+      nombreLocalidad: a.distritoDir || '',
+      distritoDir: a.distritoDir || '',
+      seguro: appt.seguro || '',
+      tipoDocumento: docTypeCode,
+      telefono1: a.telefono1 || '',
+      telefono2: a.telefono2 || '',
+      foto: a.foto || a.stringFoto || undefined,
+      stringFoto: a.stringFoto || a.foto || undefined,
+    }
+  }
+
+  const fetchPatientInfo = async (term: string, type: string, fallbackAppt?: HistoryAppointment, documentType: string = '') => {
     try {
       setIsLoadingPatientInfo(true)
       setPatientInfo(null)
-      let url = ''
-      if (type === 'documento') {
-        url = `/api/busqueda?tipo=documento&tipoDocumento=D&documento=${encodeURIComponent(term)}`
-      } else {
-        url = `/api/busqueda?tipo=nombre&nombres=${encodeURIComponent(term)}`
-      }
-      const res = await fetch(url)
-      if (res.ok) {
-        const data = await res.json()
 
-        if (data && data.error) {
-          console.error('❌ El proxy devolvió error:', data.error)
+      // Si tenemos la primera cita, usamos sus datos (ya provienen de /cita/historial/por-documento)
+      if (fallbackAppt) {
+        setPatientInfo(buildPatientInfoFromAppointment(fallbackAppt, term, type, documentType))
+        return
+      }
+
+      // Si no hay cita de respaldo (sin resultados) e intentamos por nombre, intentamos el endpoint de paciente por nombre
+      if (type === 'nombres') {
+        const externalUrl = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })
+        const res = await fetch(externalUrl, { headers: { accept: '*/*' } })
+
+        if (!res.ok) {
+          console.error('❌ Error del servicio de búsqueda por nombre:', res.status, await res.text())
           setPatientInfo(null)
           return
         }
 
-        let patient: PatientInfo | null = null
-        if (Array.isArray(data) && data.length > 0) {
-          patient = data[0]
-        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-          if (Array.isArray(data.data) && data.data.length > 0) {
-            patient = data.data[0]
-          } else if (Array.isArray(data.pacientes) && data.pacientes.length > 0) {
-            patient = data.pacientes[0]
-          } else if (Array.isArray(data.content) && data.content.length > 0) {
-            patient = data.content[0]
-          } else if (Array.isArray(data.result) && data.result.length > 0) {
-            patient = data.result[0]
-          } else if (data.paciente || data.documento || data.nombres) {
-            patient = data as PatientInfo
-          }
-        }
-        if (!patient && fallbackAppt) {
-          patient = {
-            paciente: fallbackAppt.paciente || '',
-            historia: fallbackAppt.paciente || '',
-            nombres: (fallbackAppt as any).nombre || fallbackAppt.paciente || '',
-            sexo: '',
-            direccion: '',
-            fechaNacimiento: '',
-            distrito: '',
-            nombreDocumento: type === 'documento' ? 'DOC' : '',
-            documento: type === 'documento' ? term : '',
-            nombreSeguro: fallbackAppt.seguroNombre || '',
-            nombreLocalidad: '',
-            distritoDir: '',
-            seguro: fallbackAppt.seguro || '',
-            tipoDocumento: '',
-            telefono1: '',
-            telefono2: '',
-          }
-        }
-        setPatientInfo(patient)
-      } else {
-        const errorText = await res.text()
-        console.error('❌ Error del proxy:', res.status, errorText)
-        if (fallbackAppt) {
+        const data: any = await res.json()
+        const pacientes = Array.isArray(data) ? data : (data.data || data.content || data.pacientes || data.result || [])
+
+        if (pacientes.length > 0) {
+          const p = pacientes[0]
+          const docTypeCode = p.TIPO_DOCUMENTO || p.tipoDocumento || ''
+          const docTypeName = getTipoDocumentoByCode(docTypeCode)?.nombre?.replace(/^\*/, '') || docTypeCode
+
           const patient: PatientInfo = {
-            paciente: fallbackAppt.paciente || '',
-            historia: fallbackAppt.paciente || '',
-            nombres: (fallbackAppt as any).nombre || fallbackAppt.paciente || '',
-            sexo: '',
-            direccion: '',
-            fechaNacimiento: '',
-            distrito: '',
-            nombreDocumento: type === 'documento' ? 'DOC' : '',
-            documento: type === 'documento' ? term : '',
-            nombreSeguro: fallbackAppt.seguroNombre || '',
-            nombreLocalidad: '',
-            distritoDir: '',
-            seguro: fallbackAppt.seguro || '',
-            tipoDocumento: '',
-            telefono1: '',
-            telefono2: '',
+            paciente: p.PACIENTE || p.paciente || '',
+            historia: p.HISTORIA || p.historia || p.PACIENTE || p.paciente || '',
+            nombres: p.NOMBRES || p.nombres || p.nombre || term || '',
+            sexo: p.SEXO || p.sexo || '',
+            direccion: p.DIRECCION || p.direccion || '',
+            fechaNacimiento: p.FECHA_NACIMIENTO || p.fechaNacimiento || '',
+            distrito: p.DISTRITO || p.distrito || '',
+            nombreDocumento: docTypeName,
+            documento: p.DOCUMENTO || p.documento || '',
+            nombreSeguro: p.SEGURO_NOMBRE || p.nombreSeguro || '',
+            nombreLocalidad: p.DISTRITO_DIR || p.distritoDir || '',
+            distritoDir: p.DISTRITO_DIR || p.distritoDir || '',
+            seguro: p.SEGURO || p.seguro || '',
+            tipoDocumento: docTypeCode,
+            telefono1: p.TELEFONO1 || p.telefono1 || p.TELEFONO || p.telefono || '',
+            telefono2: p.TELEFONO2 || p.telefono2 || '',
+            foto: p.FOTO || p.foto || p.STRING_FOTO || p.stringFoto || undefined,
+            stringFoto: p.STRING_FOTO || p.stringFoto || p.FOTO || p.foto || undefined,
           }
           setPatientInfo(patient)
+          return
         }
       }
+
+      setPatientInfo(null)
     } catch (e) {
       console.error('Error fetching patient info:', e)
       if (fallbackAppt) {
-        const patient: PatientInfo = {
-          paciente: fallbackAppt.paciente || '',
-          historia: fallbackAppt.paciente || '',
-          nombres: (fallbackAppt as any).nombre || fallbackAppt.paciente || '',
-          sexo: '',
-          direccion: '',
-          fechaNacimiento: '',
-          distrito: '',
-          nombreDocumento: type === 'documento' ? 'DOC' : '',
-          documento: type === 'documento' ? term : '',
-          nombreSeguro: fallbackAppt.seguroNombre || '',
-          nombreLocalidad: '',
-          distritoDir: '',
-          seguro: fallbackAppt.seguro || '',
-          tipoDocumento: '',
-          telefono1: '',
-          telefono2: '',
-        }
-        setPatientInfo(patient)
+        setPatientInfo(buildPatientInfoFromAppointment(fallbackAppt, term, type, documentType))
+      } else {
+        setPatientInfo(null)
       }
     } finally {
       setIsLoadingPatientInfo(false)
@@ -570,8 +553,8 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                 <Search className="mr-2 h-4 w-4" />
                 Búsqueda de Paciente
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div className="md:col-span-2">
                   <Label className="text-sm font-medium text-gray-700">Buscar por</Label>
                   <Select value={searchType} onValueChange={setSearchType}>
                     <SelectTrigger className="mt-1">
@@ -583,7 +566,19 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="md:col-span-2">
+                {searchType === 'documento' && (
+                  <div className="md:col-span-3">
+                    <Label className="text-sm font-medium text-gray-700">Tipo de Documento</Label>
+                    <div className="mt-1">
+                      <TipoDocumentoSelector
+                        value={documentType}
+                        onChange={setDocumentType}
+                        excludeCodes={['0']}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className={searchType === 'documento' ? 'md:col-span-5' : 'md:col-span-8'}>
                   <Label className="text-sm font-medium text-gray-700">
                     {searchType === 'documento' ? 'Número de Documento' : 'Apellidos y Nombres'}
                   </Label>
@@ -597,7 +592,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                     className="mt-1"
                   />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <Button onClick={handleSearch} disabled={isLoading} className="w-full">
                     {isLoading ? (
                       <>

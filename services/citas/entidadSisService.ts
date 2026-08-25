@@ -25,7 +25,7 @@ export const entidadSisService = {
       };
       if (search) params.search = search;
 
-      const url = buildUrl(`${API_ENDPOINTS.citas.base}/entidades-sis`, params);
+      const url = buildUrl(API_ENDPOINTS.citas.sisEntities, params);
       const response = await fetchApi(url);
 
       if (!response.ok) {
@@ -52,7 +52,7 @@ export const entidadSisService = {
     try {
       console.log('🔍 Obteniendo entidad SIS por código:', code);
 
-      const url = `${API_ENDPOINTS.citas.base}/entidades-sis/${code.trim()}`;
+      const url = API_ENDPOINTS.citas.sisEntityByCode(code.trim());
       const response = await fetchApi(url);
 
       if (response.status === 404) {

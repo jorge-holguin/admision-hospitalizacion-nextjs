@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Home, Table, Calendar, Loader2, FlaskConical, Shield } from "lucide-react";
+import { Home, Table, Calendar, Loader2, FlaskConical, Shield, FileText } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -29,6 +29,12 @@ export default function Dashboard() {
     setIsNavigating(true);
     setNavigatingTo("Hospitalización / Emergencia");
     router.push("/filiation");
+  };
+
+  const handleHistoriasClinicasClick = () => {
+    setIsNavigating(true);
+    setNavigatingTo("Historias Clínicas");
+    router.push("/historias-clinicas");
   };
 
   const handleTablasMaestrasClick = () => {
@@ -93,6 +99,24 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
+
+          {/* HISTORIAS CLÍNICAS - Acceso para todos */}
+          <Card
+            className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-indigo-200"
+            onClick={handleHistoriasClinicasClick}
+          >
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-10 h-10 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                HISTORIAS CLÍNICAS
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Gestión de historias clínicas de pacientes
+              </p>
+            </CardContent>
+          </Card>
 
           {/* CITAS - Solo CALL CENTER y DEVOPS */}
           {canAccessCitas && (

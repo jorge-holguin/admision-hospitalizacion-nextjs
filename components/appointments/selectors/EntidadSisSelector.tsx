@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
+import { entidadSisService } from '@/services/citas/entidadSisService'
 
 interface EntidadSis {
   ENTIDADSIS: string
@@ -116,13 +117,8 @@ export function EntidadSisSelector({
   const loadEntidadesIniciales = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/appointments/sis-entities?limit=20')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setItems(data.data || [])
-        }
-      }
+      const entidades = await entidadSisService.getEntidadesSis(20)
+      setItems(entidades)
     } catch (error) {
       console.error('Error loading entidades SIS iniciales:', error)
     } finally {
@@ -139,14 +135,9 @@ export function EntidadSisSelector({
 
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/appointments/sis-entities?search=${encodeURIComponent(searchTerm)}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setItems(data.data || [])
-          setHasSearched(true)
-        }
-      }
+      const entidades = await entidadSisService.getEntidadesSis(20, searchTerm)
+      setItems(entidades)
+      setHasSearched(true)
     } catch (error) {
       console.error('Error searching entidades SIS:', error)
     } finally {

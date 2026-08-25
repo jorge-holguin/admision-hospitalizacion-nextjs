@@ -17,6 +17,7 @@ import { EtniaProvider } from "@/contexts/filiation/EtniaContext"
 import { ReligionProvider } from "@/contexts/filiation/ReligionContext"
 import { OcupacionProvider } from "@/contexts/filiation/OcupacionContext"
 import { GradoInstruccionProvider } from "@/contexts/filiation/GradoInstruccionContext"
+import { filiacionService } from "@/services/hospitalizacion/filiacionService"
 
 interface Patient {
   // Campos que vienen del servicio filiacion2Service
@@ -135,18 +136,12 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     setHasSearched(true)
     
     try {
-      // Usar el endpoint interno de filiacion2
-      const paramName = searchType === 'documento' ? 'documento' : 'nombres'
-      const params = new URLSearchParams({
-        page: '1',
-        pageSize: '10',
-        [paramName]: searchTerm.trim()
-      })
-      
-      const response = await fetch(`/api/filiation/search?${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        let patientsData = data.data || []
+      // Llamar directamente al servicio de filiación
+      const filter = searchType === 'documento'
+        ? { documento: searchTerm.trim() }
+        : { nombres: searchTerm.trim() }
+      const data = await filiacionService.getPaginatedFiliacion(filter, { page: 1, pageSize: 10 })
+      let patientsData: any[] = (data.data as any[]) || []
         
         // Si se busca por nombre, obtener fotos de los pacientes
         if (searchType === 'nombre' && patientsData.length > 0) {
@@ -166,10 +161,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
           console.log('✅ Fotos obtenidas para', patientsData.filter((p: any) => p.STRING_FOTO).length, 'pacientes')
         }
         
-        setPatients(patientsData)
-      } else {
-        setPatients([])
-      }
+        setPatients(patientsData as Patient[])
     } catch (error) {
       console.error('Error searching patients:', error)
       setPatients([])
@@ -239,30 +231,19 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
       // ✅ Realizar búsqueda automática usando la misma API que handleSearch
       try {
         setIsLoading(true)
-        const params = new URLSearchParams({
-          page: '1',
-          pageSize: '10',
-          documento: documentToSearch.trim()
-        })
-        
-        const response = await fetch(`/api/filiation/search?${params}`)
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log('📦 Respuesta de búsqueda:', data)
-          
-          // La respuesta puede venir como { data: [...] } o { success: true, data: [...] }
-          const patients = data.data || data
-          
-          if (Array.isArray(patients) && patients.length > 0) {
-            console.log('✅ Paciente encontrado:', patients[0])
-            setPatients(patients)
-          } else {
-            console.warn('⚠️ No se encontró el paciente recién creado')
-            setPatients([])
-          }
+        const data = await filiacionService.getPaginatedFiliacion(
+          { documento: documentToSearch.trim() },
+          { page: 1, pageSize: 10 }
+        )
+        console.log('📦 Respuesta de búsqueda:', data)
+
+        const patients = (data.data as any[]) || []
+
+        if (Array.isArray(patients) && patients.length > 0) {
+          console.log('✅ Paciente encontrado:', patients[0])
+          setPatients(patients as Patient[])
         } else {
-          console.error('❌ Error en la respuesta de búsqueda')
+          console.warn('⚠️ No se encontró el paciente recién creado')
           setPatients([])
         }
       } catch (error) {
@@ -403,7 +384,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
                           </TableCell>
                           <TableCell>{formatDate(patient.FECHA_NACIMIENTO)}</TableCell>
                           <TableCell className="max-w-xs truncate">{patient.DIRECCION}</TableCell>
-                          <TableCell>{patient.DISTRITO || patient.Distrito_Dir || '-'}</TableCell>
+                          <TableCell>{patient.Distrito_Dir || patient.DISTRITO?.trim() || '-'}</TableCell>
                           <TableCell>
                             <Button
                               size="sm"

@@ -1,4 +1,5 @@
 import { serializeBigInt } from '@/lib/utils';
+import { filiacionService } from '@/services/hospitalizacion/filiacionService';
 
 /**
  * Servicio para obtener datos de pacientes directamente desde la API
@@ -11,36 +12,14 @@ export const pacienteApiService = {
    */
   async getPacienteFromApi(id: string) {
     try {
-      
-      // Construir la URL de la API (usando rutas relativas)
-      const apiUrl = `/api/filiation/${id}`;
-      
-      // Realizar la petición a la API
-      const response = await fetch(apiUrl, {
-        // Aumentar el tiempo de espera para la respuesta
-        signal: AbortSignal.timeout(10000) // 10 segundos de timeout
-      });
-      
-      if (!response.ok) {
-        console.error(`Error en la consulta a la API: Status ${response.status}`);
-        throw new Error(`Error en la consulta a la API: ${response.status}`);
-      }
-      
-      // Obtener los datos de la respuesta
-      const data = await response.json();
-      
-      // Verificar si la respuesta tiene los datos esperados
-      if (!data || (!data.PACIENTE && !data.data)) {
-        console.error('La API no devolvió datos válidos del paciente:', data);
+      const paciente = await filiacionService.getFiliacionById(id);
+
+      if (!paciente) {
+        console.error('La API no devolvió datos válidos del paciente:', id);
         return null;
       }
-      
-      // Si los datos están en data.data, usar esa estructura
-      if (data.data && typeof data.data === 'object') {
-        return serializeBigInt(data.data);
-      }
-      
-      return serializeBigInt(data);
+
+      return serializeBigInt(paciente) as any;
     } catch (error) {
       console.error(`Error al obtener datos del paciente desde la API:`, error instanceof Error ? error.message : 'Error desconocido');
       throw error;

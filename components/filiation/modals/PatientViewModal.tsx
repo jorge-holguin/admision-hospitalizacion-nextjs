@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { User, FileText, Calendar, Home, Phone, Users, Heart, Printer } from "lucide-react"
+import { User, FileText, Calendar, Home, Phone, Users, Heart, Printer, CheckCircle } from "lucide-react"
 import { calculateAge, formatAgeReadable } from "@/lib/ageCalculator"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
 
@@ -85,6 +85,13 @@ interface Patient {
   Nombre_Localidad?: string
   Distrito_Dir?: string
   PACIENTE?: string
+  // Campos de la API Spring (camelCase)
+  historia?: string
+  documento?: string
+  paciente?: string
+  paterno?: string
+  materno?: string
+  validadoReniec?: boolean
   [key: string]: any
 }
 
@@ -139,14 +146,14 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
   const mappedPatient = {
     ...patient,
     // Información del Sistema
-    hc: patient.HISTORIA?.trim() || patient.hc || '',
+    hc: patient.HISTORIA?.trim() || patient.historia?.trim() || patient.hc || '',
     tipoDocumento: typeof patient.tipoDocumento === 'object' && patient.tipoDocumento?.nombre 
       ? patient.tipoDocumento.nombre 
       : (typeof patient.tipoDocumento === 'string' ? patient.tipoDocumento : patient.NOMBRE_DOCUMENTO || patient.TIPO_DOCUMENTO || 'DNI'),
-    dni: patient.DOCUMENTO || patient.dni || '',
+    dni: patient.DOCUMENTO || patient.documento || patient.dni || '',
     // Edad: priorizar siempre la edad calculada por el backend (mayúsculas o minúsculas)
     edad: patient.EDAD || patient.edad || '',
-    codigoPaciente: patient.PACIENTE || patient.id || '',
+    codigoPaciente: patient.PACIENTE || patient.paciente || patient.id || '',
     // Fecha y Hora de Apertura: formatear la fecha completa
     fechaApertura: patient.fechaApertura ? new Date(patient.fechaApertura).toLocaleString('es-PE', { 
       year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -154,13 +161,14 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     }) : patient.FECHA_APERTURA || '',
     horaApertura: patient.horaApertura || patient.HORA_APERTURA || '',
     photo: patient.stringFoto || patient.STRING_FOTO || patient.photo || '',
+    validadoReniec: patient.validadoReniec === true || patient.VALIDADO_RENIEC === true,
     
     // Datos Personales
-    apellidoPaterno: patient.PATERNO?.trim() || patient.apellidoPaterno || '',
-    apellidoMaterno: patient.MATERNO?.trim() || patient.apellidoMaterno || '',
-    nombres: patient.NOMBRE?.trim() || patient.nombres || '',
-    fechaNacimiento: patient.FECHA_NACIMIENTO || patient.birthDate || '',
-    sexo: patient.SEXO || patient.sex || '',
+    apellidoPaterno: patient.PATERNO?.trim() || patient.paterno?.trim() || patient.apellidoPaterno || '',
+    apellidoMaterno: patient.MATERNO?.trim() || patient.materno?.trim() || patient.apellidoMaterno || '',
+    nombres: patient.NOMBRE?.trim() || patient.NOMBRES?.trim() || patient.nombres || '',
+    fechaNacimiento: patient.FECHA_NACIMIENTO || patient.fechaNacimiento || patient.birthDate || '',
+    sexo: patient.SEXO || patient.sexo || patient.sex || '',
     estadoCivil: typeof patient.estadoCivil === 'object' ? patient.estadoCivil?.nombre : patient.NOMBRE_ESTADO_CIVIL || patient.estadoCivil || '',
     codigoEstadoCivil: typeof patient.estadoCivil === 'object' ? patient.estadoCivil?.estadoCivil : patient.ESTADO_CIVIL || '',
     // País: mapear código a nombre
@@ -202,8 +210,8 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     centroPoblado: localidadNombre 
       ? `${(patient.localidad || patient.LOCALIDAD)?.trim()} - ${localidadNombre}`
       : patient.LOCALIDAD || patient.Nombre_Localidad || '',
-    telefono1: patient.TELEFONO1?.trim() || '',
-    telefono2: patient.TELEFONO2?.trim() || '',
+    telefono1: patient.TELEFONO1?.trim() || patient.telefono1?.trim() || '',
+    telefono2: patient.TELEFONO2?.trim() || patient.telefono2?.trim() || '',
     hijos: patient.hijos || patient.HIJOS?.s || patient.HIJOS?.d?.[0] || 0,
     observacion: patient.email || patient.EMAIL || '',
     correo: patient.correo || '',
@@ -477,6 +485,14 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             </div>
           </CardContent>
         </Card>
+
+        {/* Validación RENIEC */}
+        {mappedPatient.validadoReniec && (
+          <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-semibold text-sm">VALIDADO POR RENIEC</span>
+          </div>
+        )}
 
         {/* Datos de Acompañante */}
      {/*    <Card>

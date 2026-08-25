@@ -22,7 +22,7 @@ export default function FuaEmergencyStatusAlert({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accountId, setAccountId] = useState<string | null>(null)
-  const hasExecutedRef = useRef(false)
+  const lastCheckedRef = useRef<string | null>(null)
 
   const requiredSisInsuranceCodes = ["20", "21", "22", "23", "24", "25"]
 
@@ -30,32 +30,36 @@ export default function FuaEmergencyStatusAlert({
   const { fetchEmergencyAccount, isLoading: isLoadingAccountState } = useEmergencyAccount()
 
   useEffect(() => {
-    // Evitar ejecuciones múltiples
-    if (hasExecutedRef.current) return
-    
-    const code = insuranceCode?.trim() || ""
+    const code = (insuranceCode || "").trim()
+    const fetchKey = `${patientId}_${code}`
 
-    // Si no requiere validación, no mostrar nada y notificar que la validación pasó
+    // Si no requiere validación, limpiar estado y notificar que la validación pasó
     if (!requiredSisInsuranceCodes.includes(code)) {
+      setError(null)
+      setAccountId(null)
+      setLoading(false)
       onValidationChange?.(true)
+      lastCheckedRef.current = fetchKey
       return
     }
 
-    // Solo ejecutar la validación de cuenta para seguros SIS (20-25)
-    hasExecutedRef.current = true
+    // Evitar consultas duplicadas para la misma combinación paciente/seguro
+    if (lastCheckedRef.current === fetchKey) return
+    lastCheckedRef.current = fetchKey
 
+    // Solo ejecutar la validación de cuenta para seguros SIS (20-25)
     const checkAccount = async () => {
       try {
         setLoading(true)
         // Verificar cuenta usando el contexto de emergencia con el endpoint buscar-por-seguro
         const accountData = await fetchEmergencyAccount(patientId, code)
-        
+
         if (!accountData?.cuentaId) {
           setError("No se encontró una cuenta activa para este paciente.")
           onValidationChange?.(false)
           return
         }
-        
+
         setAccountId(accountData.cuentaId)
         onValidationChange?.(true)
       } catch (error) {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Consultorio } from "./useConsultorios";
+import { consultorioServerService } from "@/services/master-tables/consultorioService";
 
 export function useOptimizedConsultorios() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -11,11 +12,7 @@ export function useOptimizedConsultorios() {
     setError(null);
     
     try {
-      const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error(`Error ${res.status} al obtener consultorio`);
-      
-      const data = await res.json();
-      return data;
+      return await consultorioServerService.getConsultorioById(id);
     } catch (err) {
       console.error("Error fetching consultorio:", err);
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -29,15 +26,7 @@ export function useOptimizedConsultorios() {
   const createConsultorio = async (consultorioData: Partial<Consultorio>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/consultorios`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(consultorioData),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al crear consultorio`);
-      }
+      await consultorioServerService.createConsultorio(consultorioData);
       return { success: true };
     } catch (err) {
       console.error("Error creating consultorio:", err);
@@ -54,15 +43,7 @@ export function useOptimizedConsultorios() {
   const updateConsultorio = async (id: string, consultorioData: Partial<Consultorio>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(consultorioData),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${res.status} al actualizar consultorio`);
-      }
+      await consultorioServerService.updateConsultorio(id, consultorioData);
       return { success: true };
     } catch (err) {
       console.error("Error updating consultorio:", err);

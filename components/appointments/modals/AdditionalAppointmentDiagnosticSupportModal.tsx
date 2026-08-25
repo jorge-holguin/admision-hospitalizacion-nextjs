@@ -33,6 +33,7 @@ import { datetimeService } from '@/services/datetimeService'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { CrearOrdenApoyoDiagnosticoModal, type OrdenToEdit } from "./CrearOrdenApoyoDiagnosticoModal"
+import { verificarExamenesConPedido } from "@/services/apoyoDiagnostico/maestroService"
 
 interface OrdenDetalle {
   idOrdenDetalle: number
@@ -86,6 +87,7 @@ const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO
 const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
 const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
 const ESTADOS_REF_PERMITIDOS = ['ACEPTADO', 'PACIENTE RECIBIDO', 'PACIENTE CITADO']
+const MAX_OBSERVACION_LENGTH = 200
 
 const extractCptEco = (value: Array<{ cpt1: string }> | string | null): string | null => {
   if (Array.isArray(value) && value.length > 0) return value[0]?.cpt1 || null
@@ -165,6 +167,9 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
   const [ordenToEditEco, setOrdenToEditEco] = useState<OrdenToEdit | null>(null)
   const [confirmDialogOrden, setConfirmDialogOrden] = useState<{ type: 'delete'; orden: OrdenApoyoDiagnostico } | null>(null)
 
+  const [pedidoAlert, setPedidoAlert] = useState<{ show: boolean; examenes: { cpms: string; descripcion: string }[] }>({ show: false, examenes: [] })
+  const [loadingPedido, setLoadingPedido] = useState(false)
+
   const { selectedReferencia: selectedSisReferenciaEco } = useReferencia()
 
   const userPuesto = extractPuestoFromToken()
@@ -218,6 +223,8 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       setOrdenCreadaId(null)
       setOrdenToEditEco(null)
       setConfirmDialogOrden(null)
+      setPedidoAlert({ show: false, examenes: [] })
+      setLoadingPedido(false)
     }
   }, [isOpen, patient])
 
@@ -256,14 +263,43 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
   const loadOrdenesApoyoDiagnostico = async (pacienteId: string) => {
     setLoadingOrdenes(true)
     try {
-      const res = await fetch(`${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/paciente/${pacienteId}?estado=1&origen=CE`)
+      const res = await fetch(`${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/paciente/${pacienteId}?origen=CE`)
       if (res.ok) {
         const json = await res.json()
-        setOrdenes(Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [])
+        const all: OrdenApoyoDiagnostico[] = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []
+        setOrdenes(all.filter((o) => ['1', '2', '3'].includes(String(o.estadoOrden))))
       } else { setOrdenes([]) }
     } catch { setOrdenes([]) }
     finally { setLoadingOrdenes(false) }
   }
+
+  // Verificar campo PEDIDO de APOYO_DIAGNOSTICO.MAESTRO para los exámenes de la orden seleccionada
+  useEffect(() => {
+    const checkPedido = async () => {
+      const ordenIdRaw = selectedOrdenEcografia || (ordenCreadaId ? String(ordenCreadaId) : '')
+      if (!ordenIdRaw) {
+        setPedidoAlert({ show: false, examenes: [] })
+        return
+      }
+      const orden = ordenes.find((o) => String(o.idOrden) === ordenIdRaw)
+      if (!orden?.detalles?.length) {
+        setPedidoAlert({ show: false, examenes: [] })
+        return
+      }
+      setLoadingPedido(true)
+      try {
+        const detallesVisibles = orden.detalles.filter((d) => d.estadoDetalle !== '0')
+        const { bloqueado, examenes } = await verificarExamenesConPedido(detallesVisibles)
+        setPedidoAlert({ show: bloqueado, examenes })
+      } catch (error) {
+        console.error('❌ Error verificando PEDIDO:', error)
+        setPedidoAlert({ show: false, examenes: [] })
+      } finally {
+        setLoadingPedido(false)
+      }
+    }
+    checkPedido()
+  }, [selectedOrdenEcografia, ordenCreadaId, ordenes])
 
   const getCpmsFromRefEco = (ref: ReferenciaItemEco): string | null => {
     const ups = ref.datos_referencia?.servicio_destino || ''
@@ -344,7 +380,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
     const ordenToEdit: OrdenToEdit = {
       idOrden: ord.idOrden, idPaciente: ord.idPaciente, tipoServicio: ord.tipoServicio, idLugar: ord.idLugar,
       origen: ord.origen, origenId: ord.origenId, idTipoSeguro: ord.seguro, idMedico: ord.idMedicoSolicita, cama: ord.cama ?? null,
-      detalles: ord.detalles.map((d) => ({ cpms: d.cpms ?? null, cpmsDescripcion: d.cpmsDescripcion ?? null, ciex: d.ciex ?? null, cantidad: d.cantidad ?? 1, observacion: d.observacion ?? d.observacionEspecifica ?? null, estadoDetalle: d.estadoDetalle })),
+      detalles: ord.detalles.map((d) => ({ cpms: d.cpms ?? null, cpmsDescripcion: d.cpmsDescripcion ?? null, ciex: d.ciex ?? null, cantidad: d.cantidad ?? 1, observacion: ((d.observacion ?? d.observacionEspecifica) || '').trim().slice(0, MAX_OBSERVACION_LENGTH) || null, estadoDetalle: d.estadoDetalle })),
     }
     setOrdenToEditEco(ordenToEdit)
     if (!selectedRefItemEco) {
@@ -418,6 +454,14 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       toast({ title: "Campos requeridos", description: "Por favor complete todos los campos requeridos.", variant: "destructive" })
       return
     }
+    if (pedidoAlert.show) {
+      toast({
+        title: '⛔ Atención bloqueada',
+        description: 'No se puede crear la cita porque la orden contiene exámenes que requieren pedido previo.',
+        variant: 'destructive',
+      })
+      return
+    }
     setIsLoading(true)
     try {
       const usuarioDocumento = extractDocumentFromToken()
@@ -431,7 +475,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
         turno,
         tipoCita,
         tipoSeguro,
-        observacion,
+        observacion: (observacion || '').trim().slice(0, MAX_OBSERVACION_LENGTH),
         paciente: patient.PACIENTE || patient.HISTORIA,
         nombre: patient.NOMBRES || patient.NOMBRE || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''}`.trim(),
         historia: patient.HISTORIA,
@@ -548,11 +592,8 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       let eessFormatted = ''
       if (citaData.entidadSis) {
         try {
-          const entidadResponse = await fetch(`/api/appointments/sis-entities/${citaData.entidadSis.trim()}`)
-          if (entidadResponse.ok) {
-            const entidadData = await entidadResponse.json()
-            eessFormatted = entidadData.success && entidadData.data ? `(${citaData.entidadSis.trim()}) - ${entidadData.data.NOMBRE}` : citaData.entidadSis.trim()
-          } else { eessFormatted = citaData.entidadSis.trim() }
+          const entidadResult = await obtenerEntidadSISPorCodigo(citaData.entidadSis.trim())
+          eessFormatted = entidadResult.success && entidadResult.data ? `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}` : citaData.entidadSis.trim()
         } catch { eessFormatted = citaData.entidadSis.trim() }
       }
       const citaDto: CitaDto = {
@@ -824,7 +865,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                       </div>
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Observación</Label>
-                        <Input value={observacion} onChange={(e) => setObservacion(e.target.value)} placeholder="Ingrese observaciones..." className="w-full" />
+                        <Input value={observacion} onChange={(e) => setObservacion(e.target.value.slice(0, MAX_OBSERVACION_LENGTH))} maxLength={MAX_OBSERVACION_LENGTH} placeholder="Ingrese observaciones..." className="w-full" />
                       </div>
                     </div>
 
@@ -964,22 +1005,45 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                 const servicioLabel = servicioMeta[ord.tipoServicio?.trim().toUpperCase() || ''] || ord.tipoServicio
                                 const fechaCreacion = ord.regFechaCreacion ? new Date(ord.regFechaCreacion).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null
                                 const detallesVisibles = (ord.detalles || []).filter((d) => d.estadoDetalle !== '0')
+                                const ordenEstadoMeta: Record<string, { label: string; color: string }> = {
+                                  '1': { label: 'CREADA', color: 'bg-sky-100 text-sky-800 border-sky-200' },
+                                  '2': { label: 'FIRMADA', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+                                  '3': { label: 'PENDIENTE', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+                                }
+                                const seleccionable = String(ord.estadoOrden) === '3'
+                                const estadoOrdenBadge = ordenEstadoMeta[String(ord.estadoOrden || '')]
                                 return (
-                                  <div key={ord.idOrden} className={`border rounded-lg p-2.5 transition-colors ${isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+                                  <div key={ord.idOrden} className={`border rounded-lg p-2.5 transition-colors ${isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
                                     <div className="flex items-start justify-between gap-2">
-                                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))}>
+                                      <div className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => seleccionable && setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))} title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}>
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{servicioLabel}</span>
+                                          {estadoOrdenBadge && (
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${estadoOrdenBadge.color}`}>
+                                              {estadoOrdenBadge.label}
+                                            </span>
+                                          )}
+                                          {!seleccionable && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
+                                              Requiere aprobación
+                                            </span>
+                                          )}
                                           {fechaCreacion && <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded"><CalendarIcon className="h-3 w-3" />{fechaCreacion}</span>}
                                         </div>
                                         {detallesVisibles.length > 0 && (
                                           <ul className="flex flex-col gap-1 pl-1 mt-1.5">
-                                            {detallesVisibles.map((d, idx) => (
-                                              <li key={idx} className="flex items-center gap-1.5 text-xs">
-                                                <span className="shrink-0 w-1 h-1 rounded-full bg-blue-500" />
-                                                <span className="truncate text-gray-700">{d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`}</span>
-                                              </li>
-                                            ))}
+                                            {detallesVisibles.map((d, idx) => {
+                                              const completado = d.estadoDetalle === '2'
+                                              return (
+                                                <li key={idx} className="flex items-center gap-1.5 text-xs">
+                                                  <span className={`shrink-0 w-1 h-1 rounded-full ${completado ? 'bg-gray-300' : 'bg-blue-500'}`} />
+                                                  <span className={`truncate ${completado ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                                    {d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`}
+                                                  </span>
+                                                  {completado && <span className="shrink-0 text-[10px] font-semibold bg-green-100 text-green-800 border border-green-300 px-1.5 py-0 rounded">✓ Completado</span>}
+                                                </li>
+                                              )
+                                            })}
                                           </ul>
                                         )}
                                       </div>
@@ -992,6 +1056,28 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                 )
                               })}
                             </div>
+                          )}
+
+                          {loadingPedido && (
+                            <div className="flex items-center gap-2 text-xs text-amber-600 mt-3">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600" />
+                              Verificando requisitos del examen...
+                            </div>
+                          )}
+
+                          {pedidoAlert.show && !loadingPedido && (
+                            <Alert className="bg-red-50 border-red-300 mt-3">
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                              <AlertDescription className="text-red-800 text-xs">
+                                <p className="font-semibold mb-1">⛔ Examen requiere pedido previo</p>
+                                <p className="mb-1">No se puede crear una cita con los siguientes exámenes porque requieren pedido previo:</p>
+                                <ul className="list-disc pl-4 space-y-0.5">
+                                  {pedidoAlert.examenes.map((ex, i) => (
+                                    <li key={i}>{ex.descripcion} (CPMS: {ex.cpms})</li>
+                                  ))}
+                                </ul>
+                              </AlertDescription>
+                            </Alert>
                           )}
                         </div>
                       )}
@@ -1007,7 +1093,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
           <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancelar</Button>
           <Button
             onClick={() => { if (!timeValidation.isValid) { setShowTimeConflictDialog(true) } else { handleSave() } }}
-            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia)) || hasConsultorioMatch}
+            disabled={isLoading || !consultorio || !medico || !turno || !tipoCita || !tipoSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia)) || hasConsultorioMatch || loadingPedido || pedidoAlert.show}
             className="bg-cyan-600 hover:bg-cyan-700 text-white"
           >
             {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>) : 'Confirmar Cita — Apoyo Diagnóstico'}

@@ -6,6 +6,9 @@
 // URL base del backend Spring Boot
 export const API_SPRING_URL = process.env.NEXT_PUBLIC_API_SPRING_URL || 'http://192.168.5.239:9011/api';
 
+// URL base del backend legacy (usado por SIS y otras APIs antiguas)
+export const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL || 'http://192.168.0.252:9011/api';
+
 // URLs específicas por módulo
 export const API_ENDPOINTS = {
   // ============================================
@@ -14,7 +17,7 @@ export const API_ENDPOINTS = {
   utils: {
     datetime: `${API_SPRING_URL}/utils/datetime`,
     documentTypes: `${API_SPRING_URL}/maestro/tipoDocumento`,
-    insurances: `${API_SPRING_URL}/maestro/seguro`,
+    insurances: `${API_SPRING_URL}/utils/insurances`,
     ubigeo: `${API_SPRING_URL}/maestro/ubigeo`,
     ocupaciones: `${API_SPRING_URL}/maestro/ocupacion`,
     estadoCivil: `${API_SPRING_URL}/maestro/estadoCivil`,
@@ -23,44 +26,54 @@ export const API_ENDPOINTS = {
     etnias: `${API_SPRING_URL}/maestro/etnia`,
     paises: `${API_SPRING_URL}/maestro/pais`,
     localidades: `${API_SPRING_URL}/maestro/localidad`,
+    empresasSeguro: `${API_SPRING_URL}/maestro/empresaseguro/obtener-todos`,
   },
 
   // ============================================
   // EMERGENCIA
   // ============================================
   emergencia: {
-    base: `${API_SPRING_URL}/emergencia`,
-    list: `${API_SPRING_URL}/emergencia`,
-    byMonth: `${API_SPRING_URL}/emergencia/por-mes`,
-    byId: (id: string) => `${API_SPRING_URL}/emergencia/${id}`,
-    byPatient: (patientId: string) => `${API_SPRING_URL}/emergencia/paciente/${patientId}`,
-    byPaciente: (pacienteId: string) => `${API_SPRING_URL}/emergencia/paciente/${pacienteId}`,
-    checkActiva: (pacienteId: string) => `${API_SPRING_URL}/emergencia/paciente/${pacienteId}/activa`,
-    nextId: `${API_SPRING_URL}/emergencia/next-id`,
-    admissionTypes: `${API_SPRING_URL}/emergencia/admission-types`,
-    reasons: `${API_SPRING_URL}/emergencia/reasons`,
-    create: `${API_SPRING_URL}/emergencia`,
-    update: (id: string) => `${API_SPRING_URL}/emergencia/${id}`,
-    delete: (id: string) => `${API_SPRING_URL}/emergencia/${id}`,
-    assignAccount: (id: string) => `${API_SPRING_URL}/emergencia/${id}/assign-account`,
-    assignCuenta: (id: string) => `${API_SPRING_URL}/emergencia/${id}/assign-account`,
+    base: `${API_SPRING_URL}/emergency`,
+    list: `${API_SPRING_URL}/emergency`,
+    byMonth: `${API_SPRING_URL}/emergency/por-mes`,
+    byId: (id: string) => `${API_SPRING_URL}/emergency/${id}`,
+    byPatient: (patientId: string) => `${API_SPRING_URL}/emergency/paciente/${patientId}`,
+    byPaciente: (pacienteId: string) => `${API_SPRING_URL}/emergency/paciente/${pacienteId}`,
+    checkActiva: (pacienteId: string) => `${API_SPRING_URL}/emergency/paciente/${pacienteId}/activa`,
+    nextId: `${API_SPRING_URL}/emergency/next-id`,
+    checkAccount: `${API_SPRING_URL}/emergency/check-account`,
+    admissionTypes: `${API_SPRING_URL}/emergency/forma-ingreso`,
+    reasons: `${API_SPRING_URL}/emergency/motivo-emergencia`,
+    create: `${API_SPRING_URL}/emergency`,
+    update: (id: string) => `${API_SPRING_URL}/emergency/${id}`,
+    delete: (id: string) => `${API_SPRING_URL}/emergency/${id}`,
+    assignAccount: (id: string) => `${API_SPRING_URL}/emergency/${id}/assign-account`,
+    assignCuenta: (id: string) => `${API_SPRING_URL}/emergency/${id}/assign-account`,
   },
 
   // ============================================
   // HOSPITALIZACIÓN
   // ============================================
   hospitalizacion: {
-    base: `${API_SPRING_URL}/hospitalizacion`,
-    list: `${API_SPRING_URL}/hospitalizacion`,
-    byId: (id: string) => `${API_SPRING_URL}/hospitalizacion/${id}`,
-    byPatient: (patientId: string) => `${API_SPRING_URL}/hospitalizacion/paciente/${patientId}`,
-    nextId: `${API_SPRING_URL}/hospitalizacion/next-id`,
-    origins: `${API_SPRING_URL}/hospitalizacion/origins`,
-    create: `${API_SPRING_URL}/hospitalizacion`,
-    update: (id: string) => `${API_SPRING_URL}/hospitalizacion/${id}`,
-    delete: (id: string) => `${API_SPRING_URL}/hospitalizacion/${id}`,
-    logicalDelete: (id: string) => `${API_SPRING_URL}/hospitalizacion/${id}/baja`,
-    assignAccount: (id: string) => `${API_SPRING_URL}/hospitalizacion/${id}/assign-account`,
+    base: `${API_SPRING_URL}/hospitalization`,
+    list: `${API_SPRING_URL}/hospitalization`,
+    ordenes: `${API_SPRING_URL}/hospitalization/ordenes`,
+    byId: (id: string) => `${API_SPRING_URL}/hospitalization/${id}`,
+    byPatient: (patientId: string) => `${API_SPRING_URL}/hospitalization/paciente/${patientId}`,
+    nextId: `${API_SPRING_URL}/hospitalization/next-id`,
+    origins: `${API_SPRING_URL}/hospitalization/origins`,
+    create: `${API_SPRING_URL}/hospitalization`,
+    update: (id: string) => `${API_SPRING_URL}/hospitalization/${id}`,
+    delete: (id: string) => `${API_SPRING_URL}/hospitalization/${id}`,
+    logicalDelete: (id: string) => `${API_SPRING_URL}/hospitalization/${id}/baja`,
+    assignAccount: (id: string) => `${API_SPRING_URL}/hospitalization/${id}/assign-account`,
+  },
+
+  // ============================================
+  // CUENTAS
+  // ============================================
+  accounts: {
+    validate: `${API_SPRING_URL}/accounts/validate`,
   },
 
   // ============================================
@@ -93,6 +106,7 @@ export const API_ENDPOINTS = {
   // ============================================
   filiation: {
     search: `${API_SPRING_URL}/filiation/search`,
+    searchByDocument: `${API_SPRING_URL}/filiation/search-by-documento`,
     searchByName: `${API_SPRING_URL}/busqueda/paciente-por-nombre`,
     byId: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/${id}`,
     create: `${API_SPRING_URL}/historia-clinica/pacientes`,
@@ -153,8 +167,12 @@ export const API_ENDPOINTS = {
     changeAuditState: (citaId: string) => `${API_SPRING_URL}/cita/${citaId}/auditoria-estado`,
     availableDates: `${API_SPRING_URL}/cita/fechas-consultorios`,
     search: `${API_SPRING_URL}/cita/buscar`,
+    historialPorDocumento: `${API_SPRING_URL}/cita/historial/por-documento`,
+    tipos: `${API_SPRING_URL}/cita/tipos`,
     liberadas: `${API_SPRING_URL}/cita/liberadas`,
     resumen: `${API_SPRING_URL}/cita/resumen`,
+    sisEntities: `${API_SPRING_URL}/cita/sis-entities`,
+    sisEntityByCode: (code: string) => `${API_SPRING_URL}/cita/sis-entities/${code}`,
   },
 
   // ============================================
@@ -162,13 +180,116 @@ export const API_ENDPOINTS = {
   // ============================================
   external: {
     sis: {
-      validate: `${API_SPRING_URL}/sis/validar`,
+      validate: `${API_BACKEND_URL}/sis/validar`,
     },
     reniec: {
       datosCompletos: `${API_SPRING_URL}/reniec/datos-completos`,
     },
   },
 };
+
+/**
+ * Normaliza la respuesta del backend de hospitalización.
+ * El backend Spring Boot devuelve los campos en lowerCamelCase (ej: idHospitalizacion),
+ * pero los componentes del frontend esperan los nombres de columna de la BD en mayúsculas (ej: IDHOSPITALIZACION).
+ */
+export function normalizeHospitalizationData(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+
+  const toString = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+  };
+
+  const normalizeDate = (value: any): string => {
+    if (!value) return '';
+    const str = String(value).trim();
+
+    // Ya está en formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+    // Formato ISO (ej: 2026-08-19T00:00:00)
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+
+    // Formato YYYYMMDD
+    if (/^\d{8}$/.test(str)) {
+      return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
+    }
+
+    // Formato DD/MM/YYYY
+    const ddmmyyyyMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (ddmmyyyyMatch) {
+      return `${ddmmyyyyMatch[3]}-${ddmmyyyyMatch[2]}-${ddmmyyyyMatch[1]}`;
+    }
+
+    return str;
+  };
+
+  const normalized: any = { ...data };
+
+  const fieldMap: Record<string, string> = {
+    idHospitalizacion: 'IDHOSPITALIZACION',
+    paciente: 'PACIENTE',
+    nombres: 'NOMBRES',
+    consultorio1: 'CONSULTORIO1',
+    hora1: 'HORA1',
+    fecha1: 'FECHA1',
+    origen: 'ORIGEN',
+    seguro: 'SEGURO',
+    medico1: 'MEDICO1',
+    estado: 'ESTADO',
+    usuario: 'USUARIO',
+    usuarioImp: 'USUARIO_IMP',
+    diagnostico: 'DIAGNOSTICO',
+    edad: 'EDAD',
+    origenId: 'ORIGENID',
+    acompananteNombre: 'ACOMPANANTE_NOMBRE',
+    acompananteTelefono: 'ACOMPANANTE_TELEFONO',
+    acompananteDireccion: 'ACOMPANANTE_DIRECCION',
+    cuentaId: 'CUENTAID',
+    // Campos adicionales de la lista / filiación
+    historia: 'HISTORIA',
+    sexo: 'SEXO',
+    estadoCivil: 'ESTADO_CIVIL',
+    direccion: 'DIRECCION',
+    distrito: 'DISTRITO',
+    telefono1: 'TELEFONO1',
+    fechaNacimiento: 'FECHA_NACIMIENTO',
+    tipoDocumento: 'TIPO_DOCUMENTO',
+    documento: 'DOCUMENTO',
+    // Nombres descriptivos de la vista de hospitalización
+    consulNombre: 'CONSULNOMBRE',
+    medicoNombre: 'MEDICONOMBRE',
+    seguroNombre: 'SEGURONOMBRE',
+    diagnosticoNombre: 'DIAGNOSTICONOMBRE',
+    origenNombre: 'ORIGENOMBRE',
+  };
+
+  // Campos que deben normalizarse como fechas
+  const dateFields = ['fecha1', 'fechaNacimiento'];
+
+  Object.entries(fieldMap).forEach(([lower, upper]) => {
+    if (data[lower] !== undefined) {
+      if (dateFields.includes(lower)) {
+        normalized[upper] = normalizeDate(data[lower]);
+      } else if (lower === 'cuentaId') {
+        normalized[upper] = data[lower];
+      } else {
+        normalized[upper] = toString(data[lower]);
+      }
+    }
+  });
+
+  // Asegurar compatibilidad con variante sin guión bajo
+  if (data.estadoCivil !== undefined && normalized.ESTADOCIVIL === undefined) {
+    normalized.ESTADOCIVIL = toString(data.estadoCivil);
+  }
+
+  return normalized;
+}
 
 /**
  * Helper para construir URLs con query params

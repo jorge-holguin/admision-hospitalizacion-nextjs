@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { extractDocumentFromToken, extractPuestoFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
+import { usePermissions } from "@/contexts/PermissionsContext"
+import { PERMISOS } from "@/lib/permissions"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
 import { imprimirCita, CitaDto, formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY } from "@/services/appointments/printService"
 import { TicketPreviewModal, type TicketData } from "@/components/appointments/modals/TicketPreviewModal"
@@ -137,6 +139,14 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     // Verificar permisos para Ver Reservas (solo DEVOPS y ANALISTA)
     const userPuesto = extractPuestoFromToken()
     const canAccessReservas = userPuesto && ['DEVOPS', 'ANALISTA', 'DESARROLLADOR','CALL CENTER'].includes(userPuesto.toUpperCase())
+
+    const { hasPermission } = usePermissions()
+    const canNuevoPaciente    = hasPermission(PERMISOS.CITAS.NUEVO_PACIENTE)
+    const canHistorial        = hasPermission(PERMISOS.CITAS.HISTORIAL)
+    const canVerReservas      = hasPermission(PERMISOS.CITAS.VER_RESERVAS)
+    const canCitaAdicional    = hasPermission(PERMISOS.CITAS.CREAR_ADICIONAL)
+    const canApoyoDiagnostico = hasPermission(PERMISOS.CITAS.APOYO_DIAGNOSTICO)
+    const canVerPasadas       = hasPermission(PERMISOS.CITAS.VER_PASADAS)
 
     // Estados para fechas disponibles en el calendario
     const [datesWithAppointments, setDatesWithAppointments] = useState<Date[]>([])
@@ -531,19 +541,32 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         case "reschedule":
           setShowRescheduleModal(true)
           break
-        case "release":
-          // Validar que solo se pueda liberar citas con estado '3' y seguros '05' o '13'
-          const seguro = appointment.seguro?.trim()
-          const estado = String(appointment.estado)
-          
-          if (estado === '3' && (seguro !== '05' && seguro !== '13')) {
-            setReleaseErrorMessage('Solo puedes liberar citas pagadas (estado 3) con seguro "05 - Crédito Paciente" o "13 - Programas"')
+        case "release": {
+          // Validar que solo se pueda liberar citas:
+          // - Cualquier seguro en estado 2 (SIN PAGO O FUA)
+          // - 05 (Crédito Paciente) o 13 (Programas) en estado 3
+          const raw = (appointment.seguro ?? '').toString().trim()
+          const codePart = raw.split('-')[0].trim()
+          const name = (appointment.seguroNombre ?? '').toString().trim().toUpperCase()
+          let seguroCode = ''
+          if (codePart === '0' || codePart === '00' || name.includes('PAGANTE')) seguroCode = '0'
+          else if (codePart === '05' || name.includes('CRÉDITO') || name.includes('CREDITO')) seguroCode = '05'
+          else if (codePart === '13' || name.includes('PROGRAMA')) seguroCode = '13'
+
+          const estado = Number(appointment.estado)
+          const puedeLiberar =
+            estado === 2 ||
+            (estado === 3 && (seguroCode === '05' || seguroCode === '13'))
+
+          if (!puedeLiberar) {
+            setReleaseErrorMessage('Solo puedes liberar citas en estado SIN PAGO O FUA (2), o con seguro 05/13 en estado PAGADO O FUA (3).')
             setShowReleaseErrorDialog(true)
             return
           }
-          
+
           setShowReleaseModal(true)
           break
+        }
         case "details":
           setShowDetailsModal(true)
           break
@@ -774,10 +797,9 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           allowedRoles={['CALL CENTER', 'DEVOPS' , 'ANALISTA', 'DESARROLLADOR', 'ADMISIONISTA']}
           moduleName="Módulo de Citas"
         >
-            <FiliationProvider>
-              <TipoCitaProvider>
-                <SegurosCitaProvider>
-                <div className="flex flex-col min-h-screen bg-gray-50">
+          <TipoCitaProvider>
+            <SegurosCitaProvider>
+              <div className="flex flex-col min-h-screen bg-gray-50">
                 {/* Navbar fijo arriba */}
                 <Navbar />
                 <Toaster />
@@ -809,29 +831,33 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                   </Button> */}
                   
                   {/* Botón Nuevo Paciente */}
-                  <Button
-                    onClick={handleNewPatientClick}
-                    size="lg"
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold"
-                    title="Registrar nuevo paciente"
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Nuevo Paciente
-                  </Button>
+                  {canNuevoPaciente && (
+                    <Button
+                      onClick={handleNewPatientClick}
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                      title="Registrar nuevo paciente"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Nuevo Paciente
+                    </Button>
+                  )}
 
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="font-semibold border-purple-300 text-purple-700 hover:bg-purple-50"
-                    onClick={() => setShowHistoryModal(true)}
-                    title="Ver historial de citas"
-                  >
-                    <History className="mr-2 h-4 w-4" />
-                    Historial
-                  </Button>
+                  {canHistorial && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="font-semibold border-purple-300 text-purple-700 hover:bg-purple-50"
+                      onClick={() => setShowHistoryModal(true)}
+                      title="Ver historial de citas"
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      Historial
+                    </Button>
+                  )}
                   
-                  {/* Botón Ver Reservas - Solo para DEVOPS y ANALISTA */}
-                  {canAccessReservas && (
+                  {/* Botón Ver Reservas - Solo para DEVOPS y ANALISTA + permiso S028 */}
+                  {canAccessReservas && canVerReservas && (
                     <Button
                       variant="outline"
                       size="lg"
@@ -844,15 +870,17 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                     </Button>
                   )}
                   
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="font-semibold border-green-300 text-green-700 hover:bg-green-50"
-                    onClick={() => setShowAdditionalPatientSearchModal(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Cita Adicional
-                  </Button>
+                  {canCitaAdicional && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="font-semibold border-green-300 text-green-700 hover:bg-green-50"
+                      onClick={() => setShowAdditionalPatientSearchModal(true)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Cita Adicional
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -865,11 +893,13 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           Calendario de Citas
                         </CardTitle>
                         <div className="flex items-center space-x-2">
+                          {canVerPasadas && (
                           <Checkbox
                             id="showPastAppointments"
                             checked={showPastAppointments}
                             onCheckedChange={(checked) => setShowPastAppointments(checked as boolean)}
                           />
+                          )}
                           <label
                             htmlFor="showPastAppointments"
                             className="text-sm font-medium text-gray-700 cursor-pointer"
@@ -1296,7 +1326,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                 const enriched = {...patient, _searchType: searchType}
                 setSelectedPatient(enriched)
                 setShowAssignModal(false)
-                if (APOYO_DIAGNOSTICO_CONSULTORIOS.includes((selectedAppointment?.consultorio || '').trim())) {
+                if (canApoyoDiagnostico && APOYO_DIAGNOSTICO_CONSULTORIOS.includes((selectedAppointment?.consultorio || '').trim())) {
                   setShowApoyoDiagnosticoAssignModal(true)
                 } else {
                   setShowPatientAssignmentModal(true)
@@ -1421,8 +1451,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                       ℹ️ Recuerda:
                     </p>
                     <ul className="text-sm text-gray-700 mt-2 space-y-1 ml-4 list-disc">
-                      <li>Solo puedes liberar citas en estado <strong>3 (Pagado/Con FUA)</strong></li>
-                      <li>El seguro debe ser <strong>05 (Crédito Paciente)</strong> o <strong>13 (Programas)</strong></li>
+                      <li>PAGANTE (0) en estado <strong>2</strong></li>
+                      <li>Seguro <strong>05 (Crédito Paciente)</strong> o <strong>13 (Programas)</strong> en estado <strong>3 (Pagado/Con FUA)</strong></li>
                     </ul>
                   </div>
                   <div className="flex justify-end">
@@ -1541,29 +1571,33 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               ticketData={ticketData}
             />
 
-            {/* Modales de Filiación - Nuevo Paciente */}
-            {isNewPatientSearchModalOpen && (
-              <Dialog open={isNewPatientSearchModalOpen} onOpenChange={setIsNewPatientSearchModalOpen}>
-                <FiliationPatientSearchModal 
-                  onSearchComplete={handleNewPatientSearchComplete}
-                  onPatientFound={handleNewPatientFound}
-                  onCancel={() => setIsNewPatientSearchModalOpen(false)}
-                  prefilledDocument={documentNumber}
-                />
-              </Dialog>
-            )}
+            {/* Modales de Filiación - Nuevo Paciente (lazy: carga contextos solo al abrir) */}
+            {(isNewPatientSearchModalOpen || isNewPatientRegistrationModalOpen) && (
+              <FiliationProvider>
+                {isNewPatientSearchModalOpen && (
+                  <Dialog open={isNewPatientSearchModalOpen} onOpenChange={setIsNewPatientSearchModalOpen}>
+                    <FiliationPatientSearchModal
+                      onSearchComplete={handleNewPatientSearchComplete}
+                      onPatientFound={handleNewPatientFound}
+                      onCancel={() => setIsNewPatientSearchModalOpen(false)}
+                      prefilledDocument={documentNumber}
+                    />
+                  </Dialog>
+                )}
 
-            {isNewPatientRegistrationModalOpen && (
-              <Dialog open={isNewPatientRegistrationModalOpen} onOpenChange={setIsNewPatientRegistrationModalOpen}>
-                <PatientRegistrationModal
-                  reniecData={reniecData}
-                  sisData={sisData}
-                  documentType={documentType}
-                  documentNumber={documentNumber}
-                  onCancel={() => setIsNewPatientRegistrationModalOpen(false)}
-                  onSuccess={handleNewPatientRegistrationSuccess}
-                />
-              </Dialog>
+                {isNewPatientRegistrationModalOpen && (
+                  <Dialog open={isNewPatientRegistrationModalOpen} onOpenChange={setIsNewPatientRegistrationModalOpen}>
+                    <PatientRegistrationModal
+                      reniecData={reniecData}
+                      sisData={sisData}
+                      documentType={documentType}
+                      documentNumber={documentNumber}
+                      onCancel={() => setIsNewPatientRegistrationModalOpen(false)}
+                      onSuccess={handleNewPatientRegistrationSuccess}
+                    />
+                  </Dialog>
+                )}
+              </FiliationProvider>
             )}
 
             {/* Dialog de Reserva Activa */}
@@ -1617,9 +1651,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               </DialogContent>
             </Dialog>
           </div>
-                </SegurosCitaProvider>
-              </TipoCitaProvider>
-            </FiliationProvider>
+            </SegurosCitaProvider>
+          </TipoCitaProvider>
         </RoleBasedRoute>
       </ProtectedRoute>
   )

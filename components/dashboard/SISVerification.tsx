@@ -2,12 +2,10 @@
 
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, CheckCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-
-// API del BACKEND
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { consultarSIS } from "@/services/sisService"
 
 interface SISVerificationProps {
   patientId: string;
@@ -28,6 +26,11 @@ export interface SISVerificationResult {
   descTipoSeguro?: string;
 }
 
+interface SISVerificationState extends SISVerificationResult {
+  isLoading: boolean;
+  isServerError?: boolean;
+}
+
 export function SISVerification({ 
   patientId, 
   documento, 
@@ -35,21 +38,12 @@ export function SISVerification({
   buttonSize = "sm",
   onVerificationComplete 
 }: SISVerificationProps) {
+  console.log('🛡️ [SISVerification] render', { patientId, documento, buttonSize })
+
   const { toast } = useToast();
   
   // Estado para almacenar el resultado de la verificación
-  const [verificationState, setVerificationState] = useState<{
-    isLoading: boolean;
-    patientId: string;
-    result: string | null;
-    isSuccess: boolean | null;
-    contrato?: string;
-    descEESS?: string;
-    eess?: string;
-    idPlan?: string;
-    descTipoSeguro?: string;
-    isServerError?: boolean; // Nuevo campo para identificar errores de servidor
-  }>({
+  const [verificationState, setVerificationState] = useState<SISVerificationState>({
     isLoading: false,
     patientId: patientId,
     result: null,
@@ -57,9 +51,14 @@ export function SISVerification({
     isServerError: false
   });
 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   // Función para verificar SIS
   const handleVerifySIS = async () => {
+    console.log('🛡️ [SISVerification] handleVerifySIS called', { patientId, documento, isDialogOpen });
+
     if (!documento) {
+      console.warn('🛡️ [SISVerification] documento is empty/missing');
       toast({
         title: "Error",
         description: "No se encontró número de documento para este paciente",
@@ -72,55 +71,44 @@ export function SISVerification({
       isLoading: true,
       patientId: patientId,
       result: null,
-      isSuccess: null
+      isSuccess: null,
+      isServerError: false
     });
 
+    // Abrir el modal de inmediato para mostrar progreso
+    setIsDialogOpen(true);
+    console.log('🛡️ [SISVerification] dialog set to open');
+
     try {
-      // Crear un AbortController para el timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
-      
-      try {
-        // Determinar el tipo de documento: 9 dígitos = Carné de Extranjería (tipo "3"), sino DNI (tipo "1")
-        const tipoDocumento = documento.length === 9 ? "3" : "1";
-        console.log(`📋 Verificando SIS - Documento: ${documento} (${documento.length} dígitos) - Tipo: ${tipoDocumento === "3" ? "Carné de Extranjería" : "DNI"}`);
-        
-        const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            intOpcion: "1",
-            strTipoDocumento: tipoDocumento,
-            strNroDocumento: documento,
-            strTipoFormato: "2",
-            strNroContrato: documento
-          }),
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
+      console.log(`📋 Verificando SIS - Documento: ${documento} (${documento.length} dígitos)`);
 
-      if (!response.ok) {
-        throw new Error(`Error en la consulta: ${response.status}`);
-      }
+      // Usar el servicio existente que lee NEXT_PUBLIC_API_BACKEND_URL / NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const sisResult = await consultarSIS(documento);
+      console.log('🛡️ [SISVerification] service response', sisResult);
 
-      const data = await response.json();
-      const resultado = data.resultado;
-      
+      const data = sisResult.data;
+      const resultado = (data?.resultado || sisResult.error || '').trim();
+
+      const trimField = (value?: string | null) => (value ? value.trim() : undefined);
+
+      const isServerError = !sisResult.success && (
+        sisResult.error === 'El servicio de verificación SIS no responde' ||
+        /failed to fetch|networkerror|conexión|conectar|timeout/i.test(sisResult.error || '')
+      );
+
       const newState = {
         isLoading: false,
         patientId: patientId,
         result: resultado,
-        isSuccess: resultado === "DATOS EXITOSOS",
-        contrato: data.contrato,
-        descEESS: data.descEESS,
-        eess: data.eess,
-        idPlan: data.idPlan,
-        descTipoSeguro: data.descTipoSeguro
+        isSuccess: sisResult.success && !!data,
+        isServerError,
+        contrato: trimField(data?.contrato),
+        descEESS: trimField(data?.descEESS),
+        eess: trimField(data?.eess),
+        idPlan: trimField(data?.idPlan),
+        descTipoSeguro: trimField(data?.descTipoSeguro)
       };
-      
+
       setVerificationState(newState);
 
       // Notificar al componente padre si se proporciona la función de callback
@@ -128,26 +116,26 @@ export function SISVerification({
         onVerificationComplete({
           patientId: patientId,
           result: resultado,
-          isSuccess: resultado === "DATOS EXITOSOS",
-          contrato: data.contrato,
-          descEESS: data.descEESS,
-          eess: data.eess,
-          idPlan: data.idPlan,
-          descTipoSeguro: data.descTipoSeguro
+          isSuccess: newState.isSuccess,
+          contrato: newState.contrato,
+          descEESS: newState.descEESS,
+          eess: newState.eess,
+          idPlan: newState.idPlan,
+          descTipoSeguro: newState.descTipoSeguro
         });
       }
 
       // Mostrar toast con el resultado
-      if (resultado === "DATOS EXITOSOS") {
+      if (newState.isSuccess) {
         toast({
           title: "SIS Activo",
           description: (
             <div className="space-y-1">
-              {data.contrato && (
-                <p className="text-xs"><span className="font-medium">N° Afiliación:</span> {data.contrato}</p>
+              {newState.contrato && (
+                <p className="text-xs"><span className="font-medium">N° Afiliación:</span> {newState.contrato}</p>
               )}
-              {data.descTipoSeguro && (
-                <p className="text-xs"><span className="font-medium">Tipo:</span> {data.descTipoSeguro}</p>
+              {newState.descTipoSeguro && (
+                <p className="text-xs"><span className="font-medium">Tipo:</span> {newState.descTipoSeguro}</p>
               )}
             </div>
           ),
@@ -156,67 +144,26 @@ export function SISVerification({
         });
       } else {
         toast({
-          title: "SIS No Activo",
-          description: "No se encontró afiliación SIS para el DNI consultado",
+          title: isServerError ? "Error de Conexión" : "SIS No Activo",
+          description: resultado || "No se encontró afiliación SIS para el documento consultado",
           variant: "destructive"
         });
       }
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        // Verificar si fue un timeout
-        if (fetchError.name === 'AbortError') {
-          console.error('⏱️ Timeout al consultar SIS (5 segundos)');
-          
-          const errorState = {
-            isLoading: false,
-            patientId: patientId,
-            result: "El servicio de verificación SIS no responde",
-            isSuccess: false,
-            isServerError: true
-          };
-          
-          setVerificationState(errorState);
-          
-          if (onVerificationComplete) {
-            onVerificationComplete({
-              patientId: patientId,
-              result: "El servicio de verificación SIS no responde",
-              isSuccess: false
-            });
-          }
-          
-          toast({
-            title: "Error",
-            description: "El servicio de verificación SIS no responde",
-            variant: "destructive"
-          });
-          
-          return;
-        }
-        
-        throw fetchError;
-      }
     } catch (error: any) {
-      console.error('Error al verificar SIS:', error);
-      
-      // Determinar si es un error 500 (servicio inactivo)
-      const is500Error = error.message && error.message.includes('500');
-      const errorMessage = is500Error 
-        ? "Error en la consulta: El servicio de la API del SIS está inactivo" 
-        : "Error en la consulta";
-      
+      console.error('🛡️ [SISVerification] unexpected error:', error);
+
+      const errorMessage = error.message || "Error en la consulta";
+
       const errorState = {
         isLoading: false,
         patientId: patientId,
         result: errorMessage,
         isSuccess: false,
-        isServerError: true // Marcar como error de servidor
+        isServerError: true
       };
-      
+
       setVerificationState(errorState);
-      
-      // Notificar al componente padre si se proporciona la función de callback
+
       if (onVerificationComplete) {
         onVerificationComplete({
           patientId: patientId,
@@ -224,21 +171,13 @@ export function SISVerification({
           isSuccess: false
         });
       }
-      
-      // Mostrar mensaje específico según el tipo de error
-      if (is500Error) {
-        toast({
-          title: "Servicio SIS Inactivo",
-          description: "El servicio externo de verificación SIS está temporalmente inactivo. El sistema está funcionando correctamente, pero no puede conectarse al servicio SIS.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "No se pudo conectar con el servicio de verificación SIS",
-          variant: "destructive"
-        });
-      }
+
+      toast({
+        title: "Error",
+        description: "No se pudo conectar con el servicio de verificación SIS",
+        variant: "destructive"
+      });
+      setIsDialogOpen(true);
     }
   };
 
@@ -262,48 +201,75 @@ export function SISVerification({
         )}
       </Button>
       
-      {/* Mostrar resultado de verificación SIS */}
-      {verificationState.result && !verificationState.isLoading && (
-        <Alert className={
-          verificationState.isServerError ? "bg-orange-50 border-orange-200 text-orange-800" :
-          verificationState.isSuccess ? "bg-green-50 border-green-200 text-green-800" : 
-          "bg-red-50 border-red-200 text-red-800"}
-        >
-          <CheckCircle className={`h-4 w-4 ${
-            verificationState.isServerError ? "text-orange-600" :
-            verificationState.isSuccess ? "text-green-600" : "text-red-600"}`} />
-          <AlertTitle>
-            {verificationState.isServerError ? "Error de Conexión" :
-             verificationState.isSuccess ? "SIS Activo" : "SIS No Activo"}
-          </AlertTitle>
-          <AlertDescription>
-            {verificationState.isServerError ? (
-              "No se pudo conectar con el servidor del SIS. El servicio puede estar temporalmente inactivo."
-            ) : verificationState.isSuccess ? (
-              <div className="space-y-1">
-                {verificationState.contrato && (
-                  <p className="text-xs"><span className="font-medium">Contrato:</span> {verificationState.contrato}</p>
-                )}
-                {verificationState.descEESS && verificationState.eess && (
-                  <p className="text-xs"><span className="font-medium">Centro de Salud:</span> {verificationState.eess} - {verificationState.descEESS}</p>
-                )}
-                {verificationState.descTipoSeguro && (
-                  <p className="text-xs"><span className="font-medium">Tipo de Seguro:</span> {verificationState.descTipoSeguro}</p>
-                )}
-                {verificationState.idPlan && (
-                  <p className="text-xs"><span className="font-medium">Plan:</span> {
-                    verificationState.idPlan === "1" ? "PEAS" :
-                    verificationState.idPlan === "3" ? "PEAS + PLANES COMPLEMENTARIOS" :
-                    verificationState.idPlan
-                  }</p>
-                )}
-              </div>
-            ) : (
-              "No se encontró afiliación SIS para el DNI consultado"
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{renderSISDialogTitle(verificationState)}</DialogTitle>
+            <DialogDescription>{renderSISDialogDescription(verificationState)}</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {renderSISDialogContent(verificationState)}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function renderSISDialogTitle(state: SISVerificationState) {
+  if (state.isLoading) return "Verificando SIS"
+  if (state.isServerError) return "Error de Conexión"
+  if (state.isSuccess) return "SIS Activo"
+  return "SIS No Activo"
+}
+
+function renderSISDialogDescription(state: SISVerificationState) {
+  if (state.isLoading) return "Consultando afiliación SIS, por favor espere..."
+  if (state.isServerError) return "No se pudo conectar con el servidor del SIS. El servicio puede estar temporalmente inactivo."
+  if (state.isSuccess) return "El paciente cuenta con afiliación SIS activa."
+  return "No se encontró afiliación SIS para el documento consultado."
+}
+
+function renderSISDialogContent(state: SISVerificationState) {
+  if (state.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+      </div>
+    )
+  }
+
+  if (state.isSuccess) {
+    return (
+      <div className="space-y-3 rounded-lg bg-green-50 p-4 text-sm text-green-900">
+        {state.contrato && (
+          <p><span className="font-medium">N° Afiliación:</span> {state.contrato}</p>
+        )}
+        {state.descTipoSeguro && (
+          <p><span className="font-medium">Tipo de Seguro:</span> {state.descTipoSeguro}</p>
+        )}
+        {state.eess && (
+          <p><span className="font-medium">EESS:</span> {state.eess}</p>
+        )}
+        {state.descEESS && (
+          <p><span className="font-medium">Centro de Salud:</span> {state.descEESS}</p>
+        )}
+        {state.idPlan && (
+          <p><span className="font-medium">Plan:</span> {formatSISPlan(state.idPlan)}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-900">
+      <p>{state.result || "No se encontró afiliación SIS para el documento consultado"}</p>
+    </div>
+  )
+}
+
+function formatSISPlan(idPlan?: string) {
+  if (idPlan === "1") return "PEAS"
+  if (idPlan === "3") return "PEAS + PLANES COMPLEMENTARIOS"
+  return idPlan
 }

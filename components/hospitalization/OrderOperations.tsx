@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { API_ENDPOINTS } from '@/lib/api-config';
 import { extractDocumentFromToken } from '@/utils/jwtUtils';
 
 interface OrderOperationsProps {
@@ -52,7 +53,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
       }
       
       // Llamar a la API DELETE para eliminar lógicamente la hospitalización
-      const response = await fetch(`/api/hospitalization/${deleteItemId}`, {
+      const response = await fetch(API_ENDPOINTS.hospitalizacion.delete(deleteItemId), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'

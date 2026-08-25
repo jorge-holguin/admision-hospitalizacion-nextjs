@@ -1,5 +1,6 @@
 // emergenciaService.ts - Migrado a Spring Boot API
 import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+import { getCivilStatusCode } from '@/utils/civilStatusUtils';
 
 // ============================================================================
 // TIPOS E INTERFACES
@@ -219,6 +220,29 @@ export async function getEmergenciasByMonth(
   }
 }
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Intenta dividir el campo NOMBRES ("PATERNO MATERNO NOMBRE1 NOMBRE2")
+ * en paterno, materno y nombre cuando el backend no los devuelve separados.
+ */
+function parseNombres(fullName: string | null | undefined): { paterno: string; materno: string; nombre: string } | null {
+  if (!fullName || typeof fullName !== 'string') return null;
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 3) return null;
+  return {
+    paterno: parts[0],
+    materno: parts[1],
+    nombre: parts.slice(2).join(' ')
+  };
+}
+
+function isBlank(value: any): boolean {
+  return value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+}
+
 /**
  * Obtiene una emergencia específica por ID
  */
@@ -245,7 +269,50 @@ export async function getEmergenciaById(id: string): Promise<EmergenciaData | nu
     
     const data = await response.json();
     console.log('✅ Emergencia obtenida:', data);
-    
+
+    // Spring Boot /emergency/{id} a veces devuelve campos del paciente en null.
+    // Si eso ocurre, los enriquecemos desde la API de filiación y del campo NOMBRES.
+    const pacienteId = data?.paciente ?? data?.PACIENTE;
+    if (pacienteId && (isBlank(data.nombre) || isBlank(data.paterno) || isBlank(data.materno) || isBlank(data.documento))) {
+      try {
+        const pUrl = buildUrl(API_ENDPOINTS.filiation.byId(String(pacienteId)));
+        console.log('🔍 Enriqueciendo emergencia con datos de filiación:', pUrl);
+        const pResp = await fetchApi(pUrl);
+        if (pResp.ok) {
+          const pJson = await pResp.json();
+          const p = pJson?.data ?? pJson;
+          data.nombre          = data.nombre          ?? p?.nombre          ?? p?.NOMBRE          ?? p?.nombres          ?? p?.NOMBRES          ?? null;
+          data.paterno         = data.paterno         ?? p?.paterno         ?? p?.PATERNO         ?? p?.apellidoPaterno  ?? null;
+          data.materno         = data.materno         ?? p?.materno         ?? p?.MATERNO         ?? p?.apellidoMaterno  ?? null;
+          data.nombres         = data.nombres         ?? p?.nombres         ?? p?.NOMBRES         ?? null;
+          data.documento       = data.documento       ?? p?.documento       ?? p?.DOCUMENTO       ?? p?.dni              ?? null;
+          data.tipoDocumento   = data.tipoDocumento   ?? p?.tipoDocumento   ?? p?.TIPO_DOCUMENTO  ?? null;
+          data.fechaNacimiento = data.fechaNacimiento ?? p?.fechaNacimiento ?? p?.FECHA_NAC       ?? null;
+          data.edad            = data.edad            ?? p?.edad            ?? p?.EDAD            ?? null;
+          data.sexo            = data.sexo            ?? p?.sexo            ?? p?.SEXO            ?? null;
+          data.direccion       = data.direccion       ?? p?.direccion       ?? p?.DIRECCION       ?? null;
+          data.telefono1       = data.telefono1       ?? p?.telefono1       ?? p?.TELEFONO1       ?? null;
+          data.estadoCivil     = data.estadoCivil     ?? getCivilStatusCode(p?.estadoCivil     ?? p?.ESTADO_CIVIL    ?? p?.ESTADOCIVIL, p?.NOMBRE_ESTADO_CIVIL ?? p?.nombreEstadoCivil) ?? null;
+          console.log('✅ Datos del paciente enriquecidos desde filiación');
+        }
+      } catch (enrichErr) {
+        console.warn('⚠️ No se pudieron enriquecer datos del paciente en emergencia:', enrichErr);
+      }
+    }
+
+    // Fallback final: si aún faltan nombres separados pero tenemos el campo NOMBRES,
+    // los parseamos como "PATERNO MATERNO NOMBRE(S)".
+    if (isBlank(data.nombre) || isBlank(data.paterno) || isBlank(data.materno)) {
+      const parsed = parseNombres(data.nombres ?? data.NOMBRES);
+      if (parsed) {
+        data.paterno = data.paterno ?? parsed.paterno;
+        data.materno = data.materno ?? parsed.materno;
+        data.nombre  = data.nombre  ?? parsed.nombre;
+        data.nombres = data.nombres ?? `${parsed.paterno} ${parsed.materno} ${parsed.nombre}`;
+        console.log('✅ Nombres parseados desde el campo NOMBRES:', parsed);
+      }
+    }
+
     return data;
   } catch (error) {
     console.error('❌ Error obteniendo emergencia por ID:', error);

@@ -1,4 +1,5 @@
 ﻿import React, { createContext, useState, useEffect, useContext } from 'react'
+import { origenHospitalizacionService } from '@/services/hospitalizacion/origenHospitalizacionService'
 
 export type OrigenHospitalizacion = {
   ORIGEN: string
@@ -34,19 +35,17 @@ export function OrigenHospitalizacionProvider({ children }: { children: React.Re
   const loadOrigenes = async () => {
     try {
       setLoading(true)
-      
-      const response = await fetch('/api/hospitalization/origins')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      
-      // Extraer los items de la respuesta
-      const origenesData = Array.isArray(data) ? data : (data.items || data.data || [])
+
+      const items = await origenHospitalizacionService.findAll({ take: 100 })
+
+      const origenesData: OrigenHospitalizacion[] = items.map((item: any) => ({
+        ORIGEN: item.ORIGEN || item.origen || '',
+        NOMBRE: item.NOMBRE || item.NOM_CONSULTORIO || item.NOM_MEDICO || item.nombre || '',
+        ACTIVO: item.ACTIVO ?? item.activo ?? 1
+      }))
+
       setOrigenes(origenesData)
-      
+
     } catch (error) {
       console.error('❌ Error al cargar orígenes de hospitalización en contexto:', error)
       // Datos de fallback en caso de error

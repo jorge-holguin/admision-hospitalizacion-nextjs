@@ -45,8 +45,8 @@ export function ConsultorioSelector({
 
   // Filtrar por búsqueda
   const searchFilteredConsultorios = filteredConsultorios.filter(consultorio =>
-    consultorio.DESCRIPCION?.toLowerCase().includes(search.toLowerCase()) ||
-    consultorio.CONSULTORIO?.toLowerCase().includes(search.toLowerCase())
+    (consultorio.NOMBRE || '').toLowerCase().includes(search.toLowerCase()) ||
+    (consultorio.CONSULTORIO || '').toLowerCase().includes(search.toLowerCase())
   )
 
   // Establecer valor inicial
@@ -79,7 +79,7 @@ export function ConsultorioSelector({
               "Cargando consultorios..."
             ) : selectedConsultorio ? (
               <span className="font-normal">
-                {selectedConsultorio.DESCRIPCION || selectedConsultorio.CONSULTORIO}
+                {selectedConsultorio.NOMBRE || selectedConsultorio.CONSULTORIO}
               </span>
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
@@ -117,7 +117,7 @@ export function ConsultorioSelector({
                       )}
                     />
                     <span className="font-normal">
-                      {consultorio.DESCRIPCION || consultorio.CONSULTORIO}
+                      {consultorio.NOMBRE || consultorio.CONSULTORIO}
                     </span>
                   </CommandItem>
                 ))}

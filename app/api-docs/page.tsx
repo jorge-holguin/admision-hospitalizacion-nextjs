@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic'
 import 'swagger-ui-react/swagger-ui.css'
-import { swaggerSpec } from '@/lib/swagger'
 
 // Cargar SwaggerUI de forma dinámica para evitar errores de SSR
 const SwaggerUI = dynamic(() => import('swagger-ui-react'), { 
@@ -46,7 +45,7 @@ export default function ApiDocsPage() {
       {/* Contenido de Swagger */}
       <div className="swagger-wrapper">
         <SwaggerUI 
-          spec={swaggerSpec}
+          url="/api/swagger"
           docExpansion="list"
           defaultModelsExpandDepth={1}
           displayRequestDuration={true}

@@ -35,7 +35,11 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
         diagnostico: emergencyData.CIEX1 || '',
         observacion1: emergencyData.OBSERVACION1 || '',
         observacion2: emergencyData.OBSERVACION2 || '',
-        estado: emergencyData.ESTADO || '1'
+        estado: emergencyData.ESTADO || '1',
+        // Datos del acompañante
+        acompanante: emergencyData.ACOMPANANTE || emergencyData.acompanante || '',
+        tipoDocumentoA: emergencyData.TIPO_DOCUMENTOA || emergencyData.tipoDocumentoA || emergencyData.tipoDocumentoAcompanante || '',
+        documentoA: emergencyData.DOCUMENTOA || emergencyData.documentoA || emergencyData.documentoAcompanante || ''
       };
 
       // Determinar si es editable basado en el estado
@@ -76,7 +80,11 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
             diagnostico: emergencyData.CIEX1 || '',
             observacion1: emergencyData.OBSERVACION1 || '',
             observacion2: emergencyData.OBSERVACION2 || '',
-            estado: emergencyData.ESTADO || '1'
+            estado: emergencyData.ESTADO || '1',
+            // Datos del acompañante
+            acompanante: emergencyData.ACOMPANANTE || emergencyData.acompanante || '',
+            tipoDocumentoA: emergencyData.TIPO_DOCUMENTOA || emergencyData.tipoDocumentoA || emergencyData.tipoDocumentoAcompanante || '',
+            documentoA: emergencyData.DOCUMENTOA || emergencyData.documentoA || emergencyData.documentoAcompanante || ''
           };
 
           // Determinar si es editable basado en el estado

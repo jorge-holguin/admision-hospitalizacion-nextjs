@@ -6,7 +6,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn, extractCode } from '@/lib/utils';
 import { Spinner } from "@/components/ui/spinner";
-import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService';
+import { OrigenHospitalizacion, origenHospitalizacionService } from '@/services/hospitalizacion/origenHospitalizacionService';
+import { seguroService } from '@/services/hospitalizacion/seguroService';
 
 interface OrigenSelectorProps {
   value: string;
@@ -51,40 +52,21 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
-      const queryParams = new URLSearchParams();
-      if (search) queryParams.append('search', search);
-      if (!showAllOrigins) queryParams.append('onlyPending', 'true');
-      
-      // Añadir filtro por procedencia si está definido (EM o CE)
-      if (origenFilter && (origenFilter === 'EM' || origenFilter === 'CE')) {
-        queryParams.append('origen', origenFilter);
-      }
-      
-      let url = '/api/hospitalization/origins';
-      
-      // Si hay un ID de paciente, usar el endpoint específico para pacientes
-      if (patientId) {
-        url = `/api/hospitalization/attentions/${patientId}`;
-      }
-      
-      const response = await fetch(`${url}?${queryParams.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Error al cargar orígenes: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      // La API puede devolver { items: [...], total: number } o { data: [...], total: number }
-      let origenesFiltrados = data.items || data.data || [];
-      
+
+      const items = await origenHospitalizacionService.findAll({
+        search,
+        origen: origenFilter && (origenFilter === 'EM' || origenFilter === 'CE') ? origenFilter : '',
+        take: 100
+      });
+
       // Filtrar los orígenes por el campo ORIGEN si está definido el origenFilter
+      let origenesFiltrados = items as OrigenHospitalizacion[];
       if (origenFilter && (origenFilter === 'EM' || origenFilter === 'CE')) {
-        origenesFiltrados = origenesFiltrados.filter(origen => 
+        origenesFiltrados = origenesFiltrados.filter((origen) =>
           origen.ORIGEN === origenFilter
         );
       }
-      
+
       setOrigenes(origenesFiltrados);
     } catch (error) {
       console.error('Error al cargar orígenes de hospitalización:', error);
@@ -104,7 +86,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     return value === displayValue;
   });
 
-  const handleSelect = (origen: OrigenHospitalizacion) => {
+  const handleSelect = async (origen: OrigenHospitalizacion) => {
     // Asegurarse de que los valores no sean undefined o null
     const medicoCode = origen.MEDICO ? origen.MEDICO.trim() : '';
     const medicoName = origen.NOM_MEDICO ? origen.NOM_MEDICO.trim() : '';
@@ -182,24 +164,24 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         }
         
         if (seguroCode) {
-          // Buscar el nombre del seguro en la API
-          fetch(`/api/utils/insurances?code=${encodeURIComponent(seguroCode)}`)
-            .then(response => response.json())
-            .then(data => {
-              if (data && data.length > 0) {
-                const seguro = data[0];
-                const seguroValue = `${seguro.Seguro} - ${seguro.Nombre}`;
-                onSeguroChange(seguroValue, seguro);
-              } else {
-                // Si no se encuentra el seguro, usar solo el código
-                onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
-              }
-            })
-            .catch(error => {
-              console.error('Error al buscar información del seguro:', error);
-              // En caso de error, usar solo el código
+          // Buscar el nombre del seguro directamente en el backend
+          try {
+            const seguro = await seguroService.findByCode(seguroCode);
+            if (seguro) {
+              const seguroValue = `${seguro.seguro} - ${seguro.nombre}`;
+              onSeguroChange(seguroValue, {
+                Seguro: seguro.seguro,
+                Nombre: seguro.nombre,
+              });
+            } else {
+              // Si no se encuentra el seguro, usar solo el código
               onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
-            });
+            }
+          } catch (error) {
+            console.error('Error al buscar información del seguro:', error);
+            // En caso de error, usar solo el código
+            onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
+          }
         }
       } catch (error) {
         console.error('Error al procesar el seguro:', error);

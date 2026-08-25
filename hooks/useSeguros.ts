@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { seguroService } from '@/services/hospitalizacion/seguroService';
 
 export interface Seguro {
   Seguro: string;
@@ -27,18 +28,21 @@ export const useSeguros = (): UseSegurosReturn => {
       setLoading(true);
       setError(null);
 
-      const url = searchTerm 
-        ? `/api/utils/insurances?search=${encodeURIComponent(searchTerm)}`
-        : '/api/utils/insurances';
+      const raw = await seguroService.findAll();
+      const data: Seguro[] = raw.map((item: any) => ({
+        Seguro: String(item.seguro || item.Seguro || item.SEGURO || ''),
+        Nombre: String(item.nombre || item.Nombre || item.NOMBRE || ''),
+        CREA_CUENTA: String(item.creaCuenta || item.CreaCuenta || item.CREA_CUENTA || ''),
+      }));
 
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Error al obtener seguros: ${response.status}`);
-      }
+      const filtered = searchTerm
+        ? data.filter(s =>
+            s.Seguro.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.Nombre.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        : data;
 
-      const data = await response.json();
-      setSeguros(data || []);
+      setSeguros(filtered);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       console.error('Error al obtener seguros:', errorMessage);

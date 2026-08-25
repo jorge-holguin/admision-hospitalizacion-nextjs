@@ -1,5 +1,6 @@
 ﻿import { useState, useCallback } from 'react';
 import { Medico } from '@/services/hospitalizacion/medicoService';
+import { medicoServerService } from '@/services/master-tables/medicoService';
 
 interface UseMedicosOnDemandReturn {
   medicos: Medico[];
@@ -23,31 +24,18 @@ export function useMedicosOnDemand(): UseMedicosOnDemandReturn {
       setLoading(true);
       setError(null);
       
-      // Crear parámetros de búsqueda
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (consultorioId) params.append('consultorio', consultorioId);
-      
-      const currentSearchParams = params.toString();
+      const currentSearchParams = JSON.stringify({ searchTerm, consultorioId });
       
       // Si ya tenemos datos en caché para los mismos parámetros, no hacer nueva llamada
       if (currentSearchParams === lastSearchParams && medicosCache.length > 0) {
         setMedicos(medicosCache);
         return;
       }
-            
-      let url = '/api/master-tables/medicos/search';
-      if (currentSearchParams) {
-        url += `?${currentSearchParams}`;
-      }
       
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Error al cargar médicos: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const data = await medicoServerService.searchMedicos({
+        search: searchTerm,
+        consultorio: consultorioId,
+      });
       
       // Actualizar caché
       medicosCache = data;

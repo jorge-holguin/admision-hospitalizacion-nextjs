@@ -27,11 +27,13 @@ import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/U
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CrearOrdenApoyoDiagnosticoModal, type OrdenToEdit } from "../../../../components/appointments/modals/CrearOrdenApoyoDiagnosticoModal"
+import { verificarExamenesConPedido } from "@/services/apoyoDiagnostico/maestroService"
 
 const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
 const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
 const ESTADOS_REF_PERMITIDOS = ['ACEPTADO', 'PACIENTE RECIBIDO', 'PACIENTE CITADO']
+const MAX_OBSERVACION_LENGTH = 200
 
 interface OrdenDetalle {
   idOrdenDetalle: number
@@ -264,6 +266,9 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
   const [ordenToEdit, setOrdenToEdit] = useState<OrdenToEdit | null>(null)
   const [confirmDialogOrden, setConfirmDialogOrden] = useState<{ type: 'delete'; orden: OrdenApoyoDiagnostico } | null>(null)
 
+  const [pedidoAlert, setPedidoAlert] = useState<{ show: boolean; examenes: { cpms: string; descripcion: string }[] }>({ show: false, examenes: [] })
+  const [loadingPedido, setLoadingPedido] = useState(false)
+
   const { selectedReferencia: selectedSisReferencia } = useReferencia()
 
   useEffect(() => {
@@ -361,10 +366,11 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
   const loadOrdenes = async (pacienteId: string) => {
     setLoadingOrdenes(true)
     try {
-      const res = await fetch(`${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/paciente/${pacienteId}?estado=1&origen=CE`)
+      const res = await fetch(`${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/paciente/${pacienteId}?origen=CE`)
       if (res.ok) {
         const json = await res.json()
-        const lista: OrdenApoyoDiagnostico[] = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []
+        const lista: OrdenApoyoDiagnostico[] = (Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [])
+          .filter((o: OrdenApoyoDiagnostico) => ['1', '2', '3'].includes(String(o.estadoOrden)))
         setOrdenes(lista)
       } else {
         setOrdenes([])
@@ -382,6 +388,34 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
       if (pacienteId) loadOrdenes(pacienteId)
     }
   }, [isOpen, appointment?.consultorio])
+
+  // Verificar campo PEDIDO de APOYO_DIAGNOSTICO.MAESTRO para los exámenes de la orden seleccionada
+  useEffect(() => {
+    const checkPedido = async () => {
+      const ordenIdRaw = selectedOrdenEcografia || (ordenCreadaId ? String(ordenCreadaId) : '')
+      if (!ordenIdRaw) {
+        setPedidoAlert({ show: false, examenes: [] })
+        return
+      }
+      const orden = ordenes.find((o) => String(o.idOrden) === ordenIdRaw)
+      if (!orden?.detalles?.length) {
+        setPedidoAlert({ show: false, examenes: [] })
+        return
+      }
+      setLoadingPedido(true)
+      try {
+        const detallesVisibles = orden.detalles.filter((d) => d.estadoDetalle !== '0')
+        const { bloqueado, examenes } = await verificarExamenesConPedido(detallesVisibles)
+        setPedidoAlert({ show: bloqueado, examenes })
+      } catch (error) {
+        console.error('❌ Error verificando PEDIDO:', error)
+        setPedidoAlert({ show: false, examenes: [] })
+      } finally {
+        setLoadingPedido(false)
+      }
+    }
+    checkPedido()
+  }, [selectedOrdenEcografia, ordenCreadaId, ordenes])
 
   const getCpmsFromRef = (ref: ReferenciaItem): string | null => {
     const ups = ref.datos_referencia?.servicio_destino || ''
@@ -507,7 +541,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
         cpmsDescripcion: d.cpmsDescripcion ?? null,
         ciex: d.ciex ?? null,
         cantidad: d.cantidad ?? 1,
-        observacion: d.observacion ?? d.observacionEspecifica ?? null,
+        observacion: ((d.observacion ?? d.observacionEspecifica) || '').trim().slice(0, MAX_OBSERVACION_LENGTH) || null,
         estadoDetalle: d.estadoDetalle,
       })),
     }
@@ -536,6 +570,15 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
 
   const handleApprove = async () => {
     if (!patient || !appointment) return
+
+    if (pedidoAlert.show) {
+      toast({
+        title: '⛔ Atención bloqueada',
+        description: 'No se puede aprobar la solicitud porque la orden contiene exámenes que requieren pedido previo.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     if (hasConsultorioMatch) {
       toast({
@@ -1084,14 +1127,31 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                   ? new Date(ord.regFechaCreacion).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
                                   : null
                                 const detallesVisibles = (ord.detalles || []).filter((d) => d.estadoDetalle !== '0')
+                                const ordenEstadoMeta: Record<string, { label: string; color: string }> = {
+                                  '1': { label: 'CREADA', color: 'bg-sky-100 text-sky-800 border-sky-200' },
+                                  '2': { label: 'FIRMADA', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+                                  '3': { label: 'PENDIENTE', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+                                }
+                                const seleccionable = String(ord.estadoOrden) === '3'
+                                const estadoOrdenBadge = ordenEstadoMeta[String(ord.estadoOrden || '')]
                                 return (
                                   <div key={ord.idOrden}
-                                    className={`border rounded-lg p-2.5 transition-colors ${isSel ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                                    className={`border rounded-lg p-2.5 transition-colors ${isSel ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'}`}
                                   >
                                     <div className="flex items-start justify-between gap-2">
-                                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedOrdenEcografia(isSel ? '' : String(ord.idOrden))}>
+                                      <div className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => seleccionable && setSelectedOrdenEcografia(isSel ? '' : String(ord.idOrden))} title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}>
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{servicioLabel}</span>
+                                          {estadoOrdenBadge && (
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${estadoOrdenBadge.color}`}>
+                                              {estadoOrdenBadge.label}
+                                            </span>
+                                          )}
+                                          {!seleccionable && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
+                                              Requiere aprobación
+                                            </span>
+                                          )}
                                           {fechaCreacion && (
                                             <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                                               <CalendarIcon className="h-3 w-3" />{fechaCreacion}
@@ -1100,12 +1160,18 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                         </div>
                                         {detallesVisibles.length > 0 && (
                                           <ul className="flex flex-col gap-1 pl-1 mt-1.5">
-                                            {detallesVisibles.map((d, idx) => (
-                                              <li key={idx} className="flex items-center gap-1.5 text-xs">
-                                                <span className="shrink-0 w-1 h-1 rounded-full bg-blue-500" />
-                                                <span className="truncate text-gray-700">{d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`}</span>
-                                              </li>
-                                            ))}
+                                            {detallesVisibles.map((d, idx) => {
+                                              const completado = d.estadoDetalle === '2'
+                                              return (
+                                                <li key={idx} className="flex items-center gap-1.5 text-xs">
+                                                  <span className={`shrink-0 w-1 h-1 rounded-full ${completado ? 'bg-gray-300' : 'bg-blue-500'}`} />
+                                                  <span className={`truncate ${completado ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                                    {d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`}
+                                                  </span>
+                                                  {completado && <span className="shrink-0 text-[10px] font-semibold bg-green-100 text-green-800 border border-green-300 px-1.5 py-0 rounded">✓ Completado</span>}
+                                                </li>
+                                              )
+                                            })}
                                           </ul>
                                         )}
                                       </div>
@@ -1123,6 +1189,28 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                               })}
                             </div>
                           )}
+
+                          {loadingPedido && (
+                            <div className="flex items-center gap-2 text-xs text-amber-600 mt-3">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600" />
+                              Verificando requisitos del examen...
+                            </div>
+                          )}
+
+                          {pedidoAlert.show && !loadingPedido && (
+                            <Alert className="bg-red-50 border-red-300 mt-3">
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                              <AlertDescription className="text-red-800 text-xs">
+                                <p className="font-semibold mb-1">⛔ Examen requiere pedido previo</p>
+                                <p className="mb-1">No se puede crear una atención con los siguientes exámenes porque requieren pedido previo:</p>
+                                <ul className="list-disc pl-4 space-y-0.5">
+                                  {pedidoAlert.examenes.map((ex, i) => (
+                                    <li key={i}>{ex.descripcion} (CPMS: {ex.cpms})</li>
+                                  ))}
+                                </ul>
+                              </AlertDescription>
+                            </Alert>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1139,7 +1227,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                 if (!timeValidation.isValid) { setShowTimeConflictDialog(true); return }
                 handleApprove()
               }}
-              disabled={!selectedTipoCita || !selectedSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) || hasConsultorioMatch || isLoading}
+              disabled={!selectedTipoCita || !selectedSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) || hasConsultorioMatch || isLoading || loadingPedido || pedidoAlert.show}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
               size="lg"
             >

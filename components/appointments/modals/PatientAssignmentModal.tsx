@@ -325,14 +325,9 @@ function PatientAssignmentModalContent({
       let eessFormatted = ''
       if (citaData.entidadSis) {
         try {
-          const entidadResponse = await fetch(`/api/appointments/sis-entities/${citaData.entidadSis.trim()}`)
-          if (entidadResponse.ok) {
-            const entidadData = await entidadResponse.json()
-            if (entidadData.success && entidadData.data) {
-              eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadData.data.NOMBRE}`
-            } else {
-              eessFormatted = citaData.entidadSis.trim()
-            }
+          const entidadResult = await obtenerEntidadSISPorCodigo(citaData.entidadSis.trim())
+          if (entidadResult.success && entidadResult.data) {
+            eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}`
           } else {
             eessFormatted = citaData.entidadSis.trim()
           }

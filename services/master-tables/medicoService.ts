@@ -14,6 +14,23 @@ function getVal(row: any, ...keys: string[]): string | undefined {
   return undefined;
 }
 
+// Helper: convierte claves UPPERCASE/SNAKE_CASE a camelCase (formato DTO Spring Boot)
+// Ej: 'TIPO_DOCUMENTO' -> 'tipoDocumento', 'FECHNAC' -> 'fechnac', 'MEDICO' -> 'medico'
+function toCamelCaseKey(key: string): string {
+  return key
+    .toLowerCase()
+    .replace(/_([a-z0-9])/g, (_, letter) => letter.toUpperCase());
+}
+
+function toCamelCasePayload<T extends Record<string, any>>(data: T): Record<string, any> {
+  return Object.fromEntries(
+    Object.entries(data).map(([k, v]) => [
+      toCamelCaseKey(k),
+      typeof v === 'string' ? v.trim() : v,
+    ])
+  );
+}
+
 // Normalizador para filas de Médico (soporta UPPERCASE y camelCase del API Spring Boot)
 function normalizeMedico(row: any): Medico {
   const rawActivo = getVal(row, 'ACTIVO', 'activo') ?? '';
@@ -197,21 +214,31 @@ export const medicoServerService = {
   async createMedico(data: Partial<Medico>): Promise<Medico> {
     try {
       console.log(`➕ Creando médico: ${data.MEDICO}`);
-      
+
+      // El DTO de Spring Boot usa camelCase para sus propiedades.
+      // Enviamos el payload original y una copia con claves camelCase.
+      const payload = {
+        ...data,
+        ...toCamelCasePayload(data),
+      };
+
       const url = API_ENDPOINTS.masterTables.medicos.list;
+      const body = JSON.stringify(payload);
+      console.log('📦 Payload createMedico:', body);
+
       const response = await fetchApi(url, {
         method: 'POST',
-        body: JSON.stringify(data),
+        body,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
       console.log(`✅ Médico creado: ${data.MEDICO}`);
-      
+
       return normalizeMedico(result);
     } catch (error) {
       console.error('❌ Error in medicoServerService.createMedico:', error);
@@ -222,26 +249,36 @@ export const medicoServerService = {
   async updateMedico(id: string, data: Partial<Medico>): Promise<Medico | null> {
     try {
       console.log(`🔄 Actualizando médico: ${id}`);
-      
+
+      // El DTO de Spring Boot usa camelCase para sus propiedades.
+      // Enviamos el payload original y una copia con claves camelCase.
+      const payload = {
+        ...data,
+        ...toCamelCasePayload(data),
+      };
+
       const url = API_ENDPOINTS.masterTables.medicos.byId(id);
+      const body = JSON.stringify(payload);
+      console.log('📦 Payload updateMedico:', body);
+
       const response = await fetchApi(url, {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body,
       });
-      
+
       if (response.status === 404) {
         console.log(`⚠️ No se encontró médico ${id}`);
         return null;
       }
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
       console.log(`✅ Médico actualizado: ${id}`);
-      
+
       return normalizeMedico(result);
     } catch (error) {
       console.error(`❌ Error in medicoServerService.updateMedico(${id}):`, error);
@@ -284,13 +321,16 @@ export const medicoServerService = {
     try {
       console.log('🔍 Buscando médicos con filtros:', params);
       
-      const queryParams: Record<string, string> = {};
-      if (params?.search) queryParams.search = params.search;
+      const queryParams: Record<string, string> = {
+        page: '1',
+        pageSize: '10',
+      };
+      if (params?.search) queryParams.search = params.search.toLowerCase();
       if (params?.especialidad) queryParams.especialidad = params.especialidad;
       if (params?.consultorio) queryParams.consultorio = params.consultorio;
       if (params?.codigos) queryParams.codigos = params.codigos;
       
-      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, queryParams);
+      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.list, queryParams);
       const response = await fetchApi(url);
       
       if (!response.ok) {
@@ -309,22 +349,27 @@ export const medicoServerService = {
     }
   },
 
-  async suggestCode(): Promise<string> {
+  async suggestCode(nombreCompleto?: string): Promise<{ code?: string; candidatos?: string[] }> {
     try {
-      console.log('🔢 Obteniendo siguiente código de médico');
+      console.log('🔢 Obteniendo código de médico', nombreCompleto ? `para: ${nombreCompleto}` : '');
       
       const url = API_ENDPOINTS.masterTables.medicos.suggestCode;
-      const response = await fetchApi(url);
+      const response = await fetchApi(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: nombreCompleto ? JSON.stringify({ nombreCompleto }) : undefined,
+      });
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
       const result = await response.json();
-      const code = result.code || result.suggestedCode || result;
+      const code = result.code || result.suggestedCode;
+      const candidatos = result.candidatos || (code ? [String(code)] : []);
       
-      console.log(`✅ Código sugerido: ${code}`);
-      return String(code);
+      console.log(`✅ Código sugerido: ${candidatos.join(', ') || code}`);
+      return { code: code ? String(code) : undefined, candidatos };
     } catch (error) {
       console.error('❌ Error in medicoServerService.suggestCode:', error);
       throw error;

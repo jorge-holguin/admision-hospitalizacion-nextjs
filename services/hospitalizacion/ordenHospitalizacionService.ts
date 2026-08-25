@@ -85,7 +85,7 @@ export const ordenHospitalizacionService = {
       
       if (filter.pacienteId) params.pacienteId = filter.pacienteId;
       
-      const url = buildUrl(API_ENDPOINTS.hospitalizacion.list, params);
+      const url = buildUrl(API_ENDPOINTS.hospitalizacion.ordenes, params);
       console.log('🏥 Consultando órdenes:', url);
       
       const response = await fetchApi(url);
@@ -359,12 +359,63 @@ export const ordenHospitalizacionService = {
 // UTILIDADES
 // ============================================================================
 
+// Mapeo de nombres de campos que el Spring Boot API devuelve en camelCase/minúsculas
+// a los nombres UPPERCASE que usa el frontend
+const API_FIELD_MAP: Record<string, string> = {
+  idHospitalizacion: 'idHOSPITALIZACION',
+  estado: 'ESTADO',
+  paciente: 'PACIENTE',
+  historia: 'HISTORIA',
+  nombres: 'NOMBRES',
+  sexo: 'SEXO',
+  estadoCivil: 'ESTADOCIVIL',
+  direccion: 'DIRECCION',
+  distrito: 'DISTRITO',
+  telefono1: 'TELEFONO1',
+  fechaNacimiento: 'FECHA_NACIMIENTO',
+  edad: 'EDAD',
+  tipoDocumento: 'TIPO_DOCUMENTO',
+  documento: 'DOCUMENTO',
+  consultorio1: 'CONSULTORIO1',
+  consulNombre: 'CONSULNOMBRE',
+  hora1: 'HORA1',
+  fecha1: 'FECHA1',
+  origen: 'ORIGEN',
+  origenNombre: 'ORIGENOMBRE',
+  seguro: 'SEGURO',
+  seguroNombre: 'SEGURONOMBRE',
+  medico1: 'MEDICO1',
+  medicoNombre: 'MEDICONOMBRE',
+  diagnostico: 'DIAGNOSTICO',
+  diagnosticoNombre: 'DIAGNOSTICONOMBRE',
+  usuario: 'USUARIO',
+  usuarioImp: 'USUARIOIMP',
+  cuentaId: 'CUENTAID',
+  acompananteNombre: 'ACOMPANANTENOMBRE',
+  acompananteDireccion: 'ACOMPANANTEDIRECCION',
+  acompananteTelefono: 'ACOMPANANTETELEFONO',
+  origenId: 'ORIGENID',
+};
+
 function processDateFields(record: any): any {
   if (!record) return record;
-  
-  const processed = { ...record };
+
+  // Mapear claves del API a los nombres UPPERCASE del frontend
+  const processed: any = {};
+  for (const [key, value] of Object.entries(record)) {
+    const targetKey = API_FIELD_MAP[key] || key;
+    processed[targetKey] = value;
+  }
+
+  // Si ya viene en UPPERCASE, conservar también la clave original para compatibilidad
+  for (const [key, value] of Object.entries(record)) {
+    if (processed[key] === undefined) {
+      processed[key] = value;
+    }
+  }
+
   const dateFields = ['FECHA1', 'FECHA_NACIMIENTO', 'FECHA_BAJA'];
-  
+
   for (const fieldName of dateFields) {
     if (processed[fieldName]) {
       try {
@@ -379,7 +430,7 @@ function processDateFields(record: any): any {
       }
     }
   }
-  
+
   // Normalizar idHOSPITALIZACION
   if (processed.idHOSPITALIZACION === undefined) {
     if (processed.IDHOSPITALIZACION !== undefined) {
@@ -388,7 +439,7 @@ function processDateFields(record: any): any {
       processed.idHOSPITALIZACION = String(processed.ID_HOSPITALIZACION);
     }
   }
-  
+
   return processed;
 }
 

@@ -25,6 +25,7 @@ import { useSelectsState } from './FormUtils'
 import FuaStatusAlert from './FuaStatusAlert'
 
 // Tipos
+import { API_SPRING_URL, API_ENDPOINTS, normalizeHospitalizationData } from '@/lib/api-config'
 import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService'
 import { Seguro } from '@/services/hospitalizacion/seguroService'
 import { Diagnostico } from '@/services/hospitalizacion/diagnosticoService'
@@ -163,6 +164,7 @@ export function HospitalizationFormRefactored({
     observations: '',
     status: 'PENDIENTE',
     procedencia: 'EM', // Valor por defecto: Emergencia
+    patienteDBId: '', // ID real del paciente en BD (PACIENTE), obtenido de filiación
   });
 
   // Función para manejar los datos del paciente cargados desde PatientInfoCard
@@ -172,22 +174,35 @@ export function HospitalizationFormRefactored({
       hc: data.historyNumber,
       name: `${data.paternalSurname} ${data.maternalSurname}, ${data.names}`,
       documento: data.document,
-      pacienteId: patientId
+      pacienteId: data.pacienteId || patientId
     });
 
-    // Actualizar formData con los datos del paciente
-    setFormData(prev => ({
-      ...prev,
-      historyNumber: data.historyNumber,
-      paternalSurname: data.paternalSurname,
-      maternalSurname: data.maternalSurname,
-      names: data.names,
-      document: data.document,
-      sex: data.sex,
-      birthDate: data.birthDate,
-      age: data.age,
-      insurance: data.insurance
-    }));
+    // Actualizar formData con los datos del paciente (de filiación/PatientInfoCard)
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        historyNumber: data.historyNumber,
+        paternalSurname: data.paternalSurname,
+        maternalSurname: data.maternalSurname,
+        names: data.names,
+        document: data.document,
+        sex: data.sex,
+        birthDate: data.birthDate,
+        age: data.age,
+        insurance: data.insurance,
+        patienteDBId: data.pacienteId || patientId,
+        // Pre-poblar financiamiento con el seguro del paciente (solo si aún no fue seleccionado)
+        financing: prev.financing || data.insuranceCode || ''
+      };
+      console.log('🩺 HospitalizationForm datos recibidos:', {
+        pacienteId: next.patienteDBId,
+        insuranceCode: data.insuranceCode,
+        financing: next.financing,
+        names: next.names,
+        age: next.age
+      });
+      return next;
+    });
   }, [patientId, setPatientData]);
 
   // Manejar cambios en el formulario
@@ -243,12 +258,8 @@ export function HospitalizationFormRefactored({
   // Función para obtener el siguiente ID de hospitalización
   const fetchNextHospitalizacionId = async () => {
     try {
-      const response = await fetch('/api/hospitalization?next-id=true');
-      if (!response.ok) {
-        throw new Error('Error al obtener el siguiente ID de hospitalización');
-      }
-      const data = await response.json();
-      return data.nextId;
+      const { ordenHospitalizacionService } = await import('@/services/hospitalizacion/ordenHospitalizacionService');
+      return await ordenHospitalizacionService.getNextId();
     } catch (error) {
       console.error('Error al obtener el siguiente ID:', error);
       return null;
@@ -367,7 +378,7 @@ export function HospitalizationFormRefactored({
       const hospitalData = {
         // Incluir el IDHOSPITALIZACION obtenido del servicio
         IDHOSPITALIZACION: truncate(nextId, 10),
-        PACIENTE: truncate(patientId, 10),
+        PACIENTE: truncate(formData.patienteDBId || patientId, 10),
         NOMBRES: truncate(nombreCompleto, 100), // Limitar a 100 caracteres
         CONSULTORIO1: consultorioCode.padEnd(6, ' ').substring(0, 6), // Exactamente 6 caracteres
         HORA1: truncate(formatTime(formData.time), 10), // Formato hh:mm AM/PM
@@ -388,10 +399,12 @@ export function HospitalizationFormRefactored({
         // ✅ Solo enviamos los campos con valores reales
         // Los campos null/vacíos no se envían para evitar sobrescribir valores por defecto de la BD
       };
-      
+
+      console.log('📤 Payload enviado a /api/hospitalization:', hospitalData);
+
       // Determinar si es creación o actualización
       const method = 'POST';
-      const url = '/api/hospitalization';
+      const url = `${API_SPRING_URL}/hospitalization`;
       
       // Verificar que todos los campos requeridos estén presentes
       if (!hospitalData.NOMBRES || hospitalData.NOMBRES.trim() === '') {
@@ -427,14 +440,27 @@ export function HospitalizationFormRefactored({
         }
         
         const result = await response.json();
+        console.log('✅ Respuesta del backend /api/hospitalization:', result);
         
         // Verificar que realmente se creó en la BD
-        if (!result.success) {
+        // Si el backend devuelve 20x sin campo 'success', asumimos éxito.
+        if (result.success === false) {
           throw new Error(result.message || result.error || 'Error al crear la hospitalización');
         }
         
-        const hospitalizacionId = result.data?.IDHOSPITALIZACION || result.IDHOSPITALIZACION;
+        // El backend puede devolver el objeto creado directamente o envuelto en { data: ... }
+        const rawRecord = result.data || result;
+        const createdRecord = normalizeHospitalizationData(rawRecord);
+        const hospitalizacionId =
+          createdRecord?.IDHOSPITALIZACION ||
+          createdRecord?.id ||
+          createdRecord?.ID ||
+          createdRecord?.hospitalizacionId ||
+          hospitalData.IDHOSPITALIZACION ||
+          nextId;
+        
         if (!hospitalizacionId) {
+          console.error('❌ No se encontró IDHOSPITALIZACION en la respuesta:', result);
           throw new Error('No se pudo obtener el ID de la hospitalización creada');
         }
         
@@ -452,49 +478,82 @@ export function HospitalizationFormRefactored({
         
         // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
         // IMPORTANTE: Esto debe ejecutarse ANTES de llamar a onSuccess o return
-        const seguroCode = (result.data?.SEGURO || result.SEGURO || hospitalData.SEGURO || '').toString().trim();
+        const seguroCode = (createdRecord?.SEGURO || hospitalData.SEGURO || '').toString().trim();
         
         if (["0", "02", "17"].includes(seguroCode)) {
           try {
-            const nombrePaciente = (result.data?.NOMBRES || result.NOMBRES || hospitalData.NOMBRES || '').toString().trim();
-            const asegurarResponse = await fetch(`/api/hospitalization/accounts/${hospitalizacionId.trim()}`, {
+            const nombrePaciente = (createdRecord?.NOMBRES || hospitalData.NOMBRES || '').toString().trim();
+            const asegurarResponse = await fetch(`${API_SPRING_URL}/hospitalization/accounts/${hospitalizacionId.trim()}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                paciente: result.data?.PACIENTE || result.PACIENTE || patientId,
+                paciente: createdRecord?.PACIENTE || hospitalData.PACIENTE || patientId,
                 seguro: seguroCode,
                 usuario: primerApellido,
                 nombre: nombrePaciente,
               })
             });
-            
-            const asegurarResult = await asegurarResponse.json();
-            
-            if (asegurarResult.ok && asegurarResult.cuentaId) {
-              
-              // Actualizar el registro de hospitalización con el cuentaId
-              try {
-                const updateResponse = await fetch(`/api/hospitalization/${hospitalizacionId.trim()}`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    CUENTAID: asegurarResult.cuentaId
-                  })
-                });
-                
-                const updateResult = await updateResponse.json();
-                if (!updateResult.success) {
-                  console.error('Error al actualizar la hospitalización con el CUENTAID:', updateResult.message);
-                }
-              } catch (updateError) {
-                console.error('Error al actualizar la hospitalización con el CUENTAID:', updateError);
-              }
+
+            if (!asegurarResponse.ok) {
+              console.warn('⚠️ Endpoint /hospitalization/accounts no disponible, se ignora. Status:', asegurarResponse.status);
             } else {
-              console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
+              const asegurarResult = await asegurarResponse.json();
+
+              if (asegurarResult.ok && asegurarResult.cuentaId) {
+                // Actualizar el registro de hospitalización con el cuentaId
+                // El backend no acepta PATCH sobre /hospitalization/{id}; se usa PUT con el mismo
+                // formato que HospitalizationViewRefactored (updateData + valoresSQL).
+                try {
+                  const cuentaUpdateData = {
+                    hospitalizationId: hospitalizacionId,
+                    patientId: hospitalData.PACIENTE,
+                    fecha: formData.date,
+                    hora: formData.time,
+                    origen: hospitalData.ORIGEN,
+                    origen_atencion: formData.attentionOrigin || '',
+                    consultorio: (formData.hospitalizedIn.split(' - ')[0] || '').trim(),
+                    seguro: (formData.financing.split(' - ')[0] || '').trim(),
+                    medico: (formData.authorizingDoctor.split(' - ')[0] || '').trim(),
+                    diagnostico: (formData.diagnosis.split(/[ -]/)[0] || '').trim(),
+                    estado: hospitalData.ESTADO,
+                    acompanante_nombre: hospitalData.ACOMPANANTE_NOMBRE,
+                    acompanante_telefono: hospitalData.ACOMPANANTE_TELEFONO,
+                    acompanante_direccion: hospitalData.ACOMPANANTE_DIRECCION,
+                  };
+
+                  const valoresSQL = {
+                    ...hospitalData,
+                    IDHOSPITALIZACION: hospitalizacionId,
+                    CUENTAID: asegurarResult.cuentaId
+                  };
+
+                  const updateResponse = await fetch(API_ENDPOINTS.hospitalizacion.update(hospitalizacionId.trim()), {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      ...cuentaUpdateData,
+                      valoresSQL
+                    })
+                  });
+
+                  if (!updateResponse.ok) {
+                    console.warn('⚠️ No se pudo actualizar CUENTAID. Status:', updateResponse.status);
+                  } else {
+                    const updateResult = await updateResponse.json();
+                    if (updateResult.success === false) {
+                      console.error('Error al actualizar la hospitalización con el CUENTAID:', updateResult.message);
+                    }
+                  }
+                } catch (updateError) {
+                  console.error('Error al actualizar la hospitalización con el CUENTAID:', updateError);
+                }
+              } else {
+                console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
+              }
             }
           } catch (error) {
             console.error('Error al asegurar la cuenta:', error);
@@ -502,7 +561,7 @@ export function HospitalizationFormRefactored({
         }
         
         // Obtener el ID limpio para los PDFs
-        const cleanId = (result.data?.IDHOSPITALIZACION || result.IDHOSPITALIZACION || nextId).toString().trim();
+        const cleanId = hospitalizacionId.toString().trim();
         
         // Obtener el nombre completo del usuario desde el token de autenticación
         const nombreCompleto = user?.nombreCompleto || '';
@@ -661,7 +720,7 @@ export function HospitalizationFormRefactored({
       {/* Alerta de estado FUA - Posicionada al inicio del formulario */}
       <FuaStatusAlert 
         patientId={patientId} 
-        insuranceCode={selectedSeguro?.Seguro || formData.insurance?.split(' - ')[0]}
+        insuranceCode={selectedSeguro?.seguro || formData.insurance?.split(' - ')[0]}
       />
       
       <Toaster />

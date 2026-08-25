@@ -1,4 +1,5 @@
 ﻿import React, { createContext, useState, useEffect, useContext } from 'react'
+import { diagnosticoService } from '@/services/hospitalizacion/diagnosticoService'
 
 export type Diagnostico = {
   CODIGO: string
@@ -37,25 +38,20 @@ export function DiagnosticosProvider({ children }: { children: React.ReactNode }
     try {
       setLoading(true)
       console.log('🩺 Cargando diagnósticos desde contexto...', origen ? `para origen: ${origen}` : '')
-      
-      const url = origen 
-        ? `/api/hospitalization/diagnostics?origen=${origen}`
-        : '/api/hospitalization/diagnostics'
-      
-      const response = await fetch(url)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      console.log('✅ Diagnósticos cargados en contexto:', data)
-      
-      // Extraer los items de la respuesta
-      const diagnosticosData = Array.isArray(data) ? data : (data.items || data.data || [])
+
+      const items = await diagnosticoService.findAllEmergencia(undefined, origen, 100)
+      console.log('✅ Diagnósticos cargados en contexto:', items)
+
+      // Extraer y mapear los items de la respuesta
+      const diagnosticosData: Diagnostico[] = items.map((item: any) => ({
+        CODIGO: item.Codigo || item.codigo || item.CODIGO || '',
+        DESCRIPCION: item.Nombre || item.nombre || item.DESCRIPCION || '',
+        ACTIVO: item.Activo ?? item.activo ?? item.ACTIVO ?? 1
+      }))
+
       console.log('🩺 Datos procesados de diagnósticos:', diagnosticosData)
       setDiagnosticos(diagnosticosData)
-      
+
     } catch (error) {
       console.error('❌ Error al cargar diagnósticos en contexto:', error)
       // Datos de fallback en caso de error

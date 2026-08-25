@@ -66,9 +66,33 @@ export const pacienteService = {
       };
       
       if (filter.historia) params.historia = filter.historia;
-      if (filter.documento) params.documento = filter.documento;
-      if (filter.nombres) params.nombres = filter.nombres;
-      
+
+      // Documento → nueva API optimizada
+      if (filter.documento && !filter.historia) {
+        const p = new URLSearchParams({ tipoDocumento: 'D', documento: filter.documento });
+        const url = `${API_ENDPOINTS.filiation.searchByDocument}?${p}`;
+        const response = await fetchApi(url);
+        const raw = response.ok ? await response.json() : null;
+        const list: any[] = Array.isArray(raw) ? raw
+          : Array.isArray(raw?.data) ? raw.data
+          : (raw && !raw.error && (raw.PACIENTE || raw.paciente)) ? [raw]
+          : [];
+        return { data: list, pagination: { total: list.length, page, pageSize, totalPages: Math.ceil(list.length / pageSize) } };
+      }
+
+      // Nombres → nueva API optimizada
+      if (filter.nombres && !filter.historia) {
+        const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}`;
+        const response = await fetchApi(url);
+        const raw = response.ok ? await response.json() : null;
+        const list: any[] = Array.isArray(raw) ? raw
+          : Array.isArray(raw?.data) ? raw.data
+          : Array.isArray(raw?.pacientes) ? raw.pacientes
+          : Array.isArray(raw?.content) ? raw.content
+          : [];
+        return { data: list, pagination: { total: list.length, page, pageSize, totalPages: Math.ceil(list.length / pageSize) } };
+      }
+
       const url = buildUrl(API_ENDPOINTS.filiation.search, params);
       console.log('🏥 Consultando pacientes:', url);
       
@@ -155,12 +179,12 @@ export const pacienteService = {
   /**
    * Buscar pacientes por documento (DNI)
    */
-  async searchByDocumento(documento: string): Promise<Paciente[]> {
+  async searchByDocumento(documento: string, tipoDocumento: string = 'D'): Promise<Paciente[]> {
     try {
       console.log(`🔍 Buscando pacientes por documento: ${documento}`);
       
-      const params = { documento, pageSize: '10' };
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      const params = new URLSearchParams({ tipoDocumento, documento });
+      const url = `${API_ENDPOINTS.filiation.searchByDocument}?${params}`;
       
       const response = await fetchApi(url);
       
@@ -169,9 +193,12 @@ export const pacienteService = {
       }
       
       const data = await response.json();
-      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes por documento`);
-      
-      return data.data || [];
+      const list: Paciente[] = Array.isArray(data) ? data
+        : Array.isArray(data?.data) ? data.data
+        : (data && !data.error && (data.PACIENTE || data.paciente)) ? [data]
+        : [];
+      console.log(`✅ Encontrados ${list.length} pacientes por documento`);
+      return list;
     } catch (error) {
       console.error(`❌ Error en searchByDocumento(${documento}):`, error);
       throw error;
@@ -185,8 +212,7 @@ export const pacienteService = {
     try {
       console.log(`🔍 Buscando pacientes por nombre: ${name}`);
       
-      const params = { nombres: name, pageSize: '100' };
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
       
       const response = await fetchApi(url);
       
@@ -195,9 +221,13 @@ export const pacienteService = {
       }
       
       const data = await response.json();
-      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes por nombre`);
-      
-      return data.data || [];
+      const list: Paciente[] = Array.isArray(data) ? data
+        : Array.isArray(data?.data) ? data.data
+        : Array.isArray(data?.pacientes) ? data.pacientes
+        : Array.isArray(data?.content) ? data.content
+        : [];
+      console.log(`✅ Encontrados ${list.length} pacientes por nombre`);
+      return list;
     } catch (error) {
       console.error(`❌ Error en searchByName(${name}):`, error);
       throw error;

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import { getAuthToken, refreshToken, setAuthToken, removeAuthToken, getCurrentUser, UserInfo } from '@/lib/auth';
 import { PatientDataProvider } from '@/contexts/PatientDataContext';
+import { PermissionsProvider } from '@/contexts/PermissionsContext';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [sessionKey, setSessionKey] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,11 +42,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (token: string, primerInicio: boolean) => {
     setAuthToken(token);
     setIsAuthenticated(true);
-    
+
+    // Clear cached permissions from previous user
+    try { localStorage.removeItem('s028_permissions'); } catch {}
+
     // Get user info from token
     const userInfo = getCurrentUser();
     setUser(userInfo);
-    
+
+    // Force PermissionsProvider to remount and reload permissions
+    setSessionKey((prev) => prev + 1);
+
     if (primerInicio) {
       router.push('/change-password');
     } else {
@@ -56,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     removeAuthToken();
     setIsAuthenticated(false);
     setUser(null);
+    try { localStorage.removeItem('s028_permissions'); } catch {}
     router.push('/');
   };
 
@@ -77,9 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={authContextValue}>
-      <PatientDataProvider>
-        {children}
-      </PatientDataProvider>
+      <PermissionsProvider key={sessionKey}>
+        <PatientDataProvider>
+          {children}
+        </PatientDataProvider>
+      </PermissionsProvider>
     </AuthContext.Provider>
   );
 }

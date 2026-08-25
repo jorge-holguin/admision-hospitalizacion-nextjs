@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
 import { useEmergencyAccount } from "@/contexts/EmergencyAccountContext";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import { useMotivosEmergencia } from "@/contexts/MotivosEmergenciaContext";
 import { useConsultorios } from "@/contexts/ConsultoriosContext";
 import { useFormasIngreso } from "@/contexts/FormasIngresoContext";
 import { useSeguros } from "@/contexts/SegurosContext";
+import { getAllEmpresasSeguro, type EmpresaSeguro as EmpresaSeguroApi } from "@/services/emergencia/empresaSeguroApiService";
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
@@ -39,6 +40,26 @@ interface EmergencySectionViewProps {
   onUpdatePatient?: () => void;
   isLoadingUpdate?: boolean;
   refreshPatientKey?: number;
+}
+
+// Helpers para leer los campos del motivo sin depender solo del mapeo del contexto
+const getMotivoCode = (m: any): string => {
+  for (const field of ['MOTIVO_EMERGENCIA', 'codigo', 'CODIGO', 'motivoEmergencia']) {
+    if (m?.[field] !== undefined && m?.[field] !== null) {
+      const value = String(m[field]).trim()
+      if (value !== '') return value
+    }
+  }
+  return ''
+}
+const getMotivoName = (m: any): string => {
+  for (const field of ['NOMBRE', 'nombre']) {
+    if (m?.[field] !== undefined && m?.[field] !== null) {
+      const value = String(m[field]).trim()
+      if (value !== '') return value
+    }
+  }
+  return ''
 }
 
 export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
@@ -97,12 +118,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     cuentaId?: string; // ID de cuenta para actualización
   };
   
-  // Interface para empresas de seguro
-  interface EmpresaSeguro {
-    EMPRESA: string;
-    NOMBRE: string;
-    RUC?: string;
-  }
+  // Tipo de empresa de seguro (proviene del servicio Spring Boot)
+  type EmpresaSeguro = EmpresaSeguroApi
   
   const [formData, setFormData] = useState<FormDataType>({
     tipoAtencion: "",
@@ -269,20 +286,18 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   useEffect(() => {
   }, [formData.seguroLiq, seguroLiqTrimmed, isSOAT]);
   
-  // Cargar empresas de seguro cuando el seguro es SOAT
+  // Cargar empresas de seguro desde Spring Boot una sola vez (el filtro es cliente)
+  const empresasSeguroLoadedRef = useRef(false);
   const fetchEmpresasSeguro = useCallback(async (search?: string) => {
+    if (empresasSeguroLoadedRef.current) return;
+    empresasSeguroLoadedRef.current = true;
     try {
       setLoadingEmpresasSeguro(true);
-      const url = search 
-        ? `/api/emergency/empresas-seguro?search=${encodeURIComponent(search)}`
-        : '/api/emergency/empresas-seguro';
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.ok) {
-        setEmpresasSeguro(data.data || []);
-      }
+      const all = await getAllEmpresasSeguro();
+      setEmpresasSeguro(all);
     } catch (error) {
       console.error('❌ [View] Error al cargar empresas de seguro:', error);
+      empresasSeguroLoadedRef.current = false;
     } finally {
       setLoadingEmpresasSeguro(false);
     }
@@ -385,6 +400,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         hora: initialData.HORA || '',
         estado: initialData.ESTADO || '',
         numeroCuenta: initialData.CUENTAID || '',
+      });
+      
+      console.log('🔍 EmergencySectionView loaded:', {
+        DOCUMENTOA: initialData.DOCUMENTOA,
+        TIPO_DOCUMENTOA: initialData.TIPO_DOCUMENTOA,
+        documentoA: cleanApiString(initialData.DOCUMENTOA)
       });
     }
   }, [initialData]);
@@ -764,15 +785,20 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
     .filter(
       (m) =>
         !searchMotivo ||
-        m.NOMBRE?.toLowerCase().includes(searchMotivo.toLowerCase()) ||
-        m.MOTIVO_EMERGENCIA?.toLowerCase().includes(searchMotivo.toLowerCase())
+        getMotivoName(m).toLowerCase().includes(searchMotivo.toLowerCase()) ||
+        getMotivoCode(m).toLowerCase().includes(searchMotivo.toLowerCase())
     )
-    .map((m) => ({
-      value: m.MOTIVO_EMERGENCIA,
-      display: `(${m.MOTIVO_EMERGENCIA}) - ${m.NOMBRE}`,
-      description: "",
-      data: m,
-    }));
+    .map((m) => {
+      const code = getMotivoCode(m)
+      const name = getMotivoName(m)
+      return {
+        value: code,
+        display: code ? `(${code}) - ${name}` : name,
+        description: "",
+        data: m,
+      }
+    })
+    .filter((o) => o.value);
 
   const formatConsultorios = consultorios
     .filter(
@@ -880,25 +906,34 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
   // Función memoizada para encontrar el nombre de un motivo por su código
   const findMotivoName = useCallback((code: string) => {
     if (!code || !motivos.length) return code;
-    
-    // Asegurar que el código está correctamente formateado (mantener ceros iniciales)
-    const paddedCode = code?.padStart(2, '0') || '';
-    
-    // Buscar primero con el código exacto
-    let motivo = motivos.find(m => m.MOTIVO_EMERGENCIA === code);
-    
-    // Si no se encuentra, intentar con el código con padding
-    if (!motivo && paddedCode !== code) {
-      motivo = motivos.find(m => m.MOTIVO_EMERGENCIA === paddedCode);
+
+    // Normalizar el código recibido (trim y extraer si viene como display "(08) - ...")
+    const cleanCode = String(code).trim()
+    let searchCode = cleanCode
+    if (cleanCode.includes(' - ')) {
+      searchCode = cleanCode.split(' - ')[0].replace(/^\(|\)$/g, '').trim()
     }
-    
+
+    // Asegurar que el código está correctamente formateado (mantener ceros iniciales)
+    const paddedCode = searchCode.padStart(2, '0') || '';
+
+    // Buscar primero con el código exacto
+    let motivo = motivos.find(m => getMotivoCode(m) === searchCode);
+
+    // Si no se encuentra, intentar con el código con padding
+    if (!motivo && paddedCode !== searchCode) {
+      motivo = motivos.find(m => getMotivoCode(m) === paddedCode);
+    }
+
     // Si se encontró el motivo, mostrar con formato
     if (motivo) {
-      return `(${motivo.MOTIVO_EMERGENCIA}) - ${motivo.NOMBRE}`;
+      const foundCode = getMotivoCode(motivo)
+      const foundName = getMotivoName(motivo)
+      return `(${foundCode}) - ${foundName}`;
     }
-    
+
     // Si no se encuentra, devolver el código original
-    return code;
+    return searchCode;
   }, [motivos]);
 
   // Función memoizada para encontrar el nombre de un consultorio por su código

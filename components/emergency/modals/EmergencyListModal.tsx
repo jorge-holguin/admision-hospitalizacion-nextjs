@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
 import { formatDate } from '@/components/hospitalization/DateFormatter'
 import { usePatient } from "@/contexts/PatientContext"
+import { emergenciaService } from "@/services/emergencia/emergenciaService"
 
 // Interfaces
 interface EmergencyData {
@@ -107,6 +108,42 @@ function RelatoDisplay({ relato }: { relato?: string }) {
   );
 }
 
+// El endpoint /emergency/paciente/{id} devuelve un array plano con camelCase
+// Esta función lo convierte al shape uppercase que espera la tabla
+function mapApiToEmergencyData(item: any): EmergencyData {
+  return {
+    EMERGENCIA_ID: item.emergenciaId || item.EMERGENCIA_ID || '',
+    PACIENTE: item.paciente || item.PACIENTE || '',
+    FECHA: item.fecha || item.FECHA || '',
+    HORA: item.hora || item.HORA || '',
+    CONSULTORIO: item.consultorio || item.CONSULTORIO || '',
+    MOTIVO_EMERGENCIA: item.motivoConsulta || item.MOTIVO_EMERGENCIA || '',
+    MOTIVO_DESCRIPCION: item.motivoConsulta || item.MOTIVO_DESCRIPCION || '',
+    CIEX1: item.seguro || item.CIEX1 || '',
+    MEDICO: item.medico || item.MEDICO || '0',
+    RELATO: item.relato || item.RELATO || '',
+    DIAGNOSTICO_DESCRIPCION: item.diagnostico || item.DIAGNOSTICO_DESCRIPCION || '0',
+    CONSULTORIO_DESCRIPCION: item.consultorioNombre || item.CONSULTORIO_DESCRIPCION || '',
+    ESTADO: String(item.estado ?? item.ESTADO ?? ''),
+    SEGUROLIQ: item.seguro || item.SEGUROLIQ || '',
+    SEGURO_NOMBRE: item.seguroNombre || item.SEGURO_NOMBRE || '',
+    CUENTAID: item.cuentaId || item.CUENTAID || '',
+    RowNum: item.rowNum || item.RowNum || ''
+  };
+}
+
+function extractRawList(result: any): any[] {
+  if (Array.isArray(result)) return result;
+  if (Array.isArray(result?.data)) return result.data;
+  if (Array.isArray(result?.content)) return result.content;
+  return [];
+}
+
+function extractTotal(result: any, fallback: number): number {
+  if (Array.isArray(result)) return fallback;
+  return result?.pagination?.total ?? result?.totalElements ?? fallback;
+}
+
 export function EmergencyListModal({
   isOpen,
   onClose,
@@ -139,30 +176,25 @@ export function EmergencyListModal({
   const fetchEmergencies = async (page = 1, pageSize = 5) => {
     if (!patientId) return
 
+    console.log('🚑 [EmergencyListModal] fetchEmergencies', { patientId, page, pageSize })
+
     try {
       setLoading(true)
-      const response = await fetch(`/api/emergency/patient/${patientId}?page=${page}&pageSize=${pageSize}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setEmergencies(data.data || [])
-          setPagination(data.pagination || {
-            page: 1,
-            pageSize: 10,
-            total: 0,
-            totalPages: 0
-          })
-        } else {
-          toast({
-            title: "Error",
-            description: data.error || "Error al cargar emergencias",
-            variant: "destructive"
-          })
-        }
-      } else {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
+      const result: any = await emergenciaService.getEmergenciasByPacienteId(patientId, { page, pageSize })
+      console.log('🚑 [EmergencyListModal] data', result)
+
+      // El endpoint Spring puede devolver: array plano, { data: [...] } o { content: [...] }
+      const rawList = extractRawList(result)
+      const list = rawList.map(mapApiToEmergencyData)
+      setEmergencies(list)
+
+      const total = extractTotal(result, list.length)
+      setPagination({
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize))
+      })
     } catch (error: any) {
       console.error('Error fetching emergencies:', error)
       toast({
@@ -176,6 +208,7 @@ export function EmergencyListModal({
   }
 
   useEffect(() => {
+    console.log('🚑 [EmergencyListModal] effect', { isOpen, patientId })
     if (isOpen && patientId) {
       fetchEmergencies()
     }
@@ -187,25 +220,18 @@ export function EmergencyListModal({
 
   const handleDelete = async (emergencyId: string) => {
     try {
-      const response = await fetch(`/api/emergency/${emergencyId}`, {
-        method: 'DELETE'
-      })
+      await emergenciaService.deleteEmergencia(emergencyId)
 
-      if (response.ok) {
-        toast({
-          title: "Emergencia eliminada",
-          description: "La emergencia ha sido eliminada correctamente"
-        })
-        // Recargar la lista
-        fetchEmergencies(pagination.page, pagination.pageSize)
-      } else {
-        const data = await response.json()
-        throw new Error(data.error || 'Error al eliminar la emergencia')
-      }
+      toast({
+        title: "Emergencia eliminada",
+        description: "La emergencia ha sido eliminada correctamente"
+      })
+      // Recargar la lista
+      fetchEmergencies(pagination.page, pagination.pageSize)
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || 'Error al eliminar la emergencia',
         variant: "destructive"
       })
     } finally {

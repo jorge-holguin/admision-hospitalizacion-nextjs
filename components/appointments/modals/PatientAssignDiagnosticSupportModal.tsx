@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { PatientInfoCardAppointment } from "../patient/PatientInfoCardAppointment"
 import { PatientPendingAppointmentsModal, type PendingAppointment } from "../patient/PatientPendingAppointmentsModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer, Loader2, MapPin, ClipboardList, Pencil, Trash2 } from "lucide-react"
+import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, Printer, Loader2, MapPin, ClipboardList, Pencil, Trash2, AlertTriangle } from "lucide-react"
 import { TipoCitaSelector } from "../selectors/TipoCitaSelector"
 import { TipoSeguroSelector } from "../selectors/TipoSeguroSelector"
 import { EntidadSisSelector } from "../selectors/EntidadSisSelector"
@@ -24,8 +24,11 @@ import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
 import { datetimeService } from '@/services/datetimeService'
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
+import { getCivilStatusDescription } from "@/utils/civilStatusUtils"
 import { UpdateClinicalHistoryButton } from "../patient/UpdateClinicalHistoryButton"
 import { CrearOrdenApoyoDiagnosticoModal, type OrdenToEdit } from "./CrearOrdenApoyoDiagnosticoModal"
+import { verificarExamenesConPedido } from "@/services/apoyoDiagnostico/maestroService"
+import { filiacionService } from "@/services/hospitalizacion/filiacionService"
 
 interface Patient {
   HISTORIA: string
@@ -118,6 +121,8 @@ interface Appointment {
   medico: string
   medicoNombre?: string
   estado: string
+  turno?: string
+  turnoConsulta?: string
 }
 
 interface PatientAssignDiagnosticSupportModalProps {
@@ -138,6 +143,40 @@ const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http:
 const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
 
 const SIS_SEGUROS_CODES = ['20', '21', '22', '23', '24', '25']
+
+/**
+ * Obtiene el código de turno (M/T) que espera la base de datos para la
+ * clave foránea FK_ATENCION_CITA_TURNO -> TURNO_CONSULTA.TURNO_CONSULTA.
+ */
+function getTurnoConsulta(appointment: Appointment | null): string {
+  if (!appointment) return 'M'
+
+  // Si viene el turno normalizado (M/T), usarlo directamente
+  if (appointment.turnoConsulta && typeof appointment.turnoConsulta === 'string') {
+    const t = appointment.turnoConsulta.trim().toUpperCase()
+    if (t === 'M' || t === 'T' || t === 'MAÑANA' || t === 'TARDE') {
+      return t.startsWith('M') ? 'M' : 'T'
+    }
+  }
+
+  // Si viene un texto como "MAÑANA" o "TARDE", convertirlo
+  if (appointment.turno && typeof appointment.turno === 'string') {
+    const t = appointment.turno.trim().toUpperCase()
+    if (t.startsWith('M')) return 'M'
+    if (t.startsWith('T')) return 'T'
+  }
+
+  // Fallback: derivar del horario (antes de las 12:00 es mañana)
+  if (appointment.hora) {
+    const [hours] = appointment.hora.split(':')
+    const hour = parseInt(hours, 10)
+    if (!isNaN(hour)) {
+      return hour < 12 ? 'M' : 'T'
+    }
+  }
+
+  return 'M'
+}
 
 function PatientAssignDiagnosticSupportModalContent({
   isOpen,
@@ -189,6 +228,11 @@ function PatientAssignDiagnosticSupportModalContent({
 
   const [confirmDialog, setConfirmDialog] = useState<{ type: 'edit' | 'delete'; orden: OrdenApoyoDiagnostico } | null>(null)
 
+  const [pedidoAlert, setPedidoAlert] = useState<{ show: boolean; examenes: { cpms: string; descripcion: string }[] }>({ show: false, examenes: [] })
+  const [loadingPedido, setLoadingPedido] = useState(false)
+  const [detallesPedidoMap, setDetallesPedidoMap] = useState<Record<string, boolean>>({})
+  const [selectedDetailCpms, setSelectedDetailCpms] = useState<Set<string>>(new Set())
+
   const handleDeleteOrden = async () => {
     const orden = confirmDialog?.orden
     if (!orden) return
@@ -239,16 +283,14 @@ function PatientAssignDiagnosticSupportModalContent({
   }, [isOpen])
 
   const cargarSeguroFiliacion = async () => {
-    const tipoDoc = patient?.TIPO_DOCUMENTO?.trim() || patient?.TIPO_DOCUMENTO || ''
+    const tipoDoc = patient?.TIPO_DOCUMENTO?.trim() || patient?.TIPO_DOCUMENTO || 'D'
     const documento = patient?.DOCUMENTO?.trim()
-    if (!tipoDoc || !documento) return
+    if (!documento) return
     try {
-      const base = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api'
-      const params = new URLSearchParams({ tipoDocumento: tipoDoc, documento })
-      const res = await fetch(`${base}/busqueda/paciente-por-documento?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        const seguroEncontrado = data?.seguro?.toString().trim() || data?.SEGURO?.toString().trim() || ''
+      const pacientes = await filiacionService.searchByDocumento(documento, tipoDoc)
+      if (pacientes.length > 0) {
+        const p = pacientes[0] as any
+        const seguroEncontrado = (p.SEGURO ?? p.seguro)?.toString().trim() || ''
         setSeguroFiliacion(seguroEncontrado)
       }
     } catch (e: any) {
@@ -292,11 +334,13 @@ function PatientAssignDiagnosticSupportModalContent({
   const loadOrdenesApoyoDiagnostico = async (pacienteId: string) => {
     setLoadingOrdenes(true)
     try {
-      const res = await fetch(`${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/paciente/${pacienteId}?estado=1&origen=CE`)
+      const res = await fetch(`${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/paciente/${pacienteId}?origen=CE`)
       if (res.ok) {
         const json = await res.json()
-        const lista: OrdenApoyoDiagnostico[] = Array.isArray(json?.data) ? json.data
-          : Array.isArray(json) ? json : []
+        const lista: OrdenApoyoDiagnostico[] = (Array.isArray(json?.data) ? json.data
+          : Array.isArray(json) ? json : []).filter(
+            (o: OrdenApoyoDiagnostico) => ['1', '2', '3'].includes(String(o.estadoOrden))
+          )
         setOrdenes(lista)
       } else {
         setOrdenes([])
@@ -308,6 +352,54 @@ function PatientAssignDiagnosticSupportModalContent({
     }
   }
 
+  // Verificar campo PEDIDO de APOYO_DIAGNOSTICO.MAESTRO para los exámenes de la orden seleccionada
+  useEffect(() => {
+    const checkPedido = async () => {
+      const ordenIdRaw = selectedOrdenEcografia || (ordenCreadaId ? String(ordenCreadaId) : '')
+      if (!ordenIdRaw) {
+        setPedidoAlert({ show: false, examenes: [] })
+        setDetallesPedidoMap({})
+        setSelectedDetailCpms(new Set())
+        return
+      }
+      const orden = ordenes.find((o) => String(o.idOrden) === ordenIdRaw)
+      if (!orden?.detalles?.length) {
+        setPedidoAlert({ show: false, examenes: [] })
+        setDetallesPedidoMap({})
+        setSelectedDetailCpms(new Set())
+        return
+      }
+      setLoadingPedido(true)
+      try {
+        const detallesVisibles = orden.detalles.filter((d) => d.estadoDetalle !== '0')
+        const { bloqueado, examenes } = await verificarExamenesConPedido(detallesVisibles)
+        const pedidoSet = new Set(examenes.map((e) => e.cpms))
+        const newMap: Record<string, boolean> = {}
+        detallesVisibles.forEach((d) => {
+          const cpms = (d.cpms?.trim() || String(d.idProcedimiento)).trim()
+          newMap[cpms] = pedidoSet.has(cpms)
+        })
+        setDetallesPedidoMap(newMap)
+        // Seleccionar por defecto sólo los exámenes que NO requieren pedido previo y NO están completados
+        const initialSelected = new Set(
+          detallesVisibles
+            .filter((d) => d.estadoDetalle !== '2' && !pedidoSet.has((d.cpms?.trim() || String(d.idProcedimiento)).trim()))
+            .map((d) => (d.cpms?.trim() || String(d.idProcedimiento)).trim())
+        )
+        setSelectedDetailCpms(initialSelected)
+        setPedidoAlert({ show: bloqueado, examenes })
+      } catch (error) {
+        console.error('❌ Error verificando PEDIDO:', error)
+        setPedidoAlert({ show: false, examenes: [] })
+        setDetallesPedidoMap({})
+        setSelectedDetailCpms(new Set())
+      } finally {
+        setLoadingPedido(false)
+      }
+    }
+    checkPedido()
+  }, [selectedOrdenEcografia, ordenCreadaId, ordenes])
+
   const loadEnhancedPatientData = async (pacienteId: string) => {
     setIsLoadingPatientData(true)
     try {
@@ -318,7 +410,7 @@ function PatientAssignDiagnosticSupportModalContent({
           ...patient!,
           NOMBRES: additionalData.nombres || patient!.NOMBRES,
           STRING_FOTO: additionalData.stringFoto || patient!.STRING_FOTO,
-          ESTADO_CIVIL: additionalData.estadoCivil || patient!.ESTADO_CIVIL,
+          ESTADO_CIVIL: getCivilStatusDescription(additionalData.estadoCivil || patient!.ESTADO_CIVIL),
           FECHA_NACIMIENTO: additionalData.fechaNacimiento
             ? new Date(additionalData.fechaNacimiento).toISOString().split('T')[0]
             : patient!.FECHA_NACIMIENTO,
@@ -342,10 +434,8 @@ function PatientAssignDiagnosticSupportModalContent({
 
   const getTipoSeguroParam = () => {
     const s = selectedSeguro?.toString().trim()
-    if (['20', '21', '22', '23', '24', '25'].includes(s)) return '7'
-    if (['02', '2'].includes(s)) return '5'
-    if (['0', '00'].includes(s)) return '1'
-    return '0'
+    if (s === '00') return '0'
+    return s || '0'
   }
 
   const mapSisReferenciaToItem = (sisRef: any): ReferenciaItem => {
@@ -529,6 +619,10 @@ function PatientAssignDiagnosticSupportModalContent({
     setSelectedRefItem(null)
     setShowCrearOrdenModal(false)
     setOrdenCreadaId(null)
+    setPedidoAlert({ show: false, examenes: [] })
+    setLoadingPedido(false)
+    setDetallesPedidoMap({})
+    setSelectedDetailCpms(new Set())
   }
 
   const handleAssign = async () => {
@@ -551,64 +645,68 @@ function PatientAssignDiagnosticSupportModalContent({
 
       const fullName = `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim()
 
-      let detalles: { cpms: string; cantidad: number }[] = []
-      if (selectedOrdenEcografia) {
-        try {
-          const detallesRes = await fetch(
-            `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/detalles/orden/${selectedOrdenEcografia}`
-          )
-          if (detallesRes.ok) {
-            const detallesData = await detallesRes.json()
-            const rawDetalles: OrdenDetalle[] = Array.isArray(detallesData?.data)
-              ? detallesData.data
-              : Array.isArray(detallesData)
-              ? detallesData
-              : []
-            detalles = rawDetalles
-              .filter((d) => d.estadoDetalle !== '0')
-              .map((d) => ({
-                cpms: d.cpms?.trim() || String(d.idProcedimiento),
-                cantidad: d.cantidad ?? 1,
-              }))
-          }
-        } catch {
-          // Si falla la carga de detalles, se continúa sin ellos
-        }
-      }
+      // Construir detalles filtrando solo los exámenes seleccionados por el usuario
+      const ordenIdRaw = selectedOrdenEcografia || (ordenCreadaId ? String(ordenCreadaId) : '')
+      const ordenActiva = ordenes.find((o) => String(o.idOrden) === ordenIdRaw)
+      const detalles: { cpms: string; cantidad: number; ciex?: string; observacion?: string }[] =
+        ordenActiva?.detalles
+          ?.filter((d) => d.estadoDetalle !== '0' && d.estadoDetalle !== '2')
+          .filter((d) => {
+            const cpms = (d.cpms?.trim() || String(d.idProcedimiento)).trim()
+            return selectedDetailCpms.size === 0 || selectedDetailCpms.has(cpms)
+          })
+          .map((d) => ({
+            cpms: d.cpms?.trim() || String(d.idProcedimiento),
+            cantidad: d.cantidad ?? 1,
+            ...(d.ciex ? { ciex: d.ciex } : {}),
+            ...(d.observacion ? { observacion: d.observacion } : {}),
+          })) ?? []
 
-      const requestBody = {
-        fechaOtorga: `${serverDateTime.date}T${serverDateTime.time}:00`,
-        tipoCita: selectedTipoCita,
-        tipoPaciente: 'C',
+      const asignarPayload = {
+        idOrden: ordenIdRaw ? Number(ordenIdRaw) : null,
         idPaciente: (patient?.PACIENTE || patient?.HISTORIA || '').toString().trim(),
-        nombre: (patient?.NOMBRES || fullName).trim(),
+        idEstadoCita: appointment.id,
+        consultorio: appointment.consultorio,
+        origen: 'CE',
+        origenId: appointment.id,
+        tipoCita: selectedTipoCita,
+        turno: getTurnoConsulta(appointment),
         seguro: selectedSeguro.toString().trim(),
+        fechaCita: appointment.fecha,
+        horaCita: appointment.hora,
+        idMedicoEjecuta: appointment.medico ? Number(appointment.medico) : 0,
+        flgParticular: false,
+        nroFormulario: referencia || '',
+        tiempoAtencion: { hour: 0, minute: 0, second: 0, nano: 0 },
+        // TIPO_PACIENTE válidos: C=Continuador, N=Nuevo, O=Otros, P=Procedimiento, R=Reingreso
+        // Para SIS se envía 'C' (continuador); para otros seguros 'P' (procedimiento).
+        tipoPaciente: isSisSeguro() ? 'C' : 'P',
+        numRef: referenciaIdSeleccionada || referencia || '',
+        entidadSis: selectedEntidadSis || '',
         estado: '1',
+        nombre: fullName,
+        fechaOtorga: `${serverDateTime.date}T${serverDateTime.time}:00`,
         horaOtorga: serverDateTime.time,
-        numRef: referencia || '',
-        entidadSis: eessOrigenReferencia || selectedEntidadSis || '',
-        idOrden: selectedOrdenEcografia ? Number(selectedOrdenEcografia) : null,
         detalles,
       }
 
-      const citaId = appointment.id
-      const apiUrl = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/atenciones/${citaId}/asignar`
-      const response = await fetch(apiUrl, {
+      const asignarUrl = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/atenciones/${appointment.id}/asignar`
+      const asignarResponse = await fetch(asignarUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Usuario': usuarioDni },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(asignarPayload),
       })
 
-      const responseData = await response.json()
+      const responseData = await asignarResponse.json().catch(() => ({}))
 
-      if (!response.ok) {
-        if (response.status === 409 && responseData.message) {
+      if (!asignarResponse.ok) {
+        if (asignarResponse.status === 409 && responseData.message) {
           setErrorTitle("⚠️ Cita No Disponible")
           setErrorMessage(responseData.message)
           setShowErrorDialog(true)
           return
         }
-        const errorMsg = responseData.message || `Error al asignar: ${response.status} ${response.statusText}`
+        const errorMsg = responseData.message || `Error al asignar: ${asignarResponse.status} ${asignarResponse.statusText}`
         setErrorTitle("Error en la Asignación")
         setErrorMessage(errorMsg)
         setShowErrorDialog(true)
@@ -644,7 +742,7 @@ function PatientAssignDiagnosticSupportModalContent({
       //   }
       // }
 
-      await onAssign({ ...requestBody, appointmentId: appointment.id, success: true, responseData })
+      await onAssign({ ...asignarPayload, appointmentId: appointment.id, success: true, responseData })
 
       onSuccess?.(appointment.id)
     } catch (error: any) {
@@ -660,10 +758,18 @@ function PatientAssignDiagnosticSupportModalContent({
 
   if (!patient || !appointment) return null
 
+  const hasAtLeastOneDetalle =
+    isPacientePeriferico ||
+    !selectedOrdenEcografia ||
+    loadingPedido ||
+    selectedDetailCpms.size > 0
+
   const isFormValid = !!selectedTipoCita && !!selectedSeguro &&
     (isPacientePeriferico ? !!ordenCreadaId : !!selectedOrdenEcografia) &&
     (!isSisSeguro() || (!!selectedEntidadSis && !!referencia.trim())) &&
-    !hasConsultorioMatch
+    !hasConsultorioMatch &&
+    !loadingPedido &&
+    hasAtLeastOneDetalle
 
   return (
     <>
@@ -968,6 +1074,14 @@ function PatientAssignDiagnosticSupportModalContent({
 
                                   const allowedRefs = referenciaItems.filter(isReferenciaValida)
                                   if (allowedRefs.length === 0) {
+                                    // PAGANTE (seguro 0): permitir crear orden manual sin referencia REFCON
+                                    // (paciente periférico con orden de otro establecimiento)
+                                    const seguroCode = selectedSeguro?.toString().trim()
+                                    if (seguroCode === '0' || seguroCode === '00') {
+                                      setSelectedRefItem(null)
+                                      setShowCrearOrdenModal(true)
+                                      return
+                                    }
                                     await buscarReferenciaDetalle()
                                     return
                                   }
@@ -1096,6 +1210,15 @@ function PatientAssignDiagnosticSupportModalContent({
                             }
                             const servicioLabel = servicioMeta[servicioKey] || ord.tipoServicio
 
+                            const ordenEstadoMeta: Record<string, { label: string; color: string }> = {
+                              '1': { label: 'CREADA', color: 'bg-sky-100 text-sky-800 border-sky-200' },
+                              '2': { label: 'FIRMADA', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+                              '3': { label: 'PENDIENTE', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+                            }
+                            const seleccionable = String(ord.estadoOrden) === '3'
+                            const estadoOrdenKey = String(ord.estadoOrden || '')
+                            const estadoOrdenBadge = ordenEstadoMeta[estadoOrdenKey]
+
                             const fechaCreacion = ord.regFechaCreacion
                               ? new Date(ord.regFechaCreacion).toLocaleDateString('es-PE', {
                                   day: '2-digit',
@@ -1110,13 +1233,14 @@ function PatientAssignDiagnosticSupportModalContent({
                               <div
                                 key={ord.idOrden}
                                 className={`border rounded-lg p-2.5 transition-colors ${
-                                  isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : 'border-gray-200 bg-white hover:bg-gray-50'
+                                  isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-2">
                                   <div
-                                    className="flex-1 min-w-0 cursor-pointer"
-                                    onClick={() => setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))}
+                                    className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                                    onClick={() => seleccionable && setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))}
+                                    title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}
                                   >
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${origen.color}`} title={origen.label}>
@@ -1126,6 +1250,16 @@ function PatientAssignDiagnosticSupportModalContent({
                                       <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded" title={servicioLabel}>
                                         {servicioLabel}
                                       </span>
+                                      {estadoOrdenBadge && (
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${estadoOrdenBadge.color}`}>
+                                          {estadoOrdenBadge.label}
+                                        </span>
+                                      )}
+                                      {!seleccionable && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
+                                          Requiere aprobación
+                                        </span>
+                                      )}
                                       {fechaCreacion && (
                                         <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded" title={`Creada el ${ord.regFechaCreacion}`}>
                                           <Calendar className="h-3 w-3" />
@@ -1135,14 +1269,49 @@ function PatientAssignDiagnosticSupportModalContent({
                                     </div>
                                     {detallesVisibles.length > 0 && (
                                       <div className="flex flex-col gap-1 mt-1.5">
+                                        {isSelected && (
+                                          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide pl-0.5 mb-0.5">
+                                            Exámenes a enviar:
+                                          </p>
+                                        )}
                                         <ul className="flex flex-col gap-1 pl-1">
                                           {detallesVisibles.map((d, idx) => {
-                                            const nombre = d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`
+                                            const cpms = (d.cpms?.trim() || String(d.idProcedimiento)).trim()
+                                            const nombre = d.cpmsDescripcion?.trim() || `CPMS ${cpms}`
                                             const completado = d.estadoDetalle === '2'
+                                            const requierePedido = detallesPedidoMap[cpms] ?? false
+                                            const isChecked = selectedDetailCpms.has(cpms)
                                             return (
-                                              <li key={idx} className="flex items-center gap-1.5 text-xs">
-                                                <span className="shrink-0 mt-0.5 w-1 h-1 rounded-full bg-blue-500" />
-                                                <span className="truncate text-gray-700 flex-1" title={nombre}>{nombre}</span>
+                                              <li key={idx} className={`flex items-center gap-1.5 text-xs rounded px-0.5 py-0.5 ${isSelected && requierePedido ? 'bg-amber-50' : ''}`}>
+                                                {isSelected ? (
+                                                  <Checkbox
+                                                    id={`det-${ord.idOrden}-${idx}`}
+                                                    checked={isChecked}
+                                                    disabled={completado || loadingPedido}
+                                                    onCheckedChange={(checked) => {
+                                                      setSelectedDetailCpms((prev) => {
+                                                        const next = new Set(prev)
+                                                        if (checked) next.add(cpms)
+                                                        else next.delete(cpms)
+                                                        return next
+                                                      })
+                                                    }}
+                                                    className="h-3.5 w-3.5 shrink-0"
+                                                  />
+                                                ) : (
+                                                  <span className="shrink-0 mt-0.5 w-1 h-1 rounded-full bg-blue-500" />
+                                                )}
+                                                <span className={`truncate flex-1 ${
+                                                  completado ? 'text-gray-400 line-through' :
+                                                  isSelected && requierePedido ? 'text-amber-800' : 'text-gray-700'
+                                                }`} title={nombre}>
+                                                  {nombre}
+                                                </span>
+                                                {isSelected && requierePedido && (
+                                                  <span className="shrink-0 text-[10px] text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0 rounded">
+                                                    ⚠️ Pedido previo
+                                                  </span>
+                                                )}
                                                 {completado
                                                   ? <span className="shrink-0 inline-flex items-center px-1.5 py-0 rounded text-[10px] font-semibold bg-green-100 text-green-800 border border-green-300">✓ Completado</span>
                                                   : <span className="shrink-0 inline-flex items-center px-1.5 py-0 rounded text-[10px] font-semibold bg-orange-100 text-orange-700 border border-orange-300">Pendiente</span>
@@ -1151,6 +1320,14 @@ function PatientAssignDiagnosticSupportModalContent({
                                             )
                                           })}
                                         </ul>
+                                        {isSelected && (
+                                          <p className={`text-[10px] pl-0.5 mt-0.5 ${selectedDetailCpms.size === 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                            {selectedDetailCpms.size === 0
+                                              ? '⚠️ Seleccione al menos un exámen para continuar'
+                                              : `ℹ️ ${selectedDetailCpms.size} de ${detallesVisibles.length} exámen(es) serán enviados`
+                                            }
+                                          </p>
+                                        )}
                                       </div>
                                     )}
                                     {ord.observacionesMedicas && (
@@ -1183,6 +1360,23 @@ function PatientAssignDiagnosticSupportModalContent({
                             )
                           })}
                         </div>
+                      )}
+
+                      {loadingPedido && (
+                        <div className="flex items-center gap-2 text-xs text-amber-600 mt-3">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600" />
+                          Verificando requisitos del examen...
+                        </div>
+                      )}
+
+                      {pedidoAlert.show && !loadingPedido && (
+                        <Alert className="bg-amber-50 border-amber-300 mt-3">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertDescription className="text-amber-800 text-xs">
+                            <p className="font-semibold mb-1">⚠️ Examen(es) con pedido previo detectados</p>
+                            <p>Los siguientes exámenes han sido deshabilitados por defecto porque requieren pedido previo. Puede habilitarlos manualmente si lo desea:</p>
+                          </AlertDescription>
+                        </Alert>
                       )}
                     </div>}
                   </CardContent>
@@ -1328,9 +1522,9 @@ function PatientAssignDiagnosticSupportModalContent({
         </DialogContent>
       </Dialog>
 
-      {(selectedRefItem || ordenToEdit) && (
+      {showCrearOrdenModal && (
         <CrearOrdenApoyoDiagnosticoModal
-          key={ordenToEdit ? `edit-${ordenToEdit.idOrden}` : selectedRefItem!.datos_referencia?.id_referencia}
+          key={ordenToEdit ? `edit-${ordenToEdit.idOrden}` : selectedRefItem?.datos_referencia?.id_referencia || 'nueva-orden'}
           isOpen={showCrearOrdenModal}
           onClose={() => { setShowCrearOrdenModal(false); setOrdenToEdit(null) }}
           referencia={selectedRefItem ?? undefined}

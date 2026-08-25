@@ -1,4 +1,5 @@
 ﻿import React, { createContext, useState, useContext, useCallback } from 'react'
+import { consultorioServerService } from '@/services/master-tables/consultorioService'
 
 export type ConsultorioInfo = {
   CONSULTORIO: string
@@ -42,16 +43,11 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
     try {
       setLoading(true)
       
-      const response = await fetch('/api/master-tables/consultorios/search?tipo=E')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      
-      // Extraer los items de la respuesta
-      const consultoriosData = data.items || data.data || []
+      const result = await consultorioServerService.getConsultorios(1, 100, { tipo: 'E' })
+      const consultoriosData = result.data.map((item: any) => ({
+        CONSULTORIO: String(item.CONSULTORIO || item.consultorio || ''),
+        NOMBRE: String(item.NOMBRE || item.nombre || ''),
+      }))
       setConsultorios(consultoriosData)
       
     } catch (error) {
@@ -66,16 +62,11 @@ export function ConsultoriosProvider({ children }: { children: React.ReactNode }
     try {
       setLoadingHospitalizacion(true)
       
-      const response = await fetch('/api/master-tables/consultorios/search?tipo=H')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      
-      // Extraer los items de la respuesta
-      const consultoriosData = data.items || data.data || []
+      const result = await consultorioServerService.getConsultorios(1, 100, { tipo: 'H' })
+      const consultoriosData = result.data.map((item: any) => ({
+        CONSULTORIO: String(item.CONSULTORIO || item.consultorio || ''),
+        NOMBRE: String(item.NOMBRE || item.nombre || ''),
+      }))
       setConsultoriosHospitalizacion(consultoriosData)
       
     } catch (error) {

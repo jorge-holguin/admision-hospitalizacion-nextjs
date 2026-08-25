@@ -723,44 +723,6 @@ Crea una nueva historia clínica para un paciente.
         }
       }
     },
-    '/appointments/search-by-document': {
-      get: {
-        tags: ['Citas'],
-        summary: 'Buscar citas por documento',
-        description: 'Busca citas de un paciente por su número de documento',
-        parameters: [
-          {
-            name: 'documento',
-            in: 'query',
-            required: true,
-            description: 'Número de documento del paciente',
-            schema: { type: 'string' }
-          }
-        ],
-        responses: {
-          '200': { description: 'Lista de citas' }
-        }
-      }
-    },
-    '/appointments/search-by-name': {
-      get: {
-        tags: ['Citas'],
-        summary: 'Buscar citas por nombre',
-        description: 'Busca citas por nombre del paciente',
-        parameters: [
-          {
-            name: 'nombre',
-            in: 'query',
-            required: true,
-            description: 'Nombre del paciente',
-            schema: { type: 'string' }
-          }
-        ],
-        responses: {
-          '200': { description: 'Lista de citas' }
-        }
-      }
-    },
     '/appointments/doctor-by-date': {
       get: {
         tags: ['Citas'],

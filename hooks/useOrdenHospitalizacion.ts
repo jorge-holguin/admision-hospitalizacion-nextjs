@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { OrdenHospitalizacion } from '@/services/hospitalizacion/ordenHospitalizacionService';
+import { OrdenHospitalizacion, ordenHospitalizacionService } from '@/services/hospitalizacion/ordenHospitalizacionService';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface PaginationState {
@@ -55,89 +55,30 @@ export function useOrdenHospitalizacion({
     setError(null);
 
     try {
-      // Usar la API principal con paginación en lugar de la API específica de paciente
-      const apiUrl = `/api/hospitalization/hospitalization-order?page=${pagination.page}&pageSize=${pagination.pageSize}&pacienteId=${debouncedPacienteId}`;
+      const result = await ordenHospitalizacionService.getPaginatedOrdenHospitalizacion(
+        { pacienteId: debouncedPacienteId },
+        { page: pagination.page, pageSize: pagination.pageSize }
+      );
 
-      const response = await fetch(apiUrl);
-
-      if (!response.ok) {
-        console.error('⚠️ [useOrdenHospitalizacion] Error en respuesta API:', response.status, response.statusText);
-        throw new Error(`Error al obtener órdenes de hospitalización: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      // La API principal devuelve los datos en diferentes formatos dependiendo del endpoint
-      let data = [];
+      let data: OrdenHospitalizacion[] = [];
       let total = 0;
 
-      if (result.success && result.data && Array.isArray(result.data)) {
-        // Formato para filtrado por pacienteId: { success: true, data: [...], pagination: {...} }
+      if (result.success && Array.isArray(result.data)) {
         data = result.data;
         total = result.pagination?.total || data.length;
-      } else if (result.success && result.data && result.data.records) {
-        // Formato estándar: { success: true, data: { records: [...], pagination: {...} } }
+      } else if (result.success && result.data?.records) {
         data = result.data.records;
         total = result.data.pagination?.total || data.length;
-      } else if (Array.isArray(result)) {
-        // Formato antiguo: array directo
-        data = result;
-        total = result.length;
-      } else if (result.data && !Array.isArray(result.data) && !result.data.records) {
-        // Caso especial: objeto data sin records
-        console.warn('⚠️ [useOrdenHospitalizacion] Estructura de datos inesperada:', result);
-        data = [];
-        total = 0;
       }
-
-      const totalPages = Math.ceil(total / pagination.pageSize);
-
-      // La API ya devuelve los datos paginados, no necesitamos hacer paginación del lado del cliente
 
       setOrdenesHospitalizacion(data);
       setPagination(prev => ({
         ...prev,
         total,
-        totalPages,
+        totalPages: Math.ceil(total / pagination.pageSize),
       }));
     } catch (err) {
       console.error('⚠️ [useOrdenHospitalizacion] Error al obtener órdenes:', err);
-
-      // Intentar detectar si el error es por llamar a la URL incorrecta
-      if (err instanceof Error && err.message.includes('404')) {
-        console.error('⚠️ [useOrdenHospitalizacion] Posible error de URL incorrecta. Verificar que se está usando /api/hospitalization/patient/${id} y no /api/hospitalization/${id}');
-
-        // Intentar recuperarse usando la URL correcta
-        try {
-          const correctUrl = `/api/hospitalization/patient/${debouncedPacienteId}`;
-          const recoveryResponse = await fetch(correctUrl);
-
-          if (recoveryResponse.ok) {
-            const recoveryData = await recoveryResponse.json();
-
-            const allData = Array.isArray(recoveryData) ? recoveryData : [];
-            const total = allData.length;
-            const totalPages = Math.ceil(total / pagination.pageSize);
-
-            const start = (pagination.page - 1) * pagination.pageSize;
-            const end = start + pagination.pageSize;
-            const paginatedData = allData.slice(start, end);
-
-            setOrdenesHospitalizacion(paginatedData);
-            setPagination(prev => ({
-              ...prev,
-              total,
-              totalPages,
-            }));
-
-            setLoading(false);
-            return; // Salir temprano si la recuperación fue exitosa
-          }
-        } catch (recoveryErr) {
-          console.error('⚠️ [useOrdenHospitalizacion] Fallo en intento de recuperación:', recoveryErr);
-        }
-      }
-
       setError(err instanceof Error ? err.message : 'Error desconocido al obtener órdenes de hospitalización');
       setOrdenesHospitalizacion([]);
     } finally {

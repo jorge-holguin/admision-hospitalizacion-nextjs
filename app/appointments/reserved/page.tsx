@@ -25,6 +25,7 @@ import { AlertCircle } from "lucide-react"
 import { PatientRegistrationModal } from "@/components/filiation/modals/PatientRegistrationModal"
 import { PatientSearchModal } from "@/components/filiation/modals/PatientSearchModal"
 import { PatientNotFoundModal } from "@/components/appointments/modals/PatientNotFoundModal"
+import { filiacionService } from "@/services/hospitalizacion/filiacionService"
 
 // Componente separado para el contenido del modal de reversión
 // Evita re-renders del padre al escribir en el textarea
@@ -304,16 +305,13 @@ export default function ReservedAppointmentsPage() {
     setLoadingReservas(prev => new Set([...prev, reservaCodigo]))
     
     try {
-      const response = await fetch(`/api/filiation/search?documento=${documento}`)
-      
-      if (!response.ok) {
-        throw new Error('Error al buscar paciente')
-      }
-      
-      const data = await response.json()
-      
+      const data = await filiacionService.getPaginatedFiliacion(
+        { documento },
+        { page: 1, pageSize: 10 }
+      )
+
       // Los datos vienen en un array dentro de data.data
-      const patientInfo = data.data && data.data.length > 0 ? data.data[0] : null
+      const patientInfo = data.data && data.data.length > 0 ? data.data[0] as any : null
       
       if (patientInfo && patientInfo.HISTORIA) {
         setPatientData({

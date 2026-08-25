@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { seguroService } from '@/services/hospitalizacion/seguroService'
 
 interface Seguro {
   Seguro: string
@@ -33,11 +34,12 @@ export function SeguroProvider({ children }: SeguroProviderProps) {
     setError(null)
     
     try {
-      const response = await fetch('/api/utils/insurances')
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      const data = await response.json()
+      const raw = await seguroService.findAll()
+      const data: Seguro[] = raw.map((item: any) => ({
+        Seguro: String(item.seguro || item.Seguro || item.SEGURO || ''),
+        Nombre: String(item.nombre || item.Nombre || item.NOMBRE || ''),
+        CREA_CUENTA: String(item.creaCuenta || item.CreaCuenta || item.CREA_CUENTA || ''),
+      }))
       setSeguros(data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'

@@ -1,6 +1,4 @@
-/**
- * Servicio para gestionar entidades SIS
- */
+import { entidadSisService } from '@/services/citas/entidadSisService'
 
 export interface EntidadSIS {
   ENTIDADSIS: string
@@ -8,7 +6,7 @@ export interface EntidadSIS {
 }
 
 /**
- * Obtiene una entidad SIS por su código
+ * Obtiene una entidad SIS por su código directamente desde el backend Spring Boot
  */
 export async function obtenerEntidadSISPorCodigo(codigo: string): Promise<{
   success: boolean
@@ -17,24 +15,17 @@ export async function obtenerEntidadSISPorCodigo(codigo: string): Promise<{
 }> {
   try {
     console.log('🏥 Obteniendo entidad SIS por código:', codigo)
-    
-    const response = await fetch(`/api/appointments/sis-entities/${codigo}`)
-    
-    if (!response.ok) {
-      console.error('❌ Error obteniendo entidad SIS:', response.status)
-      return {
-        success: false,
-        error: `Error ${response.status}: ${response.statusText}`
-      }
-    }
 
-    const result = await response.json()
-    
-    if (result.success && result.data) {
-      console.log('✅ Entidad SIS obtenida:', result.data)
+    const entidad = await entidadSisService.getEntidadSisByCode(codigo)
+
+    if (entidad) {
+      console.log('✅ Entidad SIS obtenida:', entidad)
       return {
         success: true,
-        data: result.data
+        data: {
+          ENTIDADSIS: entidad.ENTIDADSIS,
+          NOMBRE: entidad.NOMBRE
+        }
       }
     }
 

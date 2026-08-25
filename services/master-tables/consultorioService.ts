@@ -63,6 +63,8 @@ export interface ConsultorioFilters {
   nombre?: string;
   codigo?: string;
   servicio?: string;
+  search?: string;
+  tipo?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -91,6 +93,8 @@ export const consultorioServerService = {
         pageSize: pageSize.toString(),
       };
       
+      if (filters.search) params.search = filters.search;
+      if (filters.tipo) params.tipo = filters.tipo;
       if (filters.nombre) params.nombre = filters.nombre;
       if (filters.codigo) params.codigo = filters.codigo;
       if (filters.servicio) params.servicio = filters.servicio;
@@ -201,6 +205,53 @@ export const consultorioServerService = {
       return normalizeConsultorio(result);
     } catch (error) {
       console.error(`❌ Error in consultorioServerService.updateConsultorio(${id}):`, error);
+      throw error;
+    }
+  },
+
+  async getConsultoriosByEspecialidad(especialidad: string): Promise<Consultorio[]> {
+    try {
+      console.log(`🔍 Buscando consultorios por especialidad: ${especialidad}`);
+      
+      const url = buildUrl(API_ENDPOINTS.masterTables.consultorios.bySpecialty, {
+        especialidad,
+      });
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      const data = Array.isArray(result) ? result : (result.data || []);
+      
+      return data.map(normalizeConsultorio);
+    } catch (error) {
+      console.error('❌ Error in consultorioServerService.getConsultoriosByEspecialidad:', error);
+      throw error;
+    }
+  },
+
+  async getConsultorioTipos(): Promise<{ Codigo: string; Nombre: string }[]> {
+    try {
+      console.log('🔍 Cargando tipos de consultorio');
+      
+      const url = API_ENDPOINTS.masterTables.consultorios.types;
+      const response = await fetchApi(url);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      const data = Array.isArray(result) ? result : (result.data || []);
+      
+      return data.map((row: any) => ({
+        Codigo: row.codigo || row.Codigo || row.TIPO || row.tipo || '',
+        Nombre: row.nombre || row.Nombre || row.NOMBRE || row.nombreTipo || '',
+      }));
+    } catch (error) {
+      console.error('❌ Error in consultorioServerService.getConsultorioTipos:', error);
       throw error;
     }
   },

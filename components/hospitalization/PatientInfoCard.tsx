@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { User, Calendar, Phone, MapPin, FileText, Heart, VenusAndMars, House, Home, Book, Edit } from 'lucide-react';
+import { User, Calendar, Phone, MapPin, FileText, Heart, House, Home, Book, Edit } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import ImageWithLoader from '@/components/ui/ImageWithLoader';
@@ -22,6 +22,32 @@ interface PatientInfoCardProps {
   isLoadingUpdate?: boolean; // Estado de carga del botón actualizar
 }
 
+// Helper para extraer el código de seguro ya sea de string o del objeto anidado
+function extractInsuranceCode(seguro: any): string {
+  if (!seguro) return '';
+  if (typeof seguro === 'string') return seguro.trim();
+  if (typeof seguro === 'object') {
+    return String(
+      seguro.seguro ?? seguro.codigo ?? seguro.id ?? seguro.Seguro ??
+      seguro.nombre ?? seguro.descripcion ?? ''
+    ).trim();
+  }
+  return String(seguro).trim();
+}
+
+function extractInsuranceName(seguro: any, descSeguro?: any): string {
+  if (descSeguro && typeof descSeguro === 'string') return descSeguro.trim();
+  if (!seguro) return '';
+  if (typeof seguro === 'string') return '';
+  if (typeof seguro === 'object') {
+    return String(
+      seguro.nombre ?? seguro.Nombre ?? seguro.descripcion ??
+      seguro.descripcion ?? ''
+    ).trim();
+  }
+  return '';
+}
+
 interface PatientData {
   historyNumber: string;
   paternalSurname: string;
@@ -33,6 +59,8 @@ interface PatientData {
   birthDate: string;
   age: string;
   insurance: string;
+  insuranceCode: string;
+  pacienteId: string;
   phone: string;
   phone2: string;
   district: string;
@@ -52,6 +80,33 @@ interface DiagnosisData {
   description: string;
 }
 
+function formatDate(dateString: string): string {
+  if (!dateString) return 'No especificado';
+  try {
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+    return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch {
+    return dateString;
+  }
+}
+
+function getSexoBadgeColor(sexo: string): string {
+  switch (sexo?.toUpperCase()) {
+    case 'M':
+    case 'MASCULINO':
+      return 'bg-blue-100 text-blue-800';
+    case 'F':
+    case 'FEMENINO':
+      return 'bg-pink-100 text-pink-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+}
+
 export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   patientId,
   hospitalizationOrderId,
@@ -66,10 +121,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   const { getPatientData } = usePatientData();
   
   const [patientData, setPatientData] = useState<PatientData | null>(null);
-  const [hospitalizationData, setHospitalizationData] = useState<any>(null);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisData | null>(null);
-  const [loading, setLoading] = useState(isLoading);
-  const [error, setError] = useState<string | null>(fetchError);
 
   // Memoizar el callback onDataLoaded para evitar recreaciones
   const memoizedOnDataLoaded = useCallback((data: PatientData) => {
@@ -111,7 +163,10 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             sex: contextData.sexo || '',
             birthDate: contextData.fechaNacimiento || '',
             age: contextData.edad || '',
-            insurance: contextData.descSeguro?.trim() || contextData.seguro?.trim() || '',
+            insurance: extractInsuranceName(contextData.seguro, contextData.descSeguro) ||
+                       extractInsuranceCode(contextData.seguro),
+            insuranceCode: extractInsuranceCode(contextData.seguro),
+            pacienteId: String(contextData.paciente ?? '').trim(),
             phone: contextData.telefono1 || '',
             phone2: contextData.telefono2 || '',
             district: contextData.distritoDir || contextData.distrito || '',
@@ -121,7 +176,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             currentDistrict: contextData.distrito || '',
             religion: contextData.religion || 'NO ESPECIFICA',
             desc_religion: contextData.descreligion || 'NO ESPECIFICA',
-            maritalStatus: contextData.estadoCivil || '',
+            maritalStatus: getCivilStatusDescription(contextData.estadoCivil),
             photo: contextData.photo || ''
           };
 
@@ -132,6 +187,15 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             patientDataObj.names
           ].filter(Boolean).join(' ').toUpperCase();
           
+          // Log para depuración de extracción de seguro y paciente
+          console.log('📋 PatientInfoCard datos mapeados:', {
+            pacienteId: patientDataObj.pacienteId,
+            insuranceCode: patientDataObj.insuranceCode,
+            insurance: patientDataObj.insurance,
+            names: patientDataObj.names,
+            age: patientDataObj.age
+          });
+
           // Actualizamos el estado con los datos del paciente
           setPatientData(patientDataObj);
           
@@ -140,22 +204,11 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
         }
       } catch (err: any) {
         console.error('Error fetching patient data:', err);
-        setError(err.message || 'Error al cargar datos');
       }
     };
 
     loadPatientData();
   }, [patientId, fetchPatientData, getPatientData, memoizedOnDataLoaded, initialData]);
-
-  // Actualizar el estado de carga cuando cambie en el contexto
-  useEffect(() => {
-    setLoading(isLoading);
-  }, [isLoading]);
-
-  // Actualizar el estado de error cuando cambie en el contexto
-  useEffect(() => {
-    setError(fetchError);
-  }, [fetchError]);
 
   // Cargar datos de diagnóstico desde initialData (sin llamada a API)
   useEffect(() => {
@@ -172,7 +225,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
     }
   }, [hospitalizationOrderId, initialData]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className={className}>
         <CardContent className="pt-6">
@@ -185,12 +238,12 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
     );
   }
 
-  if (error) {
+  if (fetchError) {
     return (
       <Card className={className}>
         <CardContent className="pt-6">
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{fetchError}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -208,36 +261,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
       </Card>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'No especificado';
-    try {
-      // Asegurar que la fecha se interprete correctamente sin problemas de zona horaria
-      const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
-      
-      // Crear la fecha con los componentes exactos (mes es 0-indexed en JavaScript)
-      return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const getSexoBadgeColor = (sexo: string) => {
-    switch (sexo?.toUpperCase()) {
-      case 'M':
-      case 'MASCULINO':
-        return 'bg-blue-100 text-blue-800';
-      case 'F':
-      case 'FEMENINO':
-        return 'bg-pink-100 text-pink-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   return (
     <Card className={`h-full flex flex-col ${className}`}>

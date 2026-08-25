@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card"
 import { useMedicos } from "@/contexts/MedicosContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
 import { extractPuestoFromToken } from "@/utils/jwtUtils"
+import { usePermissions } from "@/contexts/PermissionsContext"
+import { PERMISOS } from "@/lib/permissions"
 
 export interface AppointmentRow {
   id: string
@@ -41,10 +43,16 @@ interface AppointmentsTableProps {
 export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: AppointmentsTableProps) {
   const { getMedicoInfo, loadMedicosByCodigos } = useMedicos()
   const { getConsultorioNombre } = useConsultorios()
+  const { hasPermission } = usePermissions()
 
   // ✅ Verificar si el usuario es DEVOPS (puede asignar citas en fechas pasadas)
   const userPuesto = extractPuestoFromToken()
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
+
+  const canLiberar   = hasPermission(PERMISOS.CITAS.LIBERAR)
+  const canAsignar   = hasPermission(PERMISOS.CITAS.ASIGNAR)
+  const canVerDetalle = hasPermission(PERMISOS.CITAS.VER_DETALLE)
+  const canImprimir  = hasPermission(PERMISOS.CITAS.IMPRIMIR)
 
   const displayMedico = (row: AppointmentRow) => {
     // Use the medicoNombre field directly from the API response
@@ -70,6 +78,17 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
     if (apt.turno && apt.turno.toUpperCase().startsWith("M")) return "M"
     if (apt.turno && apt.turno.toUpperCase().startsWith("T")) return "T"
     return ""
+  }
+
+  const getSeguroCode = (apt: AppointmentRow): string => {
+    const raw = (apt.seguro ?? '').toString().trim()
+    const codePart = raw.split('-')[0].trim()
+    const name = (apt.seguroNombre ?? '').toString().trim().toUpperCase()
+
+    if (codePart === '0' || codePart === '00' || name.includes('PAGANTE')) return '0'
+    if (codePart === '05' || name.includes('CRÉDITO') || name.includes('CREDITO')) return '05'
+    if (codePart === '13' || name.includes('PROGRAMA')) return '13'
+    return ''
   }
 
   // No longer needed since medicoNombre and consultorioNombre come directly from API
@@ -108,67 +127,63 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 <TableCell className="text-sm">{appointment.nombre || appointment.paciente || '-'}</TableCell>
                 <TableCell>
                   <div className="flex space-x-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAction("release", appointment)}
-                      title="Liberar"
-                      disabled={
-                        // Permitir liberar si:
-                        // 1. Estado 2 (reservado) - cualquier seguro
-                        // 2. Estado 3 (pagado) - solo seguros '05' o '13'
-                        !(Number(appointment.estado) === 2 || 
-                          (Number(appointment.estado) === 3 && 
-                           (appointment.seguro?.trim() === '05' || appointment.seguro?.trim() === '13')))
-                      }
-                    >
-                      <Unlock className="w-4 h-4" />
-                    </Button>
-                    {/* <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAction("reschedule", appointment)}
-                      title="Reprogramar"
-                      disabled={Number(appointment.estado) !== 3 || !(appointment.pagoId || appointment.PAGOID || (appointment as any).pagoId || (appointment as any).PAGOID)}
-                    >
-                      <CalendarClock className="w-4 h-4" />
-                    </Button> */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAction("assign", appointment)}
-                      title="Asignar"
-                      disabled={
-                        // Bloquear si no es estado 1 (no otorgada)
-                        Number(appointment.estado) !== 1 ||
-                        // ✅ DEVOPS puede asignar en fechas pasadas, otros usuarios no
-                        (!isDevOps && appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
-                      }
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAction("details", appointment)}
-                      title="Ver más"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAction("print", appointment)}
-                      title="Imprimir"
-                      disabled={
-                        // Habilitar impresión para estados 2, 3 y 4
-                        !(Number(appointment.estado) === 2 || 
-                          Number(appointment.estado) === 3 || 
-                          Number(appointment.estado) === 4)
-                      }
-                    >
-                      <Printer className="w-4 h-4" />
-                    </Button>
+                    {canLiberar && (() => {
+                      const seguroCode = getSeguroCode(appointment)
+                      const estado = Number(appointment.estado)
+                      const puedeLiberar =
+                        estado === 2 ||
+                        (estado === 3 && (seguroCode === '05' || seguroCode === '13'))
+                      return (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAction("release", appointment)}
+                          title="Liberar"
+                          disabled={!puedeLiberar}
+                        >
+                          <Unlock className="w-4 h-4" />
+                        </Button>
+                      )
+                    })()}
+                    {canAsignar && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAction("assign", appointment)}
+                        title="Asignar"
+                        disabled={
+                          Number(appointment.estado) !== 1 ||
+                          (!isDevOps && Boolean(appointment.fecha) && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                        }
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {canVerDetalle && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAction("details", appointment)}
+                        title="Ver más"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {canImprimir && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAction("print", appointment)}
+                        title="Imprimir"
+                        disabled={
+                          !(Number(appointment.estado) === 2 || 
+                            Number(appointment.estado) === 3 || 
+                            Number(appointment.estado) === 4)
+                        }
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -205,53 +220,56 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 <div className="font-medium text-sm">{appointment.paciente || '-'}</div>
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => onAction("release", appointment)} 
-                  className="text-xs"
-                  disabled={Number(appointment.estado) !== 2 && Boolean(appointment.fechaPago)}
-                >
-                  Liberar
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => onAction("reschedule", appointment)} 
-                  className="text-xs"
-                  disabled={Number(appointment.estado) !== 3 || !(appointment.pagoId || appointment.PAGOID || (appointment as any).pagoId || (appointment as any).PAGOID)}
-                >
-                  Reprogramar
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => onAction("assign", appointment)} 
-                  className="text-xs"
-                  disabled={
-                    // Bloquear si no es estado 1 (no otorgada)
-                    Number(appointment.estado) !== 1 ||
-                    // ✅ DEVOPS puede asignar en fechas pasadas, otros usuarios no
-                    (!isDevOps && appointment.fecha && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
-                  }
-                >
-                  Asignar
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => onAction("details", appointment)} className="text-xs">Ver más</Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => onAction("print", appointment)} 
-                  className="text-xs"
-                  disabled={
-                    // Habilitar impresión para estados 2, 3 y 4
-                    !(Number(appointment.estado) === 2 || 
-                      Number(appointment.estado) === 3 || 
-                      Number(appointment.estado) === 4)
-                  }
-                >
-                  Imprimir
-                </Button>
+                {canLiberar && (() => {
+                  const seguroCode = getSeguroCode(appointment)
+                  const estado = Number(appointment.estado)
+                  const puedeLiberar =
+                    estado === 2 ||
+                    (estado === 3 && (seguroCode === '05' || seguroCode === '13'))
+                  return (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onAction("release", appointment)}
+                      className="text-xs"
+                      disabled={!puedeLiberar}
+                    >
+                      Liberar
+                    </Button>
+                  )
+                })()}
+                {canAsignar && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => onAction("assign", appointment)} 
+                    className="text-xs"
+                    disabled={
+                      Number(appointment.estado) !== 1 ||
+                      (!isDevOps && Boolean(appointment.fecha) && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                    }
+                  >
+                    Asignar
+                  </Button>
+                )}
+                {canVerDetalle && (
+                  <Button size="sm" variant="outline" onClick={() => onAction("details", appointment)} className="text-xs">Ver más</Button>
+                )}
+                {canImprimir && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => onAction("print", appointment)} 
+                    className="text-xs"
+                    disabled={
+                      !(Number(appointment.estado) === 2 || 
+                        Number(appointment.estado) === 3 || 
+                        Number(appointment.estado) === 4)
+                    }
+                  >
+                    Imprimir
+                  </Button>
+                )}
               </div>
             </div>
           </Card>

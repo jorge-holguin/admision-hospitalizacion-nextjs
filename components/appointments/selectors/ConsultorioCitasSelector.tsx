@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { ChevronsUpDown, Check } from "lucide-react"
+import { consultorioServerService } from "@/services/master-tables/consultorioService"
 
 interface ConsultorioItem {
   CONSULTORIO: string
@@ -34,10 +35,16 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
   const load = async (q: string, signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/master-tables/consultorios/search?tipo=C&search=${encodeURIComponent(q)}`, { signal })
-      if (!res.ok) return
-      const data = await res.json()
-      setItems(Array.isArray(data?.items) ? data.items : [])
+      const result = await consultorioServerService.getConsultorios(1, 100, { tipo: 'C', search: q })
+      if (signal?.aborted) return
+      setItems(
+        result.data.map((item: any) => ({
+          CONSULTORIO: String(item.CONSULTORIO || item.consultorio || ''),
+          NOMBRE: String(item.NOMBRE || item.nombre || ''),
+          ESPECIALIDAD: item.ESPECIALIDAD || item.especialidad,
+          ACTIVO: item.ACTIVO ?? item.activo,
+        }))
+      )
     } catch (err: any) {
       if (err?.name !== 'AbortError') console.error('Error cargando consultorios:', err)
     } finally {

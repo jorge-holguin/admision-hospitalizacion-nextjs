@@ -9,6 +9,7 @@ import { TipoDocumentoSelector } from "@/components/appointments/selectors"
 import { useReniec } from "@/hooks/useReniec"
 import { toast } from "@/components/ui/use-toast"
 import { consultarSIS } from "@/services/sisService"
+import { filiacionService } from "@/services/hospitalizacion/filiacionService"
 import { AlertCircle, Clock } from "lucide-react"
 
 interface PatientSearchModalProps {
@@ -65,10 +66,10 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
       // Los RN tienen TIPO_DOCUMENTO=0 y DOCUMENTO=0, pueden haber múltiples
       if (!isNingunoType) {
         // 1. Primero buscar en la API de filiación (solo si NO es tipo Ninguno)
-        const filiacionResponse = await fetch(
-          `/api/filiation/search?page=1&pageSize=10&documento=${documentNumber}`
+        const filiacionData = await filiacionService.getPaginatedFiliacion(
+          { documento: documentNumber },
+          { page: 1, pageSize: 10 }
         );
-        const filiacionData = await filiacionResponse.json();
 
         // 2. Si encuentra datos en filiación, mostrar diálogo de paciente existente
         if (filiacionData.data && filiacionData.data.length > 0) {

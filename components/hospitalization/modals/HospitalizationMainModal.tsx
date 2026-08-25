@@ -33,18 +33,16 @@ export function HospitalizationMainModal({
 
   const handleView = (hospitalizationId: string, hospitalizationData: any) => {
     setSelectedHospitalizationId(hospitalizationId)
-    // NO pasar hospitalizationData porque viene de la lista y no tiene todos los campos
-    // HospitalizationViewModal cargará los datos completos desde la API
-    setSelectedHospitalizationData(null)
+    // Los datos de la lista ya contienen los campos descriptivos (consulNombre, medicoNombre, etc.)
+    // y evitan la llamada duplicada a byId.
+    setSelectedHospitalizationData(hospitalizationData)
     setViewMode('view')
     setCurrentStep('view')
   }
 
   const handleEdit = (hospitalizationId: string, hospitalizationData: any) => {
     setSelectedHospitalizationId(hospitalizationId)
-    // NO pasar hospitalizationData porque viene de la lista y no tiene todos los campos
-    // HospitalizationViewModal cargará los datos completos desde la API
-    setSelectedHospitalizationData(null)
+    setSelectedHospitalizationData(hospitalizationData)
     setViewMode('edit')
     setCurrentStep('view')
   }

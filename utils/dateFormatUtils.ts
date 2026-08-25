@@ -17,7 +17,21 @@ export function convertDateFormat(dateString: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
     return dateString;
   }
-  
+
+  // Intentar convertir desde formato ISO (YYYY-MM-DDTHH:mm:ss)
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateString);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  // Intentar convertir desde formato YYYYMMDD
+  if (/^\d{8}$/.test(dateString)) {
+    const year = dateString.substring(0, 4);
+    const month = dateString.substring(4, 6);
+    const day = dateString.substring(6, 8);
+    return `${year}-${month}-${day}`;
+  }
+
   // Intentar convertir desde formato DD/MM/YYYY
   const parts = dateString.split('/');
   if (parts.length === 3) {

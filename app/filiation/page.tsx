@@ -14,7 +14,7 @@ import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { SISVerification, SISVerificationResult } from "@/components/dashboard/SISVerification"
 import { usePatient } from "@/contexts/PatientContext"
 import { EmergencyModalProvider } from "@/components/emergency/modals/EmergencyModalProvider"
@@ -35,7 +35,10 @@ import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal
 import { ReniecService } from "@/services/filiation/reniecService"
 import { useFiliacion } from "@/hooks/useFiliacion"
 import { Input } from "@/components/ui/input"
+import { API_ENDPOINTS } from "@/lib/api-config"
 import { DataTable } from "@/components/ui/data-table"
+import { usePermissions } from "@/contexts/PermissionsContext"
+import { PERMISOS } from "@/lib/permissions"
 
 
 
@@ -57,6 +60,24 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function FiliationPage() {
+  const { hasPermission, permissions, isLoaded } = usePermissions()
+  const canCrearPaciente   = hasPermission(PERMISOS.PACIENTES.CREAR)
+  const canVerPaciente     = hasPermission(PERMISOS.PACIENTES.VER)
+  const canEditarPaciente  = hasPermission(PERMISOS.PACIENTES.EDITAR)
+  const canCrearHosp       = hasPermission(PERMISOS.HOSPITALIZACION.CREAR)
+  const canCrearEmer       = hasPermission(PERMISOS.EMERGENCIA.CREAR)
+  const canVerificarSIS    = hasPermission(PERMISOS.PACIENTES.VER_SIS)
+
+  // Debug: log permission state and button visibility
+  useEffect(() => {
+    console.log('🔐 [FiliationPage] permissions', {
+      isLoaded,
+      count: permissions.size,
+      codes: [...permissions],
+      canCrearEmer,
+      canVerificarSIS,
+    })
+  }, [isLoaded, permissions])
   const [searchTerm, setSearchTerm] = useState("")
   const [searchType, setSearchType] = useState<"historia" | "documento" | "nombres">("documento")
   const [isSearching, setIsSearching] = useState(false)
@@ -78,12 +99,42 @@ export default function FiliationPage() {
   const [sisData, setSisData] = useState<any>(null)
   const [documentType, setDocumentType] = useState("DNI")
   const [documentNumber, setDocumentNumber] = useState("")
+  const [searchDocumentType, setSearchDocumentType] = useState<string>("D")
+  const [documentTypesList, setDocumentTypesList] = useState<{ tipoDocumento: string; nombre: string }[]>([])
+  const [isLoadingDocumentTypes, setIsLoadingDocumentTypes] = useState(false)
   const [isLoadingPatientHistory, setIsLoadingPatientHistory] = useState(false)
   const [nnConfirmation, setNnConfirmation] = useState<{
     historiaClinica: string
     resumenPaciente: any
   } | null>(null)
   
+  // Cargar tipos de documento para el selector de búsqueda
+  useEffect(() => {
+    const loadDocumentTypes = async () => {
+      setIsLoadingDocumentTypes(true)
+      try {
+        const response = await fetch(API_ENDPOINTS.utils.documentTypes)
+        if (!response.ok) throw new Error('Error al cargar tipos de documento')
+        const data = await response.json()
+        const list = Array.isArray(data) ? data : data?.data || []
+        const active = list.filter((t: any) => t.activo === 1 || t.activo === '1' || t.activo === 1.0)
+        setDocumentTypesList(active)
+        // Asegurar que el valor por defecto sea DNI si está disponible
+        const dni = active.find((t: any) => t.tipoDocumento?.trim() === 'D')
+        if (dni) {
+          setSearchDocumentType(dni.tipoDocumento.trim())
+        } else if (active.length > 0) {
+          setSearchDocumentType(active[0].tipoDocumento.trim())
+        }
+      } catch (error) {
+        console.error('Error cargando tipos de documento:', error)
+      } finally {
+        setIsLoadingDocumentTypes(false)
+      }
+    }
+    loadDocumentTypes()
+  }, [])
+
   // Aplicar debounce al término de búsqueda con retardo variable basado en el tipo de búsqueda
   const debounceDelay = searchType === "nombres" ? 1000 : 500; // Retardo más largo para la búsqueda por nombre
   const debouncedSearchTerm = useDebounce(searchTerm, debounceDelay)
@@ -102,16 +153,19 @@ export default function FiliationPage() {
   // useEffect para activar la búsqueda cuando el término de búsqueda se modifica
   useEffect(() => {
     if (debouncedSearchTerm !== undefined) {
+      const isDni = searchDocumentType === 'D'
+      const minDocument = isDni ? 8 : 1
+
       // Solo buscar si cumple con los requisitos mínimos de caracteres basados en el tipo de búsqueda
       if (
         (searchType === "nombres" && debouncedSearchTerm.length >= 5) || // Al menos 5 caracteres para la búsqueda por nombre
-        (searchType === "documento" && debouncedSearchTerm.length >= 8) ||
+        (searchType === "documento" && debouncedSearchTerm.length >= minDocument) ||
         (searchType === "historia" && debouncedSearchTerm.length >= 8)
       ) {
         handleSearch()
       }
     }
-  }, [debouncedSearchTerm, searchType])
+  }, [debouncedSearchTerm, searchType, searchDocumentType])
 
   const handleSearch = useCallback((term?: string, type?: string) => {
     const searchValue = term || searchTerm
@@ -122,6 +176,9 @@ export default function FiliationPage() {
     
     if (searchValue) {
       filter[searchBy] = searchValue
+      if (searchBy === "documento") {
+        filter.tipoDocumento = searchDocumentType
+      }
       setHasSearched(true)
     } else {
       setHasSearched(false)
@@ -129,18 +186,30 @@ export default function FiliationPage() {
     
     handleFilterChange(filter)
     setIsSearching(false)
-  }, [searchTerm, searchType, handleFilterChange])
+  }, [searchTerm, searchType, searchDocumentType, handleFilterChange])
 
   const router = useRouter();
+  const pathname = usePathname();
+  const isClinicalHistory = pathname?.includes('/historias-clinicas') ?? false;
   const { setPatientData } = usePatient();
+
+  // Normaliza campos que el backend puede devolver en UPPERCASE o camelCase
+  const getPatientId = (patient: any) =>
+    String(patient?.PACIENTE || patient?.paciente || patient?.pacienteId || patient?.id || '').trim()
+  const getPatientName = (patient: any) =>
+    String(patient?.NOMBRES || patient?.nombres || patient?.name || '').trim()
+  const getPatientDocument = (patient: any) =>
+    String(patient?.DOCUMENTO || patient?.documento || patient?.dni || '').trim()
+  const getPatientHistoria = (patient: any) =>
+    String(patient?.HISTORIA || patient?.historia || patient?.hc || patient?.historiaClinica || '').trim()
 
   const handlePatientSelect = (patient: any) => {
     // Save patient data to context
     setPatientData({
-      hc: patient.HISTORIA,
-      name: patient.NOMBRES,
-      documento: patient.DOCUMENTO,
-      pacienteId: patient.PACIENTE
+      hc: getPatientHistoria(patient),
+      name: getPatientName(patient),
+      documento: getPatientDocument(patient),
+      pacienteId: getPatientId(patient)
     });
     
     // Abrir modal de hospitalización en lugar de redireccionar
@@ -149,18 +218,37 @@ export default function FiliationPage() {
   };
 
   const handleEmergencySelect = (patient: any) => {
+    const patientId = getPatientId(patient)
+    const patientName = getPatientName(patient)
+    const documento = getPatientDocument(patient)
+    const historia = getPatientHistoria(patient)
+
+    console.log('🚨 [FiliationPage] handleEmergencySelect', {
+      patient,
+      resolvedPatientId: patientId,
+      resolvedPatientName: patientName,
+    })
+
     // Save patient data to context
     setPatientData({
-      hc: patient.HISTORIA || patient.hc,
-      name: patient.NOMBRES || patient.name,
-      documento: patient.DOCUMENTO || patient.dni,
-      pacienteId: patient.PACIENTE || patient.id
+      hc: historia,
+      name: patientName,
+      documento: documento,
+      pacienteId: patientId
     });
     
     // Abrir modal de emergencia
     setSelectedPatientForEmergency(patient);
     setIsEmergencyModalOpen(true);
   };
+
+  // Debug: track emergency modal state changes
+  useEffect(() => {
+    console.log('🚨 [FiliationPage] emergency modal state', {
+      isEmergencyModalOpen,
+      selectedPatientForEmergency,
+    })
+  }, [isEmergencyModalOpen, selectedPatientForEmergency])
 
   // Funciones para manejar los modales de filiación
   const handleNewPatientClick = () => {
@@ -355,7 +443,7 @@ export default function FiliationPage() {
   // Función para editar paciente
   const handleEditPatient = async (patient: any) => {
     // Cargar datos completos de historia clínica
-    const historyData = await fetchPatientHistoryData(patient.PACIENTE);
+    const historyData = await fetchPatientHistoryData(getPatientId(patient));
     
     // Combinar datos del paciente con datos de historia clínica
     const completePatientData = historyData ? { ...patient, ...historyData } : patient;
@@ -367,7 +455,7 @@ export default function FiliationPage() {
   // Función para ver registro del paciente
   const handleViewPatient = async (patient: any) => {
     // Cargar datos completos de historia clínica
-    const historyData = await fetchPatientHistoryData(patient.PACIENTE);
+    const historyData = await fetchPatientHistoryData(getPatientId(patient));
     
     // Combinar datos del paciente con datos de historia clínica
     const completePatientData = historyData ? { ...patient, ...historyData } : patient;
@@ -378,12 +466,13 @@ export default function FiliationPage() {
 
   // Función para anular paciente
   const handleDeletePatient = async (patient: any) => {
-    if (confirm(`¿Está seguro de anular el paciente ${patient.NOMBRES}?`)) {
+    const patientName = getPatientName(patient)
+    if (confirm(`¿Está seguro de anular el paciente ${patientName}?`)) {
       try {
         // Aquí iría la lógica para anular el paciente
         toast({
           title: "Paciente anulado",
-          description: `El paciente ${patient.NOMBRES} ha sido anulado correctamente.`,
+          description: `El paciente ${patientName} ha sido anulado correctamente.`,
         });
         // Recargar la lista
         handleSearch();
@@ -500,29 +589,34 @@ export default function FiliationPage() {
       header: "Acciones",
       cell: (patient: any) => (
         <div className="flex items-center space-x-2">
-          {/* Botones principales siempre visibles */}
-          <Button 
-            variant="default" 
-            size="sm" 
-            className="bg-blue-500 hover:bg-blue-600 text-white" 
-            onClick={() => handlePatientSelect(patient)}
-          >
-            <Home className="mr-1 h-4 w-4" /> Hospitalizar
-          </Button>
-          <Button 
-            variant="default" 
-            size="sm" 
-            className="bg-red-500 hover:bg-red-600 text-white" 
-            onClick={() => handleEmergencySelect(patient)}
-          >
-            <Siren className="mr-1 h-4 w-4" /> Emergencia
-          </Button>
-          <SISVerification 
-            patientId={patient.PACIENTE}
-            documento={patient.DOCUMENTO}
-            buttonSize="sm"
-            onVerificationComplete={handleSISVerificationComplete}
-          />
+          {!isClinicalHistory && canCrearHosp && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="bg-blue-500 hover:bg-blue-600 text-white" 
+              onClick={() => handlePatientSelect(patient)}
+            >
+              <Home className="mr-1 h-4 w-4" /> Hospitalizar
+            </Button>
+          )}
+          {!isClinicalHistory && canCrearEmer && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="bg-red-500 hover:bg-red-600 text-white" 
+              onClick={() => handleEmergencySelect(patient)}
+            >
+              <Siren className="mr-1 h-4 w-4" /> Emergencia
+            </Button>
+          )}
+          {!isClinicalHistory && canVerificarSIS && (
+            <SISVerification 
+              patientId={getPatientId(patient)}
+              documento={getPatientDocument(patient)}
+              buttonSize="sm"
+              onVerificationComplete={handleSISVerificationComplete}
+            />
+          )}
           
           {/* Menú desplegable para acciones secundarias */}
           <DropdownMenu>
@@ -532,21 +626,25 @@ export default function FiliationPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
-                <Eye className="mr-2 h-4 w-4" />
-                Ver Registro
-              </DropdownMenuItem>
-              {<DropdownMenuItem onClick={() => handleEditPatient(patient)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Editar
-              </DropdownMenuItem>}
-              {<DropdownMenuItem 
+              {canVerPaciente && (
+                <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Registro
+                </DropdownMenuItem>
+              )}
+              {canEditarPaciente && (
+                <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem 
                 onClick={() => handleDeletePatient(patient)}
                 className="text-red-600"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Anular
-              </DropdownMenuItem>}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -557,13 +655,15 @@ export default function FiliationPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navbar title="Sistema de Admisión Web" subtitle="Filiación" showBackButton={false} />
+        <Navbar title="Sistema de Admisión Web" subtitle={isClinicalHistory ? "Historias Clínicas" : "Filiación"} showBackButton={false} />
         <Toaster />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Historias Clínicas</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isClinicalHistory ? 'Historias Clínicas' : 'Hospitalización / Emergencia'}
+          </h1>
 
           <Button
             variant="outline"
@@ -576,20 +676,24 @@ export default function FiliationPage() {
           </Button>
         </div>
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-blue-700 border-b border-gray-200 pb-2 inline-block">Búsqueda de historias clínicas para hospitalización</h2>
+          <h2 className="text-xl font-semibold text-blue-700 border-b border-gray-200 pb-2 inline-block">
+            {isClinicalHistory ? 'Búsqueda y gestión de historias clínicas' : 'Búsqueda de historias clínicas para hospitalización'}
+          </h2>
         </div>
 
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center justify-between font-bold text-gray-900">
               <span className="text-lg">Búsqueda de Pacientes</span>
-              <Button
-                onClick={handleNewPatientClick}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Nuevo Paciente
-              </Button>
+              {canCrearPaciente && (
+                <Button
+                  onClick={handleNewPatientClick}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Nuevo Paciente
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -608,14 +712,45 @@ export default function FiliationPage() {
                   <option value="nombres">Apellidos y Nombres</option>
                 </select>
               </div>
+
+              {searchType === "documento" && (
+                <div className="w-[180px]">
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={searchDocumentType}
+                    onChange={(e) => {
+                      setSearchDocumentType(e.target.value)
+                      setSearchTerm("")
+                    }}
+                    disabled={isLoadingDocumentTypes}
+                  >
+                    {documentTypesList.map((t) => (
+                      <option key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
+                        {t.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                 
                 <Input
-                  placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : "DNI (mín. 8 dígitos)"}`}
+                  placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
                   className="pl-8 pr-8"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (searchType === "documento" && searchDocumentType === "D") {
+                      // DNI: solo dígitos, máximo 8
+                      const digits = value.replace(/\D/g, "").slice(0, 8)
+                      setSearchTerm(digits)
+                    } else {
+                      setSearchTerm(value)
+                    }
+                  }}
+                  maxLength={searchType === "documento" && searchDocumentType === "D" ? 8 : undefined}
                   disabled={isLoading}
                 />
                 
@@ -773,8 +908,8 @@ export default function FiliationPage() {
           setIsEmergencyModalOpen(false);
           setSelectedPatientForEmergency(null);
         }}
-        patientId={selectedPatientForEmergency?.PACIENTE || ''}
-        patientName={selectedPatientForEmergency?.NOMBRES || ''}
+        patientId={getPatientId(selectedPatientForEmergency)}
+        patientName={getPatientName(selectedPatientForEmergency)}
       />
 
       {/* Modal de Hospitalización */}
@@ -784,8 +919,8 @@ export default function FiliationPage() {
           setIsHospitalizationModalOpen(false);
           setSelectedPatientForHospitalization(null);
         }}
-        patientId={selectedPatientForHospitalization?.PACIENTE || ''}
-        patientName={selectedPatientForHospitalization?.NOMBRES || ''}
+        patientId={getPatientId(selectedPatientForHospitalization)}
+        patientName={getPatientName(selectedPatientForHospitalization)}
       />
 
       {/* Modales de Filiación - Envueltos en providers solo cuando están abiertos o hay confirmación NN */}

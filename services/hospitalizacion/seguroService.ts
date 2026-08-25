@@ -11,6 +11,7 @@ export interface Seguro {
   flatEmeWeb?: number
   flatLiqWeb?: number
   codsis?: string
+  creaCuenta?: string
 }
 
 /**
@@ -33,11 +34,28 @@ export class SeguroService {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const raw = await response.json();
+      const data = Array.isArray(raw) ? raw : (raw.data || []);
+      
       console.log(`✅ SeguroService: ${data.length} seguros obtenidos`);
       
-      // Filtrar solo los activos con flat_liq_web=1
-      const filtrados = data.filter((s: Seguro) => s.flatLiqWeb === 1);
+      // Normalizar campos (soporta uppercase y lowercase)
+      const seguros = data.map((item: any) => ({
+        seguro: String(item.seguro || item.Seguro || item.SEGURO || ''),
+        nombre: String(item.nombre || item.Nombre || item.NOMBRE || ''),
+        activo: item.activo ?? item.ACTIVO ?? 1,
+        tipoSeguro: item.tipoSeguro ?? item.TIPO_SEGURO,
+        codseg: item.codseg ?? item.CODSEG,
+        codhis: item.codhis ?? item.CODHIS,
+        codcita: item.codcita ?? item.CODCITA,
+        flatEmeWeb: item.flatEmeWeb ?? item.FLAT_EME_WEB,
+        flatLiqWeb: item.flatLiqWeb ?? item.FLAT_LIQ_WEB,
+        codsis: item.codsis ?? item.CODSIS,
+        creaCuenta: String(item.creaCuenta ?? item.CreaCuenta ?? item.CREA_CUENTA ?? ''),
+      } as Seguro));
+      
+      // Filtrar solo los activos con flat_liq_web=1 cuando el campo exista
+      const filtrados = seguros.filter((s: Seguro) => s.flatLiqWeb === undefined || s.flatLiqWeb === 1);
       return filtrados;
     } catch (error) {
       console.error('❌ Error al buscar seguros:', error);

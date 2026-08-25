@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { consultorioServerService } from "@/services/master-tables/consultorioService";
 
 export interface Consultorio {
   CONSULTORIO: string;
   NOMBRE: string;
-  ABREVIATURA: string;
+  ABREVIATURA?: string;
   ESPECIALIDAD?: string;
   TIPO?: string;
   ACTIVO: string;
@@ -32,10 +33,7 @@ export function useConsultorioById(id: string | null) {
       setError(null);
 
       try {
-        const res = await fetch(`/api/master-tables/consultorios/${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error(`Error ${res.status} al obtener consultorio`);
-        
-        const data = await res.json();
+        const data = await consultorioServerService.getConsultorioById(id);
         setConsultorio(data);
       } catch (err) {
         console.error("Error fetching consultorio:", err);

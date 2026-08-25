@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect, { OptionItem } from "@/components/ui/SearchableSelect";
@@ -8,18 +8,12 @@ import { useSeguros } from "@/contexts/SegurosContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
 import { useMotivosEmergencia } from "@/contexts/MotivosEmergenciaContext"
 import { useFormasIngreso } from "@/contexts/FormasIngresoContext"
+import { motivoEmergenciaService } from "@/services/emergencia/motivoEmergenciaService"
+import { getAllEmpresasSeguro, type EmpresaSeguro } from "@/services/emergencia/empresaSeguroApiService"
 import { ConsultorioEmergencySelector } from "../selectors/ConsultorioEmergencySelector";
 import { usePatientData } from "@/contexts/PatientDataContext";
 
 // Using OptionItem from SearchableSelect component
-
-interface EmpresaSeguro {
-  EMPRESA: string;
-  NOMBRE: string;
-  RUC?: string;
-  DIRECCION?: string;
-  TELEFONO?: string;
-}
 
 interface EmergencySectionProps {
   formData: any;
@@ -43,6 +37,26 @@ interface EmergencySectionProps {
   loadingConsultorios?: boolean;
   loadingFormas?: boolean;
   loadingSeguros?: boolean;
+}
+
+// Helpers para leer los campos sin depender solo del mapeo del contexto
+const getMotivoCode = (m: any): string => {
+  for (const field of ['MOTIVO_EMERGENCIA', 'codigo', 'CODIGO', 'motivoEmergencia']) {
+    if (m?.[field] !== undefined && m?.[field] !== null) {
+      const value = String(m[field]).trim()
+      if (value !== '') return value
+    }
+  }
+  return ''
+}
+const getMotivoName = (m: any): string => {
+  for (const field of ['NOMBRE', 'nombre']) {
+    if (m?.[field] !== undefined && m?.[field] !== null) {
+      const value = String(m[field]).trim()
+      if (value !== '') return value
+    }
+  }
+  return ''
 }
 
 // Definir opciones para tipo de atención
@@ -87,18 +101,38 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   const internalFormasIngreso: any[] = [];
   const internalLoadingMotivos = false;
   const internalLoadingFormas = false;
-  
-  // Use preloaded options if available, otherwise use context
-  const motivos = preloadedMotivos || contextMotivos || [];
-  const consultorios = preloadedConsultorios || contextConsultorios || [];
-  const formasIngreso = preloadedFormasIngreso || contextFormasIngreso || [];
-  const seguros = preloadedSeguros || contextSeguros || [];
-  
+
   // Use loading states from props or context
   const effectiveLoadingMotivos = propLoadingMotivos !== undefined ? propLoadingMotivos : contextLoadingMotivos;
   const effectiveLoadingConsultorios = propLoadingConsultorios !== undefined ? propLoadingConsultorios : contextLoadingConsultorios;
   const effectiveLoadingFormas = propLoadingFormas !== undefined ? propLoadingFormas : contextLoadingFormasIngreso;
   const effectiveLoadingSeguros = propLoadingSeguros !== undefined ? propLoadingSeguros : contextLoadingSeguros;
+  
+  // Fallback: si el contexto no trae códigos válidos, cargar directo desde la API
+  const [fallbackMotivos, setFallbackMotivos] = useState<any[]>([])
+  const contextHasValidCodes = contextMotivos.some((m) => getMotivoCode(m) !== '')
+  
+  useEffect(() => {
+    if (effectiveLoadingMotivos || contextHasValidCodes) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        console.log('🚑 [EmergencySection] fallback: cargando motivos directamente')
+        const items = await motivoEmergenciaService.findAll()
+        if (!cancelled) setFallbackMotivos(items || [])
+      } catch (error) {
+        console.error('❌ [EmergencySection] error cargando motivos:', error)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [effectiveLoadingMotivos, contextHasValidCodes])
+  
+  // Use preloaded options if available, otherwise use context
+  const motivos = preloadedMotivos || (contextHasValidCodes ? contextMotivos : fallbackMotivos) || [];
+  const consultorios = preloadedConsultorios || contextConsultorios || [];
+  const formasIngreso = preloadedFormasIngreso || contextFormasIngreso || [];
+  const seguros = preloadedSeguros || contextSeguros || [];
 
   // ===== Búsquedas =====
   const [searchTipoAtencion, setSearchTipoAtencion] = useState("");
@@ -122,17 +156,15 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
   }, [formData.seguro, seguroTrimmed, isSOAT, formData.seguroDisplay]);
   
   // Cargar empresas de seguro cuando el seguro es SOAT
+  const empresasSeguroLoadedRef = useRef(false);
   const fetchEmpresasSeguro = useCallback(async (search?: string) => {
+    // Una sola carga desde Spring, el filtro por búsqueda se hace en cliente
+    if (empresasSeguroLoadedRef.current) return;
+    empresasSeguroLoadedRef.current = true;
     try {
       setLoadingEmpresasSeguro(true);
-      const url = search 
-        ? `/api/emergency/empresas-seguro?search=${encodeURIComponent(search)}`
-        : '/api/emergency/empresas-seguro';
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.ok) {
-        setEmpresasSeguro(data.data || []);
-      }
+      const all = await getAllEmpresasSeguro();
+      setEmpresasSeguro(all);
     } catch (error) {
       console.error('❌ Error al cargar empresas de seguro:', error);
     } finally {
@@ -260,15 +292,20 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     .filter(
       (m) =>
         !searchMotivo ||
-        m.NOMBRE?.toLowerCase().includes(searchMotivo.toLowerCase()) ||
-        m.MOTIVO_EMERGENCIA?.toLowerCase().includes(searchMotivo.toLowerCase())
+        getMotivoName(m).toLowerCase().includes(searchMotivo.toLowerCase()) ||
+        getMotivoCode(m).toLowerCase().includes(searchMotivo.toLowerCase())
     )
-    .map((m) => ({
-      value: m.MOTIVO_EMERGENCIA,
-      display: `(${m.MOTIVO_EMERGENCIA}) - ${m.NOMBRE}`,
-      description: "",
-      data: m,
-    }));
+    .map((m) => {
+      const code = getMotivoCode(m)
+      const name = getMotivoName(m)
+      return {
+        value: code,
+        display: code ? `(${code}) - ${name}` : name,
+        description: "",
+        data: m,
+      }
+    })
+    .filter((o) => o.value);
 
   const formatConsultorios = consultorios
     .filter(
@@ -344,11 +381,25 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
       }));
   }, [seguros, searchSeguro]);
 
+  // Helper para extraer el código de un valor que puede venir con formato "(08) - ..."
+  const extractCodeFromDisplay = (value?: string): string => {
+    if (!value) return ''
+    const trimmed = value.trim()
+    if (trimmed.includes(' - ')) {
+      return trimmed.split(' - ')[0].replace(/^\(|\)$/g, '').trim()
+    }
+    return trimmed
+  }
+
   // Helper para mostrar display actual a partir del code guardado
   const displayFrom = (
     opts: { value: string; display: string }[],
     code?: string
-  ) => opts.find((o) => o.value === code)?.display || "";
+  ) => {
+    const search = extractCodeFromDisplay(code)
+    if (!search) return ''
+    return opts.find((o) => String(o.value).trim() === search)?.display || ''
+  };
   
   // Formato de opciones para aseguradoras
   const formatEmpresasSeguro = useMemo(() => {
@@ -524,7 +575,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
         {/* Motivo de Emergencia */}
         <SearchableSelect
           label="Motivo de Emergencia"
-          value={formData.motivoEmergenciaDisplay || ""}
+          value={displayFrom(formatMotivos, formData.motivoEmergencia)}
           options={formatMotivos}
           loading={effectiveLoadingMotivos}
           search={searchMotivo}

@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label'
 import { useSegurosCita } from '@/contexts/SegurosCitaContext'
 
 interface TipoSeguro {
-  SEGURO: string
-  NOMBRE: string
+  Seguro: string
+  Nombre: string
 }
 
 interface TipoSeguroCitaSelectorProps {
@@ -44,12 +44,12 @@ export function TipoSeguroCitaSelector({
   }, [initialValue, value, items, onChange])
 
   const buildDisplayText = (tipoSeguro: TipoSeguro) => {
-    return `${tipoSeguro.SEGURO} - ${tipoSeguro.NOMBRE}`
+    return `${tipoSeguro.Seguro} - ${tipoSeguro.Nombre}`
   }
 
   const getSelectedText = () => {
     if (!value) return placeholder
-    const selected = items.find(item => item.SEGURO === value)
+    const selected = items.find(item => item.Seguro === value)
     return selected ? buildDisplayText(selected) : placeholder
   }
 
@@ -87,22 +87,22 @@ export function TipoSeguroCitaSelector({
                   .filter((tipoSeguro) => {
                     const searchTerm = search.toLowerCase()
                     return (
-                      (tipoSeguro.SEGURO || '').toLowerCase().includes(searchTerm) ||
-                      (tipoSeguro.NOMBRE || '').toLowerCase().includes(searchTerm)
+                      (tipoSeguro.Seguro || '').toLowerCase().includes(searchTerm) ||
+                      (tipoSeguro.Nombre || '').toLowerCase().includes(searchTerm)
                     )
                   })
                   .map((tipoSeguro, idx) => {
                     const displayText = buildDisplayText(tipoSeguro)
                     return (
                       <CommandItem
-                        key={`${tipoSeguro.SEGURO}-${idx}`}
+                        key={`${tipoSeguro.Seguro}-${idx}`}
                         value={displayText}
                         onSelect={() => {
-                          onChange(tipoSeguro.SEGURO)
+                          onChange(tipoSeguro.Seguro)
                           setOpen(false)
                         }}
                       >
-                        <Check className={`mr-2 h-4 w-4 ${value === tipoSeguro.SEGURO ? "opacity-100" : "opacity-0"}`} />
+                        <Check className={`mr-2 h-4 w-4 ${value === tipoSeguro.Seguro ? "opacity-100" : "opacity-0"}`} />
                         {displayText}
                       </CommandItem>
                     )

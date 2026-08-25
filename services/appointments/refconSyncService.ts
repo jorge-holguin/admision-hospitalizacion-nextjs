@@ -197,7 +197,7 @@ export async function actualizarEstadoRefcon(citaId: string, estadoRefcon: numbe
   try {
     console.log(`🔄 Actualizando estado REFCON para cita ${citaId} a estado: ${estadoRefcon}`)
 
-    const response = await fetch(`${API_REFCON_CITA_URL}/cita/${citaId}/refcon-estado?estadoRefcon=${estadoRefcon}`, {
+    const response = await fetch(`${API_REFCON_URL}/cita/${citaId}/refcon-estado?estadoRefcon=${estadoRefcon}`, {
       method: 'PUT',
       headers: {
         'accept': '*/*',

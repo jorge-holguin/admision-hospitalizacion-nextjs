@@ -15,8 +15,18 @@ import { LocalidadForm } from "@/components/master-tables/modals/LocalidadForm"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import RoleBasedRoute from "@/components/RoleBasedRoute"
+import { usePermissions } from "@/contexts/PermissionsContext"
+import { PERMISOS } from "@/lib/permissions"
 
 export default function MasterTablesPage() {
+  const { hasPermission } = usePermissions()
+  const canCrearMedico       = hasPermission(PERMISOS.MEDICOS.CREAR)
+  const canEditarMedico      = hasPermission(PERMISOS.MEDICOS.EDITAR)
+  const canCrearConsultorio  = hasPermission(PERMISOS.CONSULTORIOS.CREAR)
+  const canEditarConsultorio = hasPermission(PERMISOS.CONSULTORIOS.EDITAR)
+  const canCrearLocalidad    = hasPermission(PERMISOS.LOCALIDADES.CREAR)
+  const canEditarLocalidad   = hasPermission(PERMISOS.LOCALIDADES.EDITAR)
+
   const [activeTab, setActiveTab] = useState("medicos")
   
   // Estados para los diálogos de formularios
@@ -34,41 +44,38 @@ export default function MasterTablesPage() {
 
   // Handlers para abrir formularios de creación - sin llamadas a la API
   const handleNewMedico = () => {
-    // Simplemente establecemos el estado a null y abrimos el diálogo
-    // No se hace ninguna llamada a la API aquí
+    if (!canCrearMedico) return
     setSelectedMedico(null)
     setMedicoDialogOpen(true)
   }
 
   const handleNewConsultorio = () => {
-    // Simplemente establecemos el estado a null y abrimos el diálogo
-    // No se hace ninguna llamada a la API aquí
+    if (!canCrearConsultorio) return
     setSelectedConsultorio(null)
     setConsultorioDialogOpen(true)
   }
 
   const handleNewLocalidad = () => {
-    // Simplemente establecemos el estado a null y abrimos el diálogo
-    // No se hace ninguna llamada a la API aquí
+    if (!canCrearLocalidad) return
     setSelectedLocalidad(null)
     setLocalidadDialogOpen(true)
   }
 
   // Handlers para abrir formularios de edición - pasando solo el ID necesario
   const handleEditMedico = (medico: any) => {
-    // Pasamos el objeto completo para evitar una llamada adicional a la API
+    if (!canEditarMedico) return
     setSelectedMedico(medico)
     setMedicoDialogOpen(true)
   }
 
   const handleEditConsultorio = (consultorio: any) => {
-    // Pasamos el objeto completo para evitar una llamada adicional a la API
+    if (!canEditarConsultorio) return
     setSelectedConsultorio(consultorio)
     setConsultorioDialogOpen(true)
   }
 
   const handleEditLocalidad = (localidad: any) => {
-    // Pasamos el objeto completo para evitar una llamada adicional a la API
+    if (!canEditarLocalidad) return
     setSelectedLocalidad(localidad)
     setLocalidadDialogOpen(true)
   }

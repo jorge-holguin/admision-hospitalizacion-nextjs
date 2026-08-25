@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Edit, Copy } from "lucide-react"
+import { ArrowLeft, Edit, Copy, Trash2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,7 @@ import EmergencySectionView from '@/components/emergency/view/EmergencySectionVi
 import { resolveStatus } from '@/utils/statusUtils'
 import { toast } from "@/components/ui/use-toast"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
+import { emergenciaService } from "@/services/emergencia/emergenciaService"
 import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal"
 import { useFetchPatientData } from "@/contexts/PatientDataContext"
 import { EstadoCivilProvider } from "@/contexts/filiation/EstadoCivilContext"
@@ -29,6 +30,58 @@ interface EmergencyViewModalProps {
   onModeChange?: (mode: 'view' | 'edit') => void
   onSuccess?: (data: any) => void
   onError?: (error: string) => void
+}
+
+// Normaliza la respuesta de Spring (camelCase) al formato uppercase que espera la vista
+function mapApiToViewData(raw: any): any {
+  const src = raw?.data || raw || {};
+
+  return {
+    EMERGENCIA_ID: src.emergenciaId || src.EMERGENCIA_ID || '',
+    PACIENTE: src.paciente || src.PACIENTE || '',
+    FECHA: src.fecha || src.FECHA || '',
+    HORA: src.hora || src.HORA || '',
+    CONSULTORIO: src.consultorio || src.CONSULTORIO || '',
+    CONSULTORIO_DESCRIPCION: src.consultorioNombre || src.CONSULTORIO_DESCRIPCION || '',
+    MOTIVO_EMERGENCIA: src.motivoConsulta || src.motivoEmergencia || src.MOTIVO_EMERGENCIA || '',
+    MOTIVO_DESCRIPCION: src.motivoConsultaDescripcion || src.motivoNombre || src.MOTIVO_DESCRIPCION || '',
+    TIPOATENCION: src.tipoAtencion || src.TIPOATENCION || '',
+    ESTADO_PACIENTE: src.estadoPaciente || src.condicionPaciente || src.ESTADO_PACIENTE || '',
+    FORMA_INGRESO: src.formaIngreso || src.FORMA_INGRESO || '',
+    FORMA_INGRESO_DESCRIPCION: src.formaIngresoNombre || src.FORMA_INGRESO_DESCRIPCION || '',
+    SEGUROLIQ: src.seguroLiq || src.seguro || src.SEGUROLIQ || src.SEGURO || '',
+    SEGUROLIQ_NOMBRE: src.seguroNombre || src.seguroDescripcion || src.SEGUROLIQ_NOMBRE || '',
+    SEGURO: src.seguro || src.SEGURO || '',
+    SEGURO_NOMBRE: src.seguroNombre || src.SEGURO_NOMBRE || '',
+    EMPRESASEGURO: src.empresaSeguro || src.aseguradora || src.EMPRESASEGURO || '',
+    EMPRESASEG_NOMBRE: src.empresaSeguroNombre || src.aseguradoraNombre || src.EMPRESASEG_NOMBRE || '',
+    OBSERVACION1: src.observacion1 || src.OBSERVACION1 || '',
+    OBSERVACION2: src.observacion2 || src.OBSERVACION2 || '',
+    RELATO: src.relato || src.RELATO || '',
+    ACOMPANANTE: src.acompanante || src.ACOMPANANTE || '',
+    TIPO_DOCUMENTOA: src.tipoDocumentoA || src.tipoDocumentoAcompanante || src.TIPO_DOCUMENTOA || '',
+    DOCUMENTOA: src.documentoA || src.documentoAcompanante || src.DOCUMENTOA || '',
+    _debug_acompanante: (() => {
+      console.log('🔍 mapApiToViewData acompañante:', {
+        documentoA: src.documentoA,
+        documentoAcompanante: src.documentoAcompanante,
+        DOCUMENTOA: src.DOCUMENTOA,
+        mapped: src.documentoA || src.documentoAcompanante || src.DOCUMENTOA || ''
+      });
+      return null;
+    })(),
+    ESTADO: String(src.estado ?? src.ESTADO ?? ''),
+    CUENTAID: src.cuentaId || src.CUENTAID || '',
+    MEDICO: src.medico || src.MEDICO || '0',
+    NOMBRES: src.nombres || src.NOMBRES || '',
+    NOMBRE: src.nombre || src.NOMBRE || '',
+    PATERNO: src.paterno || src.PATERNO || '',
+    MATERNO: src.materno || src.MATERNO || '',
+    DOCUMENTO: src.documento || src.DOCUMENTO || '',
+    EDAD: src.edad || src.EDAD || '',
+    USUARIO: src.usuario || src.USUARIO || '',
+    ESTADO_CIVIL: src.estadoCivil || src.ESTADO_CIVIL || src.ESTADOCIVIL || ''
+  };
 }
 
 export function EmergencyViewModal({
@@ -81,30 +134,22 @@ export function EmergencyViewModal({
         if (emergencyId === 'undefined') {
           throw new Error('ID de emergencia inválido')
         }
-        
-        const response = await fetch(`/api/emergency/${emergencyId}`)
-        
-        // Handle HTTP errors
-        if (response.status === 404) {
+
+        const raw = await emergenciaService.getEmergenciaById(emergencyId)
+
+        if (!raw) {
           throw new Error('Registro de emergencia no encontrado')
-        } else if (response.status === 403) {
-          throw new Error('No tiene permisos para acceder a este registro')
-        } else if (!response.ok) {
-          throw new Error(`Error al cargar los datos de emergencia (${response.status})`)
         }
-        
-        const data = await response.json()
-        
-        if (data.success && data.data) {
-          const emergency = data.data
-          setEmergencyData(emergency)
-          
-          // Validate patient ID
-          if (!emergency.PACIENTE) {
-            throw new Error('El registro no contiene un ID de paciente válido')
-          }
-          
-          setPatientId(emergency.PACIENTE)
+
+        const emergency = mapApiToViewData(raw)
+        setEmergencyData(emergency)
+
+        // Validate patient ID
+        if (!emergency.PACIENTE) {
+          throw new Error('El registro no contiene un ID de paciente válido')
+        }
+
+        setPatientId(emergency.PACIENTE)
           
           // Determinar el estado según el estado de la emergencia y el modo
           const emergencyStatus = emergency.ESTADO
@@ -125,9 +170,6 @@ export function EmergencyViewModal({
               statusText: 'Modo visualización'
             })
           }
-        } else {
-          throw new Error(data.error || 'No se encontraron datos de emergencia')
-        }
       } catch (error: any) {
         console.error('Error fetching emergency data:', error)
         setError(error.message)
@@ -156,6 +198,34 @@ export function EmergencyViewModal({
       if (onModeChange) {
         onModeChange(newMode)
       }
+    }
+  }
+
+  // Function to logically delete the emergency
+  const handleDelete = async () => {
+    if (!emergencyData?.EMERGENCIA_ID) return
+
+    const confirmed = window.confirm(
+      `¿Está seguro de eliminar lógicamente la emergencia ${emergencyData.EMERGENCIA_ID}?`
+    )
+    if (!confirmed) return
+
+    try {
+      setLoading(true)
+      await emergenciaService.deleteEmergencia(emergencyData.EMERGENCIA_ID)
+      toast({
+        title: 'Emergencia eliminada',
+        description: 'La emergencia fue anulada correctamente'
+      })
+      onBack()
+    } catch (error: any) {
+      toast({
+        title: 'Error al eliminar',
+        description: error.message || 'No se pudo eliminar la emergencia',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -264,7 +334,19 @@ export function EmergencyViewModal({
                 Editar
               </Button>
             )}
-            
+
+            {emergencyData?.ESTADO === '2' && currentMode === 'view' && (
+              <Button
+                onClick={handleDelete}
+                variant="outline"
+                size="sm"
+                className="border-red-600 text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </Button>
+            )}
+
             <Badge 
               variant={currentMode === 'edit' ? "outline" : "secondary"}
               className="text-sm py-1 px-3"

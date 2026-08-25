@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
+import { filiacionService } from '@/services/hospitalizacion/filiacionService';
+import { getCivilStatusCode } from '@/utils/civilStatusUtils';
 
 // Define the patient data interface
 interface PatientData {
@@ -19,9 +21,12 @@ interface PatientData {
   EDAD?: string; // Alias para compatibilidad con API
   sexo: string;
   estadoCivil: string;
+  ESTADO_CIVIL?: string;
   direccion: string;
   distrito: string;
   distritoDir: string;
+  provinciaDir: string;
+  departamentoDir: string;
   telefono1: string;
   telefono2: string;
   seguro: string;
@@ -187,53 +192,51 @@ export const useFetchPatientData = (patientId: string | null | undefined) => {
         setLoading(currentPatientId, true);
         setError(currentPatientId, null);
 
-        const response = await fetch(`/api/filiation/${currentPatientId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Error al obtener datos del paciente: ${response.status}`);
+        const paciente = await filiacionService.getFiliacionById(currentPatientId);
+
+        if (!paciente) {
+          throw new Error('No se encontraron datos del paciente');
         }
 
-        const data = await response.json();
+        const patientInfo: PatientData = {
+          paciente: paciente.PACIENTE || currentPatientId,
+          nombres: paciente.NOMBRES || '',
+          nombre: paciente.NOMBRE || '',
+          historia: paciente.HISTORIA || '',
+          apellidoPaterno: paciente.PATERNO || '',
+          apellidoMaterno: paciente.MATERNO || '',
+          documento: paciente.DOCUMENTO || '',
+          tipoDocumento: paciente.TIPO_DOCUMENTO || '',
+          fechaNacimiento: String(paciente.FECHA_NACIMIENTO || ''),
+          FECHA_NACIMIENTO: String(paciente.FECHA_NACIMIENTO || ''), // Mantener mayúsculas para compatibilidad con API
+          edad: String(paciente.EDAD || ''),
+          EDAD: String(paciente.EDAD || ''), // Mantener mayúsculas para compatibilidad con API
+          sexo: paciente.SEXO || '',
+          estadoCivil: getCivilStatusCode(paciente.ESTADO_CIVIL || paciente.estadoCivil, paciente.NOMBRE_ESTADO_CIVIL || paciente.nombreEstadoCivil),
+          ESTADO_CIVIL: getCivilStatusCode(paciente.ESTADO_CIVIL || paciente.estadoCivil, paciente.NOMBRE_ESTADO_CIVIL || paciente.nombreEstadoCivil),
+          NOMBRE_ESTADO_CIVIL: paciente.NOMBRE_ESTADO_CIVIL || paciente.nombreEstadoCivil || '',
+          direccion: paciente.DIRECCION || '',
+          distrito: typeof paciente.DISTRITO === 'string' ? paciente.DISTRITO : typeof paciente.DISTRITO === 'object' ? ((paciente.DISTRITO as any)?.distrito || (paciente.DISTRITO as any)?.ubigeo || '') : '',
+          distritoDir: typeof paciente.Distrito_Dir === 'string' ? paciente.Distrito_Dir : typeof paciente.Distrito_Dir === 'object' ? ((paciente.Distrito_Dir as any)?.distrito || (paciente.Distrito_Dir as any)?.ubigeo || '') : '',
+          provinciaDir: typeof paciente.Provincia_Dir === 'string' ? paciente.Provincia_Dir : typeof paciente.Provincia_Dir === 'object' ? ((paciente.Provincia_Dir as any)?.provincia || (paciente.Provincia_Dir as any)?.ubigeo || '') : '',
+          departamentoDir: typeof paciente.Departamento_Dir === 'string' ? paciente.Departamento_Dir : typeof paciente.Departamento_Dir === 'object' ? ((paciente.Departamento_Dir as any)?.departamento || (paciente.Departamento_Dir as any)?.ubigeo || '') : '',
+          telefono1: paciente.TELEFONO1 || '',
+          telefono2: paciente.TELEFONO2 || '',
+          seguro: typeof paciente.SEGURO === 'string' ? paciente.SEGURO : String(paciente.SEGURO ?? ''),
+          descSeguro: typeof paciente.NOMBRE_SEGURO === 'string' ? paciente.NOMBRE_SEGURO : String(paciente.NOMBRE_SEGURO ?? ''),
+          religion: paciente.RELIGION || '',
+          descreligion: paciente.DESRELIGION || '',
+          localidad: paciente.LOCALIDAD || '',
+          nombreLocalidad: paciente.Nombre_Localidad || '',
+          nombreOcupacion: paciente.NOMBRE_OCUPACION || '',
+          photo: processPhotoData(paciente.STRING_PHOTO || paciente.STRING_FOTO || ''),
+          // Añadir los campos de ubigeo y lugar de nacimiento
+          COD_DISTRITO: paciente.COD_DISTRITO || '',
+          LUGAR_NACIMIENTO: paciente.LUGAR_NACIMIENTO || ''
+        };
         
-        if (data.success && data.data) {
-          const patientInfo: PatientData = {
-            paciente: data.data.PACIENTE || currentPatientId,
-            nombres: data.data.NOMBRES || '',
-            nombre: data.data.NOMBRE || '',
-            historia: data.data.HISTORIA || '',
-            apellidoPaterno: data.data.PATERNO || '',
-            apellidoMaterno: data.data.MATERNO || '',
-            documento: data.data.DOCUMENTO || '',
-            tipoDocumento: data.data.TIPO_DOCUMENTO || '',
-            fechaNacimiento: data.data.FECHA_NACIMIENTO || '',
-            FECHA_NACIMIENTO: data.data.FECHA_NACIMIENTO || '', // Mantener mayúsculas para compatibilidad
-            edad: data.data.EDAD || '',
-            EDAD: data.data.EDAD || '', // Mantener mayúsculas para compatibilidad
-            sexo: data.data.SEXO || '',
-            estadoCivil: data.data.ESTADO_CIVIL || '',
-            direccion: data.data.DIRECCION || '',
-            distrito: data.data.DISTRITO || '',
-            distritoDir: data.data.Distrito_Dir || '',
-            telefono1: data.data.TELEFONO1 || '',
-            telefono2: data.data.TELEFONO2 || '',
-            seguro: data.data.SEGURO || '',
-            descSeguro: data.data.NOMBRE_SEGURO || '',
-            religion: data.data.RELIGION || '',
-            descreligion: data.data.DESRELIGION || '',
-            localidad: data.data.LOCALIDAD || '',
-            nombreLocalidad: data.data.Nombre_Localidad || '',
-            nombreOcupacion: data.data.NOMBRE_OCUPACION || '',
-            photo: processPhotoData(data.data.STRING_PHOTO || data.data.STRING_FOTO || ''),
-            // Añadir los campos de ubigeo y lugar de nacimiento
-            COD_DISTRITO: data.data.COD_DISTRITO || '',
-            LUGAR_NACIMIENTO: data.data.LUGAR_NACIMIENTO || ''
-          };
-          
-          setPatientData(currentPatientId, patientInfo);
-          return patientInfo;
-        } else {
-          throw new Error(data.error || 'No se encontraron datos del paciente');
-        }
+        setPatientData(currentPatientId, patientInfo);
+        return patientInfo;
       } catch (err: any) {
         console.error('Error al cargar datos del paciente:', err);
         setError(currentPatientId, err.message || 'Error al cargar datos del paciente');

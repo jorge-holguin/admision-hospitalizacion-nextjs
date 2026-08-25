@@ -50,7 +50,7 @@ export const ProcedenciaSection: React.FC<ProcedenciaSectionProps> = ({
         </Label>
         <OrigenSelector
           value={procedencia === 'RN' ? '' : hospitalizationOrigin}
-          onChange={(value, origenData) => onOrigenChange(value, origenData)}
+          onChange={(value, origenData) => onOrigenChange(value, origenData || null)}
           origenFilter={procedencia}
           disabled={procedencia === 'RN' || disabled}
           required

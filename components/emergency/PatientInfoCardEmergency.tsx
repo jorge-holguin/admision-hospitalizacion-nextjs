@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
-import { getCivilStatusDescription } from '@/utils/civilStatusUtils';
+import { getCivilStatusDescription, getCivilStatusCode } from '@/utils/civilStatusUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,6 +11,19 @@ import { User, Calendar, Phone, MapPin, CreditCard, Heart, House, Edit } from 'l
 import { usePatientData } from '@/contexts/PatientDataContext';
 import { Button } from '@/components/ui/button';
 import { calculateAgeFormatted, formatAgeReadable } from '@/lib/ageCalculator';
+
+// Normaliza un valor que puede venir como objeto de ubigeo a string
+function toUbigeoStr(value: any): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    return (
+      value.distrito || value.provincia || value.departamento || value.ubigeo || value.nombre || value.descripcion || value.codigo || value.id || ''
+    );
+  }
+  return String(value).trim();
+}
 
 interface PatientInfoCardEmergencyProps {
   patientId: string;
@@ -84,11 +97,14 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
         fechaNacimiento: patient.FECHA_NACIMIENTO || patient.fechaNacimiento || '',
         edad: patient.EDAD || patient.edad || '',
         sexo: patient.SEXO || patient.sexo || '',
-        estadoCivil: patient.ESTADO_CIVIL || patient.NOMBRE_ESTADO_CIVIL || patient.estadoCivil || '',
+        estadoCivil: getCivilStatusDescription(
+          getCivilStatusCode(patient.ESTADO_CIVIL || patient.estadoCivil, patient.NOMBRE_ESTADO_CIVIL || patient.nombreEstadoCivil)
+          || patient.ESTADO_CIVIL || patient.NOMBRE_ESTADO_CIVIL || patient.estadoCivil
+        ),
         direccion: patient.DIRECCION || patient.direccion || '',
-        distrito: patient.DISTRITO || patient.distrito || '',
-        departamentoDir: patient.DEPARTAMENTO_DIR || patient.departamentoDir || '',
-        distritoDir: patient.Distrito_Dir || patient.DISTRITO_DIR || patient.distritoDir || '',
+        distrito: toUbigeoStr(patient.DISTRITO ?? patient.distrito),
+        departamentoDir: toUbigeoStr(patient.DEPARTAMENTO_DIR ?? patient.departamentoDir),
+        distritoDir: toUbigeoStr(patient.Distrito_Dir ?? patient.DISTRITO_DIR ?? patient.distritoDir),
         telefono1: patient.TELEFONO1 || patient.telefono1 || '',
         telefono2: patient.TELEFONO2 || patient.telefono2 || '',
         seguro: patient.SEGURO || patient.seguro || '',
@@ -282,7 +298,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm">{patientData.distritoDir} , {patientData.departamentoDir}</span>
+              <span className="text-sm">{toUbigeoStr(patientData.distritoDir)} , {toUbigeoStr(patientData.departamentoDir)}</span>
             </div>
 
             {patientData.telefono1 && (
@@ -320,7 +336,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
               </div>
 
             <div className="text-sm">
-                <strong>Distrito Nacimiento:</strong> {patientData.distrito} 
+                <strong>Distrito Nacimiento:</strong> {toUbigeoStr(patientData.distrito)}
               </div>
           </div>
         </div>

@@ -24,14 +24,18 @@ import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
 import { AccountConfirmationDialog } from '../modals/AccountConfirmationDialog'
 
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
+import { getCivilStatusCode } from '@/utils/civilStatusUtils'
 import { usePatientData, useFetchPatientData } from "@/contexts/PatientDataContext";
 import { useTiposDocumento } from "@/contexts/TiposDocumentoContext";
 import { useServerDateTime } from "@/contexts/ServerDateTimeContext";
 import { datetimeService } from '@/services/datetimeService'
+import { nextIdService } from '@/services/emergencia/nextIdService'
+import { API_ENDPOINTS } from '@/lib/api-config'
 
 // Extender la interfaz de datos del paciente para incluir los campos adicionales
 interface PatientDataExtended {
   estadoCivil?: string;
+  NOMBRE_ESTADO_CIVIL?: string;
   direccion?: string;
   distrito?: string;
   telefono1?: string;
@@ -278,6 +282,20 @@ export function EmergencyFormRefactored({
 
   // Ya no necesitamos cargar tipos de documento, usamos el contexto
 
+  // Función para normalizar valores a string de forma segura
+  const safeTrim = useCallback((value: any): string => {
+    if (value === null || value === undefined) return '';
+    return typeof value === 'string' ? value.trim() : String(value).trim();
+  }, []);
+
+  // Extrae el código limpio de seguro (soporta "(02) - SOAT", "02 - SOAT", "02" y convierte 06 -> 0)
+  const extractInsuranceCode = useCallback((value: any): string => {
+    const raw = safeTrim(value);
+    if (!raw) return '';
+    const code = raw.split(' - ')[0].replace(/^\(|\)$/g, '').trim();
+    return code === '06' ? '0' : code;
+  }, [safeTrim]);
+
   // Función para obtener los datos de filiación del paciente desde el contexto
   const getPatientFiliation = useCallback((patientId: string): PatientDataExtended | null => {
     // Obtener datos del paciente del contexto
@@ -287,43 +305,38 @@ export function EmergencyFormRefactored({
       return null;
     }
     
+    const seguroCode = safeTrim(patientDataFromContext.seguro);
+    let descSeguro = safeTrim(patientDataFromContext.descSeguro);
+    // Si el seguro es ESSALUD, cambiar también la descripción
+    if (seguroCode === '06') {
+      descSeguro = 'PAGANTE';
+    }
+
     // Mapear los campos del contexto a los campos que necesitamos
     return {
-      estadoCivil: patientDataFromContext.estadoCivil ? patientDataFromContext.estadoCivil.trim() : '',
-      direccion: patientDataFromContext.direccion ? patientDataFromContext.direccion.trim() : '',
-      // Usar el distrito del contexto
-      distrito: patientDataFromContext.distrito ? patientDataFromContext.distrito.trim() : '',
-      telefono1: patientDataFromContext.telefono1 ? patientDataFromContext.telefono1.trim() : '',
-      telefono2: patientDataFromContext.telefono2 ? patientDataFromContext.telefono2.trim() : '',
-      tipoDocumento: patientDataFromContext.tipoDocumento ? patientDataFromContext.tipoDocumento.trim() : '',
-      documento: patientDataFromContext.documento ? patientDataFromContext.documento.trim() : '',
-      // Asegurarse de eliminar espacios en blanco adicionales
-      localidad: patientDataFromContext.localidad ? patientDataFromContext.localidad.trim() : '',
-      seguro: patientDataFromContext.seguro ? patientDataFromContext.seguro.trim() : '',
-      descSeguro: (() => {
-        let seguroCode = patientDataFromContext.seguro ? patientDataFromContext.seguro.trim() : '';
-        let descSeguro = patientDataFromContext.descSeguro ? patientDataFromContext.descSeguro.trim() : '';
-        // Si el seguro es ESSALUD, cambiar también la descripción
-        if (seguroCode === '06') {
-          descSeguro = 'PAGANTE';
-        }
-        return descSeguro;
-      })(),
-      religion: patientDataFromContext.religion ? patientDataFromContext.religion.trim() : '',
-      // Añadir el campo nombre que faltaba - usar el campo nombre del contexto, no nombres
-      nombre: patientDataFromContext.nombre ? patientDataFromContext.nombre.trim() : '',
-      nombres: patientDataFromContext.nombres ? patientDataFromContext.nombres.trim() : '',
-      apellidoPaterno: patientDataFromContext.apellidoPaterno ? patientDataFromContext.apellidoPaterno.trim() : '',
-      apellidoMaterno: patientDataFromContext.apellidoMaterno ? patientDataFromContext.apellidoMaterno.trim() : '',
-      // Incluir campos sexo, edad y fecha de nacimiento
-      sexo: patientDataFromContext.sexo ? patientDataFromContext.sexo.trim() : '',
-      edad: patientDataFromContext.edad ? patientDataFromContext.edad.trim() : '',
-      fechaNacimiento: patientDataFromContext.fechaNacimiento ? patientDataFromContext.fechaNacimiento.trim() : '', // ✅ Agregado
-      // Añadir campos adicionales para distrito y lugar de nacimiento
-      COD_DISTRITO: patientDataFromContext.COD_DISTRITO ? patientDataFromContext.COD_DISTRITO.trim() : '',
-      LUGAR_NACIMIENTO: patientDataFromContext.LUGAR_NACIMIENTO ? patientDataFromContext.LUGAR_NACIMIENTO.trim() : ''
+      estadoCivil: getCivilStatusCode(patientDataFromContext.estadoCivil, patientDataFromContext.NOMBRE_ESTADO_CIVIL),
+      NOMBRE_ESTADO_CIVIL: patientDataFromContext.NOMBRE_ESTADO_CIVIL || '',
+      direccion: safeTrim(patientDataFromContext.direccion),
+      distrito: safeTrim(patientDataFromContext.distrito),
+      telefono1: safeTrim(patientDataFromContext.telefono1),
+      telefono2: safeTrim(patientDataFromContext.telefono2),
+      tipoDocumento: safeTrim(patientDataFromContext.tipoDocumento),
+      documento: safeTrim(patientDataFromContext.documento),
+      localidad: safeTrim(patientDataFromContext.localidad),
+      seguro: seguroCode,
+      descSeguro,
+      religion: safeTrim(patientDataFromContext.religion),
+      nombre: safeTrim(patientDataFromContext.nombre),
+      nombres: safeTrim(patientDataFromContext.nombres),
+      apellidoPaterno: safeTrim(patientDataFromContext.apellidoPaterno),
+      apellidoMaterno: safeTrim(patientDataFromContext.apellidoMaterno),
+      sexo: safeTrim(patientDataFromContext.sexo),
+      edad: safeTrim(patientDataFromContext.edad),
+      fechaNacimiento: safeTrim(patientDataFromContext.fechaNacimiento),
+      COD_DISTRITO: safeTrim(patientDataFromContext.COD_DISTRITO),
+      LUGAR_NACIMIENTO: safeTrim(patientDataFromContext.LUGAR_NACIMIENTO)
     };
-  }, [getPatientData]);
+  }, [getPatientData, safeTrim]);
 
   // Función para manejar los datos del paciente cargados (ahora solo actualiza el formulario)
   const handlePatientDataLoaded = useCallback((data: PatientDataExtended) => {
@@ -338,7 +351,7 @@ export function EmergencyFormRefactored({
       apellidoMaterno: data.apellidoMaterno || '',
       documento: data.documento || '',
       tipoDocumento: data.tipoDocumento || '',
-      estadoCivil: data.estadoCivil || '',
+      estadoCivil: getCivilStatusCode(data.estadoCivil, data.NOMBRE_ESTADO_CIVIL) || '',
       direccion: data.direccion || '',
       distrito: data.distrito || '',
       telefono1: data.telefono1 || '',
@@ -356,22 +369,19 @@ export function EmergencyFormRefactored({
     }));
     
     // Actualizar el código de seguro para FuaEmergencyStatusAlert
-    if (data.seguro) {
-      let seguroCode = data.seguro.trim();
-      // Aplicar conversión de ESSALUD (06) a PAGANTE (0)
-      if (seguroCode === '06') {
-        seguroCode = '0';
-      }
+    const seguroCode = extractInsuranceCode(data.seguro);
+    if (seguroCode) {
       setInsuranceCode(seguroCode);
     }
     
     // Si no hay emergencyId (modo creación), actualizar el seguro desde los datos del paciente
-    if (!emergencyId && data.seguro) {
-      let seguroToUse = data.seguro;
-      let seguroEncontrado = seguros.find(s => s.Seguro === data.seguro);
+    const seguroTrimmed = extractInsuranceCode(data.seguro);
+    if (!emergencyId && seguroTrimmed) {
+      let seguroToUse = seguroTrimmed;
+      let seguroEncontrado = seguros.find(s => safeTrim(s.Seguro) === seguroTrimmed);
       
       // Si el seguro es ESSALUD (06), convertir a PAGANTE (0)
-      if (data.seguro.trim() === '06') {
+      if (safeTrim(data.seguro).startsWith('06')) {
         seguroEncontrado = seguros.find(s => s.Seguro === '0');
         if (seguroEncontrado) {
           seguroToUse = `${seguroEncontrado.Seguro} - ${seguroEncontrado.Nombre}`;
@@ -452,8 +462,16 @@ export function EmergencyFormRefactored({
       seguro: data.seguro,
       observacion1: data.observacion1,
       observacion2: data.observacion2,
-      estado: data.estado
+      estado: data.estado,
+      // Datos del acompañante
+      acompanante: data.acompanante || '',
+      tipoDocumentoA: data.tipoDocumentoA || '',
+      documentoA: data.documentoA || ''
     }));
+    
+    // Actualizar el código de seguro para validación FUA
+    const seguroCode = extractInsuranceCode(data.seguro);
+    setInsuranceCode(seguroCode);
     
     // Actualizar estados de selección
     if (data.motivoData) setSelectedMotivo(data.motivoData);
@@ -482,20 +500,7 @@ export function EmergencyFormRefactored({
   // Función para obtener el siguiente ID de emergencia y orden
   const fetchNextEmergencyIds = async () => {
     try {
-      const response = await fetch('/api/emergency?next-id=true');
-      if (!response.ok) {
-        throw new Error('Error al obtener el siguiente ID de emergencia');
-      }
-      const result = await response.json();
-      
-      if (!result.success || !result.data) {
-        throw new Error('Formato de respuesta inválido');
-      }
-      
-      return {
-        emergenciaId: result.data.emergenciaId,
-        orden: result.data.orden
-      };
+      return await nextIdService.getNextIds();
     } catch (error) {
       console.error('Error al obtener los siguientes IDs:', error);
       return null;
@@ -507,9 +512,10 @@ export function EmergencyFormRefactored({
   // Función para verificar si existe una cuenta activa para el paciente
   const checkExistingAccount = async (seguroCode: string): Promise<any> => {
     try {
-      const response = await fetch(`/api/emergency/check-account?paciente=${patientId}&seguro=${seguroCode}`);
+      const url = `${API_ENDPOINTS.emergencia.checkAccount}?paciente=${encodeURIComponent(patientId)}&seguro=${encodeURIComponent(seguroCode)}`;
+      const response = await fetch(url);
       const result = await response.json();
-      
+
       if (result.ok && result.requiresCuenta && result.existeCtaActiva && result.cuenta) {
         return result.cuenta;
       }
@@ -556,15 +562,16 @@ export function EmergencyFormRefactored({
       const filiacionData = getPatientFiliation(patientId);
       
       // Extraer códigos de los valores seleccionados
-      const consultorioCode = formData.consultorio.split(' - ')[0] || '';
-      const motivoCode = formData.motivoEmergencia.split(' - ')[0] || '';
-      const seguroCode = formData.seguro.split(' - ')[0] || '';
+      const consultorioCode = typeof formData.consultorio === 'string' ? formData.consultorio.split(' - ')[0] || '' : String(formData.consultorio || '');
+      const motivoCode = typeof formData.motivoEmergencia === 'string' ? formData.motivoEmergencia.split(' - ')[0] || '' : String(formData.motivoEmergencia || '');
+      const seguroFormValue = typeof formData.seguro === 'string' ? formData.seguro : String(formData.seguro || '');
+      const seguroCode = seguroFormValue.split(' - ')[0] || '';
       
       // APLICAR CONVERSIÓN PARA SEGURO Y SEGUROLIQ
       let seguroValue = seguroCode;
       let seguroLiqValue = seguroCode;
       
-      if (formData.seguro.includes('PAGANTE') || seguroCode === '0') {
+      if (seguroFormValue.includes('PAGANTE') || seguroCode === '0') {
         seguroValue = '0';
         seguroLiqValue = '0';
       } else if (seguroCode === '06') {
@@ -601,7 +608,17 @@ export function EmergencyFormRefactored({
           return edad;
         })(),
         SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1),
-        ESTADO_CIVIL: (filiacionData?.estadoCivil || formData.estadoCivil || '').padEnd(2, ' ').substring(0, 2),
+        ESTADO_CIVIL: (() => {
+          const raw = getCivilStatusCode(filiacionData?.estadoCivil, filiacionData?.NOMBRE_ESTADO_CIVIL) || getCivilStatusCode(formData.estadoCivil) || '';
+          const padded = raw.padEnd(2, ' ').substring(0, 2);
+          console.log('📋 ESTADO_CIVIL enviado:', { raw, padded, filiacion: filiacionData?.estadoCivil, form: formData.estadoCivil, nombre: filiacionData?.NOMBRE_ESTADO_CIVIL });
+          return padded;
+        })(),
+        // También enviar camelCase por si el DTO de Spring espera ese nombre; se rellena a 2 caracteres igual que ESTADO_CIVIL
+        estadoCivil: (() => {
+          const raw = getCivilStatusCode(filiacionData?.estadoCivil, filiacionData?.NOMBRE_ESTADO_CIVIL) || getCivilStatusCode(formData.estadoCivil) || '';
+          return raw.padEnd(2, ' ').substring(0, 2);
+        })(),
         DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100),
         DISTRITO: (filiacionData?.COD_DISTRITO || formData.COD_DISTRITO || '').trim().substring(0, 7),
         TELEFONO1: (filiacionData?.telefono1 || formData.telefono1 || '').substring(0, 20),
@@ -616,11 +633,12 @@ export function EmergencyFormRefactored({
         SEGUROLIQ: seguroLiqValue.padEnd(2, ' ').substring(0, 2),
         FORMA_INGRESO: (formData.formaIngreso === '1' ? '1' : (formData.formaIngreso || '1')).padEnd(1, ' ').substring(0, 1),
         CUENTAID: (cuentaIdToUse || '').padEnd(7, ' ').substring(0, 7),
-        EMPRESASEG: seguroValue.trim() === '02' ? (formData.aseguradora || '').trim() : ''
+        EMPRESASEGURO: seguroValue.trim() === '02' ? (formData.aseguradora || '').trim() : '',
+        MEDICO: (formData.medico || '0').padEnd(4, ' ').substring(0, 4)
       };
       
-      const method = emergencyId ? 'PATCH' : 'POST';
-      const url = emergencyId ? `/api/emergency/${emergencyId}` : '/api/emergency';
+      const method = emergencyId ? 'PUT' : 'POST';
+      const url = emergencyId ? API_ENDPOINTS.emergencia.update(emergencyId) : API_ENDPOINTS.emergencia.create;
       
       const response = await fetch(url, {
         method,
@@ -639,16 +657,14 @@ export function EmergencyFormRefactored({
       const result = await response.json();
       
       // Llamar al endpoint para asegurar la cuenta si el seguro es "0", "02" o "17"
-      const seguroCodeForAccount = result.data?.SEGUROLIQ?.trim() || 
-                                   result.SEGUROLIQ?.trim() || 
-                                   emergencyDataPayload?.SEGUROLIQ?.trim();
+      const seguroCodeForAccount = safeTrim(result.data?.SEGUROLIQ || result.SEGUROLIQ || emergencyDataPayload?.SEGUROLIQ);
       
       if (seguroCodeForAccount && ["0", "02", "17"].includes(seguroCodeForAccount)) {
         try {
           const pacienteData = result.data?.PACIENTE || result.PACIENTE || patientId;
-          const nombreData = result.data?.NOMBRES?.trim() || result.NOMBRES?.trim() || formData.nombres || formData.nombre || '';
+          const nombreData = safeTrim(result.data?.NOMBRES || result.NOMBRES) || formData.nombres || formData.nombre || '';
           
-          const asegurarResponse = await fetch(`/api/emergency/${emergencyIdToUse}/assign-account`, {
+          const asegurarResponse = await fetch(API_ENDPOINTS.emergencia.assignCuenta(emergencyIdToUse), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -667,10 +683,11 @@ export function EmergencyFormRefactored({
           
           if (asegurarResult.ok && asegurarResult.cuentaId) {
             try {
-              await fetch(`/api/emergency/${emergencyIdToUse}`, {
-                method: 'PATCH',
+              const record = result.data || result;
+              await fetch(API_ENDPOINTS.emergencia.update(emergencyIdToUse), {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ CUENTAID: asegurarResult.cuentaId })
+                body: JSON.stringify({ ...record, CUENTAID: asegurarResult.cuentaId })
               });
             } catch (updateError) {
               console.error('Error al actualizar la emergencia con el CUENTAID:', updateError);
@@ -739,13 +756,7 @@ export function EmergencyFormRefactored({
       setSubmitting(true);
       
       // Extraer código de seguro para verificar si requiere cuenta
-      const seguroCode = formData.seguro.split(' - ')[0]?.trim() || '';
-      let seguroToCheck = seguroCode;
-      
-      // Convertir ESSALUD a PAGANTE
-      if (seguroCode === '06' || formData.seguro.includes('PAGANTE')) {
-        seguroToCheck = '0';
-      }
+      const seguroToCheck = extractInsuranceCode(formData.seguro);
       
       // Verificar si el seguro requiere cuenta (0, 02, 17)
       const segurosConCuenta = ['0', '00', '02', '17'];
@@ -864,7 +875,11 @@ export function EmergencyFormRefactored({
         diagnostico: emergencyData.DIAGNOSTICO || '',
         observacion1: emergencyData.OBSERVACION1 || '',
         observacion2: emergencyData.OBSERVACION2 || '',
-        estado: emergencyData.ESTADO || ''
+        estado: emergencyData.ESTADO || '',
+        // Datos del acompañante
+        acompanante: emergencyData.ACOMPANANTE || emergencyData.acompanante || '',
+        tipoDocumentoA: emergencyData.TIPO_DOCUMENTOA || emergencyData.tipoDocumentoA || emergencyData.tipoDocumentoAcompanante || '',
+        documentoA: emergencyData.DOCUMENTOA || emergencyData.documentoA || emergencyData.documentoAcompanante || ''
       });
       
       // Si hay CUENTAID en los datos de emergencia, actualizarlo
@@ -1014,17 +1029,11 @@ export function EmergencyFormRefactored({
                   setSelectedSeguro(seguroData || null);
                   
                   // Actualizar código de seguro para validación FUA
-                  if (value) {
-                    let seguroCode = value.split(' - ')[0].trim();
-                    // Aplicar conversión de ESSALUD (06) a PAGANTE (0)
-                    if (seguroCode === '06') {
-                      seguroCode = '0';
-                    }
-                    setInsuranceCode(seguroCode);
-                    
-                    // NOTA: La búsqueda de cuenta ahora se maneja automáticamente en FormHeaderEmergency
-                    // cuando cambia insuranceCode, para evitar llamadas duplicadas a la API
-                  }
+                  const seguroCode = extractInsuranceCode(value);
+                  setInsuranceCode(seguroCode);
+                  
+                  // NOTA: La búsqueda de cuenta ahora se maneja automáticamente en FormHeaderEmergency
+                  // cuando cambia insuranceCode, para evitar llamadas duplicadas a la API
                 }}
                 onDiagnosticoChange={(value: string, diagnosticoData: any) => {
                   setFormData(prev => ({

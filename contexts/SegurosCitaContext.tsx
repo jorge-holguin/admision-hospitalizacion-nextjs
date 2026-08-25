@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { Seguro } from '@/services/citas/seguroService'
+import { Seguro, seguroService } from '@/services/citas/seguroService'
 
 interface SegurosCitaContextType {
   seguros: Seguro[]
@@ -34,20 +34,10 @@ export function SegurosCitaProvider({ children, codCita = '1' }: SegurosCitaProv
     try {
       setLoading(true)
       setError(null)
-      
-      const response = await fetch(`/api/appointments/insurances?codCita=${codCita}`)
-      
-      if (!response.ok) {
-        throw new Error(`Error fetching seguros: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      
-      if (data.success && Array.isArray(data.data)) {
-        setSeguros(data.data)
-      } else {
-        throw new Error('Invalid response format')
-      }
+
+      const data: Seguro[] = await seguroService.getSegurosByCodCita(codCita)
+
+      setSeguros(data)
     } catch (err) {
       console.error('Error loading seguros:', err)
       setError(err instanceof Error ? err.message : 'Unknown error loading seguros')

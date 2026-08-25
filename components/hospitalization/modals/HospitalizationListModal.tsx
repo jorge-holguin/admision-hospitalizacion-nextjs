@@ -162,7 +162,7 @@ export function HospitalizationListModal({
   // Función para manejar impresión
   const handlePrintOrder = async (hospitalizacionId: string, documentType: string) => {
     try {
-      await printHospitalizationDocument(hospitalizacionId, documentType)
+      await printHospitalizationDocument(hospitalizacionId, documentType as 'fua' | 'filiacion' | 'orden-consentimiento' | 'consentimiento-docencia')
     } catch (error) {
       console.error('Error al imprimir:', error)
       toast({
@@ -429,7 +429,7 @@ export function HospitalizationListModal({
           onClose={() => setDeleteDialogOpen(false)}
           onConfirm={confirmDeleteOrder}
           itemName={deleteItemName}
-          isDeleting={isDeleting}
+          isLoading={isDeleting}
           title="Eliminar Hospitalización"
           description="¿Estás seguro de que deseas eliminar esta hospitalización? Esta acción no se puede deshacer."
         />

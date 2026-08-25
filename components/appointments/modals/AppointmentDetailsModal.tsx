@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, User, Stethoscope, Building, FileText, Hospital, Hash, Clipboard, MapPin, AlertCircle, Activity, Phone, X } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
+import { filiacionService } from "@/services/hospitalizacion/filiacionService"
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean
@@ -51,20 +52,23 @@ export function AppointmentDetailsModal({
     const fetchPatientData = async () => {
       try {
         setLoadingPatient(true)
-        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-        
-        // Obtener el nombre del paciente de la cita
-        const patientName = appointment.nombre || appointment.NOMBRE
-        
-        if (patientName) {
-          // Llamar al endpoint para obtener datos completos del paciente
-          const res = await fetch(`${apiUrl}/busqueda/paciente-por-nombre?nombres=${encodeURIComponent(patientName)}`)
-          
-          if (res.ok) {
-            const data = await res.json()
-            if (Array.isArray(data) && data.length > 0) {
-              setPatientData(data[0])
-            }
+
+        // Buscar al paciente por documento en lugar de por nombre
+        const documento = appointment.documento || appointment.DOCUMENTO
+        const tipoDocumento = appointment.tipoDocumento || appointment.TIPO_DOCUMENTO || 'D'
+
+        if (documento) {
+          const pacientes = await filiacionService.searchByDocumento(documento, tipoDocumento)
+
+          if (pacientes.length > 0) {
+            const p = pacientes[0] as any
+            setPatientData({
+              ...p,
+              nombres: p.NOMBRES || p.nombres || '',
+              paciente: p.PACIENTE || p.paciente || '',
+              telefono1: p.TELEFONO1 || p.telefono1 || '',
+              telefono2: p.TELEFONO2 || p.telefono2 || '',
+            })
           }
         }
       } catch (error) {
@@ -136,16 +140,19 @@ export function AppointmentDetailsModal({
             // Obtener nombre del usuario que liberó
             if (libData.usuarioLiberacion) {
               const docLiberador = libData.usuarioLiberacion.trim()
-              const resUser = await fetch(`/api/filiation/search?page=1&pageSize=10&documento=${docLiberador}`)
-              if (resUser.ok) {
-                const dataUser = await resUser.json()
-                if (dataUser.data && dataUser.data.length > 0) {
-                  const user = dataUser.data[0]
-                  const nombreCompleto = `${user.NOMBRES || ''} ${user.APATERNO || ''} ${user.AMATERNO || ''}`.trim()
+              try {
+                const users = await filiacionService.searchByDocumento(docLiberador)
+                if (users && users.length > 0) {
+                  const user = users[0] as any
+                  const paterno = (user as any).APATERNO || (user as any).PATERNO || ''
+                  const materno = (user as any).AMATERNO || (user as any).MATERNO || ''
+                  const nombreCompleto = `${user.NOMBRES || ''} ${paterno} ${materno}`.trim()
                   setUsuarioLiberador(nombreCompleto || docLiberador)
                 } else {
                   setUsuarioLiberador(docLiberador)
                 }
+              } catch {
+                setUsuarioLiberador(docLiberador)
               }
             }
           }

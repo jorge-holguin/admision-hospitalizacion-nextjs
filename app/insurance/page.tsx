@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { usePermissions } from "@/contexts/PermissionsContext"
+import { PERMISOS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -108,6 +110,10 @@ function startOfToday(): Date {
 }
 
 export default function InsurancePage() {
+  const { hasPermission } = usePermissions()
+  const canExportar  = hasPermission(PERMISOS.SEGUROS.EXPORTAR)
+  const canBuscarFua = hasPermission(PERMISOS.SEGUROS.BUSCAR_FUA)
+
   // Filtros (rango de fechas obligatorio)
   // Por defecto: solo el día actual (evita cargar demasiados resultados al ingresar).
   const [desde, setDesde] = useState<Date | undefined>(startOfToday())
@@ -386,18 +392,20 @@ export default function InsurancePage() {
                 Lista de Atenciones SIS
               </h1>
               <div className="flex gap-3">
-                 <Button
-                  onClick={handleExportarExcel}
-                  disabled={exportando || loading || !desde || !hasta}
-                  className="text-white bg-[#1F7A4D] hover:bg-[#17633D] shadow-md disabled:opacity-60"
-                >
-                  {exportando ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  )}
-                  {exportando ? "Exportando..." : "Exportar Excel"}
-                </Button>
+                 {canExportar && (
+                  <Button
+                    onClick={handleExportarExcel}
+                    disabled={exportando || loading || !desde || !hasta}
+                    className="text-white bg-[#1F7A4D] hover:bg-[#17633D] shadow-md disabled:opacity-60"
+                  >
+                    {exportando ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    )}
+                    {exportando ? "Exportando..." : "Exportar Excel"}
+                  </Button>
+                )}
                 <Button
                   onClick={handleActualizar}
                   className="text-white bg-[#4F9BB6] hover:bg-[#4A6EB0] shadow-md"
@@ -679,6 +687,7 @@ export default function InsurancePage() {
               </div>
 
               {/* Checkbox: búsqueda por N° FUA (oculto por defecto) */}
+              {canBuscarFua && (
               <div className="mt-6 flex items-center space-x-2">
                 <Checkbox
                   id="mostrar-busqueda-fua"
@@ -695,6 +704,7 @@ export default function InsurancePage() {
                   Búsqueda por N° de FUA
                 </label>
               </div>
+              )}
 
               {mostrarBusquedaFua && (
                 <div className="mt-4 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">

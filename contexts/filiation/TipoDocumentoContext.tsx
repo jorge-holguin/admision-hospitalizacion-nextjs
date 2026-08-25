@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { API_ENDPOINTS } from '@/lib/api-config'
 
 interface TipoDocumento {
   tipoDocumento: string
@@ -29,7 +30,7 @@ export function TipoDocumentoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchTiposDocumento = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/tipoDocumento`)
+        const response = await fetch(API_ENDPOINTS.utils.documentTypes)
         
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`)

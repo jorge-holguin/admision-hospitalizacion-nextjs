@@ -73,7 +73,20 @@ export function useFiliacion() {
         }
 
         if (filter.documento && filter.documento.trim() !== '') {
-          params.append("documento", filter.documento.trim())
+          const tipoDoc = (filter.tipoDocumento || 'D').trim()
+          const numeroDoc = filter.documento.trim()
+
+          // Validaciones específicas para DNI
+          if (tipoDoc === 'D' || tipoDoc === 'DNI') {
+            if (numeroDoc.length > 8) {
+              throw new Error('El DNI debe tener como máximo 8 dígitos')
+            }
+            if (!/^\d{1,8}$/.test(numeroDoc)) {
+              throw new Error('El DNI debe contener solo hasta 8 dígitos numéricos')
+            }
+          }
+
+          params.append("documento", numeroDoc)
         }
 
         if (filter.nombres && filter.nombres.trim() !== '') {
@@ -81,9 +94,13 @@ export function useFiliacion() {
         }
       }
 
-      // Si es búsqueda por nombre, usar endpoint específico con timeout extendido
+      // Documento → nueva API optimizada
       let url
-      if (filter.nombres && filter.nombres.trim() !== '') {
+      if (filter.documento && filter.documento.trim() !== '' && !filter.historia) {
+        const tipoDoc = (filter.tipoDocumento || 'D').trim()
+        const p = new URLSearchParams({ tipoDocumento: tipoDoc, documento: filter.documento.trim() })
+        url = `${API_ENDPOINTS.filiation.searchByDocument}?${p}`
+      } else if (filter.nombres && filter.nombres.trim() !== '' && !filter.historia) {
         url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres.trim())}`
       } else {
         url = `${API_ENDPOINTS.filiation.search}?${params.toString()}`
@@ -98,14 +115,43 @@ export function useFiliacion() {
         throw new Error(errorData.error || errorData.details || "Error al obtener datos de filiación")
       }
 
-      const result: FiliacionResponse = await response.json()
-      
-      if (!result.data || !Array.isArray(result.data)) {
-        throw new Error("Formato de respuesta inválido")
+      const contentLength = response.headers.get('content-length')
+      if (response.status === 204 || contentLength === '0' || !response.body) {
+        setData([])
+        setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }))
+        return
       }
-      
-      setData(result.data)
-      setPagination(result.pagination)
+
+      const raw = await response.json().catch((err) => {
+        console.error('Error parseando respuesta JSON:', err)
+        return null
+      })
+
+      // Normalizar respuesta: nueva API devuelve objeto único, array o { data: [...] }
+      let list: any[]
+      if (Array.isArray(raw)) {
+        list = raw
+      } else if (Array.isArray(raw?.data)) {
+        list = raw.data
+      } else if (Array.isArray(raw?.pacientes)) {
+        list = raw.pacientes
+      } else if (Array.isArray(raw?.content)) {
+        list = raw.content
+      } else if (raw && !raw.error && (raw.PACIENTE || raw.paciente)) {
+        list = [raw]
+      } else {
+        list = []
+      }
+
+      const syntheticPagination = raw?.pagination ?? {
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        total: list.length,
+        totalPages: Math.ceil(list.length / pagination.pageSize),
+      }
+
+      setData(list)
+      setPagination(syntheticPagination)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Error desconocido"
       setError(errorMessage)

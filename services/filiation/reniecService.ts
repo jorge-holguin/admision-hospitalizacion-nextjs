@@ -83,7 +83,7 @@ interface ReniecResponse {
     /**
      * Genera datos simulados para pruebas
      */
-    private static getMockData(dni: string): ReniecResponse {
+    private static getMockData(dni: string): Promise<ReniecResponse> {
       // Generar datos simulados basados en el DNI para consistencia
       const lastDigit = parseInt(dni.slice(-1))
       

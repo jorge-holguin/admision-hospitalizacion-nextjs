@@ -1,4 +1,5 @@
 ﻿import React, { createContext, useState, useEffect, useContext } from 'react'
+import { formaIngresoService } from '@/services/emergencia/formaIngresoService'
 
 export type FormaIngreso = {
   FORMA_INGRESO: string
@@ -33,19 +34,18 @@ export function FormasIngresoProvider({ children }: { children: React.ReactNode 
   const loadFormasIngreso = async () => {
     try {
       setLoading(true)
-      
-      const response = await fetch('/api/emergency/admission-types')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      
-      // Extraer los items de la respuesta
-      const formasData = data.items || data.data || []
+
+      console.log('🚑 [FormasIngresoContext] fetching formas de ingreso')
+      const items = await formaIngresoService.findAll()
+
+      const formasData: FormaIngreso[] = items.map((item: any) => ({
+        FORMA_INGRESO: item.codigo || item.formaIngreso || item.FORMA_INGRESO || '',
+        NOMBRE: item.nombre || item.NOMBRE || ''
+      }))
+
+      console.log('🚑 [FormasIngresoContext] items count', formasData.length)
       setFormasIngreso(formasData)
-      
+
     } catch (error) {
       console.error('❌ Error al cargar formas de ingreso en contexto:', error)
       setFormasIngreso([])

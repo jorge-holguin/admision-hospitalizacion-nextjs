@@ -188,7 +188,16 @@ export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProp
           <div className="flex items-center gap-2">
             <Heart className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
-              <strong>Estado Civil:</strong> {getCivilStatusDescription(patient.ESTADO_CIVIL)}
+              <strong>Estado Civil:</strong>{' '}
+              {getCivilStatusDescription(
+                typeof patient.ESTADO_CIVIL === 'object' && patient.ESTADO_CIVIL !== null
+                  ? (patient.ESTADO_CIVIL as any).nombre ||
+                    (patient.ESTADO_CIVIL as any).estadoCivil?.toString().trim() ||
+                    (patient.ESTADO_CIVIL as any).descripcion ||
+                    (patient.ESTADO_CIVIL as any).ESTADO_CIVIL ||
+                    ''
+                  : patient.ESTADO_CIVIL
+              )}
             </span>
           </div>
         </div>

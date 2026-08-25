@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { useOptimizedConsultorios } from "@/hooks/master-tables/useOptimizedConsultorios";
 import { useConsultorioById } from "@/hooks/master-tables/useConsultorioById";
-import { API_ENDPOINTS } from "@/lib/api-config";
+import { getEspecialidades, type Especialidad } from "@/services/master-tables/especialidadService";
+import { consultorioServerService } from "@/services/master-tables/consultorioService";
 import {
   Popover,
   PopoverContent,
@@ -65,7 +66,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     NUMERO: "",
   });
 
-  const [especialidades, setEspecialidades] = useState<any[]>([]);
+  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [tipos, setTipos] = useState<any[]>([]);
   const [openEspecialidad, setOpenEspecialidad] = useState(false);
   const [openTipo, setOpenTipo] = useState(false);
@@ -76,28 +77,12 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Cargar especialidades desde API Spring Boot directo
-        const espResponse = await fetch(API_ENDPOINTS.masterTables.specialties);
-        if (espResponse.ok) {
-          const espData = await espResponse.json();
-          // Asegurarse de que especialidades sea siempre un array
-          const data = Array.isArray(espData) ? espData :
-                      (espData.data && Array.isArray(espData.data) ? espData.data : []);
-          // Normalizar datos: API devuelve {Especialidad, Nombre} o {codigo, nombre}
-          const normalized = data.map((e: any) => ({
-            Codigo: e.Especialidad || e.especialidad || e.Codigo || e.codigo,
-            Nombre: e.Nombre || e.nombre
-          }));
-          setEspecialidades(normalized);
-        }
-
-        // Cargar tipos (Tabla T) desde API Spring Boot directo
-        const tipoResponse = await fetch(API_ENDPOINTS.masterTables.consultorios.types);
-        if (tipoResponse.ok) {
-          const tipoData = await tipoResponse.json();
-          // Asegurarse de que tipos sea siempre un array
-          setTipos(Array.isArray(tipoData) ? tipoData : (tipoData.data || []));
-        }
+        const [especialidadesData, tiposData] = await Promise.all([
+          getEspecialidades(),
+          consultorioServerService.getConsultorioTipos(),
+        ]);
+        setEspecialidades(especialidadesData);
+        setTipos(tiposData);
       } catch (error) {
         console.error('Error loading data:', error);
       }
@@ -146,15 +131,8 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
 
     setCheckingCodigo(true);
     try {
-      // Usar el endpoint de búsqueda de consultorios para verificar existencia
-      const url = `${API_ENDPOINTS.masterTables.consultorios.search}?codigo=${encodeURIComponent(codigo)}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        // Si hay resultados, el código existe
-        const exists = Array.isArray(data) ? data.length > 0 : (data.data && data.data.length > 0);
-        setCodigoExists(exists);
-      }
+      const result = await consultorioServerService.getConsultorioById(codigo);
+      setCodigoExists(result !== null);
     } catch (error) {
       console.error('Error checking codigo:', error);
     } finally {
@@ -365,10 +343,10 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
                   <CommandGroup>
                     {especialidades.map((esp) => (
                       <CommandItem
-                        key={esp.Especialidad}
+                        key={esp.Codigo}
                         onSelect={() => handleEspecialidadSelect(esp)}
                       >
-                        {esp.Especialidad} - {esp.Nombre}
+                        {esp.Codigo} - {esp.Nombre}
                       </CommandItem>
                     ))}
                   </CommandGroup>

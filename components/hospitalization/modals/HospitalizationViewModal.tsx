@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ArrowLeft, Edit, Loader2, AlertCircle, CheckCircle } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+import { toast } from '@/hooks/use-toast'
+import { API_ENDPOINTS, normalizeHospitalizationData } from '@/lib/api-config'
 import { HospitalizationViewRefactored } from "../view/HospitalizationViewRefactored"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
 
@@ -48,29 +49,33 @@ export function HospitalizationViewModal({
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/hospitalization/${hospitalizationId}`)
+      const response = await fetch(API_ENDPOINTS.hospitalizacion.byId(hospitalizationId))
       
       if (!response.ok) {
         throw new Error(`Error al cargar hospitalización: ${response.status}`)
       }
 
       const data = await response.json()
-      
+
+      let hospitalizationData: any
+
       // Verificar el formato de la respuesta
       if (data.success && data.data) {
         // Formato con wrapper {success: true, data: {...}}
-        setHospitalizationData(data.data)
-      } else if (data.error || data.message) {
-        // Formato de error {error: '...', message: '...'}
+        hospitalizationData = normalizeHospitalizationData(data.data)
+      } else if (data.success === false || data.error || data.message) {
+        // Formato de error {success: false, error: '...', message: '...'}
         throw new Error(data.error || data.message || 'Error al cargar los datos')
-      } else if (data.IDHOSPITALIZACION) {
-        // Respuesta directa del objeto de hospitalización
-        setHospitalizationData(data)
+      } else if (data.IDHOSPITALIZACION || data.idHospitalizacion) {
+        // Respuesta directa del objeto de hospitalización (con o sin mapeo de mayúsculas)
+        hospitalizationData = normalizeHospitalizationData(data)
       } else {
         // Formato desconocido
         console.warn('Formato de respuesta desconocido:', data)
         throw new Error('Formato de respuesta desconocido')
-      } 
+      }
+
+      setHospitalizationData(hospitalizationData) 
     } catch (error: any) {
       console.error('❌ Error al cargar hospitalización:', error)
       setError(error.message || 'Error al cargar los datos de la hospitalización')
@@ -101,7 +106,7 @@ export function HospitalizationViewModal({
     
     // Si ya tenemos initialData, usarlo directamente
     if (initialData) {
-      setHospitalizationData(initialData)
+      setHospitalizationData(normalizeHospitalizationData(initialData))
       setLoading(false)
     } else {
       // Si no hay initialData, cargar desde la API
@@ -111,15 +116,18 @@ export function HospitalizationViewModal({
 
   const handleSave = (updatedData: any) => {
     setSubmitSuccess(true)
-    
+
     toast({
       title: "¡Éxito!",
       description: "Hospitalización actualizada correctamente",
       variant: "default",
     })
 
+    // Normalizar para asegurar campos en mayúsculas
+    const normalizedData = normalizeHospitalizationData(updatedData)
+
     // Actualizar datos locales
-    setHospitalizationData(updatedData)
+    setHospitalizationData(normalizedData)
 
     // Esperar un momento para que el usuario vea el mensaje de éxito, luego regresar al listado
     setTimeout(() => {
@@ -127,7 +135,7 @@ export function HospitalizationViewModal({
       
       // Llamar callback de éxito para regresar al listado
       if (onSuccess) {
-        onSuccess(updatedData)
+        onSuccess(normalizedData)
       }
     }, 1500)
   }

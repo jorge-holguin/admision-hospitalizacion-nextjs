@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'
+import { datetimeService } from '@/services/datetimeService'
 
 type ServerDateTime = {
   date: string
@@ -32,39 +33,33 @@ export function ServerDateTimeProvider({ children }: { children: React.ReactNode
 
   const fetchServerDateTime = async (): Promise<ServerDateTime> => {
     try {
-      setLoading(true)      
-      const response = await fetch('/api/utils/datetime')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      
+      setLoading(true)
+      const data = await datetimeService.getCurrentDateTime()
+
       const dateTime = {
         date: data.date || '',
         time: data.time || ''
       }
-      
+
       setServerDateTime(dateTime)
       return dateTime
-      
+
     } catch (error) {
       console.error('❌ Error al obtener fecha y hora del servidor:', error)
-      
+
       // Fallback a fecha y hora local
       const now = new Date()
       const localDate = now.toISOString().split('T')[0] // formato YYYY-MM-DD
       const localTime = now.toTimeString().substring(0, 5) // formato HH:MM
-      
+
       const fallbackDateTime = {
         date: localDate,
         time: localTime
       }
-      
+
       setServerDateTime(fallbackDateTime)
       return fallbackDateTime
-      
+
     } finally {
       setLoading(false)
     }

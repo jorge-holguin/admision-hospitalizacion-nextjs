@@ -9,7 +9,7 @@ import { swaggerSpec } from '@/lib/swagger';
 export async function GET() {
   return NextResponse.json(swaggerSpec, {
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
     },
   });

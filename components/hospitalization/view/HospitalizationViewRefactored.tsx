@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { convertDateFormat, convertTimeFormat, convertTo12HourFormat } from '@/utils/dateFormatUtils'
 import { usePatient } from '@/contexts/PatientContext'
+import { API_ENDPOINTS } from '@/lib/api-config'
 
 // Componentes reutilizables
 import { PatientInfoCard } from '@/components/hospitalization/PatientInfoCard'
@@ -80,6 +81,7 @@ export function HospitalizationViewRefactored({
     hospitalizationId: '',
     origin: '',
     originName: '',
+    procedencia: '',
     consultorio: '',
     consultorioName: '',
     medico: '',
@@ -143,6 +145,7 @@ export function HospitalizationViewRefactored({
       timeEdited: false,
       hospitalizationId: data.ORIGENID?.toString().trim() || '',
       origin: data.ORIGEN || '',
+      procedencia: data.ORIGEN || '',
       originName: data.ORIGENOMBRE || '',
       consultorio: data.CONSULTORIO1?.toString().trim() || '',
       consultorioName: data.CONSULNOMBRE || '',
@@ -320,7 +323,7 @@ export function HospitalizationViewRefactored({
       };
       
       // Enviar datos a la API
-      const response = await fetch(`/api/hospitalization/${hospitalizationId}`, {
+      const response = await fetch(API_ENDPOINTS.hospitalizacion.update(hospitalizationId), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

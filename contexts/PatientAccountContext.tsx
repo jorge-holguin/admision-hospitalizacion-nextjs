@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 // Define la interfaz para los datos de cuenta
 interface PatientAccountData {
@@ -136,8 +137,7 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setLoading(patientId, true);
         setError(patientId, null);
 
-        // ✅ Usar endpoint correcto de validación
-        const response = await fetch(`/api/accounts/validate?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
+        const response = await fetch(`${API_ENDPOINTS.accounts.validate}?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
         
         if (!response.ok) {
           // Si es un 404, no es un error crítico, simplemente no hay cuenta para ese seguro

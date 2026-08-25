@@ -22,6 +22,8 @@ export function EmergencyModalProvider({
   patientId,
   patientName
 }: EmergencyModalProviderProps) {
+  console.log('🚑 [EmergencyModalProvider] render', { isOpen, patientId, patientName })
+
   // Solo renderizar los providers cuando el modal esté abierto
   if (!isOpen) {
     return (

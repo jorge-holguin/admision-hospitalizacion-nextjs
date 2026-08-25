@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { consultarSIS } from "@/services/sisService"
 
-// API del BACKEND
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 
 interface SimpleSISVerificationProps {
   patientId: string;
@@ -78,124 +77,69 @@ export function SimpleSISVerification({
     setVerificationResult(null);
 
     try {
-      // Crear un AbortController para el timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos
-      
-      try {
-        // Determinar el tipo de documento: 9 dígitos = Carné de Extranjería (tipo "3"), sino DNI (tipo "1")
-        const tipoDocumento = documento.length === 9 ? "3" : "1";
-        
-        const response = await fetch(`${API_BACKEND_URL}/sis/validar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            intOpcion: "1",
-            strTipoDocumento: tipoDocumento,
-            strNroDocumento: documento,
-            strTipoFormato: "2",
-            strNroContrato: documento
-          }),
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
+      const sisResult = await consultarSIS(documento);
+      console.log('🛡️ [SimpleSISVerification] service response', sisResult);
 
-        if (!response.ok) {
-          throw new Error(`Error en la consulta: ${response.status}`);
-        }
+      const data = sisResult.data;
+      const resultado = (data?.resultado || sisResult.error || '').trim();
 
-        const data = await response.json();
-        const resultado = data.resultado;
-        
-        const result = {
-          isSuccess: resultado === "DATOS EXITOSOS",
-          eess: data.eess,
-          descEESS: data.descEESS
-        };
-        
-        setVerificationResult(result);
+      const trimField = (value?: string | null) => (value ? value.trim() : undefined);
 
-        // Notificar al componente padre
-        if (onVerificationComplete) {
-          onVerificationComplete(result);
-        }
+      const isServerError = !sisResult.success && (
+        sisResult.error === 'El servicio de verificación SIS no responde' ||
+        /failed to fetch|networkerror|conexión|conectar|timeout/i.test(sisResult.error || '')
+      );
 
-        // Mostrar toast con el resultado simplificado (solo si no es automático)
-        if (!isAutomatic) {
-          if (resultado === "DATOS EXITOSOS") {
-            toast({
-              title: "SIS Activo",
-              description: "Verificación exitosa",
-              variant: "default",
-              className: "bg-green-50 border-green-200 text-green-800"
-            });
-          } else {
-            toast({
-              title: "SIS No Activo",
-              description: "No se encontró afiliación SIS para el DNI consultado",
-              variant: "destructive"
-            });
-          }
-        }
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        // Verificar si fue un timeout
-        if (fetchError.name === 'AbortError') {
-          console.error('⏱️ Timeout al consultar SIS (5 segundos)');
-          
-          const result = {
-            isSuccess: false,
-            isServerError: true
-          };
-          
-          setVerificationResult(result);
-          
-          if (onVerificationComplete) {
-            onVerificationComplete(result);
-          }
-          
-          if (!isAutomatic) {
-            toast({
-              title: "Error",
-              description: "El servicio de verificación SIS no responde",
-              variant: "destructive"
-            });
-          }
-          
-          return;
-        }
-        
-        throw fetchError;
-      }
-    } catch (error: any) {
-      console.error('Error al verificar SIS:', error);
-      
-      // Determinar si es un error 500 (servicio inactivo)
-      const is500Error = error.message && error.message.includes('500');
-      
-      const result = {
-        isSuccess: false,
-        isServerError: true
+      const result: SimpleSISVerificationResult = {
+        isSuccess: sisResult.success && !!data,
+        isServerError,
+        eess: trimField(data?.eess),
+        descEESS: trimField(data?.descEESS)
       };
-      
+
       setVerificationResult(result);
-      
+
       // Notificar al componente padre
       if (onVerificationComplete) {
         onVerificationComplete(result);
       }
-      
+
+      // Mostrar toast con el resultado simplificado (solo si no es automático)
+      if (!isAutomatic) {
+        if (result.isSuccess) {
+          toast({
+            title: "SIS Activo",
+            description: "Verificación exitosa",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800"
+          });
+        } else {
+          toast({
+            title: isServerError ? "Error de Conexión" : "SIS No Activo",
+            description: resultado || "No se encontró afiliación SIS para el documento consultado",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('Error al verificar SIS:', error);
+
+      const result: SimpleSISVerificationResult = {
+        isSuccess: false,
+        isServerError: true
+      };
+
+      setVerificationResult(result);
+
+      if (onVerificationComplete) {
+        onVerificationComplete(result);
+      }
+
       // Mostrar mensaje de error (solo si no es automático)
       if (!isAutomatic) {
         toast({
           title: "Error",
-          description: is500Error 
-            ? "El servicio de verificación SIS está temporalmente inactivo" 
-            : "No se pudo conectar con el servicio de verificación SIS",
+          description: "No se pudo conectar con el servicio de verificación SIS",
           variant: "destructive"
         });
       }

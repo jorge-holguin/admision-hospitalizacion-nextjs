@@ -34,6 +34,17 @@ export interface CitaHistorial {
   entidadSis?: string;
   numRef?: string;
   diagnostico?: string;
+  // Datos del paciente (cuando el backend Spring los incluya)
+  tipoDocumento?: string;
+  sexo?: string;
+  fechaNacimiento?: string;
+  direccion?: string;
+  distrito?: string;
+  distritoDir?: string;
+  telefono1?: string;
+  telefono2?: string;
+  foto?: string;
+  stringFoto?: string;
 }
 
 export interface CitaSearchResult {
@@ -74,6 +85,16 @@ function normalizeCita(cita: any): CitaHistorial {
     entidadSis: cita.ENTIDADSIS || cita.entidadSis || undefined,
     numRef: cita.NUMREF || cita.numRef || undefined,
     diagnostico: cita.DIAGNOSTICO || cita.diagnostico || undefined,
+    tipoDocumento: cita.TIPO_DOCUMENTO || cita.tipoDocumento || undefined,
+    sexo: cita.SEXO || cita.sexo || undefined,
+    fechaNacimiento: cita.FECHA_NACIMIENTO || cita.fechaNacimiento || cita.fechaNac || undefined,
+    direccion: cita.DIRECCION || cita.direccion || undefined,
+    distrito: cita.DISTRITO || cita.distrito || undefined,
+    distritoDir: cita.DISTRITO_DIR || cita.distritoDir || undefined,
+    telefono1: cita.TELEFONO1 || cita.telefono1 || cita.telefono || undefined,
+    telefono2: cita.TELEFONO2 || cita.telefono2 || undefined,
+    foto: cita.FOTO || cita.foto || undefined,
+    stringFoto: cita.STRING_FOTO || cita.stringFoto || undefined,
   };
 }
 
@@ -82,19 +103,23 @@ function normalizeCita(cita: any): CitaHistorial {
 // ============================================================================
 
 /**
- * Busca citas por documento o historia clínica del paciente
+ * Busca citas por documento o historia clínica del paciente.
+ * El endpoint correcto de Spring es /cita/historial/por-documento
+ * y requiere (o acepta) el parámetro tipoDocumento.
  */
 export async function searchCitasByDocumento(
   documento: string,
   filters: CitaSearchFilters = {},
   page: number = 0,
-  size: number = 10
+  size: number = 10,
+  tipoDocumento: string = 'D'
 ): Promise<CitaSearchResult> {
   try {
-    console.log(`🔍 Buscando citas por documento: ${documento}`);
+    console.log(`🔍 Buscando citas por documento: ${documento}, tipo: ${tipoDocumento}`);
 
     const params: Record<string, string> = {
       documento,
+      tipoDocumento,
       page: page.toString(),
       size: size.toString(),
     };
@@ -105,7 +130,7 @@ export async function searchCitasByDocumento(
     if (filters.consultorio && filters.consultorio !== 'all') params.consultorio = filters.consultorio;
     if (filters.medico && filters.medico !== 'all') params.medico = filters.medico;
 
-    const url = buildUrl(`${API_ENDPOINTS.citas.search}/por-documento`, params);
+    const url = buildUrl(API_ENDPOINTS.citas.historialPorDocumento, params);
     const response = await fetchApi(url);
 
     if (!response.ok) {
@@ -137,7 +162,9 @@ export async function searchCitasByDocumento(
 }
 
 /**
- * Busca citas por apellidos y nombres del paciente
+ * Busca citas por apellidos y nombres del paciente.
+ * El endpoint /busqueda/paciente-por-nombre devuelve pacientes; se toma
+ * el primer paciente encontrado y se consulta su historial de citas por documento.
  */
 export async function searchCitasByNombres(
   nombres: string,
@@ -148,19 +175,7 @@ export async function searchCitasByNombres(
   try {
     console.log(`🔍 Buscando citas por nombre: ${nombres}`);
 
-    const params: Record<string, string> = {
-      nombres,
-      page: page.toString(),
-      size: size.toString(),
-    };
-
-    if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
-    if (filters.fechaHasta) params.fechaHasta = filters.fechaHasta;
-    if (filters.estado && filters.estado !== 0) params.estado = filters.estado.toString();
-    if (filters.consultorio && filters.consultorio !== 'all') params.consultorio = filters.consultorio;
-    if (filters.medico && filters.medico !== 'all') params.medico = filters.medico;
-
-    const url = buildUrl(`${API_ENDPOINTS.citas.search}/por-nombres`, params);
+    const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres });
     const response = await fetchApi(url);
 
     if (!response.ok) {
@@ -171,19 +186,36 @@ export async function searchCitasByNombres(
     }
 
     const result = await response.json();
+    const pacientes = Array.isArray(result)
+      ? result
+      : (result.data || result.content || result.pacientes || result.result || []);
 
-    const content = (result.content || result.data || []).map(normalizeCita);
-    const totalElements = result.totalElements || result.total || content.length;
-    const totalPages = result.totalPages || Math.ceil(totalElements / size);
+    if (pacientes.length === 0) {
+      console.log('⚠️ No se encontró paciente por nombre');
+      return { content: [], totalElements: 0, totalPages: 0, last: true };
+    }
 
-    console.log(`✅ Encontradas ${content.length} citas (total: ${totalElements})`);
+    const paciente = pacientes[0];
+    const documento =
+      (typeof paciente.DOCUMENTO === 'string' ? paciente.DOCUMENTO.trim() : undefined) ||
+      (typeof paciente.documento === 'string' ? paciente.documento.trim() : undefined) ||
+      (typeof paciente.document === 'string' ? paciente.document.trim() : undefined);
 
-    return {
-      content,
-      totalElements,
-      totalPages,
-      last: page >= totalPages - 1,
-    };
+    if (!documento) {
+      console.warn('⚠️ Paciente encontrado sin documento, no se puede buscar citas');
+      return { content: [], totalElements: 0, totalPages: 0, last: true };
+    }
+
+    const tipoDocumento =
+      (typeof paciente.TIPO_DOCUMENTO === 'string' ? paciente.TIPO_DOCUMENTO.trim() : undefined) ||
+      (typeof paciente.tipoDocumento === 'string' ? paciente.tipoDocumento.trim() : undefined) ||
+      (typeof paciente.tipoDocument === 'string' ? paciente.tipoDocument.trim() : undefined) ||
+      (typeof paciente.documentType === 'string' ? paciente.documentType.trim() : undefined) ||
+      'D';
+
+    console.log(`✅ Paciente encontrado: ${paciente.NOMBRES || paciente.nombres || paciente.nombre}, documento: ${documento}, tipo: ${tipoDocumento}`);
+
+    return searchCitasByDocumento(documento, filters, page, size, tipoDocumento);
   } catch (error) {
     console.error('❌ Error searching citas by nombres:', error);
     throw new Error('Error al buscar citas por nombres');

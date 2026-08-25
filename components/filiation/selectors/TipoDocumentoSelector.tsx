@@ -9,10 +9,17 @@ interface TipoDocumentoSelectorProps {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  excludeCodes?: string[]
 }
 
-export function TipoDocumentoSelector({ value, onChange, disabled }: TipoDocumentoSelectorProps) {
+export function TipoDocumentoSelector({ value, onChange, disabled, excludeCodes }: TipoDocumentoSelectorProps) {
   const { tiposDocumento, isLoading, error } = useTipoDocumento()
+
+  const tiposFiltrados = useMemo(() => {
+    if (!excludeCodes?.length) return tiposDocumento
+    const excluir = new Set(excludeCodes.map(c => c.trim().toUpperCase()))
+    return tiposDocumento.filter(tipo => !excluir.has(tipo.tipoDocumento.trim().toUpperCase()))
+  }, [tiposDocumento, excludeCodes])
 
   // Normalizar el valor para comparación (trim y manejar casos especiales)
   const normalizedValue = useMemo(() => {
@@ -27,15 +34,15 @@ export function TipoDocumentoSelector({ value, onChange, disabled }: TipoDocumen
 
   // Encontrar el valor que coincide en la lista
   const selectedValue = useMemo(() => {
-    if (!normalizedValue || tiposDocumento.length === 0) return ''
-    
-    const found = tiposDocumento.find(tipo => {
+    if (!normalizedValue || tiposFiltrados.length === 0) return ''
+
+    const found = tiposFiltrados.find(tipo => {
       const tipoCode = tipo.tipoDocumento.trim().toUpperCase()
       return tipoCode === normalizedValue
     })
-    
-    return found ? found.tipoDocumento.trim() : normalizedValue
-  }, [normalizedValue, tiposDocumento])
+
+    return found ? found.tipoDocumento.trim() : ''
+  }, [normalizedValue, tiposFiltrados])
 
   if (isLoading) {
     return (
@@ -60,7 +67,7 @@ export function TipoDocumentoSelector({ value, onChange, disabled }: TipoDocumen
         <SelectValue placeholder="Seleccione tipo" />
       </SelectTrigger>
       <SelectContent>
-        {tiposDocumento.map((tipo) => (
+        {tiposFiltrados.map((tipo) => (
           <SelectItem key={tipo.tipoDocumento} value={tipo.tipoDocumento.trim()}>
             {/* Limpiar asterisco del nombre "*Ninguno" */}
             {tipo.nombre.replace(/^\*/, '')}

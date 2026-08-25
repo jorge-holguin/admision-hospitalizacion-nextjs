@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Printer, Calendar, Clock, User, Stethoscope, Building2, CreditCard, FileText, Copy, CheckCircle2, Download } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, type CitaDto } from "@/services/appointments/printService"
+import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
 import Image from "next/image"
 import html2canvas from "html2canvas"
 
@@ -69,14 +70,10 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
 
       try {
         console.log('🔍 Obteniendo nombre de entidad SIS:', ticketData.entidadSis)
-        const response = await fetch(`/api/appointments/sis-entities/${ticketData.entidadSis.trim()}`)
-        
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.data) {
-            setEntidadSisNombre(data.data.NOMBRE)
-            console.log('✅ Nombre de entidad SIS obtenido:', data.data.NOMBRE)
-          }
+        const result = await obtenerEntidadSISPorCodigo(ticketData.entidadSis.trim())
+        if (result.success && result.data) {
+          setEntidadSisNombre(result.data.NOMBRE)
+          console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
         } else {
           console.warn('⚠️ No se pudo obtener el nombre de la entidad SIS')
           setEntidadSisNombre('')

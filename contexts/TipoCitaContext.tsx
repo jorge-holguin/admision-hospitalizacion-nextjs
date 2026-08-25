@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { API_ENDPOINTS } from '@/lib/api-config'
 
 interface TipoCita {
   Tipo_cita: string
@@ -32,7 +33,7 @@ export function TipoCitaProvider({ children }: TipoCitaProviderProps) {
     setError(null)
     
     try {
-      const response = await fetch('/api/appointments/types')
+      const response = await fetch(API_ENDPOINTS.citas.tipos)
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }

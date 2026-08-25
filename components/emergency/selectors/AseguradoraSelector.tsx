@@ -1,17 +1,15 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
+import { getAllEmpresasSeguro, type EmpresaSeguro as EmpresaSeguroApi } from '@/services/emergencia/empresaSeguroApiService'
 
-interface EmpresaSeguro {
-  EMPRESA: string
-  NOMBRE: string
-  ACTIVO?: string
-}
+// Tipo proveniente del servicio Spring Boot
+type EmpresaSeguro = EmpresaSeguroApi
 
 interface AseguradoraSelectorProps {
   value: string
@@ -37,23 +35,19 @@ export function AseguradoraSelector({
   const [items, setItems] = useState<EmpresaSeguro[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedItem, setSelectedItem] = useState<EmpresaSeguro | null>(null)
+  const loadedRef = useRef(false)
 
-  // Cargar todas las empresas de seguro al montar
-  const loadEmpresas = useCallback(async (searchTerm?: string) => {
+  // Cargar todas las empresas de seguro desde Spring Boot una sola vez
+  const loadEmpresas = useCallback(async () => {
+    if (loadedRef.current) return
+    loadedRef.current = true
     setIsLoading(true)
     try {
-      const url = searchTerm 
-        ? `/api/emergency/empresas-seguro?search=${encodeURIComponent(searchTerm)}`
-        : '/api/emergency/empresas-seguro'
-      
-      const response = await fetch(url)
-      const result = await response.json()
-      
-      if (result.ok && result.data) {
-        setItems(result.data)
-      }
+      const all = await getAllEmpresasSeguro()
+      setItems(all)
     } catch (error) {
       console.error('Error cargando empresas de seguro:', error)
+      loadedRef.current = false
     } finally {
       setIsLoading(false)
     }
@@ -61,41 +55,33 @@ export function AseguradoraSelector({
 
   // Cargar empresas al abrir el popover
   useEffect(() => {
-    if (open && items.length === 0) {
+    if (open && !loadedRef.current) {
       loadEmpresas()
     }
-  }, [open, items.length, loadEmpresas])
+  }, [open, loadEmpresas])
 
   // Cargar empresa por ID inicial
   useEffect(() => {
     const loadInitialValue = async () => {
-      if (initialValue && !selectedItem) {
-        try {
-          const response = await fetch(`/api/emergency/empresas-seguro/${initialValue}`)
-          const result = await response.json()
-          if (result.ok && result.data) {
-            setSelectedItem(result.data)
-          }
-        } catch (error) {
-          console.error('Error cargando empresa inicial:', error)
-        }
+      if (!initialValue || selectedItem) return
+      if (!loadedRef.current) {
+        await loadEmpresas()
       }
+      const found = items.find(item => item.EMPRESA?.trim() === initialValue.trim())
+      if (found) setSelectedItem(found)
     }
     loadInitialValue()
-  }, [initialValue, selectedItem])
+  }, [initialValue, selectedItem, items, loadEmpresas])
 
-  // Buscar cuando cambia el texto de búsqueda
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (search.length >= 2) {
-        loadEmpresas(search)
-      } else if (search.length === 0 && open) {
-        loadEmpresas()
-      }
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [search, open, loadEmpresas])
+  // Filtrar empresas según el texto de búsqueda (cliente)
+  const filteredItems = useMemo(() => {
+    if (!search) return items
+    const query = search.toLowerCase()
+    return items.filter(item =>
+      item.EMPRESA?.toLowerCase().includes(query) ||
+      item.NOMBRE?.toLowerCase().includes(query)
+    )
+  }, [items, search])
 
   const buildDisplayText = (empresa: EmpresaSeguro) => {
     if (!empresa || !empresa.EMPRESA?.trim() || !empresa.NOMBRE?.trim()) {
@@ -110,12 +96,9 @@ export function AseguradoraSelector({
     
     // Buscar en items cargados
     const found = items.find(item => item.EMPRESA?.trim() === value?.trim())
-    if (found) {
-      setSelectedItem(found)
-      return buildDisplayText(found)
-    }
+    if (found) return buildDisplayText(found)
     
-    return placeholder
+    return value ? `(${value})` : placeholder
   }
 
   const handleSelect = (empresa: EmpresaSeguro) => {
@@ -151,7 +134,7 @@ export function AseguradoraSelector({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
-          <Command>
+          <Command shouldFilter={false}>
             <CommandInput 
               placeholder="Buscar aseguradora..." 
               value={search}
@@ -166,7 +149,7 @@ export function AseguradoraSelector({
                 <>
                   <CommandEmpty>No se encontraron aseguradoras.</CommandEmpty>
                   <CommandGroup>
-                    {items.map((empresa, idx) => {
+                    {filteredItems.map((empresa, idx) => {
                       const displayText = buildDisplayText(empresa)
                       const empresaId = empresa.EMPRESA?.trim() || ''
                       return (

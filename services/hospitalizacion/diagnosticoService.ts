@@ -23,23 +23,25 @@ export class DiagnosticoService {
   /**
    * Busca diagnósticos de emergencia con opciones de búsqueda y límite
    */
-  async findAllEmergencia(search?: string, limit?: number): Promise<Diagnostico[]> {
+  async findAllEmergencia(search?: string, origen?: string, limit?: number): Promise<Diagnostico[]> {
     try {
-      console.log(`🔍 Buscando diagnósticos de emergencia${search ? ` con búsqueda: ${search}` : ''}${limit ? ` (límite: ${limit})` : ''}`);
-      
+      console.log(`🔍 Buscando diagnósticos de emergencia${search ? ` con búsqueda: ${search}` : ''}${origen ? ` origen: ${origen}` : ''}${limit ? ` (límite: ${limit})` : ''}`);
+
       const params: Record<string, string> = {
         tipo: 'CX',
       };
-      
+
       if (search) params.search = search;
+      if (origen) params.origen = origen;
       if (limit) params.limit = limit.toString();
-      
+
       const url = buildUrl(API_ENDPOINTS.diagnosticos.search, params);
       const response = await fetchApi(url);
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
+
       
       const diagnosticos = await response.json();
       console.log(`✅ Se encontraron ${Array.isArray(diagnosticos) ? diagnosticos.length : 0} diagnósticos de emergencia`);

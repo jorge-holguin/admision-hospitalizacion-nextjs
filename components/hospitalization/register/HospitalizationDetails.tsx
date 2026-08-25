@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from "@/components/ui/use-toast";
+import { API_ENDPOINTS, normalizeHospitalizationData } from '@/lib/api-config';
 import { formatDate, formatTime } from './FormUtils';
 
 interface HospitalizationDetailsProps {
@@ -27,12 +28,13 @@ export function HospitalizationDetails({
   const fetchHospitalizationDetails = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/hospitalization/${id}`);
+      const response = await fetch(API_ENDPOINTS.hospitalizacion.byId(id));
       if (!response.ok) {
         throw new Error(`Error al cargar detalles de hospitalización: ${response.statusText}`);
       }
-      const data = await response.json();
-      
+      const responseData = await response.json();
+      const data = normalizeHospitalizationData(responseData);
+
       // Verificar si el estado es '3' para bloquear campos
       const isLocked = data.ESTADO === '3';
       const isEditable = !isLocked;

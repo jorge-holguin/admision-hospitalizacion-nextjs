@@ -39,6 +39,8 @@ export function EmergencyMainModal({
   patientId,
   patientName
 }: EmergencyMainModalProps) {
+  console.log('🚑 [EmergencyMainModal] render', { isOpen, patientId, patientName })
+
   const { patientData } = usePatient()
   const [currentStep, setCurrentStep] = useState<ModalStep>('list')
   const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(null)
@@ -104,6 +106,7 @@ export function EmergencyMainModal({
 
   // Validar que tenemos el patientId
   if (!patientId) {
+    console.warn('🚑 [EmergencyMainModal] missing patientId, returning null')
     return null
   }
 

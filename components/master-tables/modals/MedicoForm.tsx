@@ -38,6 +38,9 @@ import { ProfesionColegioSelector } from "@/components/master-tables/selectors/P
 import { PaisSelector } from "@/components/master-tables/selectors/PaisSelector";
 import { extractDocumentFromToken } from "@/utils/jwtUtils";
 import { API_ENDPOINTS } from "@/lib/api-config";
+import { medicoServerService } from "@/services/master-tables/medicoService";
+import { getEspecialidades, type Especialidad } from "@/services/master-tables/especialidadService";
+import { consultorioServerService } from "@/services/master-tables/consultorioService";
 
 interface MedicoFormProps {
   medico?: any;
@@ -89,7 +92,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   });
 
   // Catálogos / UI
-  const [especialidades, setEspecialidades] = useState<any[]>([]);
+  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [consultorios, setConsultorios] = useState<any[]>([]);
   const [especialidadOpen, setEspecialidadOpen] = useState(false);
   const [consultorioOpen, setConsultorioOpen] = useState(false);
@@ -143,15 +146,21 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
   // Sugerir códigos cuando cambia NOMBRE (solo en creación)
   useEffect(() => {
-    if (formData.NOMBRE && formData.NOMBRE.trim().length > 0 && !medico) {
+    const tieneNombreCompleto =
+      formData.APATERNO.trim().length > 0 &&
+      formData.AMATERNO.trim().length > 0 &&
+      formData.NOMBRES.trim().length > 0;
+
+    if (tieneNombreCompleto && !medico) {
+      const nombreCompleto = `${formData.APATERNO.trim()} ${formData.AMATERNO.trim()} ${formData.NOMBRES.trim()}`.trim();
       const timeoutId = setTimeout(() => {
-        void loadCodigosSugeridos(formData.NOMBRE);
+        void loadCodigosSugeridos(nombreCompleto);
       }, 500);
       return () => clearTimeout(timeoutId);
     } else {
       setCodigosSugeridos([]);
     }
-  }, [formData.NOMBRE, medico]);
+  }, [formData.APATERNO, formData.AMATERNO, formData.NOMBRES, medico]);
 
   // Cargar datos en edición
   useEffect(() => {
@@ -243,11 +252,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadEspecialidades = async () => {
     setLoadingEspecialidades(true);
     try {
-      const response = await fetch(API_ENDPOINTS.masterTables.specialties);
-      if (!response.ok) throw new Error(`Error ${response.status}`);
-      const result = await response.json();
-      // La API devuelve array directo o {data: [...]}
-      const data = Array.isArray(result) ? result : (result.data || []);
+      const data = await getEspecialidades();
       setEspecialidades(data);
     } catch (error) {
       console.error("Error cargando especialidades:", error);
@@ -259,13 +264,14 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadConsultorios = async (especialidad: string) => {
     setLoadingConsultorios(true);
     try {
-      const url = `${API_ENDPOINTS.masterTables.consultorios.bySpecialty}?especialidad=${encodeURIComponent(especialidad)}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Error ${response.status}`);
-      const result = await response.json();
-      // La API devuelve array directo o {data: [...]}
-      const data = Array.isArray(result) ? result : (result.data || []);
-      setConsultorios(data);
+      const list = await consultorioServerService.getConsultoriosByEspecialidad(especialidad);
+      // El servicio normaliza a CONSULTORIO/NOMBRE; el selector espera Consultorio/Nombre
+      setConsultorios(
+        list.map((c) => ({
+          Consultorio: c.CONSULTORIO,
+          Nombre: c.NOMBRE,
+        }))
+      );
     } catch (error) {
       console.error("Error cargando consultorios:", error);
     } finally {
@@ -276,13 +282,14 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadConsultorios2 = async (especialidad: string) => {
     setLoadingConsultorios2(true);
     try {
-      const url = `${API_ENDPOINTS.masterTables.consultorios.bySpecialty}?especialidad=${encodeURIComponent(especialidad)}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Error ${response.status}`);
-      const result = await response.json();
-      // La API devuelve array directo o {data: [...]}
-      const data = Array.isArray(result) ? result : (result.data || []);
-      setConsultorios2(data);
+      const list = await consultorioServerService.getConsultoriosByEspecialidad(especialidad);
+      // El servicio normaliza a CONSULTORIO/NOMBRE; el selector espera Consultorio/Nombre
+      setConsultorios2(
+        list.map((c) => ({
+          Consultorio: c.CONSULTORIO,
+          Nombre: c.NOMBRE,
+        }))
+      );
     } catch (error) {
       console.error("Error cargando consultorios2:", error);
     } finally {
@@ -293,17 +300,12 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   const loadCodigosSugeridos = async (nombreCompleto: string) => {
     setLoadingCodigos(true);
     try {
-      const response = await fetch("/api/master-tables/medicos/suggest-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombreCompleto }),
-      });
-      const result = await response.json();
+      const result = await medicoServerService.suggestCode(nombreCompleto);
 
-      if (response.ok && result.candidatos) {
+      if (result.candidatos && result.candidatos.length > 0) {
         setCodigosSugeridos(result.candidatos);
-        if (result.candidatos.length > 0 && !formData.MEDICO) {
-          setFormData(prev => ({ ...prev, MEDICO: result.candidatos[0] }));
+        if (!formData.MEDICO) {
+          setFormData(prev => ({ ...prev, MEDICO: result.candidatos![0] }));
         }
       } else {
         setCodigosSugeridos([]);
@@ -566,8 +568,12 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               <Input id="MEDICO" name="MEDICO" value={formData.MEDICO} disabled className="bg-gray-100" />
             )}
 
-            {!medico && codigosSugeridos.length === 0 && !loadingCodigos && formData.NOMBRE && (
-              <p className="text-xs text-red-500">Ingrese apellidos y nombres para generar códigos sugeridos</p>
+            {!medico && codigosSugeridos.length === 0 && !loadingCodigos && !formData.MEDICO && (
+              <p className="text-xs text-gray-500">
+                {formData.APATERNO && formData.AMATERNO && formData.NOMBRES
+                  ? "No se encontraron códigos sugeridos para este nombre."
+                  : "Ingrese apellidos y nombres para generar códigos sugeridos."}
+              </p>
             )}
           </div>
         </div>
