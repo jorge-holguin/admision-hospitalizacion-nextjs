@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import { cuentaService } from '@/services/emergencia/cuentaService';
 
 // Define la interfaz para los datos de cuenta de emergencia
 interface EmergencyAccountData {
@@ -60,7 +61,7 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
   };
 
   // Función para obtener la cuenta del paciente para EMERGENCIAS
-  // Usa el endpoint: /api/accounts/search-by-insurance/[pacienteId]?seguro=X
+  // Llama directamente al servicio Spring Boot
   const fetchEmergencyAccount = useCallback(async (patientId: string, tipoSeguro: string): Promise<EmergencyAccountData | null> => {
     if (!patientId || !tipoSeguro) return null;
     
@@ -83,23 +84,10 @@ export const EmergencyAccountProvider: React.FC<{ children: ReactNode }> = ({ ch
         setLoading(patientId, true);
         setError(patientId, null);
 
-        const response = await fetch(`/api/accounts/search-by-insurance/${patientId}?seguro=${tipoSeguro}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            return null;
-          }
-          throw new Error(`Error al obtener cuenta de emergencia: ${response.status}`);
-        }
+        const cuentaId = await cuentaService.getCuentaActivaByPacienteIdAndSeguro(patientId, tipoSeguro);
 
-        const data = await response.json();
-        
-        // El endpoint buscar-por-seguro devuelve: { success, message, cuentaId }
-        if (data?.success && data?.cuentaId) {
-          const accountInfo: EmergencyAccountData = {
-            cuentaId: data.cuentaId
-          };
-          
+        if (cuentaId) {
+          const accountInfo: EmergencyAccountData = { cuentaId };
           setAccountData(patientId, accountInfo, tipoSeguro);
           return accountInfo;
         } else {

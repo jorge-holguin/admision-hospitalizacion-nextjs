@@ -1,3 +1,5 @@
+import { getAuthToken } from "@/lib/auth";
+
 /**
  * Utility functions for working with JWT tokens
  */
@@ -8,8 +10,8 @@
  */
 export const extractUserSurnameFromToken = (): string => {
   try {
-    // Obtener el token del localStorage
-    const authToken = localStorage.getItem('authToken');
+    // Obtener el token de forma segura
+    const authToken = getAuthToken();
     if (!authToken) return 'SUPERVISOR';
     
     // Decodificar el token (solo la parte del payload)
@@ -38,8 +40,8 @@ export const extractUserSurnameFromToken = (): string => {
  */
 export const extractDocumentFromToken = (): string => {
   try {
-    // Obtener el token del localStorage
-    const authToken = localStorage.getItem('authToken');
+    // Obtener el token de forma segura
+    const authToken = getAuthToken();
     if (!authToken) {
       console.warn('No se encontró authToken en localStorage');
       return '';
@@ -75,8 +77,8 @@ export const extractDocumentFromToken = (): string => {
  */
 export const extractNombreCompletoFromToken = (): string => {
   try {
-    // Obtener el token del localStorage
-    const authToken = localStorage.getItem('authToken');
+    // Obtener el token de forma segura
+    const authToken = getAuthToken();
     if (!authToken) {
       console.warn('No se encontró authToken en localStorage');
       return '';
@@ -112,8 +114,8 @@ export const extractNombreCompletoFromToken = (): string => {
  */
 export const extractPuestoFromToken = (): string | null => {
   try {
-    // Obtener el token del localStorage
-    const authToken = localStorage.getItem('authToken');
+    // Obtener el token de forma segura
+    const authToken = getAuthToken();
     if (!authToken) {
       console.warn('No se encontró authToken en localStorage');
       return null;

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useLocalidades } from "@/hooks/master-tables/useLocalidades";
+import { localidadServerService } from "@/services/master-tables/localidadService";
 
 interface LocalidadFormProps {
   localidad?: any;
@@ -60,16 +61,14 @@ export const LocalidadForm: React.FC<LocalidadFormProps> = ({
 
   const checkCodigoUnique = async (codigo: string) => {
     if (!codigo) return;
-    
+
     setCheckingCodigo(true);
     try {
-      const response = await fetch(`/api/localidad/check-codigo?codigo=${codigo}`);
-      if (response.ok) {
-        const data = await response.json();
-        setCodigoExists(data.exists);
-      }
+      const existing = await localidadServerService.getLocalidadById(codigo);
+      setCodigoExists(!!existing);
     } catch (error) {
       console.error('Error checking codigo:', error);
+      setCodigoExists(false);
     } finally {
       setCheckingCodigo(false);
     }

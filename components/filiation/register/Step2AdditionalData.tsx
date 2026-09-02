@@ -167,16 +167,17 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         {/* Teléfonos e hijos */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="telefono1">Teléfono 1 <span className="text-red-600">*</span></Label>
+            <Label htmlFor="telefono1">Celular 1 <span className="text-red-600">*</span></Label>
             <Input
               id="telefono1"
-              placeholder="Número principal"
+              placeholder="9 dígitos, empieza con 9"
               value={formData.telefono1}
+              maxLength={9}
               onChange={(e) => onInputChange("telefono1", e.target.value)}
             />
           </div>
           <div>
-            <Label htmlFor="telefono2">Teléfono 2</Label>
+            <Label htmlFor="telefono2">Teléfono / Celular 2</Label>
             <Input
               id="telefono2"
               placeholder="Número secundario"

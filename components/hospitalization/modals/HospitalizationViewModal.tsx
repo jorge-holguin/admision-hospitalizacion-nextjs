@@ -208,7 +208,7 @@ export function HospitalizationViewModal({
                 </div>
               )}
               
-              {isReadOnly && onEdit && (
+              {isReadOnly && onEdit && hospitalizationData?.ESTADO !== '0' && (
                 <Button
                   onClick={handleEditClick}
                   className="bg-[#0074ba] hover:bg-[#0067a6] text-white  mr-6"

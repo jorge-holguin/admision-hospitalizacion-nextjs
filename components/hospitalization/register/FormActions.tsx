@@ -7,6 +7,8 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useEffect, useState } from 'react'
 import { usePatientAccount } from '@/contexts/PatientAccountContext'
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config'
+import { MultiAccountSelectorDialog, type ActiveAccount } from '@/components/shared/MultiAccountSelectorDialog'
 
 interface FormActionsProps {
   onSave: () => void
@@ -16,16 +18,20 @@ interface FormActionsProps {
   patientId: string
   insuranceCode: string
   onBeforeSave?: () => boolean | Promise<boolean>
+  onAccountSelected?: (cuentaId: string | null) => void
+  onCreateNewAccount?: () => void
 }
 
-export function FormActions({ 
-  onSave, 
-  onCancel, 
-  submitting, 
+export function FormActions({
+  onSave,
+  onCancel,
+  submitting,
   isEditable,
   patientId,
   insuranceCode,
-  onBeforeSave
+  onBeforeSave,
+  onAccountSelected,
+  onCreateNewAccount
 }: FormActionsProps) {
   const router = useRouter()
   const { fetchPatientAccountBySeguro } = usePatientAccount()
@@ -37,6 +43,9 @@ export function FormActions({
   const [bypassFuaCheck, setBypassFuaCheck] = useState(false)
   const [showFuaWarning, setShowFuaWarning] = useState(false)
   const [userDocument, setUserDocument] = useState<string>('')
+  const [showMultiAccountDialog, setShowMultiAccountDialog] = useState(false)
+  const [activeAccounts, setActiveAccounts] = useState<ActiveAccount[]>([])
+  const [multiAccountLoading, setMultiAccountLoading] = useState(false)
 
   useEffect(() => {
     try {
@@ -48,11 +57,11 @@ export function FormActions({
 
   // List of SIS insurance codes that require FUA validation
   const sisInsuranceCodes = ['20', '21', '22', '23', '24', '25']
-  const paganteSoatCodes = ['0', '00', '02']
-  
+  const segurosConCuenta = ['0', '00', '02', '17']
+
   // Check if the current insurance code requires FUA validation (only SIS)
   const requiresFuaValidation = sisInsuranceCodes.includes(insuranceCode?.split(' ')[0] || '')
-  const isPaganteSoat = paganteSoatCodes.includes(insuranceCode?.split(' ')[0] || '')
+  const requiereCuenta = segurosConCuenta.includes(insuranceCode?.split(' ')[0] || '')
 
   const handleSaveClick = async () => {
     // Validar el formulario antes de continuar si existe la función onBeforeSave
@@ -70,9 +79,38 @@ export function FormActions({
     setFuaId(null)
     setShowFuaWarning(false)
     
-    // For PAGANTE/SOAT, skip validation since accounts will be created automatically
-    if (isPaganteSoat) {
-      setHasFua(true) // Set as valid to allow saving
+    // For insurances that require an account (PAGANTE/SOAT/CONVENIO),
+    // check active accounts and let the user choose/reuse via the shared modal.
+    if (requiereCuenta) {
+      const seguroCode = (insuranceCode?.split(' ')[0] || '').trim()
+      setMultiAccountLoading(true)
+      try {
+        const url = buildUrl(API_ENDPOINTS.accounts.byPatient(patientId), {
+          estado: '1',
+          origen: 'HO',
+          seguro: seguroCode
+        })
+        const response = await fetchApi(url)
+        if (response.ok) {
+          const data = await response.json()
+          const list: ActiveAccount[] = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : [])
+          if (list.length > 0) {
+            setActiveAccounts(list)
+            setShowMultiAccountDialog(true)
+            setMultiAccountLoading(false)
+            return
+          } else {
+            onAccountSelected?.(null)
+          }
+        } else {
+          onAccountSelected?.(null)
+        }
+      } catch {
+        onAccountSelected?.(null)
+      } finally {
+        setMultiAccountLoading(false)
+      }
+      setHasFua(true)
       setShowConfirmDialog(true)
       return
     }
@@ -117,6 +155,24 @@ export function FormActions({
   const handleCancelConfirm = () => {
     setShowConfirmDialog(false)
   }
+
+  const handleMultiAccountSelect = (cuentaId: string) => {
+    onAccountSelected?.(cuentaId)
+    setShowMultiAccountDialog(false)
+    setHasFua(true)
+    setShowConfirmDialog(true)
+  }
+
+  const handleMultiAccountCreateNew = () => {
+    if (onCreateNewAccount) {
+      onCreateNewAccount()
+    } else {
+      onAccountSelected?.(null)
+    }
+    setShowMultiAccountDialog(false)
+    setHasFua(true)
+    setShowConfirmDialog(true)
+  }
   
   const handleNavigateToEmergencia = () => {
     router.push(`/emergencia/${patientId}`)
@@ -124,10 +180,20 @@ export function FormActions({
 
   return (
     <>
+      <MultiAccountSelectorDialog
+        isOpen={showMultiAccountDialog}
+        onClose={() => setShowMultiAccountDialog(false)}
+        onSelectAccount={handleMultiAccountSelect}
+        onCreateNew={handleMultiAccountCreateNew}
+        accounts={activeAccounts}
+        isLoading={multiAccountLoading}
+        title="Cuentas HO activas para el paciente"
+      />
+
       <div className="flex justify-end space-x-2 mt-6">
         <Button 
           onClick={handleSaveClick}
-          disabled={submitting || isConfirming || !isEditable}
+          disabled={submitting || isConfirming || !isEditable || multiAccountLoading}
           className="bg-[#0074ba] hover:bg-[#0067a6] text-white hover:text-white"
         >
           {submitting || isConfirming ? (

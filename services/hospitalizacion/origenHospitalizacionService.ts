@@ -1,166 +1,156 @@
-// origenHospitalizacionService.ts - Migrado a Spring Boot API
-import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
-
-// ============================================================================
-// TIPOS E INTERFACES
-// ============================================================================
-
 export interface OrigenHospitalizacion {
-  ORIGEN: string;
-  CODIGO: string;
-  CONSULTORIO: string;
-  NOM_CONSULTORIO: string;
-  PACIENTE: string;
-  FECHA: Date | string;
-  MEDICO: string;
-  NOM_MEDICO: string;
-  NOMBRES?: string;
-  DNI?: string;
-  ESTADO?: string;
-  DX?: string;
-  DX_DES?: string;
-  SEGURO?: string;
-  [key: string]: any;
+  ORIGEN: string
+  CODIGO: string
+  ID_CITA?: string
+  CONSULTORIO?: string
+  NOM_CONSULTORIO: string
+  PACIENTE?: string
+  FECHA?: string | Date
+  HORA?: string
+  MEDICO?: string
+  NOM_MEDICO?: string
+  NOMBRES?: string
+  DNI?: string
+  EDAD?: string
+  SEXO?: string
+  ESTADO?: string
+  DX?: string
+  DX_DES?: string
+  SEGURO?: string
+  PESO?: string
+  TALLA?: string
+  TEMPERATURA?: string
+  PRESION?: string
+  PULSO?: string
+  OBSERVACION?: string
+  MOTIVO_EMERGENCIA?: string
+  DESTINO?: string
 }
 
 interface FindAllParams {
-  skip?: number;
-  take?: number;
-  search?: string;
-  pacienteId?: string;
-  origen?: string;
+  skip?: number
+  take?: number
+  search?: string
+  patientId?: string
+  pacienteId?: string // alias para compatibilidad
+  origen?: string
+  onlyPending?: boolean
 }
 
-interface CountParams {
-  search?: string;
-  pacienteId?: string;
-  origen?: string;
-}
+const API_SPRING_URL = process.env.NEXT_PUBLIC_API_SPRING_URL
 
-// ============================================================================
-// SERVICIO DE ORIGEN HOSPITALIZACIÓN - SPRING BOOT API
-// ============================================================================
+async function fetchAttentions(
+  params: FindAllParams
+): Promise<{ data: OrigenHospitalizacion[]; total: number; message?: string }> {
+  const {
+    skip = 0,
+    take = 10,
+    search = '',
+    patientId,
+    pacienteId,
+    origen = '',
+    onlyPending = false,
+  } = params
 
-export class OrigenHospitalizacionService {
-  async findAll(params: FindAllParams): Promise<OrigenHospitalizacion[]> {
-    try {
-      const { skip = 0, take = 10, search = '', pacienteId = '', origen = '' } = params;
-      console.log('🔍 Buscando orígenes de hospitalización:', { skip, take, search, pacienteId, origen });
-      
-      const page = Math.floor(skip / take) + 1;
-      
-      const queryParams: Record<string, string> = {
-        page: page.toString(),
-        pageSize: take.toString(),
-      };
-      
-      if (search) queryParams.search = search;
-      if (pacienteId) queryParams.pacienteId = pacienteId;
-      if (origen) queryParams.origen = origen;
-      
-      const url = buildUrl(API_ENDPOINTS.hospitalizacion.origins, queryParams);
-      console.log('🏥 Consultando orígenes:', url);
-      
-      const response = await fetchApi(url);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      const records = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${records.length} orígenes de hospitalización`);
-      
-      // Procesar fechas
-      return records.map((record: any) => processDateFields(record));
-    } catch (error) {
-      console.error('❌ Error en findAll:', error);
-      throw error;
-    }
+  const effectivePatientId = patientId || pacienteId || ''
+
+  if (!API_SPRING_URL) {
+    throw new Error('NEXT_PUBLIC_API_SPRING_URL no está configurada')
   }
 
-  async findOne(id: string): Promise<OrigenHospitalizacion | null> {
-    try {
-      console.log(`🔍 Buscando origen de hospitalización con ID: ${id}`);
-      
-      const url = `${API_ENDPOINTS.hospitalizacion.origins}/${id}`;
-      const response = await fetchApi(url);
-      
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró origen con ID ${id}`);
-        return null;
-      }
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Origen de hospitalización encontrado:', data);
-      
-      return processDateFields(data);
-    } catch (error) {
-      console.error(`❌ Error en findOne(${id}):`, error);
-      throw error;
+  const queryParams = new URLSearchParams()
+  queryParams.set('skip', skip.toString())
+  queryParams.set('take', take.toString())
+  if (search) queryParams.set('search', search)
+  if (origen) queryParams.set('origen', origen)
+  if (onlyPending) queryParams.set('onlyPending', 'true')
+
+  const basePath = effectivePatientId
+    ? `${API_SPRING_URL}/hospitalization/attentions/${encodeURIComponent(effectivePatientId)}`
+    : `${API_SPRING_URL}/hospitalization/attentions`
+
+  const url = `${basePath}?${queryParams.toString()}`
+  console.log('🌐 origenHospitalizacionService → Spring:', url)
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+    },
+    signal: AbortSignal.timeout(15000),
+  })
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return { data: [], total: 0, message: 'No se encontraron orígenes de hospitalización' }
     }
+    throw new Error(`Error ${response.status}: ${response.statusText}`)
   }
 
-  async count(params: CountParams): Promise<number> {
-    try {
-      console.log('📊 Contando orígenes de hospitalización:', params);
-      const { search = '', pacienteId = '', origen = '' } = params;
-      
-      const queryParams: Record<string, string> = {
-        page: '1',
-        pageSize: '1',
-      };
-      
-      if (search) queryParams.search = search;
-      if (pacienteId) queryParams.pacienteId = pacienteId;
-      if (origen) queryParams.origen = origen;
-      
-      const url = buildUrl(API_ENDPOINTS.hospitalizacion.origins, queryParams);
-      const response = await fetchApi(url);
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      const count = data.pagination?.total || data.total || 0;
-      
-      console.log(`✅ Total de orígenes: ${count}`);
-      return count;
-    } catch (error) {
-      console.error('❌ Error en count:', error);
-      return 0;
-    }
+  const result = await response.json()
+  return {
+    ...result,
+    data: Array.isArray(result.data) ? result.data.map(mapAtencion) : result.data,
   }
 }
 
-// ============================================================================
-// UTILIDADES
-// ============================================================================
+function mapAtencion(raw: any): OrigenHospitalizacion {
+  if (!raw) return raw
 
-function processDateFields(record: any): any {
-  if (!record) return record;
-  
-  const processed = { ...record };
-  
-  if (processed.FECHA) {
-    try {
-      const fecha = new Date(processed.FECHA);
-      if (!isNaN(fecha.getTime())) {
-        processed.FECHA = fecha.toISOString();
-      }
-    } catch (error) {
-      // Mantener el valor original
-    }
+  const get = (key: string, fallback = '') => {
+    const value = raw[key] ?? raw[key.toUpperCase()] ?? raw[key.toLowerCase()]
+    return value != null ? String(value) : fallback
   }
-  
-  return processed;
+
+  const consultorio = raw.consultorio ?? raw.CONSULTORIO ?? ''
+  const nombreConsultorio =
+    raw.nombreConsultorio ??
+    raw.NOM_CONSULTORIO ??
+    raw.nom_consultorio ??
+    raw.NOMBRE ??
+    ''
+
+  const idCita =
+    raw.idCita ?? raw.ID_CITA ?? raw.id_cita ?? raw.CODIGO ?? raw.codigo ?? raw.id
+
+  return {
+    ORIGEN: get('origen', 'EM'),
+    CODIGO: String(idCita ?? ''),
+    ID_CITA: raw.idCita ?? raw.ID_CITA ?? raw.id_cita ?? undefined,
+    CONSULTORIO: String(consultorio),
+    NOM_CONSULTORIO: String(nombreConsultorio),
+    PACIENTE: get('paciente'),
+    FECHA: raw.fecha ?? raw.FECHA ?? undefined,
+    HORA: get('hora'),
+    MEDICO: get('medico'),
+    NOM_MEDICO:
+      raw.nombreMedico ?? raw.NOM_MEDICO ?? raw.nom_medico ?? raw.NOMBRE_MEDICO ?? '',
+    NOMBRES: get('nombres'),
+    DNI: get('documento'),
+    EDAD: get('edad'),
+    SEXO: get('sexo'),
+    ESTADO: get('estado'),
+    DX: get('dx'),
+    DX_DES: raw.dxDes ?? raw.DX_DES ?? raw.dx_des ?? undefined,
+    SEGURO: get('seguro'),
+    PESO: get('peso'),
+    TALLA: get('talla'),
+    TEMPERATURA: get('temperatura'),
+    PRESION: get('presion'),
+    PULSO: get('pulso'),
+    OBSERVACION: get('observacion'),
+    MOTIVO_EMERGENCIA: get('motivoEmergencia'),
+    DESTINO: get('destino'),
+  }
 }
 
-export const origenHospitalizacionService = new OrigenHospitalizacionService();
+export const origenHospitalizacionService = {
+  async findAll(params: FindAllParams = {}): Promise<OrigenHospitalizacion[]> {
+    const result = await fetchAttentions(params)
+    return Array.isArray(result.data) ? result.data : []
+  },
+
+  async count(params: Omit<FindAllParams, 'skip' | 'take'> = {}): Promise<number> {
+    const result = await fetchAttentions({ ...params, skip: 0, take: 1 })
+    return result.total || 0
+  },
+}

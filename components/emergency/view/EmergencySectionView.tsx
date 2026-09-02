@@ -16,6 +16,8 @@ import { useConsultorios } from "@/contexts/ConsultoriosContext";
 import { useFormasIngreso } from "@/contexts/FormasIngresoContext";
 import { useSeguros } from "@/contexts/SegurosContext";
 import { getAllEmpresasSeguro, type EmpresaSeguro as EmpresaSeguroApi } from "@/services/emergencia/empresaSeguroApiService";
+import { cuentaService } from "@/services/emergencia/cuentaService";
+import { API_ENDPOINTS } from "@/lib/api-config";
 
 // Componentes modulares para emergencia
 import { PatientSectionEmergency } from './PatientSectionEmergency'
@@ -542,21 +544,12 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         
       if (seguroHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
         try {
-          const cuentaResponse = await fetch(`/api/accounts/update/${cuentaParaActualizar}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ seguro: seguroNuevo }),
-          });
-          
-          if (!cuentaResponse.ok) {
-            const errorData = await cuentaResponse.json();
-            throw new Error(errorData.error || 'Error al actualizar la cuenta');
+          const cuentaResult = await cuentaService.updateCuentaSeguro(cuentaParaActualizar, seguroNuevo);
+
+          if (!cuentaResult.success) {
+            throw new Error(cuentaResult.message || 'Error al actualizar la cuenta');
           }
-          
-          const cuentaResult = await cuentaResponse.json();
-          
+
           toast({
             title: 'Cuenta actualizada',
             description: `La cuenta se actualizó correctamente al nuevo tipo de seguro`,
@@ -578,29 +571,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       const consultorioHaCambiado = consultorioOriginal !== consultorioNuevo;
       
       if (consultorioHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
-        try {
-          console.log(`📋 Actualizando consultorio en CUENTA: ${consultorioOriginal} → ${consultorioNuevo}`);
-          const consultorioResponse = await fetch(`/api/emergency/${emergencyId}/update-cuenta-consultorio`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              consultorio: consultorioNuevo,
-              cuentaId: cuentaParaActualizar 
-            }),
-          });
-          
-          if (!consultorioResponse.ok) {
-            const errorData = await consultorioResponse.json();
-            console.error('Error al actualizar consultorio en CUENTA:', errorData);
-          } else {
-            console.log('✅ Consultorio actualizado en CUENTA');
-          }
-        } catch (consultorioError: any) {
-          console.error('Error al actualizar consultorio en cuenta:', consultorioError);
-          // Continuar con la actualización de la emergencia aunque falle
-        }
+        // No hay endpoint expuesto en Spring para actualizar el consultorio de la cuenta.
+        console.warn(`📋 Cambio de consultorio detectado (${consultorioOriginal} → ${consultorioNuevo}), pero no hay endpoint Spring disponible para actualizar CUENTA`);
       }
       
       const updateData: any = {
@@ -626,8 +598,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         updateData.CUENTAID = formData.cuentaId;
       }
       
-      // Llamar a la API para actualizar
-      const response = await fetch(`/api/emergency/${emergencyId}`, {
+      // Llamar directamente a Spring Boot para actualizar
+      const response = await fetch(API_ENDPOINTS.emergencia.update(emergencyId), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
-import { API_ENDPOINTS } from '@/lib/api-config';
+import { cuentaValidationService } from '@/services/hospitalizacion/cuentaValidationService';
 
 // Define la interfaz para los datos de cuenta
 interface PatientAccountData {
@@ -82,18 +82,12 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setError(patientId, null);
 
         console.log(`🏥 [HOSPITALIZACIÓN] Obteniendo cuenta activa para paciente: ${patientId}`);
-        const response = await fetch(`/api/accounts/${patientId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Error al obtener cuenta: ${response.status}`);
-        }
+        const cuenta = await cuentaValidationService.getCuentaActivaByPacienteIdAndSeguro(patientId, '01');
 
-        const data = await response.json();
-        
-        if (data?.success && data?.data?.cuentaId) {
-          console.log(`✅ [HOSPITALIZACIÓN] Cuenta encontrada: ${data.data.cuentaId}`);
+        if (cuenta?.CUENTAID) {
+          console.log(`✅ [HOSPITALIZACIÓN] Cuenta encontrada: ${cuenta.CUENTAID}`);
           const accountInfo: PatientAccountData = {
-            cuentaId: data.data.cuentaId
+            cuentaId: cuenta.CUENTAID
           };
           
           setAccountData(patientId, accountInfo);
@@ -137,23 +131,12 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
         setLoading(patientId, true);
         setError(patientId, null);
 
-        const response = await fetch(`${API_ENDPOINTS.accounts.validate}?patientId=${patientId}&tipoSeguro=${tipoSeguro}`);
-        
-        if (!response.ok) {
-          // Si es un 404, no es un error crítico, simplemente no hay cuenta para ese seguro
-          if (response.status === 404) {
-            return null;
-          }
-          // Para otros errores, lanzar excepción
-          throw new Error(`Error al validar cuenta: ${response.status}`);
-        }
+        const result = await cuentaValidationService.validateCuentaAndFua(patientId, tipoSeguro);
 
-        const data = await response.json();
-        
-        // ✅ La API de validate devuelve: { isValid, cuentaId, fuaId, message, tipoValidacion }
-        if (data?.isValid && data?.cuentaId) {
+        // ✅ El servicio devuelve: { isValid, cuentaId, fuaId, message, tipoValidacion }
+        if (result?.isValid && result?.cuentaId) {
           const accountInfo: PatientAccountData = {
-            cuentaId: data.cuentaId
+            cuentaId: result.cuentaId
           };
           
           // Actualizar los datos de cuenta en el contexto

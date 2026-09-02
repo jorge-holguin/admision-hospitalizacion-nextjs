@@ -111,7 +111,12 @@ export const filiacionService = {
       // Documento → nueva API optimizada
       if (filter.documento && !filter.historia) {
         const tipoDoc = (filter.tipoDocumento || 'D').trim();
-        const p = new URLSearchParams({ tipoDocumento: tipoDoc, documento: filter.documento.trim() });
+        const docTrimmed = filter.documento.trim();
+        const p = new URLSearchParams({ documento: docTrimmed });
+        // Solo incluir tipodocumento si NO es DNI con longitud distinta a 8 dígitos
+        if (tipoDoc !== 'D' || docTrimmed.length === 8) {
+          p.set('tipoDocumento', tipoDoc);
+        }
         const url = `${API_ENDPOINTS.filiation.searchByDocument}?${p}`;
         const response = await fetchApi(url);
         if (response.status === 204 || response.headers.get('content-length') === '0' || !response.body) {

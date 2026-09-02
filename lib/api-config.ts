@@ -74,6 +74,8 @@ export const API_ENDPOINTS = {
   // ============================================
   accounts: {
     validate: `${API_SPRING_URL}/accounts/validate`,
+    deactivate: (cuentaId: string) => `${API_SPRING_URL}/accounts/${cuentaId}/deactivate`,
+    byPatient: (pacienteId: string) => `${API_SPRING_URL}/accounts/patient/${pacienteId}`,
   },
 
   // ============================================
@@ -82,11 +84,11 @@ export const API_ENDPOINTS = {
   cuentas: {
     validate: `${API_SPRING_URL}/cuentas/validate`,
     validateCuentaAndFua: `${API_SPRING_URL}/cuentas/validate-cuenta-fua`,
-    searchByInsurance: (pacienteId: string) => `${API_SPRING_URL}/cuentas/buscar-por-seguro/${pacienteId}`,
-    byPacienteAndSeguro: (pacienteId: string) => `${API_SPRING_URL}/cuentas/buscar-por-seguro/${pacienteId}`,
+    searchByInsurance: (pacienteId: string) => `${API_SPRING_URL}/accounts/patient/${pacienteId}`,
+    byPacienteAndSeguro: (pacienteId: string) => `${API_SPRING_URL}/accounts/patient/${pacienteId}`,
     byId: (id: string) => `${API_SPRING_URL}/cuentas/${id}`,
-    activaByPaciente: (pacienteId: string) => `${API_SPRING_URL}/cuentas/activa/paciente/${pacienteId}`,
-    activaByPacienteAndSeguro: (pacienteId: string, seguro: string) => `${API_SPRING_URL}/cuentas/activa/paciente/${pacienteId}/seguro/${seguro}`,
+    activaByPaciente: (pacienteId: string) => `${API_SPRING_URL}/accounts/patient/${pacienteId}`,
+    activaByPacienteAndSeguro: (pacienteId: string) => `${API_SPRING_URL}/accounts/patient/${pacienteId}`,
     updateEstado: (id: string) => `${API_SPRING_URL}/cuentas/${id}/estado`,
     updateSeguro: (id: string) => `${API_SPRING_URL}/cuentas/${id}/seguro`,
     updateObservacionYEmpresa: (id: string) => `${API_SPRING_URL}/cuentas/${id}/observacion-empresa`,
@@ -161,6 +163,7 @@ export const API_ENDPOINTS = {
   citas: {
     base: `${API_SPRING_URL}/cita`,
     byId: (id: string) => `${API_SPRING_URL}/cita/${id}`,
+    diagnosticos: (id: string) => `${API_SPRING_URL}/cita/${id}/diagnosticos`,
     assign: (citaId: string) => `${API_SPRING_URL}/cita/${citaId}/asignar`,
     release: (citaId: string) => `${API_SPRING_URL}/cita/${citaId}/liberar`,
     changeRefconState: (citaId: string) => `${API_SPRING_URL}/cita/${citaId}/refcon-estado`,
@@ -173,6 +176,27 @@ export const API_ENDPOINTS = {
     resumen: `${API_SPRING_URL}/cita/resumen`,
     sisEntities: `${API_SPRING_URL}/cita/sis-entities`,
     sisEntityByCode: (code: string) => `${API_SPRING_URL}/cita/sis-entities/${code}`,
+  },
+
+  // ============================================
+  // DEMANDA INSATISFECHA / CALL CENTER
+  // ============================================
+  demandaInsatisfecha: {
+    base: `${API_BACKEND_URL}/call-center/demandas-insatisfechas`,
+    list: `${API_BACKEND_URL}/call-center/demandas-insatisfechas`,
+    byId: (id: number) => `${API_BACKEND_URL}/call-center/demandas-insatisfechas/${id}`,
+    create: `${API_BACKEND_URL}/call-center/demandas-insatisfechas`,
+    update: (id: number) => `${API_BACKEND_URL}/call-center/demandas-insatisfechas/${id}`,
+    delete: (id: number) => `${API_BACKEND_URL}/call-center/demandas-insatisfechas/${id}`,
+  },
+  callCenter: {
+    motivosLlamada: `${API_BACKEND_URL}/cita/motivos`,
+    maestros: `${API_BACKEND_URL}/call-center/maestros`,
+    especialidadesFua: `${API_BACKEND_URL}/maestro/especialidad/fua`,
+  },
+  personal: {
+    buscar: `${API_BACKEND_URL}/personal/buscar`,
+    buscarPorDni: `${API_BACKEND_URL}/personal/buscar-dni`,
   },
 
   // ============================================

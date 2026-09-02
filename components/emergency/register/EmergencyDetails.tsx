@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
+import { API_ENDPOINTS } from '@/lib/api-config';
 
 interface EmergencyDetailsProps {
   emergencyId?: string | null;
@@ -59,15 +60,15 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
       try {
         setLoading(true);
         
-        const response = await fetch(`/api/emergency/${emergencyId}`);
+        const response = await fetch(API_ENDPOINTS.emergencia.byId(emergencyId));
         if (!response.ok) {
           throw new Error('Error al cargar datos de la emergencia');
         }
 
         const data = await response.json();
-        
-        if (data.success && data.data) {
-          const emergencyData = data.data;
+        const emergencyData = data.data || data;
+
+        if (emergencyData) {
           
           // Formatear los datos para el formulario
           const formattedData = {

@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Unlock, CalendarClock, UserPlus, Eye, RefreshCw, Printer } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useMedicos } from "@/contexts/MedicosContext"
 import { useConsultorios } from "@/contexts/ConsultoriosContext"
-import { extractPuestoFromToken } from "@/utils/jwtUtils"
 import { usePermissions } from "@/contexts/PermissionsContext"
 import { PERMISOS } from "@/lib/permissions"
 
@@ -45,14 +44,18 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
   const { getConsultorioNombre } = useConsultorios()
   const { hasPermission } = usePermissions()
 
-  // ✅ Verificar si el usuario es DEVOPS (puede asignar citas en fechas pasadas)
-  const userPuesto = extractPuestoFromToken()
-  const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
+  const canLiberar       = hasPermission(PERMISOS.CITAS.LIBERAR)
+  const canAsignar       = hasPermission(PERMISOS.CITAS.ASIGNAR)
+  const canAsignarPasadas = hasPermission(PERMISOS.CITAS.ASG_CITAS_PASADAS)
+  const canVerDetalle    = hasPermission(PERMISOS.CITAS.VER_DETALLE)
+  const canImprimir      = hasPermission(PERMISOS.CITAS.IMPRIMIR)
 
-  const canLiberar   = hasPermission(PERMISOS.CITAS.LIBERAR)
-  const canAsignar   = hasPermission(PERMISOS.CITAS.ASIGNAR)
-  const canVerDetalle = hasPermission(PERMISOS.CITAS.VER_DETALLE)
-  const canImprimir  = hasPermission(PERMISOS.CITAS.IMPRIMIR)
+  const isPastDate = (dateStr?: string | null) => {
+    if (!dateStr) return false
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return new Date(dateStr) < today
+  }
 
   const displayMedico = (row: AppointmentRow) => {
     // Use the medicoNombre field directly from the API response
@@ -131,8 +134,8 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                       const seguroCode = getSeguroCode(appointment)
                       const estado = Number(appointment.estado)
                       const puedeLiberar =
-                        estado === 2 ||
-                        (estado === 3 && (seguroCode === '05' || seguroCode === '13'))
+                        (estado === 2 || (estado === 3 && (seguroCode === '05' || seguroCode === '13'))) &&
+                        (!isPastDate(appointment.fecha) || canAsignarPasadas)
                       return (
                         <Button
                           size="sm"
@@ -153,7 +156,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                         title="Asignar"
                         disabled={
                           Number(appointment.estado) !== 1 ||
-                          (!isDevOps && Boolean(appointment.fecha) && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                          (isPastDate(appointment.fecha) && !canAsignarPasadas)
                         }
                       >
                         <UserPlus className="w-4 h-4" />
@@ -224,8 +227,8 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                   const seguroCode = getSeguroCode(appointment)
                   const estado = Number(appointment.estado)
                   const puedeLiberar =
-                    estado === 2 ||
-                    (estado === 3 && (seguroCode === '05' || seguroCode === '13'))
+                    (estado === 2 || (estado === 3 && (seguroCode === '05' || seguroCode === '13'))) &&
+                    (!isPastDate(appointment.fecha) || canAsignarPasadas)
                   return (
                     <Button
                       size="sm"
@@ -246,7 +249,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                     className="text-xs"
                     disabled={
                       Number(appointment.estado) !== 1 ||
-                      (!isDevOps && Boolean(appointment.fecha) && new Date(appointment.fecha) < new Date(new Date().setHours(0, 0, 0, 0)))
+                      (isPastDate(appointment.fecha) && !canAsignarPasadas)
                     }
                   >
                     Asignar

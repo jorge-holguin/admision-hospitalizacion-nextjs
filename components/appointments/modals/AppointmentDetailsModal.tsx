@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, User, Stethoscope, Building, FileText, Hospital, Hash, Clipboard, MapPin, AlertCircle, Activity, Phone, X } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { filiacionService } from "@/services/hospitalizacion/filiacionService"
+import { API_ENDPOINTS } from "@/lib/api-config"
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean
@@ -91,11 +92,14 @@ export function AppointmentDetailsModal({
     const fetchDiagnosticos = async () => {
       try {
         setLoadingDiagnosticos(true)
-        const res = await fetch(`/api/appointments/${appointment.id}/diagnostics`)
+        const url = API_ENDPOINTS.citas.diagnosticos(appointment.id)
+        console.log(`🌐 Cargando diagnósticos desde Spring:`, url)
+        const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
-          if (data.success && Array.isArray(data.diagnosticos)) {
-            setDiagnosticos(data.diagnosticos)
+          const diagnosticos = data.diagnosticos ?? data ?? []
+          if (Array.isArray(diagnosticos)) {
+            setDiagnosticos(diagnosticos)
           }
         } else {
           console.error('Error fetching diagnosticos:', await res.text())

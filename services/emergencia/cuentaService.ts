@@ -1,5 +1,6 @@
 // cuentaService.ts - Migrado a Spring Boot API
 import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+import { normalizarSeguroCuenta } from '@/utils/seguroCuentaUtils';
 
 // ============================================================================
 // SERVICIO DE CUENTAS - SPRING BOOT API
@@ -14,6 +15,7 @@ class CuentaService {
       console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId}`);
       
       const url = buildUrl(API_ENDPOINTS.cuentas.activaByPaciente(pacienteId), {
+        estado: '1',
         origen: 'EM',
         seguro: '01',
       });
@@ -53,23 +55,16 @@ class CuentaService {
       console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro}`);
       
       // Mapear el tipo de seguro al código correcto
-      let codigoSeguro: string;
-      const seguroTrimmed = tipoSeguro.trim();
-      
-      if (seguroTrimmed === '0' || seguroTrimmed === '00') {
-        codigoSeguro = '0'; // Pagante
-      } else if (seguroTrimmed === '02') {
-        codigoSeguro = '02'; // SOAT
-      } else if (['20', '21', '22', '23', '24', '25'].includes(seguroTrimmed)) {
-        codigoSeguro = '01'; // SIS
-      } else {
-        codigoSeguro = '01'; // Default SIS
-      }
+      const codigoSeguro = normalizarSeguroCuenta(tipoSeguro);
       
       console.log(`Seguro recibido: '${tipoSeguro}' -> Código para búsqueda: '${codigoSeguro}'`);
       
-      const url = API_ENDPOINTS.cuentas.activaByPacienteAndSeguro(pacienteId, codigoSeguro);
-      const response = await fetchApi(buildUrl(url, { origen: 'EM' }));
+      const url = buildUrl(API_ENDPOINTS.cuentas.activaByPacienteAndSeguro(pacienteId), {
+        estado: '1',
+        origen: 'EM',
+        seguro: codigoSeguro,
+      });
+      const response = await fetchApi(url);
       
       if (response.status === 404) {
         console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);

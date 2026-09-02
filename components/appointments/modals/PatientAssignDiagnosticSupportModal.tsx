@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -145,6 +145,52 @@ const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
 const SIS_SEGUROS_CODES = ['20', '21', '22', '23', '24', '25']
 
 /**
+ * Construye el nombre completo del paciente limpiando espacios al unir las partes.
+ * Si maxLength se indica, trunca respetando palabras completas.
+ */
+function buildPatientFullName(p: Patient | null | undefined, maxLength?: number): string {
+  if (!p) return ''
+  const paterno = (p.PATERNO || '').toString().trim()
+  const materno = (p.MATERNO || '').toString().trim()
+  const nombre = (p.NOMBRE || '').toString().trim()
+  const nombres = (p.NOMBRES || '').toString().trim()
+
+  const usarPartes = paterno || materno || nombre
+  const raw = usarPartes ? `${paterno} ${materno} ${nombre}` : nombres
+
+  const normalized = raw.split(/\s+/).filter(Boolean).join(' ')
+
+  if (maxLength && normalized.length > maxLength) {
+    const cut = normalized.slice(0, maxLength)
+    const lastSpace = cut.lastIndexOf(' ')
+    if (lastSpace > 20) {
+      return cut.slice(0, lastSpace).trim()
+    }
+    return cut.trim()
+  }
+
+  return normalized
+}
+
+function getCodigoSeguroInicial(value: string | null | undefined): string {
+  if (!value) return ''
+  const str = String(value).trim()
+  if (str.includes('-')) return str.split('-')[0].trim()
+  const parts = str.split(/\s+/)
+  if (parts[0] && /^\d+$/.test(parts[0])) return parts[0]
+  return str
+}
+
+/**
+ * Indica si el seguro seleccionado permite crear una orden manual
+ * sin necesidad de una referencia REFCON (PAGANTE, SOAT, PROGRAMAS).
+ */
+function permiteOrdenSinReferencia(seguro: string | null | undefined): boolean {
+  const code = (seguro ?? '').toString().trim()
+  return ['0', '00', '02', '2', '13'].includes(code)
+}
+
+/**
  * Obtiene el código de turno (M/T) que espera la base de datos para la
  * clave foránea FK_ATENCION_CITA_TURNO -> TURNO_CONSULTA.TURNO_CONSULTA.
  */
@@ -221,6 +267,7 @@ function PatientAssignDiagnosticSupportModalContent({
   const [assignedCitaId, setAssignedCitaId] = useState<string | null>(null)
   // const [fhirSyncResult, setFhirSyncResult] = useState<{ ok: boolean; scusUuid?: string; message?: string } | null>(null)
   const [seguroFiliacion, setSeguroFiliacion] = useState<string>("")
+  const seguroManual = useRef(false)
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showErrorDialog, setShowErrorDialog] = useState(false)
@@ -282,6 +329,11 @@ function PatientAssignDiagnosticSupportModalContent({
     }
   }, [isOpen])
 
+  const handleSeguroChange = (value: string) => {
+    if (value) seguroManual.current = true
+    setSelectedSeguro(value)
+  }
+
   const cargarSeguroFiliacion = async () => {
     const tipoDoc = patient?.TIPO_DOCUMENTO?.trim() || patient?.TIPO_DOCUMENTO || 'D'
     const documento = patient?.DOCUMENTO?.trim()
@@ -292,6 +344,9 @@ function PatientAssignDiagnosticSupportModalContent({
         const p = pacientes[0] as any
         const seguroEncontrado = (p.SEGURO ?? p.seguro)?.toString().trim() || ''
         setSeguroFiliacion(seguroEncontrado)
+        if (seguroEncontrado && !seguroManual.current) {
+          setSelectedSeguro(getCodigoSeguroInicial(seguroEncontrado))
+        }
       }
     } catch (e: any) {
       console.error('[FILIACION] Error cargando seguro:', e)
@@ -313,6 +368,12 @@ function PatientAssignDiagnosticSupportModalContent({
       cargarSeguroFiliacion()
     }
   }, [isOpen, patient, searchType])
+
+  useEffect(() => {
+    if (!isOpen || seguroManual.current) return
+    const code = getCodigoSeguroInicial(seguroPacienteFiliacion)
+    if (code) setSelectedSeguro(code)
+  }, [isOpen, seguroPacienteFiliacion])
 
   useEffect(() => {
     if (!isSisSeguro()) {
@@ -439,7 +500,7 @@ function PatientAssignDiagnosticSupportModalContent({
   }
 
   const mapSisReferenciaToItem = (sisRef: any): ReferenciaItem => {
-    const fullName = patient?.NOMBRES?.trim() || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim()
+    const fullName = buildPatientFullName(patient)
     const [primerApellido = '', segundoApellido = '', ...nombresResto] = fullName.split(/\s+/)
     return {
       rownum: '1',
@@ -595,6 +656,7 @@ function PatientAssignDiagnosticSupportModalContent({
   }
 
   const resetForm = () => {
+    seguroManual.current = false
     setSelectedTipoCita("")
     setSelectedSeguro("")
     setSelectedOrdenEcografia("")
@@ -643,7 +705,7 @@ function PatientAssignDiagnosticSupportModalContent({
       const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
       const serverDateTime = await datetimeService.getCurrentDateTime()
 
-      const fullName = `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim()
+      const fullName = buildPatientFullName(patient, 60)
 
       // Construir detalles filtrando solo los exámenes seleccionados por el usuario
       const ordenIdRaw = selectedOrdenEcografia || (ordenCreadaId ? String(ordenCreadaId) : '')
@@ -944,9 +1006,8 @@ function PatientAssignDiagnosticSupportModalContent({
 
                     <TipoSeguroSelector
                       value={selectedSeguro}
-                      onChange={setSelectedSeguro}
+                      onChange={handleSeguroChange}
                       required={true}
-                      initialValue={patient?.SEGURO}
                     />
 
                     {isSisSeguro() && (
@@ -1074,10 +1135,10 @@ function PatientAssignDiagnosticSupportModalContent({
 
                                   const allowedRefs = referenciaItems.filter(isReferenciaValida)
                                   if (allowedRefs.length === 0) {
-                                    // PAGANTE (seguro 0): permitir crear orden manual sin referencia REFCON
-                                    // (paciente periférico con orden de otro establecimiento)
+                                    // PAGANTE (0/00), SOAT (02) y PROGRAMAS (13): permitir crear orden manual
+                                    // sin referencia REFCON (paciente periférico con orden impresa de otro establecimiento)
                                     const seguroCode = selectedSeguro?.toString().trim()
-                                    if (seguroCode === '0' || seguroCode === '00') {
+                                    if (permiteOrdenSinReferencia(seguroCode)) {
                                       setSelectedRefItem(null)
                                       setShowCrearOrdenModal(true)
                                       return
@@ -1113,7 +1174,9 @@ function PatientAssignDiagnosticSupportModalContent({
                         {/* Estado: sin referencias aún */}
                         {!loadingReferencia && referenciaItems.length === 0 && !selectedSisReferencia && (
                           <p className="text-xs text-gray-500 text-center py-2">
-                            Haga clic en <strong>Completar y Crear Orden</strong> para consultar la referencia y abrir el formulario.
+                            {permiteOrdenSinReferencia(selectedSeguro)
+                              ? <>Haga clic en <strong>Completar y Crear Orden</strong> para transcribir la orden impresa.</>
+                              : <>Haga clic en <strong>Completar y Crear Orden</strong> para consultar la referencia y abrir el formulario.</>}
                           </p>
                         )}
 

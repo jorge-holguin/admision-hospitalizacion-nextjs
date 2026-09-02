@@ -416,62 +416,85 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     }
   }
 
+  const buildPatientInfoFromFiliation = (p: any, term: string, type: string, documentType: string = ''): PatientInfo => {
+    const docTypeCode = p.TIPO_DOCUMENTO || p.tipoDocumento || (type === 'documento' ? documentType : '')
+    const docTypeName = getTipoDocumentoByCode(docTypeCode)?.nombre?.replace(/^\*/, '') || docTypeCode
+
+    return {
+      paciente: p.PACIENTE || p.paciente || '',
+      historia: p.HISTORIA || p.historia || p.PACIENTE || p.paciente || '',
+      nombres: p.NOMBRES || p.nombres || p.nombre || term || '',
+      sexo: p.SEXO || p.sexo || '',
+      direccion: p.DIRECCION || p.direccion || '',
+      fechaNacimiento: p.FECHA_NACIMIENTO || p.fechaNacimiento || '',
+      distrito: p.DISTRITO || p.distrito || '',
+      nombreDocumento: docTypeName,
+      documento: p.DOCUMENTO || p.documento || (type === 'documento' ? term : ''),
+      nombreSeguro: p.SEGURO_NOMBRE || p.nombreSeguro || '',
+      nombreLocalidad: p.DISTRITO_DIR || p.distritoDir || '',
+      distritoDir: p.DISTRITO_DIR || p.distritoDir || '',
+      seguro: p.SEGURO || p.seguro || '',
+      tipoDocumento: docTypeCode,
+      telefono1: p.TELEFONO1 || p.telefono1 || p.TELEFONO || p.telefono || '',
+      telefono2: p.TELEFONO2 || p.telefono2 || '',
+      foto: p.FOTO || p.foto || p.STRING_FOTO || p.stringFoto || undefined,
+      stringFoto: p.STRING_FOTO || p.stringFoto || p.FOTO || p.foto || undefined,
+    }
+  }
+
   const fetchPatientInfo = async (term: string, type: string, fallbackAppt?: HistoryAppointment, documentType: string = '') => {
     try {
       setIsLoadingPatientInfo(true)
       setPatientInfo(null)
 
-      // Si tenemos la primera cita, usamos sus datos (ya provienen de /cita/historial/por-documento)
-      if (fallbackAppt) {
-        setPatientInfo(buildPatientInfoFromAppointment(fallbackAppt, term, type, documentType))
-        return
-      }
+      let paciente: any = null
 
-      // Si no hay cita de respaldo (sin resultados) e intentamos por nombre, intentamos el endpoint de paciente por nombre
-      if (type === 'nombres') {
-        const externalUrl = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })
-        const res = await fetch(externalUrl, { headers: { accept: '*/*' } })
+      if (type === 'documento') {
+        const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, { documento: term, tipoDocumento: documentType || 'D' })
+        console.log(`🔍 Buscando paciente por documento:`, url)
+        const res = await fetch(url, { headers: { accept: '*/*' } })
+
+        if (!res.ok) {
+          console.error('❌ Error del servicio de búsqueda por documento:', res.status, await res.text())
+        } else {
+          const data: any = await res.json()
+          if (Array.isArray(data) && data.length > 0) {
+            paciente = data[0]
+          } else if (data && !Array.isArray(data)) {
+            const list = data.content || data.pacientes || data.result || data.data
+            if (Array.isArray(list) && list.length > 0) {
+              paciente = list[0]
+            } else if (list && typeof list === 'object') {
+              paciente = list
+            } else {
+              paciente = data
+            }
+          }
+        }
+      } else if (type === 'nombres') {
+        const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })
+        console.log(`🔍 Buscando paciente por nombre:`, url)
+        const res = await fetch(url, { headers: { accept: '*/*' } })
 
         if (!res.ok) {
           console.error('❌ Error del servicio de búsqueda por nombre:', res.status, await res.text())
-          setPatientInfo(null)
-          return
-        }
-
-        const data: any = await res.json()
-        const pacientes = Array.isArray(data) ? data : (data.data || data.content || data.pacientes || data.result || [])
-
-        if (pacientes.length > 0) {
-          const p = pacientes[0]
-          const docTypeCode = p.TIPO_DOCUMENTO || p.tipoDocumento || ''
-          const docTypeName = getTipoDocumentoByCode(docTypeCode)?.nombre?.replace(/^\*/, '') || docTypeCode
-
-          const patient: PatientInfo = {
-            paciente: p.PACIENTE || p.paciente || '',
-            historia: p.HISTORIA || p.historia || p.PACIENTE || p.paciente || '',
-            nombres: p.NOMBRES || p.nombres || p.nombre || term || '',
-            sexo: p.SEXO || p.sexo || '',
-            direccion: p.DIRECCION || p.direccion || '',
-            fechaNacimiento: p.FECHA_NACIMIENTO || p.fechaNacimiento || '',
-            distrito: p.DISTRITO || p.distrito || '',
-            nombreDocumento: docTypeName,
-            documento: p.DOCUMENTO || p.documento || '',
-            nombreSeguro: p.SEGURO_NOMBRE || p.nombreSeguro || '',
-            nombreLocalidad: p.DISTRITO_DIR || p.distritoDir || '',
-            distritoDir: p.DISTRITO_DIR || p.distritoDir || '',
-            seguro: p.SEGURO || p.seguro || '',
-            tipoDocumento: docTypeCode,
-            telefono1: p.TELEFONO1 || p.telefono1 || p.TELEFONO || p.telefono || '',
-            telefono2: p.TELEFONO2 || p.telefono2 || '',
-            foto: p.FOTO || p.foto || p.STRING_FOTO || p.stringFoto || undefined,
-            stringFoto: p.STRING_FOTO || p.stringFoto || p.FOTO || p.foto || undefined,
-          }
-          setPatientInfo(patient)
-          return
+        } else {
+          const data: any = await res.json()
+          const list = Array.isArray(data) ? data : (data.data || data.content || data.pacientes || data.result || [])
+          paciente = Array.isArray(list) ? list[0] : (list && typeof list === 'object' ? list : undefined)
         }
       }
 
-      setPatientInfo(null)
+      if (paciente) {
+        setPatientInfo(buildPatientInfoFromFiliation(paciente, term, type, documentType))
+        return
+      }
+
+      if (fallbackAppt) {
+        setPatientInfo(buildPatientInfoFromAppointment(fallbackAppt, term, type, documentType))
+      } else {
+        setPatientInfo(null)
+      }
     } catch (e) {
       console.error('Error fetching patient info:', e)
       if (fallbackAppt) {

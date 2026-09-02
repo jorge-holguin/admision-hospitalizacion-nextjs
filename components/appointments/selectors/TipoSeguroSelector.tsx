@@ -49,9 +49,9 @@ export function TipoSeguroSelector({
 
   const getSelectedText = () => {
     if (!value) return placeholder
-    if (!items || items.length === 0) return placeholder
+    if (!items || items.length === 0) return value
     const selected = items.find(item => item && (item.Seguro === value || item.Seguro?.trim() === value))
-    return selected ? buildDisplayText(selected) : placeholder
+    return selected ? buildDisplayText(selected) : value
   }
 
   return (

@@ -22,6 +22,7 @@ import { validateEmergencyForm } from './FormValidatorEmergency'
 import { useSelectsState } from './FormUtilsEmergency'
 import FuaEmergencyStatusAlert from "./FuaEmergencyStatusAlert"
 import { AccountConfirmationDialog } from '../modals/AccountConfirmationDialog'
+import { MultiAccountSelectorDialog, type ActiveAccount } from '@/components/shared/MultiAccountSelectorDialog'
 
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { getCivilStatusCode } from '@/utils/civilStatusUtils'
@@ -30,7 +31,7 @@ import { useTiposDocumento } from "@/contexts/TiposDocumentoContext";
 import { useServerDateTime } from "@/contexts/ServerDateTimeContext";
 import { datetimeService } from '@/services/datetimeService'
 import { nextIdService } from '@/services/emergencia/nextIdService'
-import { API_ENDPOINTS } from '@/lib/api-config'
+import { API_ENDPOINTS, API_SPRING_URL } from '@/lib/api-config'
 
 // Extender la interfaz de datos del paciente para incluir los campos adicionales
 interface PatientDataExtended {
@@ -133,6 +134,8 @@ export function EmergencyFormRefactored({
   const [existingAccountInfo, setExistingAccountInfo] = useState<any>(null);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [accountDialogLoading, setAccountDialogLoading] = useState(false);
+  const [showMultiAccountDialog, setShowMultiAccountDialog] = useState(false);
+  const [multiActiveAccounts, setMultiActiveAccounts] = useState<ActiveAccount[]>([]);
   
   // Usar contexto para fecha y hora del servidor
   const { serverDateTime, refreshDateTime } = useServerDateTime();
@@ -762,8 +765,25 @@ export function EmergencyFormRefactored({
       const segurosConCuenta = ['0', '00', '02', '17'];
       
       if (segurosConCuenta.includes(seguroToCheck)) {
-        console.log(`🔍 Verificando cuenta existente para paciente ${patientId} con seguro ${seguroToCheck}`);
+        console.log(`🔍 Verificando cuentas activas para paciente ${patientId} con seguro ${seguroToCheck}`);
         
+        // Verificar si hay múltiples cuentas activas (filtrado por origen=EM)
+        try {
+          const url = `${API_SPRING_URL}/accounts/patient/${encodeURIComponent(patientId)}?estado=1&origen=EM&seguro=${encodeURIComponent(seguroToCheck)}`;
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const data = await resp.json();
+            const list: ActiveAccount[] = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+            if (list.length > 1) {
+              setMultiActiveAccounts(list);
+              setShowMultiAccountDialog(true);
+              setPendingFormData({ emergencyIdToUse: emergencyId, ordenToUse: formData.orden || '', cuentaIdToUse: formData.cuentaId || '' });
+              setSubmitting(false);
+              return;
+            }
+          }
+        } catch { /* ignorar, caer a checkExistingAccount */ }
+
         const existingAccount = await checkExistingAccount(seguroToCheck);
         
         if (existingAccount) {
@@ -809,6 +829,16 @@ export function EmergencyFormRefactored({
     setExistingAccountInfo(null);
     setPendingFormData(null);
     setSubmitting(false);
+  };
+
+  const handleMultiAccountSelectEM = async (cuentaId: string) => {
+    setShowMultiAccountDialog(false);
+    await processFormWithAccountOption(cuentaId, false);
+  };
+
+  const handleMultiAccountCreateNewEM = async () => {
+    setShowMultiAccountDialog(false);
+    await processFormWithAccountOption(undefined, true);
   };
 
   // Manejar cancelación del formulario
@@ -910,6 +940,17 @@ export function EmergencyFormRefactored({
     <form id="emergency-form" onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
       <Toaster />
       
+      {/* Selector de cuenta cuando hay múltiples activas */}
+      <MultiAccountSelectorDialog
+        isOpen={showMultiAccountDialog}
+        onClose={() => { setShowMultiAccountDialog(false); setSubmitting(false); }}
+        onSelectAccount={handleMultiAccountSelectEM}
+        onCreateNew={handleMultiAccountCreateNewEM}
+        accounts={multiActiveAccounts}
+        isLoading={accountDialogLoading}
+        title="Cuentas EM activas para el paciente"
+      />
+
       {/* Diálogo de confirmación de cuenta existente */}
       <AccountConfirmationDialog
         isOpen={showAccountDialog}

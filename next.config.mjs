@@ -9,6 +9,14 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ["localhost:3000", "127.0.0.1:3000"]
     },
+    // Mejora el inicio en dev evitando escanear todos los submódulos de paquetes grandes
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'date-fns',
+      'pdf-lib',
+      'html2canvas'
+    ]
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -16,23 +24,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Asegurar que los archivos estáticos en public sean accesibles
-  async rewrites() {
-    return [
-      {
-        source: '/swagger.html',
-        destination: '/swagger.html',
-      },
-      {
-        source: '/swagger-:path*',
-        destination: '/swagger-:path*',
-      },
-      {
-        source: '/swagger-loader.js',
-        destination: '/swagger-loader.js',
-      },
-    ];
-  },
+
 }
 
 const originalLog = console.log;

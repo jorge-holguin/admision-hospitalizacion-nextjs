@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getAuthToken } from '@/lib/auth';
 
 interface VerificacionDiagnosticoProps {
   diagnostico: string;
@@ -45,8 +46,8 @@ const VerificacionDiagnostico = forwardRef<VerificacionDiagnosticoRef, Verificac
           setMensaje(null);
           setTipo(null);
 
-          // Obtener el token de autenticación
-          const authToken = localStorage.getItem('authToken');
+          // Obtener el token de autenticación de forma segura
+          const authToken = getAuthToken();
           if (!authToken) {
             throw new Error('No se encontró el token de autenticación');
           }

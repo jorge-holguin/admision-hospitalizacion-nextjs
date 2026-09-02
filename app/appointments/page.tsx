@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { extractDocumentFromToken, extractPuestoFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
+import { extractPuestoFromToken, extractDocumentFromToken, extractNombreCompletoFromToken } from "@/utils/jwtUtils"
 import { usePermissions } from "@/contexts/PermissionsContext"
 import { PERMISOS } from "@/lib/permissions"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
@@ -137,7 +137,13 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [lastRemote, setLastRemote] = useState<boolean>(false)
 
     // Verificar permisos para Ver Reservas (solo DEVOPS y ANALISTA)
-    const userPuesto = extractPuestoFromToken()
+    const [userPuesto, setUserPuesto] = useState<string | null>(null)
+
+    useEffect(() => {
+      const puesto = extractPuestoFromToken()
+      setUserPuesto(puesto)
+    }, [])
+
     const canAccessReservas = userPuesto && ['DEVOPS', 'ANALISTA', 'DESARROLLADOR','CALL CENTER'].includes(userPuesto.toUpperCase())
 
     const { hasPermission } = usePermissions()
@@ -147,6 +153,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const canCitaAdicional    = hasPermission(PERMISOS.CITAS.CREAR_ADICIONAL)
     const canApoyoDiagnostico = hasPermission(PERMISOS.CITAS.APOYO_DIAGNOSTICO)
     const canVerPasadas       = hasPermission(PERMISOS.CITAS.VER_PASADAS)
+    const canAsignarPasadas   = hasPermission(PERMISOS.CITAS.ASG_CITAS_PASADAS)
 
     // Estados para fechas disponibles en el calendario
     const [datesWithAppointments, setDatesWithAppointments] = useState<Date[]>([])
@@ -525,23 +532,45 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       }
     }
 
+    const isPastDate = (dateStr?: string | null) => {
+      if (!dateStr) return false
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return new Date(dateStr) < today
+    }
+
     const handleAction = async (action: string, appointment: any) => {
       setSelectedAppointment(appointment)
       switch (action) {
         case "assign":
+          if (isPastDate(appointment.fecha) && !canAsignarPasadas) {
+            toast({
+              title: "Acción no permitida",
+              description: "No tiene permiso para asignar citas pasadas.",
+              variant: "destructive"
+            })
+            return
+          }
+
           const tieneReserva = await validarReservaActiva(appointment.id)
-          
+
           if (tieneReserva) {
             setShowReservaActivaDialog(true)
             return
           }
-          
+
           setShowAssignModal(true)
           break
         case "reschedule":
           setShowRescheduleModal(true)
           break
         case "release": {
+          if (isPastDate(appointment.fecha) && !canAsignarPasadas) {
+            setReleaseErrorMessage('No tiene permiso para liberar citas pasadas.')
+            setShowReleaseErrorDialog(true)
+            return
+          }
+
           // Validar que solo se pueda liberar citas:
           // - Cualquier seguro en estado 2 (SIN PAGO O FUA)
           // - 05 (Crédito Paciente) o 13 (Programas) en estado 3
@@ -1375,8 +1404,14 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               onAssign={async (assignmentData) => {
               }}
               onSuccess={(citaId) => {
+                // Actualizar estado local inmediatamente (optimistic update)
+                setFilteredAppointments(prev => prev.map(a =>
+                  a.id === citaId ? { ...a, estado: 2 } : a
+                ))
+                // Cambiar filtro a estado 2 para que la cita sea visible
+                setFilters((prev) => ({ ...prev, estado: '2' }))
                 // Buscar automáticamente la cita asignada
-                setShowSearchById(true)  // Marcar checkbox visualmente
+                setShowSearchById(true)
                 setSearchQuery(citaId)
                 searchAppointmentById(citaId)
               }}

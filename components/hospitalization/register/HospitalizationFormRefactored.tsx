@@ -25,7 +25,7 @@ import { useSelectsState } from './FormUtils'
 import FuaStatusAlert from './FuaStatusAlert'
 
 // Tipos
-import { API_SPRING_URL, API_ENDPOINTS, normalizeHospitalizationData } from '@/lib/api-config'
+import { API_SPRING_URL, API_ENDPOINTS, buildUrl, fetchApi, normalizeHospitalizationData } from '@/lib/api-config'
 import { OrigenHospitalizacion } from '@/services/hospitalizacion/origenHospitalizacionService'
 import { Seguro } from '@/services/hospitalizacion/seguroService'
 import { Diagnostico } from '@/services/hospitalizacion/diagnosticoService'
@@ -67,7 +67,8 @@ export function HospitalizationFormRefactored({
   const { user } = useAuth(); // Moved inside the component
   const { patientData, setPatientData } = usePatient();
   const { serverDateTime: contextServerDateTime, loading: dateTimeLoading } = useServerDateTime();
-  // const verificacionDiagnosticoRef = useRef<VerificacionDiagnosticoRef>(null) as React.RefObject<VerificacionDiagnosticoRef>;
+  const selectedCuentaIdRef = useRef<string | null>(null);
+  const forceCreateNewRef = useRef<boolean>(false);
   
   // Estado para loading y error handling
   const [loading, setLoading] = useState(true);
@@ -319,7 +320,7 @@ export function HospitalizationFormRefactored({
       const consultorioCode = formData.hospitalizedIn.split(' - ')[0] || '';
       const seguroCode = formData.financing.split(' - ')[0] || '';
       const medicoCode = formData.authorizingDoctor.split(' - ')[0] || '';
-      
+
       // Extraer el código del diagnóstico (antes del primer espacio o guion)
       const diagnosticoCode = formData.diagnosis.split(/[ -]/)[0] || '';
       
@@ -400,7 +401,7 @@ export function HospitalizationFormRefactored({
         // Los campos null/vacíos no se envían para evitar sobrescribir valores por defecto de la BD
       };
 
-      console.log('📤 Payload enviado a /api/hospitalization:', hospitalData);
+      console.log('📤 Payload enviado a /hospitalization (Spring):', hospitalData);
 
       // Determinar si es creación o actualización
       const method = 'POST';
@@ -440,7 +441,7 @@ export function HospitalizationFormRefactored({
         }
         
         const result = await response.json();
-        console.log('✅ Respuesta del backend /api/hospitalization:', result);
+        console.log('✅ Respuesta del backend /hospitalization (Spring):', result);
         
         // Verificar que realmente se creó en la BD
         // Si el backend devuelve 20x sin campo 'success', asumimos éxito.
@@ -483,7 +484,7 @@ export function HospitalizationFormRefactored({
         if (["0", "02", "17"].includes(seguroCode)) {
           try {
             const nombrePaciente = (createdRecord?.NOMBRES || hospitalData.NOMBRES || '').toString().trim();
-            const asegurarResponse = await fetch(`${API_SPRING_URL}/hospitalization/accounts/${hospitalizacionId.trim()}`, {
+            const asegurarResponse = await fetch(API_ENDPOINTS.hospitalizacion.assignAccount(hospitalizacionId.trim()), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -493,8 +494,14 @@ export function HospitalizationFormRefactored({
                 seguro: seguroCode,
                 usuario: primerApellido,
                 nombre: nombrePaciente,
+                origen: 'HO',
+                ORIGEN: 'HO',
+                reuseAccountId: selectedCuentaIdRef.current || undefined,
+                forceCreateNew: forceCreateNewRef.current
               })
             });
+            selectedCuentaIdRef.current = null;
+            forceCreateNewRef.current = false;
 
             if (!asegurarResponse.ok) {
               console.warn('⚠️ Endpoint /hospitalization/accounts no disponible, se ignora. Status:', asegurarResponse.status);
@@ -502,6 +509,34 @@ export function HospitalizationFormRefactored({
               const asegurarResult = await asegurarResponse.json();
 
               if (asegurarResult.ok && asegurarResult.cuentaId) {
+                // Validar que la cuenta creada/reutilizada tenga origen HO
+                try {
+                  const pacienteParaValidar = createdRecord?.PACIENTE || hospitalData.PACIENTE || patientId;
+                  const validateUrl = buildUrl(API_ENDPOINTS.accounts.byPatient(pacienteParaValidar), {
+                    estado: '1',
+                    origen: 'HO',
+                    seguro: seguroCode
+                  });
+                  const validateResponse = await fetchApi(validateUrl);
+                  if (validateResponse.ok) {
+                    const accounts = await validateResponse.json();
+                    let accountList: any[] = [];
+                    if (Array.isArray(accounts)) {
+                      accountList = accounts;
+                    } else if (Array.isArray(accounts?.data)) {
+                      accountList = accounts.data;
+                    }
+                    const found = accountList.some((a: any) => String(a.cuentaId || a.CUENTAID) === String(asegurarResult.cuentaId));
+                    if (!found) {
+                      console.warn(`⚠️ Cuenta ${asegurarResult.cuentaId} no encontrada con origen HO. Posible origen EM/CE.`);
+                    } else {
+                      console.log(`✅ Cuenta ${asegurarResult.cuentaId} validada con origen HO.`);
+                    }
+                  }
+                } catch (validateError) {
+                  console.warn('⚠️ No se pudo validar origen HO de la cuenta:', validateError);
+                }
+
                 // Actualizar el registro de hospitalización con el cuentaId
                 // El backend no acepta PATCH sobre /hospitalization/{id}; se usa PUT con el mismo
                 // formato que HospitalizationViewRefactored (updateData + valoresSQL).
@@ -715,12 +750,57 @@ export function HospitalizationFormRefactored({
     }
   }, [contextServerDateTime, dateTimeLoading]);
 
+  // Validar cuenta activa existente cuando cambia el financiamiento
+  useEffect(() => {
+    const seguroRaw = (formData.financing || '').split(' - ')[0]?.trim();
+    if (!seguroRaw) return;
+
+    const segurosConCuenta = ['0', '00', '02', '17'];
+    if (!segurosConCuenta.includes(seguroRaw)) return;
+
+    // Normalizar código de seguro para la API (el backend usa '0' para PAGANTE)
+    let seguroCode = seguroRaw;
+    if (seguroCode === '00') seguroCode = '0';
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = buildUrl(API_ENDPOINTS.accounts.byPatient(patientId), {
+          estado: '1',
+          origen: 'HO',
+          seguro: seguroCode,
+        });
+        console.log('🔍 Validando cuenta activa al cambiar financiamiento:', url);
+        const resp = await fetchApi(url);
+        if (!resp.ok || cancelled) return;
+
+        const data = await resp.json();
+        const list: any[] = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+
+        if (list.length > 0) {
+          const cuentaId = String(list[0].cuentaId || list[0].CUENTAID || list[0].CUENTA_ID || '');
+          if (cuentaId && !cancelled) {
+            selectedCuentaIdRef.current = cuentaId;
+            console.log(`✅ Cuenta activa existente encontrada: ${cuentaId}`);
+          }
+        } else if (!cancelled) {
+          selectedCuentaIdRef.current = null;
+          console.log('⚠️ No se encontró cuenta activa existente para el seguro seleccionado');
+        }
+      } catch (err) {
+        console.warn('⚠️ Error validando cuenta activa al cambiar financiamiento:', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [formData.financing, patientId]);
+
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto p-4 space-y-6">
       {/* Alerta de estado FUA - Posicionada al inicio del formulario */}
-      <FuaStatusAlert 
-        patientId={patientId} 
-        insuranceCode={selectedSeguro?.seguro || formData.insurance?.split(' - ')[0]}
+      <FuaStatusAlert
+        patientId={patientId}
+        insuranceCode={formData.financing || formData.insurance || ''}
       />
       
       <Toaster />
@@ -892,6 +972,8 @@ export function HospitalizationFormRefactored({
         isEditable={isEditable}
         patientId={patientId}
         insuranceCode={formData.financing}
+        onAccountSelected={(id) => { selectedCuentaIdRef.current = id; forceCreateNewRef.current = false; }}
+        onCreateNewAccount={() => { selectedCuentaIdRef.current = null; forceCreateNewRef.current = true; }}
         onBeforeSave={async () => {
           // Validar el formulario antes de mostrar el diálogo de confirmación
           const validation = validateHospitalizationForm(formData);

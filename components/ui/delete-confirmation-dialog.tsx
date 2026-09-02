@@ -18,6 +18,7 @@ interface DeleteConfirmationDialogProps {
   description?: string;
   itemName?: string;
   isLoading?: boolean;
+  detailContent?: React.ReactNode;
 }
 
 export function DeleteConfirmationDialog({
@@ -28,6 +29,7 @@ export function DeleteConfirmationDialog({
   description = "Esta acción no se puede deshacer. ¿Está seguro de que desea anular este elemento?",
   itemName,
   isLoading = false,
+  detailContent,
 }: DeleteConfirmationDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -50,6 +52,11 @@ export function DeleteConfirmationDialog({
           {itemName && (
             <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
               <span className="font-medium">{itemName}</span>
+            </div>
+          )}
+          {detailContent && (
+            <div className="mt-3">
+              {detailContent}
             </div>
           )}
         </div>

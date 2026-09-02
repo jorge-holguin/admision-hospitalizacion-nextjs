@@ -11,6 +11,7 @@ import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-di
 import { formatDate } from '@/components/hospitalization/DateFormatter'
 import { usePatient } from "@/contexts/PatientContext"
 import { emergenciaService } from "@/services/emergencia/emergenciaService"
+import { API_ENDPOINTS, fetchApi } from "@/lib/api-config"
 
 // Interfaces
 interface EmergencyData {
@@ -219,19 +220,30 @@ export function EmergencyListModal({
   }
 
   const handleDelete = async (emergencyId: string) => {
+    const cuentaId = deleteDialog.emergencyData?.CUENTAID?.trim()
     try {
       await emergenciaService.deleteEmergencia(emergencyId)
 
+      // Desactivar la cuenta asociada si existe
+      if (cuentaId) {
+        try {
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })
+          console.log(`✅ Cuenta ${cuentaId} desactivada tras anular emergencia`)
+        } catch (cuentaErr) {
+          console.warn('⚠️ No se pudo desactivar la cuenta:', cuentaErr)
+        }
+      }
+
       toast({
-        title: "Emergencia eliminada",
-        description: "La emergencia ha sido eliminada correctamente"
+        title: "Emergencia anulada",
+        description: `La emergencia ${emergencyId} ha sido anulada correctamente`
       })
       // Recargar la lista
       fetchEmergencies(pagination.page, pagination.pageSize)
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || 'Error al eliminar la emergencia',
+        description: error.message || 'Error al anular la emergencia',
         variant: "destructive"
       })
     } finally {
@@ -420,8 +432,44 @@ export function EmergencyListModal({
           isOpen={deleteDialog.isOpen}
           onClose={() => setDeleteDialog({ isOpen: false, emergencyId: null, emergencyData: null })}
           onConfirm={() => deleteDialog.emergencyId && handleDelete(deleteDialog.emergencyId)}
-          title="Eliminar Emergencia"
-          description={`¿Está seguro de que desea eliminar la emergencia ${deleteDialog.emergencyData?.EMERGENCIA_ID}?`}
+          title="Anular Emergencia"
+          description="Esta acción anulará el registro. La cuenta asociada también será desactivada."
+          detailContent={
+            deleteDialog.emergencyData && (
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ID:</span>
+                  <span className="font-bold">{deleteDialog.emergencyData.EMERGENCIA_ID}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Fecha:</span>
+                  <span className="font-medium">{formatDate(deleteDialog.emergencyData.FECHA)} {deleteDialog.emergencyData.HORA}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Consultorio:</span>
+                  <span className="font-medium">{deleteDialog.emergencyData.CONSULTORIO_DESCRIPCION || deleteDialog.emergencyData.CONSULTORIO}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Motivo:</span>
+                  <span className="font-medium">{deleteDialog.emergencyData.MOTIVO_DESCRIPCION || deleteDialog.emergencyData.MOTIVO_EMERGENCIA || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Seguro:</span>
+                  <span className="font-medium">
+                    {deleteDialog.emergencyData.SEGURO_NOMBRE
+                      ? `(${deleteDialog.emergencyData.SEGUROLIQ?.trim()}) - ${deleteDialog.emergencyData.SEGURO_NOMBRE}`
+                      : deleteDialog.emergencyData.CIEX1 || '-'}
+                  </span>
+                </div>
+                {deleteDialog.emergencyData.CUENTAID && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Cuenta:</span>
+                    <span className="font-bold text-blue-700">{deleteDialog.emergencyData.CUENTAID}</span>
+                  </div>
+                )}
+              </div>
+            )
+          }
         />
       </DialogContent>
     </Dialog>

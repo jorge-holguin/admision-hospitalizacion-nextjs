@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Lock } from "lucide-react"
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { convertDateFormat, convertTimeFormat, convertTo12HourFormat } from '@/utils/dateFormatUtils'
 import { usePatient } from '@/contexts/PatientContext'
@@ -417,6 +419,17 @@ export function HospitalizationViewRefactored({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Banner de modo lectura para registros anulados */}
+      {orderData?.ESTADO === '0' && (
+        <Alert className="border-amber-300 bg-amber-50 text-amber-900">
+          <Lock className="h-4 w-4" />
+          <AlertTitle className="font-semibold">Registro en modo lectura</AlertTitle>
+          <AlertDescription>
+            Este registro está cerrado y no puede ser modificado. Puede seleccionar y copiar el contenido de los campos para reutilizarlo.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Mensaje de éxito */}
       {showSuccessMessage && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">

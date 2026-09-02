@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { API_ENDPOINTS } from '@/lib/api-config';
+import { API_ENDPOINTS, fetchApi } from '@/lib/api-config';
 import { extractDocumentFromToken } from '@/utils/jwtUtils';
 
 interface OrderOperationsProps {
@@ -18,9 +18,10 @@ export function useOrderOperations(props?: OrderOperationsProps) {
   const [deleteItemId, setDeleteItemId] = useState<string>('');
   const [deleteItemName, setDeleteItemName] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteCuentaId, setDeleteCuentaId] = useState<string>('');
 
   // Método para iniciar el proceso de eliminación
-  const handleDeleteOrder = (orderId?: string, patientName?: string) => {
+  const handleDeleteOrder = (orderId?: string, patientName?: string, cuentaId?: string) => {
     if (!orderId || orderId.trim() === '') {
       toast({
         title: 'Error',
@@ -36,6 +37,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
     // Configurar el diálogo de confirmación
     setDeleteItemId(cleanId);
     setDeleteItemName(patientName || `Hospitalización ${cleanId}`);
+    setDeleteCuentaId(cuentaId?.trim() || '');
     setDeleteDialogOpen(true);
   };
   
@@ -74,6 +76,16 @@ export function useOrderOperations(props?: OrderOperationsProps) {
       // Cerrar el diálogo
       setDeleteDialogOpen(false);
       
+      // Desactivar la cuenta asociada si existe
+      if (deleteCuentaId) {
+        try {
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });
+          console.log(`✅ Cuenta ${deleteCuentaId} desactivada`);
+        } catch (cuentaErr) {
+          console.warn('⚠️ No se pudo desactivar la cuenta:', cuentaErr);
+        }
+      }
+
       // Notificar éxito
       toast({
         title: 'Eliminado correctamente',

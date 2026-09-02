@@ -37,15 +37,16 @@ export default function RoleBasedRoute({
     
     const checkAccess = () => {
       const puesto = extractPuestoFromToken();
-      
+
       // Solo logear en desarrollo
       if (process.env.NODE_ENV === 'development') {
       }
-      
+
       if (!puesto) {
         if (isMounted) {
           console.warn('⚠️ No se pudo obtener el puesto del usuario');
-          router.push(redirectTo);
+          alert('Sesión no válida\n\nNo se pudo obtener su información de sesión. Por favor, vuelva a iniciar sesión.');
+          router.replace('/');
         }
         return;
       }

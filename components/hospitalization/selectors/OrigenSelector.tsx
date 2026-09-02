@@ -53,15 +53,19 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       setLoading(true);
       setError(null);
 
+      const isValidOrigen = origenFilter && (origenFilter === 'EM' || origenFilter === 'CE');
+
       const items = await origenHospitalizacionService.findAll({
+        patientId,
         search,
-        origen: origenFilter && (origenFilter === 'EM' || origenFilter === 'CE') ? origenFilter : '',
+        origen: isValidOrigen ? origenFilter : '',
+        onlyPending: true,
         take: 100
       });
 
       // Filtrar los orígenes por el campo ORIGEN si está definido el origenFilter
       let origenesFiltrados = items as OrigenHospitalizacion[];
-      if (origenFilter && (origenFilter === 'EM' || origenFilter === 'CE')) {
+      if (isValidOrigen) {
         origenesFiltrados = origenesFiltrados.filter((origen) =>
           origen.ORIGEN === origenFilter
         );
@@ -75,10 +79,10 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     searchHospitalizationOrigins(searchTerm);
-  }, [showAllOrigins, origenFilter]);
+  }, [showAllOrigins, origenFilter, patientId]);
 
   // Encontrar el origen seleccionado basado en el valor actual
   const selectedOrigen = origenes.find(origen => {
@@ -90,7 +94,8 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     // Asegurarse de que los valores no sean undefined o null
     const medicoCode = origen.MEDICO ? origen.MEDICO.trim() : '';
     const medicoName = origen.NOM_MEDICO ? origen.NOM_MEDICO.trim() : '';
-    const medicoValue = medicoCode && medicoName ? `${medicoCode} - ${medicoName}` : '';
+    const isValidMedico = medicoCode && medicoName && medicoCode !== '0' && medicoName.toUpperCase() !== 'NINGUNO';
+    const medicoValue = isValidMedico ? `${medicoCode} - ${medicoName}` : '';
     
     // Crear el valor a mostrar para el origen
     const displayValue = `${origen.CODIGO} [${origen.NOM_CONSULTORIO}]`;

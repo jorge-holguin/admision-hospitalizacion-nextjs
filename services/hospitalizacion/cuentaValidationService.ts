@@ -1,5 +1,6 @@
 // cuentaValidationService.ts - Migrado a Spring Boot API
 import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
+import { normalizarSeguroCuenta } from '@/utils/seguroCuentaUtils';
 
 // ============================================================================
 // TIPOS E INTERFACES
@@ -41,10 +42,11 @@ export class CuentaValidationService {
    */
   async getCuentaActivaByPacienteIdAndSeguro(pacienteId: string, tipoSeguro: string): Promise<CuentaActiva | null> {
     try {
-      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro}`);
+      const seguroNormalizado = normalizarSeguroCuenta(tipoSeguro);
+      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro} → ${seguroNormalizado}`);
       
       const url = buildUrl(API_ENDPOINTS.cuentas.byPacienteAndSeguro(pacienteId), {
-        seguro: tipoSeguro,
+        seguro: seguroNormalizado,
         origen: 'HO',
         estado: '1',
       });
@@ -101,11 +103,12 @@ export class CuentaValidationService {
    */
   async validateCuentaAndFua(pacienteId: string, tipoSeguro: string): Promise<CuentaValidationResult> {
     try {
-      console.log(`🔍 Validando cuenta y FUA para paciente: ${pacienteId}, seguro: ${tipoSeguro}`);
+      const seguroNormalizado = normalizarSeguroCuenta(tipoSeguro);
+      console.log(`🔍 Validando cuenta y FUA para paciente: ${pacienteId}, seguro: ${tipoSeguro} → ${seguroNormalizado}`);
       
       const url = buildUrl(API_ENDPOINTS.cuentas.validateCuentaAndFua, {
         pacienteId,
-        tipoSeguro,
+        tipoSeguro: seguroNormalizado,
       });
       
       const response = await fetchApi(url);

@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+import { type DateRange } from "react-day-picker"
 
 interface DateRangePickerProps {
   from: Date | undefined
@@ -28,40 +29,26 @@ export function DateRangePicker({
   className,
 }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [tempFrom, setTempFrom] = useState<Date | undefined>(from)
-  const [tempTo, setTempTo] = useState<Date | undefined>(to)
+  const [tempRange, setTempRange] = useState<DateRange | undefined>({ from, to })
 
-  // Maneja la selección de un día.
-  // Soporta rango de un solo día: cuando ya hay tempFrom y no hay tempTo, al hacer
-  // click en el mismo día se establece tempTo = tempFrom (rango de 1 día).
-  const handleSelect = (date: Date | undefined) => {
-    if (!date) return
-    if (!tempFrom || (tempFrom && tempTo)) {
-      // Primera selección o reiniciar
-      setTempFrom(date)
-      setTempTo(undefined)
-    } else if (tempFrom && !tempTo) {
-      // Segunda selección (permite mismo día)
-      if (date < tempFrom) {
-        setTempTo(tempFrom)
-        setTempFrom(date)
-      } else {
-        setTempTo(date)
-      }
+  const handleSelect = (range: DateRange | undefined) => {
+    setTempRange(range)
+    if (range?.from && range?.to) {
+      onSelect({ from: range.from, to: range.to })
+      setIsOpen(false)
     }
   }
 
   const handleApply = () => {
-    // Si el usuario solo eligió un día, tomarlo como rango de un solo día
-    const finalTo = tempTo ?? tempFrom
-    onSelect({ from: tempFrom, to: finalTo })
+    const finalFrom = tempRange?.from
+    const finalTo = tempRange?.to ?? tempRange?.from
+    onSelect({ from: finalFrom, to: finalTo })
     setIsOpen(false)
   }
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      setTempFrom(from)
-      setTempTo(to)
+      setTempRange({ from, to })
     }
     setIsOpen(open)
   }
@@ -97,10 +84,11 @@ export function DateRangePicker({
             {/* Cabecera compacta con accesos rápidos */}
             <div className="flex items-center justify-between gap-2 px-1">
               <p className="text-xs text-gray-600 flex-1 truncate">
-                {tempFrom && !tempTo && "Seleccione la fecha final"}
-                {tempFrom && tempTo &&
-                  `${format(tempFrom, "dd/MM/yyyy")} - ${format(tempTo, "dd/MM/yyyy")}`}
-                {!tempFrom && "Seleccione la fecha inicial"}
+                {tempRange?.from && tempRange?.to
+                  ? `${format(tempRange.from, "dd/MM/yyyy")} - ${format(tempRange.to, "dd/MM/yyyy")}`
+                  : tempRange?.from
+                    ? `${format(tempRange.from, "dd/MM/yyyy")} - ...`
+                    : "Seleccione el rango"}
               </p>
               <Button
                 size="sm"
@@ -108,48 +96,33 @@ export function DateRangePicker({
                 className="h-7 px-2 text-xs border-[#9CD2D3]"
                 onClick={() => {
                   const today = new Date()
-                  setTempFrom(today)
-                  setTempTo(today)
+                  setTempRange({ from: today, to: today })
+                  onSelect({ from: today, to: today })
+                  setIsOpen(false)
                 }}
               >
                 Hoy
               </Button>
             </div>
             <Calendar
-              mode="single"
-              selected={tempFrom}
+              mode="range"
+              selected={tempRange}
               onSelect={handleSelect}
               locale={es}
+              numberOfMonths={1}
+              defaultMonth={tempRange?.from}
               className="rounded-md border bg-white"
-              modifiers={{
-                start: tempFrom ? [tempFrom] : [],
-                end: tempTo ? [tempTo] : [],
-                range:
-                  tempFrom && tempTo
-                    ? { from: tempFrom, to: tempTo }
-                    : [],
-              }}
-              modifiersStyles={{
-                start: {
-                  backgroundColor: "#4F9BB6",
-                  color: "white",
-                  fontWeight: "bold",
-                },
-                end: {
-                  backgroundColor: "#4F9BB6",
-                  color: "white",
-                  fontWeight: "bold",
-                },
-                range: {
-                  backgroundColor: "#9CD2D3",
-                  color: "#114C5F",
-                },
+              classNames={{
+                day_selected:
+                  "bg-[#4F9BB6] text-white font-bold rounded-full hover:bg-[#4F9BB6] hover:text-white",
+                day_range_middle:
+                  "bg-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3] hover:text-[#114C5F]",
               }}
             />
             {/* Botón Aplicar visible al pie del popover */}
             <Button
               onClick={handleApply}
-              disabled={!tempFrom}
+              disabled={!tempRange?.from}
               className="w-full h-10 bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white font-semibold shadow-md"
             >
               Aplicar

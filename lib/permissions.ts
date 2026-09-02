@@ -19,6 +19,7 @@ export const PERMISOS = {
     VER_RESERVAS:      'RES-CITAS-11',
     NUEVO_PACIENTE:    'NUE-CITAS-12',
     VER_PASADAS:       'PAS-CITAS-13',
+    ASG_CITAS_PASADAS: 'ASG-CITAS-14',
   },
 
   // ─── MÓDULO FILIACIÓN (/filiation) ────────────────────────────────────────

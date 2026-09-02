@@ -33,10 +33,11 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
       return
     }
 
-    const trimmedCode = insuranceCode.trim()
+    // Extraer el código numérico del seguro (ej: "20 - SIS PEAS" -> "20")
+    const trimmedCode = (insuranceCode.trim().split(' - ')[0] || '').trim()
     const isSIS = sisInsuranceCodes.includes(trimmedCode)
     const isPaganteSoat = paganteSoatCodes.includes(trimmedCode)
-    
+
     // Solo mostrar validación para SIS, no para PAGANTE/SOAT
     if (!isSIS) {
       setShouldShow(false)
@@ -96,8 +97,10 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
+        <AlertTitle>Validación de Cuenta</AlertTitle>
+        <AlertDescription>
+          {error} Para pacientes SIS es obligatorio tener una cuenta activa antes de continuar.
+        </AlertDescription>
       </Alert>
     )
   }
@@ -122,9 +125,9 @@ export default function FuaStatusAlert({ patientId, insuranceCode }: FuaStatusAl
     ) : (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Validación SIS Fallida</AlertTitle>
+        <AlertTitle>Validación de Cuenta</AlertTitle>
         <AlertDescription>
-          {validationResult.message}
+          No se encontró una cuenta activa para este paciente. Para pacientes SIS es obligatorio tener una cuenta activa antes de continuar.
           {validationResult.cuentaId && <div className="mt-1">Cuenta ID: {validationResult.cuentaId}</div>}
         </AlertDescription>
       </Alert>

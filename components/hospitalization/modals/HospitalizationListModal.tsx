@@ -373,7 +373,7 @@ export function HospitalizationListModal({
                                 size="sm"
                                 variant="outline"
                                 className="text-red-600 hover:bg-red-50 border-red-200"
-                                onClick={() => handleDeleteOrder(hospitalizacionId, orden.NOMBRES || 'Sin nombre')}
+                                onClick={() => handleDeleteOrder(hospitalizacionId, orden.NOMBRES || 'Sin nombre', orden.CUENTAID)}
                                 disabled={isDeleted}
                                 title="Eliminar hospitalización"
                               >

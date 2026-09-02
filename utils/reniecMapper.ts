@@ -299,11 +299,12 @@ export function getClientIP(request: Request): string {
  */
 export async function getUbigeoByReniecCode(codigoReniec: string): Promise<string | undefined> {
   if (!codigoReniec || codigoReniec.length !== 6) return undefined;
-  
+
   try {
-    const response = await fetch(`/api/utils/ubigeo/by-reniec/${codigoReniec}`);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
+    const response = await fetch(`${API_BASE_URL}/maestro/ubigeo/reniec/${codigoReniec}`);
     if (!response.ok) return undefined;
-    
+
     const data = await response.json();
     return data.ubigeo;
   } catch {

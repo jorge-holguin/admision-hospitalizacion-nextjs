@@ -1,6 +1,7 @@
 // emergenciaService.ts - Migrado a Spring Boot API
 import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 import { getCivilStatusCode } from '@/utils/civilStatusUtils';
+import { normalizarSeguroCuenta } from '@/utils/seguroCuentaUtils';
 
 // ============================================================================
 // TIPOS E INTERFACES
@@ -528,9 +529,10 @@ export async function getCuentaActivaByPaciente(
   seguro: string
 ): Promise<{ cuentaId: string | null; fua: string | null }> {
   try {
-    const params = { seguro };
+    const seguroNormalizado = normalizarSeguroCuenta(seguro);
+    const params = { estado: '1', origen: 'EM', seguro: seguroNormalizado };
     const url = buildUrl(API_ENDPOINTS.cuentas.byPacienteAndSeguro(pacienteId), params);
-    console.log('🏥 Consultando cuenta activa:', url);
+    console.log(`🏥 Consultando cuenta activa: paciente=${pacienteId}, seguro recibido='${seguro}' → normalizado='${seguroNormalizado}', url=${url}`);
     
     const response = await fetchApi(url);
     

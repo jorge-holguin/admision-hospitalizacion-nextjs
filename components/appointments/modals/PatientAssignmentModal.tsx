@@ -413,7 +413,7 @@ function PatientAssignmentModalContent({
         paciente: patient?.PACIENTE || '',
         nombre: patient?.NOMBRES || `${patient?.PATERNO || ''} ${patient?.MATERNO || ''} ${patient?.NOMBRE || ''}`.trim(),
         seguro: selectedSeguro,
-        estado: '1', // ATENCION_CITA se crea con estado 1; la cita (cita) cambia a estado 2
+        estado: '2', // Estado 2 = SIN PAGO O FUA (cita otorgada)
         horaOtorga: serverDateTime.time,
         usuario: usuarioDni,
         numRef: referencia || '',
@@ -458,82 +458,7 @@ function PatientAssignmentModalContent({
         return
       }
       
-      /* ===== LÓGICA ESPECIAL PARA SEGUROS '05' y '13' (COMENTADA - Ahora se maneja en backend) =====
-      const seguroTrimmed = selectedSeguro.trim()
-      if (seguroTrimmed === '05' || seguroTrimmed === '13') {
-        
-        try {
-          // 1. Actualizar FECHA_PAGO de la cita
-          const fechaActual = new Date()
-          const updateFechaPagoResponse = await fetch(`/api/appointments/${appointment.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              FECHA_PAGO: fechaActual.toISOString(),
-              USUARIOR: usuarioDni
-            })
-          })
-          
-          if (!updateFechaPagoResponse.ok) {
-            console.warn('⚠️ No se pudo actualizar FECHA_PAGO:', updateFechaPagoResponse.status)
-          } else {
-          }
-          
-          // 2. Consultar datos completos de la cita desde la API
-          const citaResponse = await fetch(`${apiBaseUrl}/cita/${appointment.id}`)
-          
-          if (!citaResponse.ok) {
-            throw new Error(`Error al consultar cita: ${citaResponse.status}`)
-          }
-          
-          const citaData = await citaResponse.json()
-          
-          // 3. Crear registro en ARCHIVO_MOV
-          
-          const archivoMovData = {
-            ID_CITA: citaData.citaId || appointment.id,
-            PACIENTE: citaData.paciente || patient?.PACIENTE || '',
-            HISTORIA: (citaData.historia || patient?.HISTORIA || '').trim(),
-            NOMBRES: (citaData.nombre || patient?.NOMBRES || '').trim(),
-            FECHA: citaData.fecha ? new Date(citaData.fecha) : fechaActual,
-            HORA: citaData.hora ? convertTo12HourFormat(citaData.hora) : convertTo12HourFormat(currentDate.toTimeString().substring(0, 5)),
-            ORIGEN: 'CE',
-            CONSULTORIO: (citaData.consultorio || appointment.consultorio || '').padEnd(6, ' '),
-            TURNO: (citaData.turnoConsulta || 'M').padEnd(2, ' '),
-            MOTIVO: '01',
-            ESTADO: '1',
-            SEGURO: (citaData.seguro || selectedSeguro).padEnd(3, ' '),
-            MEDICO: citaData.medico || appointment.medico || '',
-            NUMERO: citaData.numero || '01',
-            FECHA_PAGO: fechaActual,
-            TIPO_CITA: citaData.tipoCita || 'C',
-            EST_PAC: '1',
-            TIPO_PACIENTE: citaData.tipoPaciente || 'C',
-         }
-          
-          
-          const archivoMovResponse = await fetch('/api/appointments/archivo-mov', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(archivoMovData)
-          })
-          
-          if (!archivoMovResponse.ok) {
-            const errorData = await archivoMovResponse.json()
-            // Si ya existe (409), solo advertir, no fallar
-            if (archivoMovResponse.status === 409) {
-              console.warn('⚠️ ARCHIVO_MOV ya existe para esta cita')
-            } else {
-              console.error('❌ Error al crear ARCHIVO_MOV:', errorData)
-            }
-          } else {
-          }
-        } catch (archivoMovError) {
-          console.error('❌ Error en proceso de ARCHIVO_MOV:', archivoMovError)
-          // No bloqueamos el flujo principal, solo logueamos el error
-        }
-      }
-      ===== FIN LÓGICA ESPECIAL ===== */
+      // Lógica especial para seguros '05' y '13' eliminada: ahora se maneja en backend Spring.
       
       // Mostrar toast de éxito
       toast({

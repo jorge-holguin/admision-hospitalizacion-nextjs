@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Plus, Power, PowerOff } from "lucide-react";
 import { SearchBox } from "../SearchBox";
@@ -41,7 +43,12 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew, refre
   }
 
   // Verificar si el usuario tiene permisos para eliminar
-  const userRole = extractPuestoFromToken()?.toUpperCase();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserRole(extractPuestoFromToken()?.toUpperCase() || null);
+  }, []);
+
   const canDelete = ['DEVOPS', 'DESARROLLADOR', 'ANALISTA'].includes(userRole || '');
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);

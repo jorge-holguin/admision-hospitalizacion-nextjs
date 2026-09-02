@@ -34,6 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { CrearOrdenApoyoDiagnosticoModal, type OrdenToEdit } from "./CrearOrdenApoyoDiagnosticoModal"
 import { verificarExamenesConPedido } from "@/services/apoyoDiagnostico/maestroService"
+import { getMedicosByDate } from '@/services/citas/citasService'
 
 interface OrdenDetalle {
   idOrdenDetalle: number
@@ -172,7 +173,12 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
   const { selectedReferencia: selectedSisReferenciaEco } = useReferencia()
 
-  const userPuesto = extractPuestoFromToken()
+  const [userPuesto, setUserPuesto] = useState<string | null>(null)
+
+  useEffect(() => {
+    setUserPuesto(extractPuestoFromToken())
+  }, [])
+
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
@@ -430,13 +436,9 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       try {
         const formatDateForAPI = (date: Date) => `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
         const fechaConsulta = formatDateForAPI(selectedCalendarDate)
-        const url = consultorio
-          ? `/api/appointments/doctor-by-date?fecha=${encodeURIComponent(fechaConsulta)}&consultorio=${encodeURIComponent(consultorio)}`
-          : `/api/appointments/doctor-by-date?fecha=${encodeURIComponent(fechaConsulta)}`
-        const response = await fetch(url)
-        if (!response.ok) throw new Error('Error al cargar médicos disponibles')
-        const data = await response.json()
-        setAvailableMedicos(Array.isArray(data) ? data.map((item: any) => ({ codigo: item.MEDICO, nombre: item.NOMBRE })) : [])
+        // Llamar directamente a Spring /cita/medicos-por-fecha
+        const data = await getMedicosByDate(fechaConsulta, consultorio || undefined)
+        setAvailableMedicos(data.map((item: any) => ({ codigo: item.MEDICO, nombre: item.NOMBRE })))
       } catch { setAvailableMedicos([]) }
       finally { setLoadingMedicos(false) }
     }

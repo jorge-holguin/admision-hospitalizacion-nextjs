@@ -31,6 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { startOfMonth, endOfMonth } from "date-fns"
 import { availableDatesService } from "@/services/appointments/availableDatesService"
 import { datetimeService } from '@/services/datetimeService'
+import { getMedicosByDate } from '@/services/citas/citasService'
 
 const ECOGRAFIA_CONSULTORIOS = ['7010', '7020']
 
@@ -106,7 +107,12 @@ function AdditionalAppointmentModalContent({
 
 
   // Verificar si el usuario es DEVOPS
-  const userPuesto = extractPuestoFromToken()
+  const [userPuesto, setUserPuesto] = useState<string | null>(null)
+
+  useEffect(() => {
+    setUserPuesto(extractPuestoFromToken())
+  }, [])
+
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
 
   // Get API base URL from environment
@@ -317,25 +323,14 @@ function AdditionalAppointmentModalContent({
         
         const fechaConsulta = formatDateForAPI(selectedCalendarDate)
                 
-        // Llamar al nuevo endpoint de médicos por fecha
-        // El consultorio es opcional, si no se envía, retorna todos los médicos del día
-        const url = consultorio 
-          ? `/api/appointments/doctor-by-date?fecha=${encodeURIComponent(fechaConsulta)}&consultorio=${encodeURIComponent(consultorio)}`
-          : `/api/appointments/doctor-by-date?fecha=${encodeURIComponent(fechaConsulta)}`
+        // Llamar directamente a Spring /cita/medicos-por-fecha
+        const data = await getMedicosByDate(fechaConsulta, consultorio || undefined)
         
-        const response = await fetch(url)
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar médicos disponibles')
-        }
-        
-        const data = await response.json()
-        
-        // El endpoint retorna directamente un array de { MEDICO, NOMBRE }
-        const medicos = Array.isArray(data) ? data.map((item: any) => ({
+        // El endpoint retorna un array de { MEDICO, NOMBRE }
+        const medicos = data.map((item: any) => ({
           codigo: item.MEDICO,
           nombre: item.NOMBRE
-        })) : []
+        }))
         
         setAvailableMedicos(medicos)
       } catch (error) {
