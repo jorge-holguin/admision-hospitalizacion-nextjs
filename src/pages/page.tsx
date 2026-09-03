@@ -59,9 +59,9 @@ export default function LoginPage() {
           src="/login-bg.png"
           alt="Hospital Building"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: 'contrast(1.05) brightness(0.7) sepia(1) hue-rotate(190deg) saturate(1.4)' }}
+          style={{ filter: 'contrast(1.02) brightness(0.9) sepia(0.5) hue-rotate(190deg) saturate(0.7)' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/60 to-blue-800/40 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-blue-800/25 z-10"></div>
         <div className="absolute inset-0 z-20 flex items-center justify-center p-8">
           <div className="text-white text-center max-w-lg p-8 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20">
             <h1 className="text-5xl font-extrabold mb-3 text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
