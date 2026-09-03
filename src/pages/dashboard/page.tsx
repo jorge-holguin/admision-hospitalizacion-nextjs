@@ -172,8 +172,8 @@ export default function Dashboard() {
             onClick={handleInsuranceClick}
           >
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-10 h-10 text-cyan-600" />
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200">
+                <Shield className="w-10 h-10 text-blue-700" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
                 SEGUROS
