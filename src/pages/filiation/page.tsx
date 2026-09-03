@@ -14,6 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit, Trash2, Eye, Ban } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -654,37 +660,94 @@ export default function FiliationPage() {
               />
             )}
 
-            {/* Menú desplegable para acciones secundarias */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+            {isClinicalHistory ? (
+              /* Iconos directos para /historias-clinicas */
+              <div className="flex items-center gap-1">
                 {canVerPaciente && (
-                  <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Ver Historia
-                  </DropdownMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => handleViewPatient(patient)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ver historia</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {canEditarPaciente && !isAnulada && (
-                  <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Editar
-                  </DropdownMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        onClick={() => handleEditPatient(patient)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Editar</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {!isAnulada && (
-                  <DropdownMenuItem
-                    onClick={() => handleDeletePatient(patient)}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Anular
-                  </DropdownMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeletePatient(patient)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Anular</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
+            ) : (
+              /* Menú desplegable para acciones secundarias */
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canVerPaciente && (
+                    <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Ver Historia
+                    </DropdownMenuItem>
+                  )}
+                  {canEditarPaciente && !isAnulada && (
+                    <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </DropdownMenuItem>
+                  )}
+                  {!isAnulada && (
+                    <DropdownMenuItem
+                      onClick={() => handleDeletePatient(patient)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Anular
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         )
       },
@@ -960,19 +1023,21 @@ export default function FiliationPage() {
                     </div>
                   )}
                 </div>
-                <DataTable
-                  data={patients}
-                  columns={columns}
-                  pagination={pagination}
-                  onPageChange={handlePageChange}
-                  onPageSizeChange={handlePageSizeChange}
-                  isLoading={isLoading}
-                  getRowClassName={(patient: any) =>
-                    isAnuladaRecord(patient)
-                      ? "bg-red-50/70 border-l-4 border-l-red-500 hover:bg-red-100/70"
-                      : ""
-                  }
-                />
+                <TooltipProvider>
+                  <DataTable
+                    data={patients}
+                    columns={columns}
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                    isLoading={isLoading}
+                    getRowClassName={(patient: any) =>
+                      isAnuladaRecord(patient)
+                        ? "bg-red-50/70 border-l-4 border-l-red-500 hover:bg-red-100/70"
+                        : ""
+                    }
+                  />
+                </TooltipProvider>
               </>
             )}
           </CardContent>

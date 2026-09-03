@@ -108,7 +108,7 @@ export const API_ENDPOINTS = {
   // ============================================
   filiation: {
     searchByDocument: `${API_SPRING_URL}/historia-clinica/pacientes/busqueda-documento`,
-    searchByName: `${API_SPRING_URL}/busqueda/paciente-por-nombre`,
+    searchByName: `${API_SPRING_URL}/historia-clinica/pacientes/busqueda-nombres`,
     searchByHistoria: `${API_SPRING_URL}/historia-clinica/pacientes/busqueda-historia`,
     byId: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/${id}`,
     create: `${API_SPRING_URL}/historia-clinica/pacientes`,
