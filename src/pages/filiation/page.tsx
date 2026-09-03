@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +27,7 @@ import ProtectedRoute from "@/components/ProtectedRoute"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
 import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 import { calculateAge } from "@/lib/ageCalculator"
+import { extractDocumentFromToken } from "@/utils/jwtUtils"
 import { convertISOToSQLDate } from "@/utils/timeUtils"
 
 // Filiation components
@@ -71,6 +75,7 @@ export default function FiliationPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [searchType, setSearchType] = useState<"historia" | "documento" | "nombres">("documento")
+  const [estadoFiltro, setEstadoFiltro] = useState<"1" | "0">("1")
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   
@@ -94,6 +99,18 @@ export default function FiliationPage() {
   const [documentTypesList, setDocumentTypesList] = useState<{ tipoDocumento: string; nombre: string }[]>([])
   const [isLoadingDocumentTypes, setIsLoadingDocumentTypes] = useState(false)
   const [isLoadingPatientHistory, setIsLoadingPatientHistory] = useState(false)
+  // Estado para el diálogo de anulación
+  const [anularDialog, setAnularDialog] = useState<{ open: boolean; patient: any | null }>({
+    open: false,
+    patient: null,
+  })
+  const [anularArgumento, setAnularArgumento] = useState("")
+  const [isAnulando, setIsAnulando] = useState(false)
+  const [anulacionExitosa, setAnulacionExitosa] = useState<{ open: boolean; patientName: string }>({
+    open: false,
+    patientName: "",
+  })
+
   const [nnConfirmation, setNnConfirmation] = useState<{
     historiaClinica: string
     resumenPaciente: any
@@ -158,6 +175,13 @@ export default function FiliationPage() {
     }
   }, [debouncedSearchTerm, searchType, searchDocumentType])
 
+  // Re-aplicar búsqueda cuando cambia el filtro de estado y ya hay una búsqueda activa
+  useEffect(() => {
+    if (hasSearched) {
+      handleSearch()
+    }
+  }, [estadoFiltro])
+
   const handleSearch = useCallback((term?: string, type?: string) => {
     const searchValue = term || searchTerm
     const searchBy = type || searchType || "documento"
@@ -174,10 +198,15 @@ export default function FiliationPage() {
     } else {
       setHasSearched(false)
     }
+
+    // Filtro por estado: 1 = activas, 0 = anuladas, vacío = todas
+    if (estadoFiltro) {
+      filter.estado = estadoFiltro
+    }
     
     handleFilterChange(filter)
     setIsSearching(false)
-  }, [searchTerm, searchType, searchDocumentType, handleFilterChange])
+  }, [searchTerm, searchType, searchDocumentType, estadoFiltro, handleFilterChange])
 
   const router = useRouter();
   const { pathname } = useLocation();
@@ -438,27 +467,38 @@ export default function FiliationPage() {
     setIsPatientViewModalOpen(true);
   };
 
-  // Función para anular paciente
-  const handleDeletePatient = async (patient: any) => {
-    const patientName = getPatientName(patient)
-    if (confirm(`¿Está seguro de anular el paciente ${patientName}?`)) {
-      try {
-        // Aquí iría la lógica para anular el paciente
-        toast({
-          title: "Paciente anulado",
-          description: `El paciente ${patientName} ha sido anulado correctamente.`,
-        });
-        // Recargar la lista
-        handleSearch();
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo anular el paciente.",
-          variant: "destructive",
-        });
-      }
+  // Función para abrir el diálogo de anulación
+  const handleDeletePatient = (patient: any) => {
+    setAnularArgumento("")
+    setAnularDialog({ open: true, patient })
+  }
+
+  // Función que ejecuta la anulación contra el backend
+  const confirmAnularPatient = async () => {
+    if (!anularArgumento.trim()) {
+      toast({ title: "Campo requerido", description: "Debe ingresar el motivo de anulación.", variant: "destructive" })
+      return
     }
-  };
+    const patient = anularDialog.patient
+    const patientId = getPatientId(patient)
+    const usuario = extractDocumentFromToken()
+    setIsAnulando(true)
+    try {
+      const url = `${API_ENDPOINTS.filiation.anular(patientId)}?argumento=${encodeURIComponent(anularArgumento.trim())}&usuario=${encodeURIComponent(usuario)}`
+      const response = await fetch(url, { method: 'PUT' })
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData?.message || errData?.error || `Error ${response.status}`)
+      }
+      setAnularDialog({ open: false, patient: null })
+      setAnulacionExitosa({ open: true, patientName: getPatientName(patient) })
+      refreshData()
+    } catch (error: any) {
+      toast({ title: "Error al anular", description: error.message || "No se pudo anular el paciente.", variant: "destructive" })
+    } finally {
+      setIsAnulando(false)
+    }
+  }
 
   // Definición de columnas para la DataTable
   const columns = [
@@ -466,6 +506,20 @@ export default function FiliationPage() {
       key: "historia",
       header: "H.C.",
       cell: (patient: any) => <span className="text-sm font-medium">{patient.historia || patient.HISTORIA || '-'}</span>
+    },
+    {
+      key: "estado",
+      header: "Estado",
+      cell: (patient: any) => {
+        const estado = patient.estado ?? patient.ESTADO
+        const isActive = estado === undefined || estado === null || estado === true || estado === 1 || String(estado).trim() === '1'
+        const isInactive = estado === false || estado === 0 || String(estado).trim() === '0'
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-800' : isInactive ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+            {isActive ? 'Activa' : isInactive ? 'Anulada' : 'Desconocido'}
+          </span>
+        )
+      }
     },
     {
       key: "nombres",
@@ -658,15 +712,47 @@ export default function FiliationPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between font-bold text-gray-900">
               <span className="text-lg">Búsqueda de Pacientes</span>
-              {canCrearPaciente && (
-                <Button
-                  onClick={handleNewPatientClick}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+              <div className="flex items-center gap-2">
+                <ToggleGroup
+                  type="single"
+                  value={estadoFiltro}
+                  onValueChange={(value) => {
+                    if (value === "1" || value === "0") {
+                      setEstadoFiltro(value)
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="bg-slate-100 rounded-xl p-1.5 border border-slate-200 shadow-sm"
                 >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Nuevo Paciente
-                </Button>
-              )}
+                  <ToggleGroupItem
+                    value="1"
+                    aria-label="Mostrar historias activas"
+                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
+                      text-green-700 hover:bg-green-50 hover:text-green-800
+                      data-[state=on]:bg-green-600 data-[state=on]:text-white data-[state=on]:shadow data-[state=on]:hover:bg-green-700"
+                  >
+                    Activas
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="0"
+                    aria-label="Mostrar historias anuladas"
+                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
+                      text-red-700 hover:bg-red-50 hover:text-red-800
+                      data-[state=on]:bg-red-600 data-[state=on]:text-white data-[state=on]:shadow data-[state=on]:hover:bg-red-700"
+                  >
+                    Anuladas
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                {canCrearPaciente && (
+                  <Button
+                    onClick={handleNewPatientClick}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Nuevo Paciente
+                  </Button>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1011,6 +1097,97 @@ export default function FiliationPage() {
           </FiliationProvider>
         </SegurosCitaProvider>
       )}
+      {/* Diálogo de éxito de anulación */}
+      <Dialog open={anulacionExitosa.open} onOpenChange={(open) => setAnulacionExitosa({ open, patientName: anulacionExitosa.patientName })}>
+        <DialogContent className="max-w-sm">
+          <div className="flex flex-col items-center text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+              <CheckCircle className="w-10 h-10 text-green-600" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-gray-900">Historia anulada</DialogTitle>
+            <DialogDescription className="text-gray-600 mt-2">
+              La historia del paciente{" "}
+              <span className="font-semibold text-gray-900">{anulacionExitosa.patientName}</span>
+              {" "}se ha eliminado correctamente.
+            </DialogDescription>
+          </div>
+          <div className="flex justify-center mt-2">
+            <Button
+              onClick={() => setAnulacionExitosa({ open: false, patientName: "" })}
+              className="bg-green-600 hover:bg-green-700 text-white px-8"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Aceptar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de anulación de filiación */}
+      <Dialog
+        open={anularDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !isAnulando) setAnularDialog({ open: false, patient: null })
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Anular Filiación
+            </DialogTitle>
+            <DialogDescription>
+              Está a punto de anular al paciente{" "}
+              <span className="font-semibold text-gray-900">
+                {getPatientName(anularDialog.patient)}
+              </span>
+              . Esta acción es una eliminación lógica y requiere un motivo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-2">
+            <Label htmlFor="anular-argumento" className="text-sm font-medium">
+              Motivo de anulación <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="anular-argumento"
+              placeholder="Ingrese el motivo por el cual se anula esta filiación..."
+              value={anularArgumento}
+              onChange={(e) => setAnularArgumento(e.target.value)}
+              rows={3}
+              className="resize-none"
+              disabled={isAnulando}
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setAnularDialog({ open: false, patient: null })}
+              disabled={isAnulando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmAnularPatient}
+              disabled={isAnulando || !anularArgumento.trim()}
+            >
+              {isAnulando ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Anulando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Confirmar Anulación
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </ProtectedRoute>
   )

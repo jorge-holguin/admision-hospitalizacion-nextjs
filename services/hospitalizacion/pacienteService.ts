@@ -9,6 +9,7 @@ export interface PacienteFilter {
   historia?: string;
   documento?: string;
   nombres?: string;
+  estado?: string;
 }
 
 export interface PaginationOptions {
@@ -57,17 +58,46 @@ export const pacienteService = {
     filter: PacienteFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
   ): Promise<PaginatedResponse<Paciente>> {
-    try {      const params: Record<string, string> = {
+    try {
+      const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
-      
-      if (filter.historia) params.historia = filter.historia;
+
+      if (filter.estado) {
+        params.estado = filter.estado;
+      }
+
+      const withEstado = (base: string) => {
+        if (!filter.estado) return base;
+        const sep = base.includes('?') ? '&' : '?';
+        return `${base}${sep}estado=${encodeURIComponent(filter.estado)}`;
+      };
+
+      // Historia clínica
+      if (filter.historia) {
+        const url = withEstado(`${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(filter.historia)}&page=${page}&pageSize=${pageSize}`);
+        const response = await fetchApi(url);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return {
+          data: data.data || [],
+          pagination: data.pagination || {
+            total: data.data?.length || 0,
+            page,
+            pageSize,
+            totalPages: Math.ceil((data.data?.length || 0) / pageSize),
+          },
+        };
+      }
 
       // Documento → nueva API optimizada
       if (filter.documento && !filter.historia) {
         const p = new URLSearchParams({ tipoDocumento: 'D', documento: filter.documento });
-        const url = `${API_ENDPOINTS.filiation.searchByDocument}?${p}`;
+        const url = withEstado(`${API_ENDPOINTS.filiation.searchByDocument}?${p}`);
         const response = await fetchApi(url);
         const raw = response.ok ? await response.json() : null;
         const list: any[] = Array.isArray(raw) ? raw
@@ -79,7 +109,7 @@ export const pacienteService = {
 
       // Nombres → nueva API optimizada
       if (filter.nombres && !filter.historia) {
-        const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}`;
+        const url = withEstado(`${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}`);
         const response = await fetchApi(url);
         const raw = response.ok ? await response.json() : null;
         const list: any[] = Array.isArray(raw) ? raw
@@ -90,14 +120,16 @@ export const pacienteService = {
         return { data: list, pagination: { total: list.length, page, pageSize, totalPages: Math.ceil(list.length / pageSize) } };
       }
 
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);      const response = await fetchApi(url);
+      const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, params);
+      const response = await fetchApi(url);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();      return {
+      const data = await response.json();
+      return {
         data: data.data || [],
         pagination: data.pagination || {
           total: data.data?.length || 0,
@@ -116,17 +148,20 @@ export const pacienteService = {
    * Obtener un paciente por su ID
    */
   async getPacienteById(id: string): Promise<Paciente | null> {
-    try {      const url = API_ENDPOINTS.filiation.byId(id);
+    try {
+      const url = API_ENDPOINTS.filiation.byId(id);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {        return null;
+      if (response.status === 404) {
+        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const paciente = await response.json();      return paciente;
+      const paciente = await response.json();
+      return paciente;
     } catch (error) {
       console.error(`❌ Error en getPacienteById(${id}):`, error);
       throw error;
@@ -137,8 +172,8 @@ export const pacienteService = {
    * Buscar pacientes por historia clínica
    */
   async searchByHistoria(historia: string): Promise<Paciente[]> {
-    try {      const params = { historia, pageSize: '10' };
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+    try {
+      const url = `${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(historia)}&pageSize=10`;
       
       const response = await fetchApi(url);
       
@@ -146,7 +181,8 @@ export const pacienteService = {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();      return data.data || [];
+      const data = await response.json();
+      return data.data || [];
     } catch (error) {
       console.error(`❌ Error en searchByHistoria(${historia}):`, error);
       throw error;
@@ -157,7 +193,8 @@ export const pacienteService = {
    * Buscar pacientes por documento (DNI)
    */
   async searchByDocumento(documento: string, tipoDocumento: string = 'D'): Promise<Paciente[]> {
-    try {      const params = new URLSearchParams({ tipoDocumento, documento });
+    try {
+      const params = new URLSearchParams({ tipoDocumento, documento });
       const url = `${API_ENDPOINTS.filiation.searchByDocument}?${params}`;
       
       const response = await fetchApi(url);
@@ -170,7 +207,8 @@ export const pacienteService = {
       const list: Paciente[] = Array.isArray(data) ? data
         : Array.isArray(data?.data) ? data.data
         : (data && !data.error && (data.PACIENTE || data.paciente)) ? [data]
-        : [];      return list;
+        : [];
+      return list;
     } catch (error) {
       console.error(`❌ Error en searchByDocumento(${documento}):`, error);
       throw error;
@@ -181,7 +219,8 @@ export const pacienteService = {
    * Buscar pacientes por nombre o apellidos
    */
   async searchByName(name: string): Promise<Paciente[]> {
-    try {      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
+    try {
+      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
       
       const response = await fetchApi(url);
       
@@ -194,7 +233,8 @@ export const pacienteService = {
         : Array.isArray(data?.data) ? data.data
         : Array.isArray(data?.pacientes) ? data.pacientes
         : Array.isArray(data?.content) ? data.content
-        : [];      return list;
+        : [];
+      return list;
     } catch (error) {
       console.error(`❌ Error en searchByName(${name}):`, error);
       throw error;
@@ -205,16 +245,23 @@ export const pacienteService = {
    * Contar pacientes con filtros opcionales
    */
   async countPacientes(filter: PacienteFilter = {}): Promise<{ success: boolean; data?: { total: number }; message?: string }> {
-    try {      const params: Record<string, string> = {
-        page: '1',
-        pageSize: '1',
+    try {
+      const withEstado = (base: string) => {
+        if (!filter.estado) return base;
+        const sep = base.includes('?') ? '&' : '?';
+        return `${base}${sep}estado=${encodeURIComponent(filter.estado)}`;
       };
-      
-      if (filter.historia) params.historia = filter.historia;
-      if (filter.documento) params.documento = filter.documento;
-      if (filter.nombres) params.nombres = filter.nombres;
-      
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+
+      let url
+      if (filter.historia) {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(filter.historia)}&page=1&pageSize=1`)
+      } else if (filter.documento) {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByDocument}?tipoDocumento=D&documento=${encodeURIComponent(filter.documento)}&page=1&pageSize=1`)
+      } else if (filter.nombres) {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}&page=1&pageSize=1`)
+      } else {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByDocument}?page=1&pageSize=1`)
+      }
       const response = await fetchApi(url);
       
       if (!response.ok) {
@@ -222,7 +269,8 @@ export const pacienteService = {
       }
       
       const data = await response.json();
-      const total = data.pagination?.total || 0;      return {
+      const total = data.pagination?.total || 0;
+      return {
         success: true,
         data: { total }
       };

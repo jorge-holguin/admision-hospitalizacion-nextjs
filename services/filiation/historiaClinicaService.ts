@@ -3,6 +3,7 @@
  */
 import { buildCompleteAddress } from '@/utils/reniecMapper'
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
+import { normalizeTipoDocumento } from '@/utils/documentTypeUtils'
 
 interface FormDataInput {
   // Step 1 - Datos básicos
@@ -188,7 +189,7 @@ export async function transformFormDataToAPIPayload(
 
   const payload: HistoriaClinicaPayload = {
     stringFoto: photoBase64,
-    tipoDocumento: documentType,
+    tipoDocumento: normalizeTipoDocumento(documentType),
     documento: documentNumber,
     edad: formData.fechaNacimiento ? calculateAgeForAPI(formData.fechaNacimiento) : '',
     paterno: formData.apellidoPaterno,

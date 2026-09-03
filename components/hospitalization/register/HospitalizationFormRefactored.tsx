@@ -473,7 +473,7 @@ export function HospitalizationFormRefactored({
         if (["0", "02", "17"].includes(seguroCode)) {
           try {
             const nombrePaciente = (createdRecord?.NOMBRES || hospitalData.NOMBRES || '').toString().trim();
-            const asegurarResponse = await fetch(API_ENDPOINTS.hospitalizacion.assignAccount(hospitalizacionId.trim()), {
+            const asegurarResponse = await fetch(API_ENDPOINTS.hospitalizacion.assignAccount(hospitalizacionId.trim(), 'HO'), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'

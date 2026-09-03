@@ -265,7 +265,8 @@ export function EmergencyFormRefactored({
   // Solo para emergencias nuevas, no para edición
   useEffect(() => {
     if (!emergencyId && !emergencyData) {
-      // Es una emergencia nueva, refrescar la hora del servidor      refreshDateTime();
+      // Es una emergencia nueva, refrescar la hora del servidor
+      refreshDateTime();
     }
   }, []); // Solo al montar el componente
   
@@ -612,7 +613,8 @@ export function EmergencyFormRefactored({
         SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1),
         ESTADO_CIVIL: (() => {
           const raw = getCivilStatusCode(filiacionData?.estadoCivil, filiacionData?.NOMBRE_ESTADO_CIVIL) || getCivilStatusCode(formData.estadoCivil) || '';
-          const padded = raw.padEnd(2, ' ').substring(0, 2);          return padded;
+          const padded = raw.padEnd(2, ' ').substring(0, 2);
+          return padded;
         })(),
         // También enviar camelCase por si el DTO de Spring espera ese nombre; se rellena a 2 caracteres igual que ESTADO_CIVIL
         estadoCivil: (() => {
@@ -664,7 +666,7 @@ export function EmergencyFormRefactored({
           const pacienteData = result.data?.PACIENTE || result.PACIENTE || patientId;
           const nombreData = safeTrim(result.data?.NOMBRES || result.NOMBRES) || formData.nombres || formData.nombre || '';
           
-          const asegurarResponse = await fetch(API_ENDPOINTS.emergencia.assignCuenta(emergencyIdToUse), {
+          const asegurarResponse = await fetch(API_ENDPOINTS.emergencia.assignCuenta(emergencyIdToUse, 'EM'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -672,10 +674,11 @@ export function EmergencyFormRefactored({
               seguro: seguroCodeForAccount,
               usuario: primerApellido,
               nombre: nombreData,
+              origen: 'EM',
               observa: formData.observacion1 || '',
               empresaSeguro: seguroCodeForAccount === '02' ? (formData.aseguradora || '') : '',
-              reuseAccountId: reuseAccountId, // Pasar el ID de cuenta a reutilizar si existe
-              forceCreateNew: forceCreateNew  // Forzar creación de nueva cuenta si es true
+              reuseAccountId: reuseAccountId,
+              forceCreateNew: forceCreateNew
             })
           });
 
@@ -761,7 +764,8 @@ export function EmergencyFormRefactored({
       // Verificar si el seguro requiere cuenta (0, 02, 17)
       const segurosConCuenta = ['0', '00', '02', '17'];
       
-      if (segurosConCuenta.includes(seguroToCheck)) {        // Verificar si hay múltiples cuentas activas (filtrado por origen=EM)
+      if (segurosConCuenta.includes(seguroToCheck)) {
+        // Verificar si hay múltiples cuentas activas (filtrado por origen=EM)
         try {
           const url = `${API_SPRING_URL}/accounts/patient/${encodeURIComponent(patientId)}?estado=1&origen=EM&seguro=${encodeURIComponent(seguroToCheck)}`;
           const resp = await fetch(url);
@@ -780,7 +784,8 @@ export function EmergencyFormRefactored({
 
         const existingAccount = await checkExistingAccount(seguroToCheck);
         
-        if (existingAccount) {          // Guardar datos pendientes para después del diálogo
+        if (existingAccount) {
+          // Guardar datos pendientes para después del diálogo
           setPendingFormData({
             emergencyIdToUse: emergencyId,
             ordenToUse: formData.orden || '',
@@ -805,10 +810,12 @@ export function EmergencyFormRefactored({
   };
 
   // Handlers para el diálogo de cuenta
-  const handleReuseAccount = async (cuentaId: string) => {    await processFormWithAccountOption(cuentaId, false); // Reutilizar cuenta existente
+  const handleReuseAccount = async (cuentaId: string) => {
+    await processFormWithAccountOption(cuentaId, false); // Reutilizar cuenta existente
   };
 
-  const handleCreateNewAccount = async () => {    await processFormWithAccountOption(undefined, true); // Forzar creación de nueva cuenta
+  const handleCreateNewAccount = async () => {
+    await processFormWithAccountOption(undefined, true); // Forzar creación de nueva cuenta
   };
 
   const handleCloseAccountDialog = () => {
@@ -907,7 +914,8 @@ export function EmergencyFormRefactored({
       // Cargar EMPRESASEGURO si existe (para edición)
       if (emergencyData.EMPRESASEGURO) {
         const empresaCode = emergencyData.EMPRESASEGURO?.toString().trim() || '';
-        const empresaNombre = emergencyData.EMPRESASEG_NOMBRE?.toString().trim() || '';        setFormData(prev => ({
+        const empresaNombre = emergencyData.EMPRESASEG_NOMBRE?.toString().trim() || '';
+        setFormData(prev => ({
           ...prev,
           aseguradora: empresaCode,
           aseguradoraDisplay: empresaNombre ? `(${empresaCode}) - ${empresaNombre}` : empresaCode

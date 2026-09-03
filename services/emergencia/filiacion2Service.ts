@@ -10,6 +10,7 @@ export interface FiliacionFilter {
   documento?: string;
   nombres?: string;
   tipoDocumento?: string;
+  estado?: string;
 }
 
 export interface PaginationOptions {
@@ -106,19 +107,45 @@ export const filiacionService = {
     filter: FiliacionFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
   ): Promise<PaginatedResponse<Filiacion>> {
-    try {      // Construir query params
+    try {
+      // Construir query params
       const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
-      
-      if (filter.historia) params.historia = filter.historia;
+
+      if (filter.estado) {
+        params.estado = filter.estado;
+      }
+
+      // Helper para agregar estado a URLs puntuales
+      const withEstado = (base: string) => {
+        if (!filter.estado) return base;
+        const sep = base.includes('?') ? '&' : '?';
+        return `${base}${sep}estado=${encodeURIComponent(filter.estado)}`;
+      };
+
+      // Historia clínica
+      if (filter.historia) {
+        const url = withEstado(`${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(filter.historia)}&page=${page}&pageSize=${pageSize}`);
+        const response = await fetchApi(url);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Error en la respuesta:', errorData);
+          throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.data && Array.isArray(data.data)) {
+          data.data = data.data.map((record: any) => processDateFields(record));
+        }
+        return data;
+      }
 
       // Documento → nueva API optimizada
       if (filter.documento && !filter.historia) {
         const tipoDoc = (filter.tipoDocumento || 'D').trim();
         const p = new URLSearchParams({ tipoDocumento: tipoDoc, documento: filter.documento.trim() });
-        const url = `${API_ENDPOINTS.filiation.searchByDocument}?${p}`;
+        const url = withEstado(`${API_ENDPOINTS.filiation.searchByDocument}?${p}`);
         const response = await fetchApi(url);
         if (response.status === 204 || response.headers.get('content-length') === '0' || !response.body) {
           return { data: [], pagination: { total: 0, page, pageSize, totalPages: 0 } };
@@ -134,7 +161,7 @@ export const filiacionService = {
 
       // Nombres → nueva API optimizada
       if (filter.nombres && !filter.historia) {
-        const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}`;
+        const url = withEstado(`${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}`);
         const response = await fetchApi(url);
         const raw = response.ok ? await response.json() : null;
         const list: any[] = Array.isArray(raw) ? raw
@@ -146,7 +173,8 @@ export const filiacionService = {
         return { data: mapped, pagination: { total: mapped.length, page, pageSize, totalPages: Math.ceil(mapped.length / pageSize) } };
       }
 
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);      const response = await fetchApi(url);
+      const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, params);
+      const response = await fetchApi(url);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -154,7 +182,8 @@ export const filiacionService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();      // Procesar fechas si es necesario
+      const data = await response.json();
+      // Procesar fechas si es necesario
       if (data.data && Array.isArray(data.data)) {
         data.data = data.data.map((record: any) => processDateFields(record));
       }
@@ -179,14 +208,17 @@ export const filiacionService = {
    * Get a single filiacion record by ID
    */
   async getFiliacionById(id: string): Promise<Filiacion | null> {
-    try {      if (!id || typeof id !== 'string') {
+    try {
+      if (!id || typeof id !== 'string') {
         console.error(`ID inválido: ${id}`);
         return null;
       }
       
-      const url = API_ENDPOINTS.filiation.byId(id);      const response = await fetchApi(url);
+      const url = API_ENDPOINTS.filiation.byId(id);
+      const response = await fetchApi(url);
       
-      if (response.status === 404) {        return null;
+      if (response.status === 404) {
+        return null;
       }
       
       if (!response.ok) {
@@ -194,28 +226,27 @@ export const filiacionService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();      // Procesar fechas
+      const data = await response.json();
+      // Procesar fechas
       return processDateFields(data);
     } catch (error) {
       console.error(`❌ Error en getFiliacionById(${id}):`, error);
       return null;
     }
   },
-  
+
   /**
    * Search filiacion records by historia clinica
    */
   async searchByHistoria(historia: string): Promise<Filiacion[]> {
-    try {      const params = { historia, pageSize: '10' };
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
-      
+    try {
+      const url = `${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(historia)}&pageSize=10`;
       const response = await fetchApi(url);
-      
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
-      const data = await response.json();      return (data.data || []).map((record: any) => processDateFields(record));
+      const data = await response.json();
+      return (data.data || []).map((record: any) => processDateFields(record));
     } catch (error) {
       console.error(`❌ Error en searchByHistoria(${historia}):`, error);
       return [];
@@ -226,7 +257,8 @@ export const filiacionService = {
    * Search filiacion records by DNI/documento
    */
   async searchByDocumento(documento: string, tipoDocumento: string = 'D'): Promise<Filiacion[]> {
-    try {      const params = new URLSearchParams({ tipoDocumento, documento });
+    try {
+      const params = new URLSearchParams({ tipoDocumento, documento });
       const url = `${API_ENDPOINTS.filiation.searchByDocument}?${params}`;
       
       const response = await fetchApi(url);
@@ -239,7 +271,8 @@ export const filiacionService = {
       const list: any[] = Array.isArray(data) ? data
         : Array.isArray(data?.data) ? data.data
         : (data && !data.error && (data.PACIENTE || data.paciente)) ? [data]
-        : [];      return list.map((record: any) => processDateFields(record));
+        : [];
+      return list.map((record: any) => processDateFields(record));
     } catch (error) {
       console.error(`❌ Error en searchByDocumento(${documento}):`, error);
       return [];
@@ -250,7 +283,8 @@ export const filiacionService = {
    * Search filiacion records by name or apellidos
    */
   async searchByName(name: string): Promise<Filiacion[]> {
-    try {      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
+    try {
+      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
       
       const response = await fetchApi(url);
       
@@ -263,7 +297,8 @@ export const filiacionService = {
         : Array.isArray(data?.data) ? data.data
         : Array.isArray(data?.pacientes) ? data.pacientes
         : Array.isArray(data?.content) ? data.content
-        : [];      return list.map((record: any) => processDateFields(record));
+        : [];
+      return list.map((record: any) => processDateFields(record));
     } catch (error) {
       console.error(`❌ Error en searchByName(${name}):`, error);
       return [];
@@ -274,17 +309,26 @@ export const filiacionService = {
    * Count filiacion records with optional filtering
    */
   async countFiliacion(filter: FiliacionFilter = {}): Promise<CountResponse> {
-    try {      // Usar la búsqueda paginada con pageSize=1 para obtener el total
-      const params: Record<string, string> = {
-        page: '1',
-        pageSize: '1',
+    try {
+      // Helper para agregar estado a la URL de conteo
+      const withEstado = (base: string) => {
+        if (!filter.estado) return base;
+        const sep = base.includes('?') ? '&' : '?';
+        return `${base}${sep}estado=${encodeURIComponent(filter.estado)}`;
       };
-      
-      if (filter.historia) params.historia = filter.historia;
-      if (filter.documento) params.documento = filter.documento;
-      if (filter.nombres) params.nombres = filter.nombres;
-      
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
+
+      // Usar la búsqueda paginada con pageSize=1 para obtener el total
+      let url
+      if (filter.historia) {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(filter.historia)}&page=1&pageSize=1`)
+      } else if (filter.documento) {
+        const tipoDoc = (filter.tipoDocumento || 'D').trim()
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByDocument}?tipoDocumento=${tipoDoc}&documento=${encodeURIComponent(filter.documento)}&page=1&pageSize=1`)
+      } else if (filter.nombres) {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres)}&page=1&pageSize=1`)
+      } else {
+        url = withEstado(`${API_ENDPOINTS.filiation.searchByDocument}?page=1&pageSize=1`)
+      }
       const response = await fetchApi(url);
       
       if (!response.ok) {
@@ -292,7 +336,8 @@ export const filiacionService = {
       }
       
       const data = await response.json();
-      const total = data.pagination?.total || 0;      return {
+      const total = data.pagination?.total || 0;
+      return {
         success: true,
         data: { total }
       };

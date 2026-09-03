@@ -92,18 +92,32 @@ export function useFiliacion() {
         if (filter.nombres && filter.nombres.trim() !== '') {
           params.append("nombres", filter.nombres.trim())
         }
+
+        if (filter.estado !== undefined && filter.estado !== '') {
+          params.append("estado", filter.estado)
+        }
       }
 
-      // Documento → nueva API optimizada
+      // Helper para agregar filtro de estado a la URL
+      const appendEstado = (baseUrl: string): string => {
+        if (filter.estado === undefined || filter.estado === '') return baseUrl
+        const sep = baseUrl.includes('?') ? '&' : '?'
+        return `${baseUrl}${sep}estado=${encodeURIComponent(filter.estado)}`
+      }
+
+      // Seleccionar endpoint según el tipo de búsqueda
       let url
       if (filter.documento && filter.documento.trim() !== '' && !filter.historia) {
         const tipoDoc = (filter.tipoDocumento || 'D').trim()
         const p = new URLSearchParams({ tipoDocumento: tipoDoc, documento: filter.documento.trim() })
-        url = `${API_ENDPOINTS.filiation.searchByDocument}?${p}`
+        url = appendEstado(`${API_ENDPOINTS.filiation.searchByDocument}?${p}`)
       } else if (filter.nombres && filter.nombres.trim() !== '' && !filter.historia) {
-        url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres.trim())}`
+        url = appendEstado(`${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(filter.nombres.trim())}`)
+      } else if (filter.historia && filter.historia.trim() !== '') {
+        url = appendEstado(`${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(filter.historia.trim())}`)
       } else {
-        url = `${API_ENDPOINTS.filiation.search}?${params.toString()}`
+        // Sin filtro específico: usar búsqueda por documento con solo paginación
+        url = appendEstado(`${API_ENDPOINTS.filiation.searchByDocument}?${params.toString()}`)
       }
 
       const response = await fetch(url, {
@@ -217,9 +231,30 @@ export function useFiliacion() {
         if (countFilter.nombres && countFilter.nombres.trim() !== '') {
           params.append("nombres", countFilter.nombres.trim())
         }
-      }      // Nota: El endpoint de count puede no existir en la API Spring Boot
-      // Usamos el search normal y contamos los resultados
-      const url = `${API_ENDPOINTS.filiation.search}?${params.toString()}`
+
+        if (countFilter.estado !== undefined && countFilter.estado !== '') {
+          params.append("estado", countFilter.estado)
+        }
+      }
+      // Helper para agregar filtro de estado a la URL de conteo
+      const appendEstadoCount = (baseUrl: string): string => {
+        if (countFilter.estado === undefined || countFilter.estado === '') return baseUrl
+        const sep = baseUrl.includes('?') ? '&' : '?'
+        return `${baseUrl}${sep}estado=${encodeURIComponent(countFilter.estado)}`
+      }
+
+      // Usamos el search apropiado y contamos los resultados
+      let url
+      if (countFilter.historia && countFilter.historia.trim() !== '') {
+        url = appendEstadoCount(`${API_ENDPOINTS.filiation.searchByHistoria}?historia=${encodeURIComponent(countFilter.historia.trim())}`)
+      } else if (countFilter.documento && countFilter.documento.trim() !== '') {
+        const tipoDoc = (countFilter.tipoDocumento || 'D').trim()
+        url = appendEstadoCount(`${API_ENDPOINTS.filiation.searchByDocument}?tipoDocumento=${tipoDoc}&documento=${encodeURIComponent(countFilter.documento.trim())}`)
+      } else if (countFilter.nombres && countFilter.nombres.trim() !== '') {
+        url = appendEstadoCount(`${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(countFilter.nombres.trim())}`)
+      } else {
+        url = appendEstadoCount(`${API_ENDPOINTS.filiation.searchByDocument}?${params.toString()}`)
+      }
       const response = await fetch(url, {
         signal: AbortSignal.timeout(10000)
       })

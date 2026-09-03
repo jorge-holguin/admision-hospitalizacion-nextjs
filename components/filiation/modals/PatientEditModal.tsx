@@ -9,7 +9,8 @@ import { StepIndicator } from "../register/StepIndicator"
 import { Step1BasicData } from "../register/Step1BasicData"
 import { Step2AdditionalData } from "../register/Step2AdditionalData"
 import { Step3FamilyData } from "../register/Step3FamilyData"
-import { extractDocumentFromToken } from "@/utils/jwtUtils"
+import { extractDocumentFromToken } from '@/utils/jwtUtils'
+import { normalizeTipoDocumento } from '@/utils/documentTypeUtils'
 import { toast } from "@/hooks/use-toast"
 import { useReniec } from "@/hooks/useReniec"
 import { convertToLocalDateTime } from "@/utils/dateFormatUtils"
@@ -209,7 +210,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI';
       const dni = patient.DOCUMENTO || patient.dni || patient.documento;
       
-      if (patient && noTieneFoto && esDNI && dni && !reniecButtonUsed) {        await handleUpdateFromReniec();
+      if (patient && noTieneFoto && esDNI && dni && !reniecButtonUsed) {
+        await handleUpdateFromReniec();
       } else {
       }
     };
@@ -232,7 +234,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       || (typeof patient.tipoDocumento === 'object' ? (patient.tipoDocumento?.tipoDocumento || '').trim() : '')
     const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI'
     const esCE = tipoDocStr.trim() === 'CE' || String(dni).trim().length === 9
-    if (!esDNI && !esCE) return    validateSISAndUpdateSeguro(String(dni).trim(), false)
+    if (!esDNI && !esCE) return
+    validateSISAndUpdateSeguro(String(dni).trim(), false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient])
   
@@ -436,13 +439,15 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
 
   // ✅ Función para validar SIS y actualizar seguro automáticamente usando el servicio
   const validateSISAndUpdateSeguro = async (dni: string, showToast: boolean = false) => {
-    try {      // Usar el servicio consultarSIS existente
+    try {
+      // Usar el servicio consultarSIS existente
       const result = await consultarSIS(dni);
 
       if (result.success && result.data) {
         // Mapear tipoSeguro (CODSIS) a SEGURO usando el servicio
         const nombreCompleto = formData.nombres || patient.NOMBRES || patient.nombres || '';
-        const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);        setFormData(prev => ({
+        const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);
+        setFormData(prev => ({
           ...prev,
           tipoSeguro: seguroId
         }));
@@ -455,7 +460,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             variant: "default"
           });
         }
-      } else {        setFormData(prev => ({
+      } else {
+        setFormData(prev => ({
           ...prev,
           tipoSeguro: '0' // PAGANTE
         }));
@@ -492,7 +498,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           variant: "destructive"
         });
         return;
-      }      // Usar el hook useReniec que llama a la API correcta
+      }
+      // Usar el hook useReniec que llama a la API correcta
       const result = await consultarReniec(dni);
       
       if (result.success && result.data) {
@@ -534,24 +541,29 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       }
 
       // ✅ Continuar SOLO cuando éxito y no degradado
-      if (result.success && result.data && !(result as any).degraded) {        // ✅ Consultar ubigeos correctos usando códigos RENIEC
+      if (result.success && result.data && !(result as any).degraded) {
+        // ✅ Consultar ubigeos correctos usando códigos RENIEC
         let lugarNacimientoUbigeo = formData.lugarNacimiento;
         let distritoProcedenciaUbigeo = formData.distritoProcedencia;
         
         // ✅ Consultar Lugar de Nacimiento si hay código RENIEC
         let ubigeoWarnings: string[] = [];
         
-        if (result.data.ubigeoReniecNacimiento) {          const ubigeoNac = await getUbigeoByReniecCode(result.data.ubigeoReniecNacimiento);
+        if (result.data.ubigeoReniecNacimiento) {
+          const ubigeoNac = await getUbigeoByReniecCode(result.data.ubigeoReniecNacimiento);
           if (ubigeoNac) {
-            lugarNacimientoUbigeo = ubigeoNac;          } else {
+            lugarNacimientoUbigeo = ubigeoNac;
+          } else {
             ubigeoWarnings.push(`Lugar de Nacimiento (código RENIEC: ${result.data.ubigeoReniecNacimiento})`);
           }
         }
         
         // ✅ Consultar Distrito de Procedencia si hay código RENIEC
-        if (result.data.ubigeoReniecProcedencia) {          const ubigeoProc = await getUbigeoByReniecCode(result.data.ubigeoReniecProcedencia);
+        if (result.data.ubigeoReniecProcedencia) {
+          const ubigeoProc = await getUbigeoByReniecCode(result.data.ubigeoReniecProcedencia);
           if (ubigeoProc) {
-            distritoProcedenciaUbigeo = ubigeoProc;          } else {
+            distritoProcedenciaUbigeo = ubigeoProc;
+          } else {
             ubigeoWarnings.push(`Distrito de Procedencia (código RENIEC: ${result.data.ubigeoReniecProcedencia})`);
           }
         }
@@ -730,7 +742,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.nombres?.trim()) updateData.nombre = formData.nombres.trim()
       // ✅ Convertir fecha a formato LocalDateTime que acepta el backend
       if (formData.fechaNacimiento) {
-        updateData.fechaNacimiento = convertToLocalDateTime(formData.fechaNacimiento)        // ✅ Calcular edad en formato '000a00m00d' (campo obligatorio)
+        updateData.fechaNacimiento = convertToLocalDateTime(formData.fechaNacimiento)
+        // ✅ Calcular edad en formato '000a00m00d' (campo obligatorio)
         const birthDate = new Date(formData.fechaNacimiento)
         const today = new Date()
         
@@ -769,8 +782,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       }
       
       // ✅ Tipo de documento: usar el estado editable selectedDocType
-      // Este es el valor que el usuario puede cambiar en el selector
-      updateData.tipoDocumento = selectedDocType || 'D'
+      // Normalizar nombres largos a códigos cortos para el backend antiguo
+      updateData.tipoDocumento = normalizeTipoDocumento(selectedDocType)
       
       // ✅ IMPORTANTE: Enviar CÓDIGOS con PADDING, no nombres
       if (formData.distritoProcedencia?.trim()) {
@@ -861,7 +874,8 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         throw new Error(`Error al actualizar el paciente: ${errorText}`);
       }
 
-      const result = await response.json()      // Mostrar dialog de éxito
+      const result = await response.json()
+      // Mostrar dialog de éxito
       setShowSuccessDialog(true)
     } catch (error) {
       console.error('Error al actualizar paciente:', error)

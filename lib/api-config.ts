@@ -47,8 +47,8 @@ export const API_ENDPOINTS = {
     create: `${API_SPRING_URL}/emergency`,
     update: (id: string) => `${API_SPRING_URL}/emergency/${id}`,
     delete: (id: string) => `${API_SPRING_URL}/emergency/${id}`,
-    assignAccount: (id: string) => `${API_SPRING_URL}/emergency/${id}/assign-account`,
-    assignCuenta: (id: string) => `${API_SPRING_URL}/emergency/${id}/assign-account`,
+    assignAccount: (id: string, origen?: string) => `${API_SPRING_URL}/emergency/${id}/assign-account${origen ? `?origen=${origen}` : ''}`,
+    assignCuenta: (id: string, origen?: string) => `${API_SPRING_URL}/emergency/${id}/assign-account${origen ? `?origen=${origen}` : ''}`,
   },
 
   // ============================================
@@ -66,7 +66,7 @@ export const API_ENDPOINTS = {
     update: (id: string) => `${API_SPRING_URL}/hospitalization/${id}`,
     delete: (id: string) => `${API_SPRING_URL}/hospitalization/${id}`,
     logicalDelete: (id: string) => `${API_SPRING_URL}/hospitalization/${id}/baja`,
-    assignAccount: (id: string) => `${API_SPRING_URL}/hospitalization/${id}/assign-account`,
+    assignAccount: (id: string, origen?: string) => `${API_SPRING_URL}/hospitalization/${id}/assign-account${origen ? `?origen=${origen}` : ''}`,
   },
 
   // ============================================
@@ -107,13 +107,14 @@ export const API_ENDPOINTS = {
   // FILIACIÓN / PACIENTES
   // ============================================
   filiation: {
-    search: `${API_SPRING_URL}/filiation/search`,
-    searchByDocument: `${API_SPRING_URL}/filiation/search-by-documento`,
-    searchByName: `${API_SPRING_URL}/busqueda/paciente-por-nombre`,
+    searchByDocument: `${API_SPRING_URL}/historia-clinica/pacientes/busqueda-documento`,
+    searchByName: `${API_SPRING_URL}/historia-clinica/pacientes/busqueda-nombres`,
+    searchByHistoria: `${API_SPRING_URL}/historia-clinica/pacientes/busqueda-historia`,
     byId: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/${id}`,
     create: `${API_SPRING_URL}/historia-clinica/pacientes`,
     update: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/${id}`,
     updateHistoria: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/actualizar-historia/${id}`,
+    anular: (id: string) => `${API_SPRING_URL}/historia-clinica/pacientes/anular/${id}`,
   },
 
   // ============================================
