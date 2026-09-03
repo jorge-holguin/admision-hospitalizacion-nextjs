@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import loginBgImage from "@/assets/login-bg.png"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,10 +59,9 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 relative">
         <div className="absolute inset-0 bg-blue-800/50 z-10"></div>
         <img
-          src="/login-bg.png"
+          src={loginBgImage}
           alt="Hospital Building"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: 'contrast(0.92) brightness(0.95)' }}
         />
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="text-white text-center p-8 bg-blue-900/40 backdrop-blur-sm rounded-lg shadow-lg">
