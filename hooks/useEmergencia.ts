@@ -129,12 +129,12 @@ export function useEmergencia({
   };
 
   // Función para eliminar una emergencia
-  const deleteEmergencia = async (emergenciaId: string) => {
+  const deleteEmergencia = async (emergenciaId: string, argumento?: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      await emergenciaService.deleteEmergencia(emergenciaId);
+      await emergenciaService.deleteEmergencia(emergenciaId, argumento);
 
       // Recargar las emergencias para reflejar la eliminación
       await loadEmergencias();

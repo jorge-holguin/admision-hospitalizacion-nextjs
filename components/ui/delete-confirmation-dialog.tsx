@@ -19,6 +19,7 @@ interface DeleteConfirmationDialogProps {
   itemName?: string;
   isLoading?: boolean;
   detailContent?: React.ReactNode;
+  confirmDisabled?: boolean;
 }
 
 export function DeleteConfirmationDialog({
@@ -30,6 +31,7 @@ export function DeleteConfirmationDialog({
   itemName,
   isLoading = false,
   detailContent,
+  confirmDisabled = false,
 }: DeleteConfirmationDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -72,7 +74,7 @@ export function DeleteConfirmationDialog({
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
             className="w-full bg-red-600 hover:bg-red-700 text-white sm:w-auto flex items-center gap-2"
           >
             {isLoading ? (

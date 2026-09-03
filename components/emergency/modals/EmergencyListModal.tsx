@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit, Eye, Trash2, X, ChevronDown, ChevronUp } from "lucide-react"
 import { toast } from '@/components/ui/use-toast'
@@ -172,12 +174,15 @@ export function EmergencyListModal({
     emergencyId: null,
     emergencyData: null
   })
+  const [deleteArgumento, setDeleteArgumento] = useState('')
 
   // Cargar emergencias
   const fetchEmergencies = async (page = 1, pageSize = 5) => {
-    if (!patientId) return    try {
+    if (!patientId) return
+    try {
       setLoading(true)
-      const result: any = await emergenciaService.getEmergenciasByPacienteId(patientId, { page, pageSize })      // El endpoint Spring puede devolver: array plano, { data: [...] } o { content: [...] }
+      const result: any = await emergenciaService.getEmergenciasByPacienteId(patientId, { page, pageSize })
+      // El endpoint Spring puede devolver: array plano, { data: [...] } o { content: [...] }
       const rawList = extractRawList(result)
       const list = rawList.map(mapApiToEmergencyData)
       setEmergencies(list)
@@ -201,7 +206,8 @@ export function EmergencyListModal({
     }
   }
 
-  useEffect(() => {    if (isOpen && patientId) {
+  useEffect(() => {
+    if (isOpen && patientId) {
       fetchEmergencies()
     }
   }, [isOpen, patientId])
@@ -212,13 +218,24 @@ export function EmergencyListModal({
 
   const handleDelete = async (emergencyId: string) => {
     const cuentaId = deleteDialog.emergencyData?.CUENTAID?.trim()
+    const argumento = deleteArgumento.trim()
+    if (!argumento) {
+      toast({
+        title: 'Argumento requerido',
+        description: 'Debe ingresar un motivo para anular la emergencia',
+        variant: 'destructive'
+      })
+      return
+    }
     try {
-      await emergenciaService.deleteEmergencia(emergencyId)
+      await emergenciaService.deleteEmergencia(emergencyId, argumento)
 
       // Desactivar la cuenta asociada si existe
       if (cuentaId) {
         try {
-          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })        } catch (cuentaErr) {        }
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })
+        } catch (cuentaErr) {
+        }
       }
 
       toast({
@@ -235,6 +252,7 @@ export function EmergencyListModal({
       })
     } finally {
       setDeleteDialog({ isOpen: false, emergencyId: null, emergencyData: null })
+      setDeleteArgumento('')
     }
   }
 
@@ -365,11 +383,11 @@ export function EmergencyListModal({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => emergency.ESTADO === '2' ? setDeleteDialog({
+                            onClick={() => emergency.ESTADO === '2' ? (setDeleteDialog({
                               isOpen: true,
                               emergencyId: emergency.EMERGENCIA_ID,
                               emergencyData: emergency
-                            }) : undefined}
+                            }), setDeleteArgumento('')) : undefined}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:hover:text-gray-400"
                             disabled={emergency.ESTADO !== '2'}
                           >
@@ -417,43 +435,58 @@ export function EmergencyListModal({
         {/* Dialog de confirmación de eliminación */}
         <DeleteConfirmationDialog
           isOpen={deleteDialog.isOpen}
-          onClose={() => setDeleteDialog({ isOpen: false, emergencyId: null, emergencyData: null })}
+          onClose={() => { setDeleteDialog({ isOpen: false, emergencyId: null, emergencyData: null }); setDeleteArgumento('') }}
           onConfirm={() => deleteDialog.emergencyId && handleDelete(deleteDialog.emergencyId)}
           title="Anular Emergencia"
           description="Esta acción anulará el registro. La cuenta asociada también será desactivada."
+          confirmDisabled={!deleteArgumento.trim()}
           detailContent={
             deleteDialog.emergencyData && (
-              <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">ID:</span>
-                  <span className="font-bold">{deleteDialog.emergencyData.EMERGENCIA_ID}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Fecha:</span>
-                  <span className="font-medium">{formatDate(deleteDialog.emergencyData.FECHA)} {deleteDialog.emergencyData.HORA}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Consultorio:</span>
-                  <span className="font-medium">{deleteDialog.emergencyData.CONSULTORIO_DESCRIPCION || deleteDialog.emergencyData.CONSULTORIO}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Motivo:</span>
-                  <span className="font-medium">{deleteDialog.emergencyData.MOTIVO_DESCRIPCION || deleteDialog.emergencyData.MOTIVO_EMERGENCIA || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Seguro:</span>
-                  <span className="font-medium">
-                    {deleteDialog.emergencyData.SEGURO_NOMBRE
-                      ? `(${deleteDialog.emergencyData.SEGUROLIQ?.trim()}) - ${deleteDialog.emergencyData.SEGURO_NOMBRE}`
-                      : deleteDialog.emergencyData.CIEX1 || '-'}
-                  </span>
-                </div>
-                {deleteDialog.emergencyData.CUENTAID && (
+              <div className="space-y-3">
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Cuenta:</span>
-                    <span className="font-bold text-blue-700">{deleteDialog.emergencyData.CUENTAID}</span>
+                    <span className="text-gray-500">ID:</span>
+                    <span className="font-bold">{deleteDialog.emergencyData.EMERGENCIA_ID}</span>
                   </div>
-                )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Fecha:</span>
+                    <span className="font-medium">{formatDate(deleteDialog.emergencyData.FECHA)} {deleteDialog.emergencyData.HORA}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Consultorio:</span>
+                    <span className="font-medium">{deleteDialog.emergencyData.CONSULTORIO_DESCRIPCION || deleteDialog.emergencyData.CONSULTORIO}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Motivo:</span>
+                    <span className="font-medium">{deleteDialog.emergencyData.MOTIVO_DESCRIPCION || deleteDialog.emergencyData.MOTIVO_EMERGENCIA || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Seguro:</span>
+                    <span className="font-medium">
+                      {deleteDialog.emergencyData.SEGURO_NOMBRE
+                        ? `(${deleteDialog.emergencyData.SEGUROLIQ?.trim()}) - ${deleteDialog.emergencyData.SEGURO_NOMBRE}`
+                        : deleteDialog.emergencyData.CIEX1 || '-'}
+                    </span>
+                  </div>
+                  {deleteDialog.emergencyData.CUENTAID && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Cuenta:</span>
+                      <span className="font-bold text-blue-700">{deleteDialog.emergencyData.CUENTAID}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="emergency-delete-argumento" className="text-sm font-medium text-gray-700">
+                    Argumento / Motivo de anulación <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="emergency-delete-argumento"
+                    value={deleteArgumento}
+                    onChange={(e) => setDeleteArgumento(e.target.value)}
+                    placeholder="Ingrese el motivo por el que anula esta emergencia"
+                    className="min-h-[80px] resize-none"
+                  />
+                </div>
               </div>
             )
           }

@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit, Eye, Search, ChevronLeft, ChevronRight, X, Trash2, Printer, ChevronDown, FileText, ClipboardList, GraduationCap } from "lucide-react"
 import { toast } from '@/components/ui/use-toast'
@@ -81,7 +83,9 @@ export function HospitalizationListModal({
     isDeleting, 
     handleDeleteOrder, 
     confirmDeleteOrder, 
-    setDeleteDialogOpen 
+    closeDeleteDialog,
+    deleteArgumento,
+    setDeleteArgumento
   } = orderOperations
 
   // Usar el hook de órdenes de hospitalización
@@ -426,12 +430,27 @@ export function HospitalizationListModal({
         {/* Dialog de confirmación de eliminación */}
         <DeleteConfirmationDialog
           isOpen={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
+          onClose={closeDeleteDialog}
           onConfirm={confirmDeleteOrder}
           itemName={deleteItemName}
           isLoading={isDeleting}
           title="Eliminar Hospitalización"
           description="¿Estás seguro de que deseas eliminar esta hospitalización? Esta acción no se puede deshacer."
+          confirmDisabled={!deleteArgumento.trim()}
+          detailContent={
+            <div className="space-y-1.5 mt-2">
+              <Label htmlFor="hospitalization-delete-argumento" className="text-sm font-medium text-gray-700">
+                Argumento / Motivo de anulación <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="hospitalization-delete-argumento"
+                value={deleteArgumento}
+                onChange={(e) => setDeleteArgumento(e.target.value)}
+                placeholder="Ingrese el motivo por el que anula esta hospitalización"
+                className="min-h-[80px] resize-none"
+              />
+            </div>
+          }
         />
       </DialogContent>
     </Dialog>

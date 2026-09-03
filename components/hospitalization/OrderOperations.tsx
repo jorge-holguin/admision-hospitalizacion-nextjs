@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { API_ENDPOINTS, fetchApi } from '@/lib/api-config';
+import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config';
 import { extractDocumentFromToken } from '@/utils/jwtUtils';
 
 interface OrderOperationsProps {
@@ -19,6 +19,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
   const [deleteItemName, setDeleteItemName] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteCuentaId, setDeleteCuentaId] = useState<string>('');
+  const [deleteArgumento, setDeleteArgumento] = useState<string>('');
 
   // Método para iniciar el proceso de eliminación
   const handleDeleteOrder = (orderId?: string, patientName?: string, cuentaId?: string) => {
@@ -43,43 +44,53 @@ export function useOrderOperations(props?: OrderOperationsProps) {
   
   // Método para confirmar la eliminación
   const confirmDeleteOrder = async () => {
+    const argumento = deleteArgumento.trim();
+    if (!argumento) {
+      toast({
+        title: 'Argumento requerido',
+        description: 'Debe ingresar un motivo para anular la hospitalización',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       setIsDeleting(true);
-      
-      // Obtener el apellido del usuario desde el token JWT usando la utilidad
+
+      // Obtener el usuario desde el token JWT usando la utilidad
       let usuario = 'SISTEMA';
       try {
         usuario = extractDocumentFromToken();
       } catch (e) {
         console.error('Error al obtener datos de usuario del token JWT:', e);
       }
-      
+
       // Llamar a la API DELETE para eliminar lógicamente la hospitalización
-      const response = await fetch(API_ENDPOINTS.hospitalizacion.delete(deleteItemId), {
+      const url = buildUrl(API_ENDPOINTS.hospitalizacion.delete(deleteItemId), { argumento });
+      const response = await fetchApi(url, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          usuario,
-          motivo: 'Eliminado desde el listado de órdenes'
-        })
+          'usuario': usuario
+        }
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Error al eliminar: ${response.status}`);
       }
       
       const result = await response.json();
       
-      // Cerrar el diálogo
+      // Cerrar el diálogo y limpiar argumento
       setDeleteDialogOpen(false);
-      
+      setDeleteArgumento('');
+
       // Desactivar la cuenta asociada si existe
       if (deleteCuentaId) {
         try {
-          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });        } catch (cuentaErr) {        }
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });
+        } catch (cuentaErr) {
+        }
       }
 
       // Notificar éxito
@@ -104,9 +115,16 @@ export function useOrderOperations(props?: OrderOperationsProps) {
     }
   };
 
+  // Método para cancelar/cerrar el diálogo de eliminación
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeleteArgumento('');
+  };
+
   // OBSOLETO: Ahora se usa el sistema de modales
   // Método para editar una orden existente
-  const handleEditOrder = (orderId: string, patientId: string) => {    toast({
+  const handleEditOrder = (orderId: string, patientId: string) => {
+    toast({
       title: 'Función obsoleta',
       description: 'Por favor usa el botón de Hospitalización en la tabla de pacientes',
       variant: 'default'
@@ -115,7 +133,8 @@ export function useOrderOperations(props?: OrderOperationsProps) {
 
   // OBSOLETO: Ahora se usa el sistema de modales
   // Método para crear una nueva orden
-  const handleNewOrder = (patientId: string, getPacienteData?: () => Promise<any>) => {    toast({
+  const handleNewOrder = (patientId: string, getPacienteData?: () => Promise<any>) => {
+    toast({
       title: 'Función obsoleta',
       description: 'Por favor usa el botón de Hospitalización en la tabla de pacientes',
       variant: 'default'
@@ -134,6 +153,11 @@ export function useOrderOperations(props?: OrderOperationsProps) {
     confirmDeleteOrder,
     handleEditOrder,
     handleNewOrder,
-    setDeleteDialogOpen
+    setDeleteDialogOpen,
+    closeDeleteDialog,
+
+    // Argumento
+    deleteArgumento,
+    setDeleteArgumento
   };
 }

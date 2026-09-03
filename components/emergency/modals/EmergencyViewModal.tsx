@@ -197,14 +197,14 @@ export function EmergencyViewModal({
   const handleDelete = async () => {
     if (!emergencyData?.EMERGENCIA_ID) return
 
-    const confirmed = window.confirm(
-      `¿Está seguro de eliminar lógicamente la emergencia ${emergencyData.EMERGENCIA_ID}?`
+    const argumento = window.prompt(
+      `Ingrese el motivo de anulación para la emergencia ${emergencyData.EMERGENCIA_ID}:`
     )
-    if (!confirmed) return
+    if (!argumento || argumento.trim() === '') return
 
     try {
       setLoading(true)
-      await emergenciaService.deleteEmergencia(emergencyData.EMERGENCIA_ID)
+      await emergenciaService.deleteEmergencia(emergencyData.EMERGENCIA_ID, argumento.trim())
       toast({
         title: 'Emergencia eliminada',
         description: 'La emergencia fue anulada correctamente'
