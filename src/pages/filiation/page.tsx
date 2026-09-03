@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit, Trash2, Eye } from "lucide-react"
+import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit, Trash2, Eye, Ban } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -500,6 +500,12 @@ export default function FiliationPage() {
     }
   }
 
+  // Helper para determinar si un registro está anulado
+  const isAnuladaRecord = (patient: any) => {
+    const estado = patient.estado ?? patient.ESTADO
+    return String(estado).trim() === "0" || estado === false || estado === 0
+  }
+
   // Definición de columnas para la DataTable
   const columns = [
     {
@@ -515,7 +521,8 @@ export default function FiliationPage() {
         const isActive = estado === undefined || estado === null || estado === true || estado === 1 || String(estado).trim() === '1'
         const isInactive = estado === false || estado === 0 || String(estado).trim() === '0'
         return (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-800' : isInactive ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-100 text-green-800 ring-1 ring-green-300' : isInactive ? 'bg-red-100 text-red-800 ring-1 ring-red-300' : 'bg-gray-100 text-gray-800 ring-1 ring-gray-300'}`}>
+            {isActive ? <CheckCircle className="w-3.5 h-3.5" /> : isInactive ? <Ban className="w-3.5 h-3.5" /> : <span className="w-3.5 h-3.5 rounded-full bg-current" />}
             {isActive ? 'Activa' : isInactive ? 'Anulada' : 'Desconocido'}
           </span>
         )
@@ -614,68 +621,73 @@ export default function FiliationPage() {
     {
       key: "actions",
       header: "Acciones",
-      cell: (patient: any) => (
-        <div className="flex items-center space-x-2">
-          {!isClinicalHistory && canCrearHosp && (
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="bg-blue-500 hover:bg-blue-600 text-white" 
-              onClick={() => handlePatientSelect(patient)}
-            >
-              <Home className="mr-1 h-4 w-4" /> Hospitalizar
-            </Button>
-          )}
-          {!isClinicalHistory && canCrearEmer && (
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="bg-red-500 hover:bg-red-600 text-white" 
-              onClick={() => handleEmergencySelect(patient)}
-            >
-              <Siren className="mr-1 h-4 w-4" /> Emergencia
-            </Button>
-          )}
-          {!isClinicalHistory && canVerificarSIS && (
-            <SISVerification 
-              patientId={getPatientId(patient)}
-              documento={getPatientDocument(patient)}
-              buttonSize="sm"
-              onVerificationComplete={handleSISVerificationComplete}
-            />
-          )}
-          
-          {/* Menú desplegable para acciones secundarias */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {canVerPaciente && (
-                <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  Ver Registro
-                </DropdownMenuItem>
-              )}
-              {canEditarPaciente && (
-                <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem 
-                onClick={() => handleDeletePatient(patient)}
-                className="text-red-600"
+      cell: (patient: any) => {
+        const isAnulada = isAnuladaRecord(patient)
+        return (
+          <div className="flex items-center space-x-2">
+            {!isClinicalHistory && !isAnulada && canCrearHosp && (
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+                onClick={() => handlePatientSelect(patient)}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Anular
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ),
+                <Home className="mr-1 h-4 w-4" /> Hospitalizar
+              </Button>
+            )}
+            {!isClinicalHistory && !isAnulada && canCrearEmer && (
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => handleEmergencySelect(patient)}
+              >
+                <Siren className="mr-1 h-4 w-4" /> Emergencia
+              </Button>
+            )}
+            {!isClinicalHistory && !isAnulada && canVerificarSIS && (
+              <SISVerification
+                patientId={getPatientId(patient)}
+                documento={getPatientDocument(patient)}
+                buttonSize="sm"
+                onVerificationComplete={handleSISVerificationComplete}
+              />
+            )}
+
+            {/* Menú desplegable para acciones secundarias */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {canVerPaciente && (
+                  <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Ver Historia
+                  </DropdownMenuItem>
+                )}
+                {canEditarPaciente && !isAnulada && (
+                  <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
+                {!isAnulada && (
+                  <DropdownMenuItem
+                    onClick={() => handleDeletePatient(patient)}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Anular
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )
+      },
     },
   ]
 
@@ -722,7 +734,9 @@ export default function FiliationPage() {
                     }
                   }}
                   disabled={isLoading}
-                  className="bg-slate-100 rounded-xl p-1.5 border border-slate-200 shadow-sm"
+                  className={`rounded-xl p-1.5 border shadow-sm transition-colors duration-200 ${
+                    estadoFiltro === "1" ? "bg-green-100/70 border-green-200" : "bg-red-100/70 border-red-200"
+                  }`}
                 >
                   <ToggleGroupItem
                     value="1"
@@ -953,6 +967,11 @@ export default function FiliationPage() {
                   onPageChange={handlePageChange}
                   onPageSizeChange={handlePageSizeChange}
                   isLoading={isLoading}
+                  getRowClassName={(patient: any) =>
+                    isAnuladaRecord(patient)
+                      ? "bg-red-50/70 border-l-4 border-l-red-500 hover:bg-red-100/70"
+                      : ""
+                  }
                 />
               </>
             )}

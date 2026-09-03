@@ -41,7 +41,7 @@ COPY --from=builder /app/dist ./
 # Configuracion de Nginx para SPA (rutas fallback a index.html)
 RUN printf '%s\n' \
     'server {' \
-    '    listen 80;' \
+    '    listen 3000;' \
     '    server_name localhost;' \
     '    root /usr/share/nginx/html;' \
     '    index index.html;' \
@@ -58,7 +58,7 @@ RUN printf '%s\n' \
     > /etc/nginx/conf.d/default.conf
 
 # Exponer puerto
-EXPOSE 80
+EXPOSE 3000
 
 # Iniciar Nginx en primer plano
 CMD ["nginx", "-g", "daemon off;"]

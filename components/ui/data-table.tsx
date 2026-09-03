@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<T> {
   data: T[]
@@ -42,6 +43,7 @@ interface DataTableProps<T> {
   onPageChange: (page: number) => void
   onPageSizeChange: (pageSize: number) => void
   isLoading?: boolean
+  getRowClassName?: (item: T, index: number) => string
 }
 
 export function DataTable<T>({
@@ -51,6 +53,7 @@ export function DataTable<T>({
   onPageChange,
   onPageSizeChange,
   isLoading = false,
+  getRowClassName,
 }: DataTableProps<T>) {
   const { page, pageSize, total, totalPages } = pagination
 
@@ -139,7 +142,13 @@ export function DataTable<T>({
                 </TableRow>
               ) : (
                 data.map((item, index) => (
-                  <TableRow key={index} className="border-b">
+                  <TableRow
+                    key={index}
+                    className={cn(
+                      "border-b",
+                      getRowClassName ? getRowClassName(item, index) : ""
+                    )}
+                  >
                     {columns.map((column) => (
                       <TableCell key={`${index}-${column.key}`} className="font-medium text-gray-800">
                         {column.cell
