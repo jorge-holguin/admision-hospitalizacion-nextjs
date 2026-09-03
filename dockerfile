@@ -8,8 +8,9 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copiar archivos de dependencias y variables de entorno
 COPY package.json package-lock.json* ./
+COPY .env .env.production* ./
 
 # Instalar dependencias
 RUN npm ci --legacy-peer-deps
@@ -26,26 +27,7 @@ COPY . .
 # Variables de entorno para build de Vite
 ENV NODE_ENV=production
 
-# Vite inyecta estas variables en build time
-ARG VITE_AUTH_API_URL
-ARG VITE_API_BACKEND_URL
-ARG VITE_API_CIEX_URL
-ARG VITE_API_CITAS_MASTER_URL
-ARG VITE_API_RESERVAS_URL
-ARG VITE_API_REFCON_URL
-ARG VITE_API_SPRING_URL
-ARG VITE_API_FHIR_URL
-
-ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
-ENV VITE_API_BACKEND_URL=$VITE_API_BACKEND_URL
-ENV VITE_API_CIEX_URL=$VITE_API_CIEX_URL
-ENV VITE_API_CITAS_MASTER_URL=$VITE_API_CITAS_MASTER_URL
-ENV VITE_API_RESERVAS_URL=$VITE_API_RESERVAS_URL
-ENV VITE_API_REFCON_URL=$VITE_API_REFCON_URL
-ENV VITE_API_SPRING_URL=$VITE_API_SPRING_URL
-ENV VITE_API_FHIR_URL=$VITE_API_FHIR_URL
-
-# Build de la aplicacion
+# Build de la aplicacion (Vite lee .env y .env.production si existe)
 RUN npm run build
 
 # ---- Etapa 3: Runner (Produccion con Nginx) ----

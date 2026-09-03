@@ -25,12 +25,12 @@ logs
 .cache
 .turbo
 
-# Variables de entorno (no copiar al contenedor)
-.env
+# Variables de entorno locales que no deben copiarse
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+# .env se copia porque Vite lo usa en build time
 
 # Git
 .git
