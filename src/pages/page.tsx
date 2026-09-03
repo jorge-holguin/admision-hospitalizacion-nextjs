@@ -63,7 +63,11 @@ export default function LoginPage() {
       {/* Left side - Hospital Image */}
       <div className="hidden md:flex md:w-1/2 relative">
         <div className="absolute inset-0 bg-blue-800/50 z-10"></div>
-        <Image src="/login-bg.png" alt="Hospital Building" fill priority className="object-cover" />
+        <img
+          src="/login-bg.png"
+          alt="Hospital Building"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="text-white text-center p-8 bg-blue-900/40 backdrop-blur-sm rounded-lg shadow-lg">
             <h1 className="text-4xl font-bold mb-4 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">HOSPITAL</h1>
