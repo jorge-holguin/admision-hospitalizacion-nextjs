@@ -59,20 +59,14 @@ class HospitalizaService {
    * Obtiene el siguiente ID de hospitalización
    */
   async getNextHospitalizacionId(): Promise<string> {
-    try {
-      console.log('🔢 Obteniendo siguiente ID de hospitalización...');
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.nextId);
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.nextId);
       
       if (!response.ok) {
         console.error('❌ Error al obtener siguiente ID:', response.status);
         return '2500000001';
       }
       
-      const data = await response.json();
-      console.log('✅ Siguiente ID obtenido:', data.nextId || data);
-      
-      return data.nextId || data.toString();
+      const data = await response.json();      return data.nextId || data.toString();
     } catch (error) {
       console.error('❌ Error al obtener el siguiente ID de hospitalización:', error);
       return '2500000001';
@@ -83,10 +77,7 @@ class HospitalizaService {
    * Crea un nuevo registro de hospitalización
    */
   async create(data: HospitalizaData): Promise<HospitalizacionResponse | null> {
-    try {
-      console.log('🏥 Creando nueva hospitalización:', data);
-      
-      // Si no se proporciona un IDHOSPITALIZACION, obtener uno nuevo
+    try {      // Si no se proporciona un IDHOSPITALIZACION, obtener uno nuevo
       if (!data.IDHOSPITALIZACION) {
         data.IDHOSPITALIZACION = await this.getNextHospitalizacionId();
       }
@@ -107,11 +98,7 @@ class HospitalizaService {
         ...data,
         FECHA1: fecha1,
         USUARIO_IMP: data.USUARIO_IMP || data.USUARIO,
-      };
-      
-      console.log('📤 Payload de hospitalización:', payload);
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.create, {
+      };      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.create, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -132,10 +119,7 @@ class HospitalizaService {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();
-      console.log('✅ Hospitalización creada:', result);
-      
-      return result;
+      const result = await response.json();      return result;
     } catch (error: any) {
       console.error('❌ Error al crear hospitalización:', error);
       throw error;
@@ -146,24 +130,16 @@ class HospitalizaService {
    * Obtiene un registro de hospitalización por su ID
    */
   async findById(id: string): Promise<HospitalizacionResponse | null> {
-    try {
-      console.log(`🔍 Buscando hospitalización con ID: ${id}`);
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.byId(id));
       
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.byId(id));
-      
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró hospitalización con ID ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const hospitalizacion = await response.json();
-      console.log('✅ Hospitalización encontrada:', hospitalizacion);
-      
-      return hospitalizacion;
+      const hospitalizacion = await response.json();      return hospitalizacion;
     } catch (error) {
       console.error('❌ Error al buscar hospitalización:', error);
       throw error;
@@ -174,19 +150,13 @@ class HospitalizaService {
    * Obtiene todos los registros de hospitalización
    */
   async findAll(): Promise<HospitalizacionResponse[]> {
-    try {
-      console.log('📋 Obteniendo todas las hospitalizaciones');
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.list);
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.list);
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const resultados = await response.json();
-      console.log(`✅ Hospitalizaciones encontradas: ${Array.isArray(resultados) ? resultados.length : 0}`);
-      
-      return Array.isArray(resultados) ? resultados : resultados.data || [];
+      const resultados = await response.json();      return Array.isArray(resultados) ? resultados : resultados.data || [];
     } catch (error) {
       console.error('❌ Error al obtener hospitalizaciones:', error);
       throw error;
@@ -210,20 +180,14 @@ class HospitalizaService {
    * Elimina un registro de hospitalización por su ID (eliminación física)
    */
   async deleteById(id: string): Promise<{ success: boolean; message: string }> {
-    try {
-      console.log(`🗑️ Eliminando hospitalización con ID: ${id}`);
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.delete(id), {
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.delete(id), {
         method: 'DELETE',
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ Hospitalización ${id} eliminada`);
-      return { success: true, message: `Hospitalización ${id} eliminada correctamente` };
+      }      return { success: true, message: `Hospitalización ${id} eliminada correctamente` };
     } catch (error: any) {
       console.error(`❌ Error al eliminar hospitalización ${id}:`, error);
       throw error;
@@ -244,10 +208,7 @@ class HospitalizaService {
     deletedHospitalizacion?: number;
     cuentaUpdateResult?: { success: boolean; message: string };
   }> {
-    try {
-      console.log(`🔴 Realizando eliminación lógica de hospitalización con ID: ${id}`);
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.logicalDelete(id), {
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.logicalDelete(id), {
         method: 'PUT',
         body: JSON.stringify({
           usuarioBaja,
@@ -260,10 +221,7 @@ class HospitalizaService {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();
-      console.log(`✅ Eliminación lógica completada:`, result);
-      
-      return {
+      const result = await response.json();      return {
         success: true,
         message: result.message || `Hospitalización ${id} marcada como eliminada correctamente`,
         deletedHospitalizacion: result.deletedHospitalizacion || 1,

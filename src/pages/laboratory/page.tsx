@@ -85,11 +85,7 @@ export default function LaboratoryPage() {
         params.append("nombre", searchCriteria.trim())
       }
       
-      const url = `${LAB_API_BASE_URL}/agenda?${params.toString()}`
-      
-      console.log("Buscando con filtros:", url)
-      
-      const response = await fetch(url, {
+      const url = `${LAB_API_BASE_URL}/agenda?${params.toString()}`      const response = await fetch(url, {
         method: "GET",
         headers: {
           "Accept": "*/*"
@@ -103,11 +99,7 @@ export default function LaboratoryPage() {
       const result = await response.json()
       
       // Manejar respuesta con estructura { statusCode, success, message, data: [...] }
-      const dataArray = result.data || (Array.isArray(result) ? result : [])
-      
-      console.log("Datos recibidos:", dataArray)
-      
-      // Adaptar los datos al nuevo formato de la tabla
+      const dataArray = result.data || (Array.isArray(result) ? result : [])      // Adaptar los datos al nuevo formato de la tabla
       const adaptedData = Array.isArray(dataArray) ? dataArray.map((item: any) => ({
         idCita: item.idCita || item.ID_CITA || "",
         idPaciente: item.idPaciente || item.paciente || "",
@@ -122,13 +114,7 @@ export default function LaboratoryPage() {
       // Filtrar por estado si es necesario
       const filteredData = estado !== "all" 
         ? adaptedData.filter((item: LaboratoryCita) => item.estado === estado)
-        : adaptedData
-      
-      console.log("Datos filtrados por estado:", filteredData)
-      console.log("Estado seleccionado:", estado)
-      console.log("Estados en datos:", adaptedData.map(d => `'${d.estado}'`))
-      
-      setData(filteredData)
+        : adaptedData      setData(filteredData)
       
       if (filteredData.length === 0) {
         toast({

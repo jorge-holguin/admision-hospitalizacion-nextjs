@@ -163,9 +163,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         
         // CASO ESPECIAL: Si el origen es EM (Emergencia) y el seguro es 06 (ESSALUD),
         // redirigir automáticamente a 0 (PAGANTE)
-        if (origen.ORIGEN === 'EM' && seguroCode === '06') {
-          console.log('Origen EM detectado con seguro 06 (ESSALUD), redirigiendo a 0 (PAGANTE)');
-          seguroCode = '0';
+        if (origen.ORIGEN === 'EM' && seguroCode === '06') {          seguroCode = '0';
         }
         
         if (seguroCode) {

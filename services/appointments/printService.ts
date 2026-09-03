@@ -72,10 +72,7 @@ export async function imprimirCita(citaDto: CitaDto): Promise<void> {
     if (!response.ok) {
       const errorText = await response.text()
       throw new Error(`Error al imprimir: ${response.status} - ${errorText}`)
-    }
-
-    console.log('✅ Impresión enviada correctamente')
-  } catch (error) {
+    }  } catch (error) {
     console.error('❌ Error al enviar impresión:', error)
     throw error
   }

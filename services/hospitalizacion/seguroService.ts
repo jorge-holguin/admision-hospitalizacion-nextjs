@@ -20,10 +20,7 @@ export interface Seguro {
  */
 export class SeguroService {
   async findAll(): Promise<Seguro[]> {
-    try {
-      console.log('🔍 SeguroService: Obteniendo seguros desde Spring Boot');
-      
-      const response = await fetch(API_ENDPOINTS.utils.insurances, {
+    try {      const response = await fetch(API_ENDPOINTS.utils.insurances, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -35,11 +32,7 @@ export class SeguroService {
       }
 
       const raw = await response.json();
-      const data = Array.isArray(raw) ? raw : (raw.data || []);
-      
-      console.log(`✅ SeguroService: ${data.length} seguros obtenidos`);
-      
-      // Normalizar campos (soporta uppercase y lowercase)
+      const data = Array.isArray(raw) ? raw : (raw.data || []);      // Normalizar campos (soporta uppercase y lowercase)
       const seguros = data.map((item: any) => ({
         seguro: String(item.seguro || item.Seguro || item.SEGURO || ''),
         nombre: String(item.nombre || item.Nombre || item.NOMBRE || ''),
@@ -64,19 +57,11 @@ export class SeguroService {
   }
 
   async findByCode(code: string): Promise<Seguro | null> {
-    try {
-      console.log(`🔍 SeguroService: Buscando seguro con código: ${code}`);
-      
-      const seguros = await this.findAll();
+    try {      const seguros = await this.findAll();
       const seguro = seguros.find(s => s.seguro.trim() === code.trim());
       
-      if (!seguro) {
-        console.log(`⚠️ No se encontró seguro con código: ${code}`);
-        return null;
-      }
-      
-      console.log(`✅ Seguro encontrado: ${seguro.nombre}`);
-      return seguro;
+      if (!seguro) {        return null;
+      }      return seguro;
     } catch (error) {
       console.error(`❌ Error al buscar seguro con código ${code}:`, error);
       throw new Error(`Error al buscar seguro con código ${code}: ${error}`);

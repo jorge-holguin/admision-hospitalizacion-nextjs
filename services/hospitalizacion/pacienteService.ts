@@ -57,10 +57,7 @@ export const pacienteService = {
     filter: PacienteFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
   ): Promise<PaginatedResponse<Paciente>> {
-    try {
-      console.log('🔍 Buscando pacientes con parámetros:', { page, pageSize, filter });
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
@@ -93,20 +90,14 @@ export const pacienteService = {
         return { data: list, pagination: { total: list.length, page, pageSize, totalPages: Math.ceil(list.length / pageSize) } };
       }
 
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
-      console.log('🏥 Consultando pacientes:', url);
-      
-      const response = await fetchApi(url);
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);      const response = await fetchApi(url);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes`);
-      
-      return {
+      const data = await response.json();      return {
         data: data.data || [],
         pagination: data.pagination || {
           total: data.data?.length || 0,
@@ -125,25 +116,17 @@ export const pacienteService = {
    * Obtener un paciente por su ID
    */
   async getPacienteById(id: string): Promise<Paciente | null> {
-    try {
-      console.log(`🔍 Buscando paciente con ID: ${id}`);
-      
-      const url = API_ENDPOINTS.filiation.byId(id);
+    try {      const url = API_ENDPOINTS.filiation.byId(id);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ Paciente no encontrado: ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const paciente = await response.json();
-      console.log('✅ Paciente encontrado:', paciente.NOMBRES || paciente.nombres);
-      
-      return paciente;
+      const paciente = await response.json();      return paciente;
     } catch (error) {
       console.error(`❌ Error en getPacienteById(${id}):`, error);
       throw error;
@@ -154,10 +137,7 @@ export const pacienteService = {
    * Buscar pacientes por historia clínica
    */
   async searchByHistoria(historia: string): Promise<Paciente[]> {
-    try {
-      console.log(`🔍 Buscando pacientes por historia: ${historia}`);
-      
-      const params = { historia, pageSize: '10' };
+    try {      const params = { historia, pageSize: '10' };
       const url = buildUrl(API_ENDPOINTS.filiation.search, params);
       
       const response = await fetchApi(url);
@@ -166,10 +146,7 @@ export const pacienteService = {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Encontrados ${data.data?.length || 0} pacientes por historia`);
-      
-      return data.data || [];
+      const data = await response.json();      return data.data || [];
     } catch (error) {
       console.error(`❌ Error en searchByHistoria(${historia}):`, error);
       throw error;
@@ -180,10 +157,7 @@ export const pacienteService = {
    * Buscar pacientes por documento (DNI)
    */
   async searchByDocumento(documento: string, tipoDocumento: string = 'D'): Promise<Paciente[]> {
-    try {
-      console.log(`🔍 Buscando pacientes por documento: ${documento}`);
-      
-      const params = new URLSearchParams({ tipoDocumento, documento });
+    try {      const params = new URLSearchParams({ tipoDocumento, documento });
       const url = `${API_ENDPOINTS.filiation.searchByDocument}?${params}`;
       
       const response = await fetchApi(url);
@@ -196,9 +170,7 @@ export const pacienteService = {
       const list: Paciente[] = Array.isArray(data) ? data
         : Array.isArray(data?.data) ? data.data
         : (data && !data.error && (data.PACIENTE || data.paciente)) ? [data]
-        : [];
-      console.log(`✅ Encontrados ${list.length} pacientes por documento`);
-      return list;
+        : [];      return list;
     } catch (error) {
       console.error(`❌ Error en searchByDocumento(${documento}):`, error);
       throw error;
@@ -209,10 +181,7 @@ export const pacienteService = {
    * Buscar pacientes por nombre o apellidos
    */
   async searchByName(name: string): Promise<Paciente[]> {
-    try {
-      console.log(`🔍 Buscando pacientes por nombre: ${name}`);
-      
-      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
+    try {      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
       
       const response = await fetchApi(url);
       
@@ -225,9 +194,7 @@ export const pacienteService = {
         : Array.isArray(data?.data) ? data.data
         : Array.isArray(data?.pacientes) ? data.pacientes
         : Array.isArray(data?.content) ? data.content
-        : [];
-      console.log(`✅ Encontrados ${list.length} pacientes por nombre`);
-      return list;
+        : [];      return list;
     } catch (error) {
       console.error(`❌ Error en searchByName(${name}):`, error);
       throw error;
@@ -238,10 +205,7 @@ export const pacienteService = {
    * Contar pacientes con filtros opcionales
    */
   async countPacientes(filter: PacienteFilter = {}): Promise<{ success: boolean; data?: { total: number }; message?: string }> {
-    try {
-      console.log('📊 Contando pacientes con filtros:', filter);
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: '1',
         pageSize: '1',
       };
@@ -258,11 +222,7 @@ export const pacienteService = {
       }
       
       const data = await response.json();
-      const total = data.pagination?.total || 0;
-      
-      console.log(`✅ Total de pacientes: ${total}`);
-      
-      return {
+      const total = data.pagination?.total || 0;      return {
         success: true,
         data: { total }
       };

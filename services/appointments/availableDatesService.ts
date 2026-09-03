@@ -36,20 +36,14 @@ export const availableDatesService = {
       let url = `${baseUrl}/cita/citas-por-medico-consultorio?desde=${desde}&hasta=${hasta}&consultorioId=${consultorioId}`;
       if (turnoConsulta) {
         url += `&turnoConsulta=${turnoConsulta}`;
-      }
-      
-      console.log('🔍 availableDatesService: Consultando fechas disponibles:', url);
-      const response = await fetch(url);
+      }      const response = await fetch(url);
       
       if (!response.ok) {
         console.error('❌ Error al obtener fechas disponibles:', response.status, response.statusText);
         return [];
       }
       
-      const data = await response.json();
-      console.log('✅ availableDatesService: Respuesta recibida:', data);
-      
-      // La respuesta puede ser un array o un objeto con content
+      const data = await response.json();      // La respuesta puede ser un array o un objeto con content
       const list = Array.isArray(data) ? data : 
                    Array.isArray(data?.content) ? data.content : [];
       

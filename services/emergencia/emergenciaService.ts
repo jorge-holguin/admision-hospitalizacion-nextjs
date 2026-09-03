@@ -164,19 +164,13 @@ export async function getEmergencias(
     if (filters.consultorio) params.consultorio = filters.consultorio;
     if (filters.medico) params.medico = filters.medico;
     
-    const url = buildUrl(API_ENDPOINTS.emergencia.list, params);
-    console.log('🏥 Consultando emergencias:', url);
-    
-    const response = await fetchApi(url);
+    const url = buildUrl(API_ENDPOINTS.emergencia.list, params);    const response = await fetchApi(url);
     
     if (!response.ok) {
       throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('✅ Emergencias obtenidas:', data);
-    
-    return data;
+    const data = await response.json();    return data;
   } catch (error) {
     console.error('❌ Error obteniendo emergencias:', error);
     throw error;
@@ -204,10 +198,7 @@ export async function getEmergenciasByMonth(
     
     if (search) params.search = search;
     
-    const url = buildUrl(API_ENDPOINTS.emergencia.byMonth, params);
-    console.log('🏥 Consultando emergencias por mes:', url);
-    
-    const response = await fetchApi(url);
+    const url = buildUrl(API_ENDPOINTS.emergencia.byMonth, params);    const response = await fetchApi(url);
     
     if (!response.ok) {
       throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -254,10 +245,7 @@ export async function getEmergenciaById(id: string): Promise<EmergenciaData | nu
       return null;
     }
     
-    const url = buildUrl(API_ENDPOINTS.emergencia.byId(id));
-    console.log('🏥 Consultando emergencia por ID:', url);
-    
-    const response = await fetchApi(url);
+    const url = buildUrl(API_ENDPOINTS.emergencia.byId(id));    const response = await fetchApi(url);
     
     if (response.status === 404) {
       console.warn('⚠️ Emergencia no encontrada:', id);
@@ -268,17 +256,12 @@ export async function getEmergenciaById(id: string): Promise<EmergenciaData | nu
       throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('✅ Emergencia obtenida:', data);
-
-    // Spring Boot /emergency/{id} a veces devuelve campos del paciente en null.
+    const data = await response.json();    // Spring Boot /emergency/{id} a veces devuelve campos del paciente en null.
     // Si eso ocurre, los enriquecemos desde la API de filiación y del campo NOMBRES.
     const pacienteId = data?.paciente ?? data?.PACIENTE;
     if (pacienteId && (isBlank(data.nombre) || isBlank(data.paterno) || isBlank(data.materno) || isBlank(data.documento))) {
       try {
-        const pUrl = buildUrl(API_ENDPOINTS.filiation.byId(String(pacienteId)));
-        console.log('🔍 Enriqueciendo emergencia con datos de filiación:', pUrl);
-        const pResp = await fetchApi(pUrl);
+        const pUrl = buildUrl(API_ENDPOINTS.filiation.byId(String(pacienteId)));        const pResp = await fetchApi(pUrl);
         if (pResp.ok) {
           const pJson = await pResp.json();
           const p = pJson?.data ?? pJson;
@@ -293,9 +276,7 @@ export async function getEmergenciaById(id: string): Promise<EmergenciaData | nu
           data.sexo            = data.sexo            ?? p?.sexo            ?? p?.SEXO            ?? null;
           data.direccion       = data.direccion       ?? p?.direccion       ?? p?.DIRECCION       ?? null;
           data.telefono1       = data.telefono1       ?? p?.telefono1       ?? p?.TELEFONO1       ?? null;
-          data.estadoCivil     = data.estadoCivil     ?? getCivilStatusCode(p?.estadoCivil     ?? p?.ESTADO_CIVIL    ?? p?.ESTADOCIVIL, p?.NOMBRE_ESTADO_CIVIL ?? p?.nombreEstadoCivil) ?? null;
-          console.log('✅ Datos del paciente enriquecidos desde filiación');
-        }
+          data.estadoCivil     = data.estadoCivil     ?? getCivilStatusCode(p?.estadoCivil     ?? p?.ESTADO_CIVIL    ?? p?.ESTADOCIVIL, p?.NOMBRE_ESTADO_CIVIL ?? p?.nombreEstadoCivil) ?? null;        }
       } catch (enrichErr) {
         console.warn('⚠️ No se pudieron enriquecer datos del paciente en emergencia:', enrichErr);
       }
@@ -309,9 +290,7 @@ export async function getEmergenciaById(id: string): Promise<EmergenciaData | nu
         data.paterno = data.paterno ?? parsed.paterno;
         data.materno = data.materno ?? parsed.materno;
         data.nombre  = data.nombre  ?? parsed.nombre;
-        data.nombres = data.nombres ?? `${parsed.paterno} ${parsed.materno} ${parsed.nombre}`;
-        console.log('✅ Nombres parseados desde el campo NOMBRES:', parsed);
-      }
+        data.nombres = data.nombres ?? `${parsed.paterno} ${parsed.materno} ${parsed.nombre}`;      }
     }
 
     return data;
@@ -336,10 +315,7 @@ export async function getEmergenciasByPacienteId(
       pageSize: pageSize.toString(),
     };
     
-    const url = buildUrl(API_ENDPOINTS.emergencia.byPaciente(pacienteId), params);
-    console.log('🏥 Consultando emergencias por paciente:', url);
-    
-    const response = await fetchApi(url);
+    const url = buildUrl(API_ENDPOINTS.emergencia.byPaciente(pacienteId), params);    const response = await fetchApi(url);
     
     if (!response.ok) {
       throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -361,10 +337,7 @@ export async function checkEmergenciaActiva(pacienteId: string): Promise<{
   emergencia?: EmergenciaData;
 }> {
   try {
-    const url = buildUrl(API_ENDPOINTS.emergencia.checkActiva(pacienteId));
-    console.log('🏥 Verificando emergencia activa:', url);
-    
-    const response = await fetchApi(url);
+    const url = buildUrl(API_ENDPOINTS.emergencia.checkActiva(pacienteId));    const response = await fetchApi(url);
     
     if (!response.ok) {
       throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -385,11 +358,7 @@ export async function createEmergencia(
   emergenciaData: EmergenciaCreateData
 ): Promise<EmergenciaData> {
   try {
-    const url = API_ENDPOINTS.emergencia.create;
-    console.log('🏥 Creando emergencia:', url);
-    console.log('📋 Datos:', emergenciaData);
-    
-    const response = await fetchApi(url, {
+    const url = API_ENDPOINTS.emergencia.create;    const response = await fetchApi(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -402,10 +371,7 @@ export async function createEmergencia(
       throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('✅ Emergencia creada:', data);
-    
-    return data;
+    const data = await response.json();    return data;
   } catch (error) {
     console.error('❌ Error creando emergencia:', error);
     throw error;
@@ -420,11 +386,7 @@ export async function updateEmergencia(
   updateData: EmergenciaUpdateData
 ): Promise<EmergenciaData> {
   try {
-    const url = API_ENDPOINTS.emergencia.update(id);
-    console.log('🏥 Actualizando emergencia:', url);
-    console.log('📋 Datos:', updateData);
-    
-    const response = await fetchApi(url, {
+    const url = API_ENDPOINTS.emergencia.update(id);    const response = await fetchApi(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -437,10 +399,7 @@ export async function updateEmergencia(
       throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('✅ Emergencia actualizada:', data);
-    
-    return data;
+    const data = await response.json();    return data;
   } catch (error) {
     console.error('❌ Error actualizando emergencia:', error);
     throw error;
@@ -452,20 +411,14 @@ export async function updateEmergencia(
  */
 export async function deleteEmergencia(id: string): Promise<boolean> {
   try {
-    const url = API_ENDPOINTS.emergencia.delete(id);
-    console.log('🏥 Eliminando emergencia:', url);
-    
-    const response = await fetchApi(url, {
+    const url = API_ENDPOINTS.emergencia.delete(id);    const response = await fetchApi(url, {
       method: 'DELETE',
     });
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
-    }
-    
-    console.log('✅ Emergencia eliminada');
-    return true;
+    }    return true;
   } catch (error) {
     console.error('❌ Error eliminando emergencia:', error);
     throw error;
@@ -485,11 +438,7 @@ export async function assignCuentaToEmergencia(
   }
 ): Promise<{ success: boolean; cuentaId?: string; error?: string }> {
   try {
-    const url = API_ENDPOINTS.emergencia.assignCuenta(emergenciaId);
-    console.log('🏥 Asignando cuenta a emergencia:', url);
-    console.log('📋 Datos:', cuentaData);
-    
-    const response = await fetchApi(url, {
+    const url = API_ENDPOINTS.emergencia.assignCuenta(emergenciaId);    const response = await fetchApi(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -505,10 +454,7 @@ export async function assignCuentaToEmergencia(
       };
     }
     
-    const data = await response.json();
-    console.log('✅ Cuenta asignada:', data);
-    
-    return {
+    const data = await response.json();    return {
       success: true,
       cuentaId: data.cuentaId,
     };
@@ -531,10 +477,7 @@ export async function getCuentaActivaByPaciente(
   try {
     const seguroNormalizado = normalizarSeguroCuenta(seguro);
     const params = { estado: '1', origen: 'EM', seguro: seguroNormalizado };
-    const url = buildUrl(API_ENDPOINTS.cuentas.byPacienteAndSeguro(pacienteId), params);
-    console.log(`🏥 Consultando cuenta activa: paciente=${pacienteId}, seguro recibido='${seguro}' → normalizado='${seguroNormalizado}', url=${url}`);
-    
-    const response = await fetchApi(url);
+    const url = buildUrl(API_ENDPOINTS.cuentas.byPacienteAndSeguro(pacienteId), params);    const response = await fetchApi(url);
     
     if (response.status === 404) {
       return { cuentaId: null, fua: null };

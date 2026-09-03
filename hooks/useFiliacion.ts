@@ -217,10 +217,7 @@ export function useFiliacion() {
         if (countFilter.nombres && countFilter.nombres.trim() !== '') {
           params.append("nombres", countFilter.nombres.trim())
         }
-      }
-
-      console.log('Fetching count with params:', params.toString())
-      // Nota: El endpoint de count puede no existir en la API Spring Boot
+      }      // Nota: El endpoint de count puede no existir en la API Spring Boot
       // Usamos el search normal y contamos los resultados
       const url = `${API_ENDPOINTS.filiation.search}?${params.toString()}`
       const response = await fetch(url, {

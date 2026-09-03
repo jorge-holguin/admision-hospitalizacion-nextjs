@@ -358,10 +358,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
           observacion: truncateObservacion(d.observacion),
         })),
       }
-      if (isEditing) body.idOrden = ordenToEdit!.idOrden
-      console.log('[CrearOrden] payload:', JSON.stringify(body, null, 2))
-
-      let url: string
+      if (isEditing) body.idOrden = ordenToEdit!.idOrden      let url: string
       if (isEditing) {
         url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/${ordenToEdit!.idOrden}`
       } else if (isPeriferico) {

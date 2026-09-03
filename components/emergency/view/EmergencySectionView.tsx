@@ -1104,9 +1104,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                       options={formatEmpresasSeguro}
                       loading={loadingEmpresasSeguro}
                       search={searchAseguradora}
-                      onSearchChange={(v: string) => {
-                        console.log('⌨️ [View] Escribiendo en búsqueda de aseguradora:', v);
-                        setSearchAseguradora(v);
+                      onSearchChange={(v: string) => {                        setSearchAseguradora(v);
                         // El debounce en useEffect hará el fetch automáticamente
                       }}
                       onSelect={(value: string, data: any) => {

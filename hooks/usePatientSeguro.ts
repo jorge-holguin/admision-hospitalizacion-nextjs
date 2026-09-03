@@ -30,11 +30,7 @@ export const usePatientSeguro = (patientId: string | null): UsePatientSeguroRetu
 
     try {
       setLoading(true);
-      setError(null);
-
-      console.log(`Obteniendo datos de seguro para paciente: ${patientId}`);
-      
-      // Usar endpoint directo de Spring Boot para obtener datos del paciente
+      setError(null);      // Usar endpoint directo de Spring Boot para obtener datos del paciente
       const response = await fetch(API_ENDPOINTS.filiation.byId(patientId), {
         signal: AbortSignal.timeout(10000)
       });
@@ -61,10 +57,7 @@ export const usePatientSeguro = (patientId: string | null): UsePatientSeguroRetu
           seguro,
           nombreSeguro,
           seguroDisplay
-        };
-
-        console.log('Datos de seguro obtenidos:', seguroInfo);
-        setSeguroData(seguroInfo);
+        };        setSeguroData(seguroInfo);
       } else {
         console.warn('No se encontraron datos del paciente en filiacion2');
         setSeguroData(null);

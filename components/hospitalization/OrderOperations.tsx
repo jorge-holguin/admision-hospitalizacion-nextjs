@@ -79,9 +79,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
       // Desactivar la cuenta asociada si existe
       if (deleteCuentaId) {
         try {
-          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });
-          console.log(`✅ Cuenta ${deleteCuentaId} desactivada`);
-        } catch (cuentaErr) {
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });        } catch (cuentaErr) {
           console.warn('⚠️ No se pudo desactivar la cuenta:', cuentaErr);
         }
       }

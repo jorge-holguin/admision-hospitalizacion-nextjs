@@ -19,6 +19,4 @@ const prismaClientSingleton = () => {
 
 export const prisma = global.prisma || prismaClientSingleton()
 
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma
-
-console.log('Prisma client initialized with URL:', process.env.DATABASE_URL)
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma

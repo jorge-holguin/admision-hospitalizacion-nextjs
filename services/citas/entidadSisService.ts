@@ -16,10 +16,7 @@ export interface EntidadSis {
 
 export const entidadSisService = {
   async getEntidadesSis(limit = 10, search?: string): Promise<EntidadSis[]> {
-    try {
-      console.log('🔍 Obteniendo entidades SIS activas', { limit, search });
-
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         limit: limit.toString(),
         activo: '1',
       };
@@ -38,10 +35,7 @@ export const entidadSisService = {
       const entidades = data.map((item: any) => ({
         ENTIDADSIS: (item.ENTIDADSIS || item.entidadSis || '').trim(),
         NOMBRE: (item.NOMBRE || item.nombre || '').trim(),
-      }));
-
-      console.log(`✅ Encontradas ${entidades.length} entidades SIS`);
-      return entidades;
+      }));      return entidades;
     } catch (error) {
       console.error('❌ Error al obtener entidades SIS:', error);
       throw new Error('Error al obtener entidades SIS');
@@ -49,15 +43,10 @@ export const entidadSisService = {
   },
 
   async getEntidadSisByCode(code: string): Promise<EntidadSis | null> {
-    try {
-      console.log('🔍 Obteniendo entidad SIS por código:', code);
-
-      const url = API_ENDPOINTS.citas.sisEntityByCode(code.trim());
+    try {      const url = API_ENDPOINTS.citas.sisEntityByCode(code.trim());
       const response = await fetchApi(url);
 
-      if (response.status === 404) {
-        console.log('⚠️ Entidad SIS no encontrada para código:', code);
-        return null;
+      if (response.status === 404) {        return null;
       }
 
       if (!response.ok) {
@@ -69,10 +58,7 @@ export const entidadSisService = {
       const entidad = {
         ENTIDADSIS: (result.ENTIDADSIS || result.entidadSis || '').trim(),
         NOMBRE: (result.NOMBRE || result.nombre || '').trim(),
-      };
-
-      console.log('✅ Entidad SIS encontrada:', entidad);
-      return entidad;
+      };      return entidad;
     } catch (error) {
       console.error('❌ Error al obtener entidad SIS por código:', error);
       throw new Error('Error al obtener entidad SIS');

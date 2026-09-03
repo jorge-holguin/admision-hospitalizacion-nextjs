@@ -20,10 +20,7 @@ export const seguroService = {
    * @param codCita - Código de cita (default: '1')
    */
   async getSegurosByCodCita(codCita: string = '1'): Promise<Seguro[]> {
-    try {
-      console.log('🔍 Obteniendo seguros para citas con CODCITA:', codCita);
-
-      const url = buildUrl(`${API_ENDPOINTS.citas.base}/seguros`, { codCita });
+    try {      const url = buildUrl(`${API_ENDPOINTS.citas.base}/seguros`, { codCita });
       const response = await fetchApi(url);
 
       if (!response.ok) {
@@ -36,10 +33,7 @@ export const seguroService = {
       const seguros = data.map((item: any) => ({
         Seguro: item.Seguro || item.SEGURO || item.seguro || '',
         Nombre: item.Nombre || item.NOMBRE || item.nombre || '',
-      }));
-
-      console.log(`✅ Encontrados ${seguros.length} seguros para citas`);
-      return seguros;
+      }));      return seguros;
     } catch (error) {
       console.error('❌ Error al obtener seguros para citas:', error);
       throw new Error('Error al obtener seguros para citas');

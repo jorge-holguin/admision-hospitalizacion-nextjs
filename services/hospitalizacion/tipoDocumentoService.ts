@@ -16,10 +16,7 @@ export interface TipoDocumento {
  */
 export class TipoDocumentoService {
   async findTipoDocumentos(): Promise<TipoDocumento[]> {
-    try {
-      console.log('🔍 TipoDocumentoService: Obteniendo tipos de documento desde Spring Boot');
-      
-      const response = await fetch(API_ENDPOINTS.utils.documentTypes, {
+    try {      const response = await fetch(API_ENDPOINTS.utils.documentTypes, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -30,10 +27,7 @@ export class TipoDocumentoService {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log(`✅ TipoDocumentoService: ${data.length} tipos de documento obtenidos`);
-      
-      // Filtrar solo los activos
+      const data = await response.json();      // Filtrar solo los activos
       const activos = data.filter((tipo: TipoDocumento) => tipo.activo === 1);
       return activos;
     } catch (error) {

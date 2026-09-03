@@ -11,10 +11,7 @@ class CuentaService {
    * Obtiene el número de cuenta activa del paciente
    */
   async getCuentaActivaByPacienteId(pacienteId: string): Promise<string | null> {
-    try {
-      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId}`);
-      
-      const url = buildUrl(API_ENDPOINTS.cuentas.activaByPaciente(pacienteId), {
+    try {      const url = buildUrl(API_ENDPOINTS.cuentas.activaByPaciente(pacienteId), {
         estado: '1',
         origen: 'EM',
         seguro: '01',
@@ -22,9 +19,7 @@ class CuentaService {
       
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
@@ -33,13 +28,8 @@ class CuentaService {
       
       const data = await response.json();
       
-      if (data && data.CUENTAID) {
-        console.log(`✅ Cuenta encontrada para paciente ${pacienteId}:`, data.CUENTAID);
-        return data.CUENTAID;
-      }
-      
-      console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId}`);
-      return null;
+      if (data && data.CUENTAID) {        return data.CUENTAID;
+      }      return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener cuenta del paciente ${pacienteId}: ${error.message || 'Error desconocido'}`;
       console.error(`❌ ${errorMessage}`, error);
@@ -51,24 +41,15 @@ class CuentaService {
    * Obtiene el número de cuenta activa del paciente por tipo de seguro
    */
   async getCuentaActivaByPacienteIdAndSeguro(pacienteId: string, tipoSeguro: string): Promise<string | null> {
-    try {
-      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro}`);
-      
-      // Mapear el tipo de seguro al código correcto
-      const codigoSeguro = normalizarSeguroCuenta(tipoSeguro);
-      
-      console.log(`Seguro recibido: '${tipoSeguro}' -> Código para búsqueda: '${codigoSeguro}'`);
-      
-      const url = buildUrl(API_ENDPOINTS.cuentas.activaByPacienteAndSeguro(pacienteId), {
+    try {      // Mapear el tipo de seguro al código correcto
+      const codigoSeguro = normalizarSeguroCuenta(tipoSeguro);      const url = buildUrl(API_ENDPOINTS.cuentas.activaByPacienteAndSeguro(pacienteId), {
         estado: '1',
         origen: 'EM',
         seguro: codigoSeguro,
       });
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
@@ -77,13 +58,8 @@ class CuentaService {
       
       const data = await response.json();
       
-      if (data && data.CUENTAID) {
-        console.log(`✅ Cuenta encontrada para paciente ${pacienteId} con seguro ${codigoSeguro}:`, data.CUENTAID);
-        return data.CUENTAID;
-      }
-      
-      console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId} con seguro ${codigoSeguro}`);
-      return null;
+      if (data && data.CUENTAID) {        return data.CUENTAID;
+      }      return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener cuenta del paciente ${pacienteId} con seguro ${tipoSeguro}: ${error.message || 'Error desconocido'}`;
       console.error(`❌ ${errorMessage}`, error);
@@ -92,15 +68,10 @@ class CuentaService {
   }
 
   async getFUAActivaByCuentaId(cuentaId: string): Promise<string | null> {
-    try {
-      console.log(`🔍 Buscando FUA activa para cuenta: ${cuentaId}`);
-      
-      const url = API_ENDPOINTS.cuentas.fua.activaByCuenta(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.fua.activaByCuenta(cuentaId);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró FUA activa para cuenta ${cuentaId}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
@@ -109,13 +80,8 @@ class CuentaService {
       
       const data = await response.json();
       
-      if (data && data.NROFUA) {
-        console.log(`✅ FUA encontrada para cuenta ${cuentaId}:`, data.NROFUA);
-        return data.NROFUA;
-      }
-      
-      console.log(`⚠️ No se encontró FUA activa para cuenta ${cuentaId}`);
-      return null;
+      if (data && data.NROFUA) {        return data.NROFUA;
+      }      return null;
     } catch (error: any) {
       const errorMessage = `Error al obtener FUA de la cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
       console.error(`❌ ${errorMessage}`, error);
@@ -127,10 +93,7 @@ class CuentaService {
    * Actualiza el estado de una cuenta a 0 (inactiva)
    */
   async updateCUENTA(cuentaId: string): Promise<boolean> {
-    try {
-      console.log(`🔄 Actualizando estado de cuenta ${cuentaId} a inactivo`);
-      
-      const url = API_ENDPOINTS.cuentas.updateEstado(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.updateEstado(cuentaId);
       const response = await fetchApi(url, {
         method: 'PUT',
         body: JSON.stringify({ estado: '0' }),
@@ -138,10 +101,7 @@ class CuentaService {
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ Cuenta ${cuentaId} actualizada a estado inactivo`);
-      return true;
+      }      return true;
     } catch (error: any) {
       const errorMessage = `Error al actualizar estado de cuenta ${cuentaId}: ${error.message || 'Error desconocido'}`;
       console.error(`❌ ${errorMessage}`, error);
@@ -153,26 +113,18 @@ class CuentaService {
    * Actualiza el estado de una FUA a 0 (inactiva) en la tabla ATENCION_SEGURO
    */
   async updateFUA(nroFua: string): Promise<boolean> {
-    try {
-      console.log(`🔄 Actualizando estado de FUA ${nroFua} a inactivo`);
-      
-      const url = API_ENDPOINTS.cuentas.fua.updateEstado(nroFua);
+    try {      const url = API_ENDPOINTS.cuentas.fua.updateEstado(nroFua);
       const response = await fetchApi(url, {
         method: 'PUT',
         body: JSON.stringify({ estado: '0' }),
       });
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró FUA ${nroFua} en ATENCION_SEGURO`);
-        return false;
+      if (response.status === 404) {        return false;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ FUA ${nroFua} actualizada a estado inactivo`);
-      return true;
+      }      return true;
     } catch (error: any) {
       const errorMessage = `Error al actualizar estado de FUA ${nroFua}: ${error.message || 'Error desconocido'}`;
       console.error(`❌ ${errorMessage}`, error);
@@ -184,10 +136,7 @@ class CuentaService {
    * Actualiza tanto la cuenta como la FUA asociada a estado inactivo (0)
    */
   async updateCuentaAndFUA(cuentaId: string): Promise<{ success: boolean, message: string }> {
-    try {
-      console.log(`🔄 Inactivando cuenta ${cuentaId} y FUA asociada`);
-      
-      const url = API_ENDPOINTS.cuentas.updateCuentaAndFua(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.updateCuentaAndFua(cuentaId);
       const response = await fetchApi(url, {
         method: 'PUT',
       });
@@ -217,10 +166,7 @@ class CuentaService {
    * Actualiza el campo SEGURO de una cuenta específica
    */
   async updateCuentaSeguro(cuentaId: string, nuevoSeguro: string): Promise<any> {
-    try {
-      console.log(`🔄 Actualizando cuenta ${cuentaId} con nuevo seguro: ${nuevoSeguro}`);
-      
-      // Normalizar el código de seguro
+    try {      // Normalizar el código de seguro
       let seguroNormalizado = nuevoSeguro.trim();
       
       const url = API_ENDPOINTS.cuentas.updateSeguro(cuentaId);
@@ -237,10 +183,7 @@ class CuentaService {
         };
       }
       
-      const data = await response.json();
-      console.log(`✅ Cuenta ${cuentaId} actualizada con seguro ${seguroNormalizado}`);
-      
-      return {
+      const data = await response.json();      return {
         success: true,
         message: `Cuenta ${cuentaId} actualizada correctamente con seguro ${seguroNormalizado}`,
         data: data
@@ -260,12 +203,7 @@ class CuentaService {
     observacion?: string, 
     empresaSeguro?: string
   ): Promise<{ success: boolean; message: string; data?: any }> {
-    try {
-      console.log(`📝 Actualizando cuenta ${cuentaId}:`);
-      console.log(`   - OBSERVACION: ${observacion || '(sin cambio)'}`);
-      console.log(`   - EMPRESASEGURO: ${empresaSeguro || '(sin cambio)'}`);
-      
-      const body: Record<string, string> = {};
+    try {      const body: Record<string, string> = {};
       if (observacion !== undefined && observacion !== null) {
         body.observacion = observacion;
       }
@@ -294,10 +232,7 @@ class CuentaService {
         };
       }
       
-      const data = await response.json();
-      console.log(`✅ Cuenta ${cuentaId} actualizada correctamente`);
-      
-      return {
+      const data = await response.json();      return {
         success: true,
         message: `Cuenta ${cuentaId} actualizada correctamente`,
         data: data
@@ -313,25 +248,17 @@ class CuentaService {
    * Obtiene una cuenta por su ID
    */
   async getCuentaById(cuentaId: string): Promise<any | null> {
-    try {
-      console.log(`🔍 Buscando cuenta: ${cuentaId}`);
-      
-      const url = API_ENDPOINTS.cuentas.byId(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.byId(cuentaId);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró cuenta ${cuentaId}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Cuenta encontrada: ${cuentaId}`);
-      
-      return data;
+      const data = await response.json();      return data;
     } catch (error: any) {
       console.error(`❌ Error al obtener cuenta ${cuentaId}:`, error);
       return null;

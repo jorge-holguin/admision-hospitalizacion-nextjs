@@ -70,17 +70,12 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
       
       if (validResults.length === 0) {
         throw new Error('No se pudo cargar ningún PDF correctamente')
-      }
-      
-      console.log(`Se cargaron ${validResults.length} de ${pdfUrls.length} PDFs correctamente`)
-      setPdfData(validResults)
+      }      setPdfData(validResults)
       setLoading(false)
       
       // Esperar a que se carguen los PDFs y luego preparar para imprimir automáticamente
       setTimeout(async () => {
-        try {
-          console.log('Preparando impresión automática de documento combinado')
-          if (validResults.length > 0) {
+        try {          if (validResults.length > 0) {
             await printMergedPDF(validResults)
           } else {
             console.error('No hay PDFs válidos para imprimir')

@@ -25,11 +25,7 @@ export const medicoService = {
       if (!codigos.length) return [];
       
       const codigosLimpios = codigos.map(c => c.trim()).filter(Boolean);
-      if (!codigosLimpios.length) return [];
-      
-      console.log(`🔍 Buscando médicos por códigos: ${codigosLimpios.join(', ')}`);
-      
-      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, {
+      if (!codigosLimpios.length) return [];      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, {
         codigos: codigosLimpios.join(','),
         activo: '1',
       });
@@ -41,10 +37,7 @@ export const medicoService = {
       }
       
       const data = await response.json();
-      const medicos = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${medicos.length} médicos`);
-      return medicos;
+      const medicos = Array.isArray(data) ? data : data.data || [];      return medicos;
     } catch (error) {
       console.error('❌ Error al buscar médicos por códigos:', error);
       throw new Error('Error al buscar médicos por códigos');
@@ -55,10 +48,7 @@ export const medicoService = {
    * Obtiene todos los médicos activos, ordenados por nombre
    */
   async findAll(): Promise<Medico[]> {
-    try {
-      console.log('🔍 Obteniendo todos los médicos activos');
-      
-      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.list, {
+    try {      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.list, {
         activo: '1',
       });
       
@@ -69,10 +59,7 @@ export const medicoService = {
       }
       
       const data = await response.json();
-      const medicos = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${medicos.length} médicos activos`);
-      return medicos;
+      const medicos = Array.isArray(data) ? data : data.data || [];      return medicos;
     } catch (error) {
       console.error('❌ Error al buscar médicos:', error);
       throw new Error('Error al buscar médicos');
@@ -83,10 +70,7 @@ export const medicoService = {
    * Obtiene médicos filtrados por consultorio
    */
   async findByConsultorio(consultorioId: string): Promise<Medico[]> {
-    try {
-      console.log(`🔍 Buscando médicos por consultorio: ${consultorioId}`);
-      
-      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, {
+    try {      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, {
         consultorio: consultorioId,
         activo: '1',
       });
@@ -98,10 +82,7 @@ export const medicoService = {
       }
       
       const data = await response.json();
-      const medicos = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${medicos.length} médicos para consultorio ${consultorioId}`);
-      return medicos;
+      const medicos = Array.isArray(data) ? data : data.data || [];      return medicos;
     } catch (error) {
       console.error('❌ Error al buscar médicos por consultorio:', error);
       throw new Error('Error al buscar médicos por consultorio');
@@ -112,10 +93,7 @@ export const medicoService = {
    * Busca médicos por especialidad
    */
   async findByEspecialidad(especialidad: string, searchTerm: string = '', limit: number = 50): Promise<Medico[]> {
-    try {
-      console.log(`🔍 Buscando médicos por especialidad: ${especialidad}${searchTerm ? ` (búsqueda: ${searchTerm})` : ''}`);
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         especialidad: especialidad.trim(),
         activo: '1',
         limit: limit.toString(),
@@ -131,10 +109,7 @@ export const medicoService = {
       }
       
       const data = await response.json();
-      const medicos = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${medicos.length} médicos para especialidad ${especialidad}`);
-      return medicos;
+      const medicos = Array.isArray(data) ? data : data.data || [];      return medicos;
     } catch (error) {
       console.error('❌ Error al buscar médicos por especialidad:', error);
       throw new Error('Error al buscar médicos por especialidad');
@@ -145,10 +120,7 @@ export const medicoService = {
    * Busca médicos por nombre o código
    */
   async search(searchTerm: string, limit: number = 50): Promise<Medico[]> {
-    try {
-      console.log(`🔍 Buscando médicos con término: ${searchTerm}`);
-      
-      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, {
+    try {      const url = buildUrl(API_ENDPOINTS.masterTables.medicos.search, {
         search: searchTerm,
         activo: '1',
         limit: limit.toString(),
@@ -161,10 +133,7 @@ export const medicoService = {
       }
       
       const data = await response.json();
-      const medicos = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${medicos.length} médicos`);
-      return medicos;
+      const medicos = Array.isArray(data) ? data : data.data || [];      return medicos;
     } catch (error) {
       console.error('❌ Error al buscar médicos:', error);
       throw new Error('Error al buscar médicos');

@@ -450,9 +450,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       let paciente: any = null
 
       if (type === 'documento') {
-        const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, { documento: term, tipoDocumento: documentType || 'D' })
-        console.log(`🔍 Buscando paciente por documento:`, url)
-        const res = await fetch(url, { headers: { accept: '*/*' } })
+        const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, { documento: term, tipoDocumento: documentType || 'D' })        const res = await fetch(url, { headers: { accept: '*/*' } })
 
         if (!res.ok) {
           console.error('❌ Error del servicio de búsqueda por documento:', res.status, await res.text())
@@ -472,9 +470,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
           }
         }
       } else if (type === 'nombres') {
-        const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })
-        console.log(`🔍 Buscando paciente por nombre:`, url)
-        const res = await fetch(url, { headers: { accept: '*/*' } })
+        const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })        const res = await fetch(url, { headers: { accept: '*/*' } })
 
         if (!res.ok) {
           console.error('❌ Error del servicio de búsqueda por nombre:', res.status, await res.text())

@@ -64,37 +64,26 @@ export const PatientAccountProvider: React.FC<{ children: ReactNode }> = ({ chil
     
     // Verificar si ya tenemos los datos en el contexto
     const existingData = getAccountData(patientId);
-    if (existingData) {
-      console.log(`Usando datos de cuenta en caché para paciente: ${patientId}`);
-      return existingData;
+    if (existingData) {      return existingData;
     }
     
     // Verificar si ya hay una solicitud en vuelo para este paciente
-    if (patientId in inFlightRequests) {
-      console.log(`Reutilizando solicitud en vuelo para cuenta de paciente: ${patientId}`);
-      return inFlightRequests[patientId];
+    if (patientId in inFlightRequests) {      return inFlightRequests[patientId];
     }
 
     // Crear una nueva solicitud y almacenarla
     const fetchPromise = (async () => {
       try {
         setLoading(patientId, true);
-        setError(patientId, null);
+        setError(patientId, null);        const cuenta = await cuentaValidationService.getCuentaActivaByPacienteIdAndSeguro(patientId, '01');
 
-        console.log(`🏥 [HOSPITALIZACIÓN] Obteniendo cuenta activa para paciente: ${patientId}`);
-        const cuenta = await cuentaValidationService.getCuentaActivaByPacienteIdAndSeguro(patientId, '01');
-
-        if (cuenta?.CUENTAID) {
-          console.log(`✅ [HOSPITALIZACIÓN] Cuenta encontrada: ${cuenta.CUENTAID}`);
-          const accountInfo: PatientAccountData = {
+        if (cuenta?.CUENTAID) {          const accountInfo: PatientAccountData = {
             cuentaId: cuenta.CUENTAID
           };
           
           setAccountData(patientId, accountInfo);
           return accountInfo;
-        } else {
-          console.log(`❌ [HOSPITALIZACIÓN] No se encontró cuenta activa para paciente ${patientId}`);
-          setAccountData(patientId, null);
+        } else {          setAccountData(patientId, null);
           return null;
         }
       } catch (err: any) {

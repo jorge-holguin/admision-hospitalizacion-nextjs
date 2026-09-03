@@ -388,9 +388,7 @@ export default function FiliationPage() {
 
   // Función para cargar datos completos de historia clínica
   const fetchPatientHistoryData = async (patientId: string) => {
-    try {
-      console.log(`🔍 Cargando datos completos de historia clínica para paciente: ${patientId}`);
-      setIsLoadingPatientHistory(true);
+    try {      setIsLoadingPatientHistory(true);
       
       const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${patientId}`);
       

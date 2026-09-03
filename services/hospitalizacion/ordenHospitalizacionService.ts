@@ -45,10 +45,7 @@ export const ordenHospitalizacionService = {
    * Check if a patient has editable hospitalization orders (ESTADO = '1' or ESTADO = '2')
    */
   async checkEditableStatus(pacienteId: string): Promise<{ isEditable: boolean; source?: string; error?: string }> {
-    try {
-      console.log(`🔍 Verificando estado editable para paciente: ${pacienteId}`);
-      
-      const url = buildUrl(`${API_ENDPOINTS.hospitalizacion.base}/check-editable`, { pacienteId });
+    try {      const url = buildUrl(`${API_ENDPOINTS.hospitalizacion.base}/check-editable`, { pacienteId });
       const response = await fetchApi(url);
       
       if (!response.ok) {
@@ -58,10 +55,7 @@ export const ordenHospitalizacionService = {
         return { isEditable, source: 'fallback' };
       }
       
-      const data = await response.json();
-      console.log(`✅ Estado editable para paciente ${pacienteId}:`, data.isEditable);
-      
-      return { isEditable: data.isEditable, source: 'api' };
+      const data = await response.json();      return { isEditable: data.isEditable, source: 'api' };
     } catch (error) {
       console.error('❌ Error al verificar estado editable:', error);
       return { isEditable: false, error: String(error), source: 'error' };
@@ -75,30 +69,21 @@ export const ordenHospitalizacionService = {
     filter: OrdenHospitalizacionFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
   ): Promise<any> {
-    try {
-      console.log('🔍 Buscando registros de orden hospitalización:', { page, pageSize, filter });
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
       
       if (filter.pacienteId) params.pacienteId = filter.pacienteId;
       
-      const url = buildUrl(API_ENDPOINTS.hospitalizacion.ordenes, params);
-      console.log('🏥 Consultando órdenes:', url);
-      
-      const response = await fetchApi(url);
+      const url = buildUrl(API_ENDPOINTS.hospitalizacion.ordenes, params);      const response = await fetchApi(url);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Encontrados ${data.data?.length || 0} registros`);
-      
-      // Procesar fechas
+      const data = await response.json();      // Procesar fechas
       if (data.data && Array.isArray(data.data)) {
         data.data = data.data.map((record: any) => processDateFields(record));
       }
@@ -143,26 +128,17 @@ export const ordenHospitalizacionService = {
       if (!id || id === 'undefined' || id.trim() === '') {
         console.error(`ID de orden hospitalización inválido: "${id}"`);
         return null;
-      }
-      
-      console.log(`🔍 Buscando registro de orden hospitalización con ID: "${id}"`);
-      
-      const url = API_ENDPOINTS.hospitalizacion.byId(id.trim());
+      }      const url = API_ENDPOINTS.hospitalizacion.byId(id.trim());
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró orden con ID ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Orden de hospitalización encontrada`);
-      
-      return processDateFields(data);
+      const data = await response.json();      return processDateFields(data);
     } catch (error) {
       console.error(`❌ Error en getOrdenHospitalizacionById(${id}):`, error);
       throw error;
@@ -173,10 +149,7 @@ export const ordenHospitalizacionService = {
    * Get all orden hospitalización records for a patient
    */
   async getOrdenHospitalizacionByPaciente(pacienteId: string): Promise<OrdenHospitalizacion[]> {
-    try {
-      console.log(`🔍 Buscando órdenes de hospitalización para paciente: ${pacienteId}`);
-      
-      const url = API_ENDPOINTS.hospitalizacion.byPatient(pacienteId);
+    try {      const url = API_ENDPOINTS.hospitalizacion.byPatient(pacienteId);
       const response = await fetchApi(url);
       
       if (!response.ok) {
@@ -187,11 +160,7 @@ export const ordenHospitalizacionService = {
       }
       
       const data = await response.json();
-      const records = Array.isArray(data) ? data : data.data || [];
-      
-      console.log(`✅ Encontrados ${records.length} registros para el paciente`);
-      
-      return records.map((record: any) => processDateFields(record));
+      const records = Array.isArray(data) ? data : data.data || [];      return records.map((record: any) => processDateFields(record));
     } catch (error) {
       console.error(`❌ Error en getOrdenHospitalizacionByPaciente(${pacienteId}):`, error);
       throw error;
@@ -202,10 +171,7 @@ export const ordenHospitalizacionService = {
    * Count orden hospitalización records with optional filtering
    */
   async countOrdenHospitalizacion(filter: OrdenHospitalizacionFilter = {}): Promise<CountResponse> {
-    try {
-      console.log('📊 Contando registros de orden hospitalización:', filter);
-      
-      // Usar búsqueda paginada con pageSize=1 para obtener el total
+    try {      // Usar búsqueda paginada con pageSize=1 para obtener el total
       const params: Record<string, string> = {
         page: '1',
         pageSize: '1',
@@ -221,11 +187,7 @@ export const ordenHospitalizacionService = {
       }
       
       const data = await response.json();
-      const total = data.pagination?.total || 0;
-      
-      console.log(`✅ Total de órdenes: ${total}`);
-      
-      return {
+      const total = data.pagination?.total || 0;      return {
         success: true,
         data: { total }
       };
@@ -242,10 +204,7 @@ export const ordenHospitalizacionService = {
    * Create a new orden hospitalización record
    */
   async createOrdenHospitalizacion(data: any): Promise<any> {
-    try {
-      console.log('🏥 Creando nuevo registro de orden hospitalización:', data);
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.create, {
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.create, {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -255,10 +214,7 @@ export const ordenHospitalizacionService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();
-      console.log(`✅ Orden de hospitalización creada:`, result);
-      
-      return {
+      const result = await response.json();      return {
         success: true,
         data: result,
         message: 'Orden de hospitalización creada exitosamente'
@@ -273,10 +229,7 @@ export const ordenHospitalizacionService = {
    * Update an existing orden hospitalización record
    */
   async updateOrdenHospitalizacion(id: string, data: any): Promise<any> {
-    try {
-      console.log(`🔄 Actualizando orden de hospitalización con ID ${id}:`, data);
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.update(id), {
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.update(id), {
         method: 'PUT',
         body: JSON.stringify(data),
       });
@@ -286,10 +239,7 @@ export const ordenHospitalizacionService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();
-      console.log(`✅ Orden de hospitalización actualizada`);
-      
-      return {
+      const result = await response.json();      return {
         success: true,
         data: result,
         message: 'Orden de hospitalización actualizada exitosamente'
@@ -304,10 +254,7 @@ export const ordenHospitalizacionService = {
    * Get the next available hospitalization ID
    */
   async getNextId(): Promise<string> {
-    try {
-      console.log('🔢 Obteniendo siguiente ID de hospitalización');
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.nextId);
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.nextId);
       
       if (!response.ok) {
         console.error('❌ Error al obtener siguiente ID:', response.status);
@@ -315,10 +262,7 @@ export const ordenHospitalizacionService = {
       }
       
       const data = await response.json();
-      const nextId = data.nextId || data.toString();
-      
-      console.log('✅ Siguiente ID:', nextId);
-      return nextId;
+      const nextId = data.nextId || data.toString();      return nextId;
     } catch (error) {
       console.error('❌ Error al obtener el siguiente ID:', error);
       return '25000001';
@@ -329,21 +273,14 @@ export const ordenHospitalizacionService = {
    * Delete a hospitalization order by ID (logical deletion)
    */
   async deleteById(id: string): Promise<any> {
-    try {
-      console.log(`🗑️ Eliminando orden de hospitalización con ID: ${id}`);
-      
-      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.logicalDelete(id), {
+    try {      const response = await fetchApi(API_ENDPOINTS.hospitalizacion.logicalDelete(id), {
         method: 'PUT',
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ Orden de hospitalización ${id} eliminada`);
-      
-      return {
+      }      return {
         success: true,
         message: 'Orden de hospitalización eliminada exitosamente',
         data: { id }

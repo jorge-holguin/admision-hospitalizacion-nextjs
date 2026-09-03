@@ -6,10 +6,7 @@ import { PDFDocument } from 'pdf-lib';
  * @returns true si la impresión fue exitosa, false si falló
  */
 export async function printPdfViaDirectApi(url: string): Promise<boolean> {
-  try {
-    console.log(`Intentando imprimir PDF vía API directa: ${url}`);
-    
-    // Obtener el PDF como ArrayBuffer
+  try {    // Obtener el PDF como ArrayBuffer
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -32,10 +29,7 @@ export async function printPdfViaDirectApi(url: string): Promise<boolean> {
     if (!printResponse.ok) {
       console.error(`Error en la API de impresión: ${printResponse.status} ${printResponse.statusText}`);
       return false;
-    }
-    
-    console.log('PDF enviado correctamente a la impresora');
-    return true;
+    }    return true;
   } catch (error) {
     console.error('Error al imprimir PDF vía API directa:', error);
     return false;

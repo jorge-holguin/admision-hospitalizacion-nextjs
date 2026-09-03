@@ -98,10 +98,7 @@ export const filiacionService = {
     filter: FiliacionFilter = {},
     { page = 1, pageSize = 10 }: PaginationOptions
   ): Promise<PaginatedResponse<Filiacion>> {
-    try {
-      console.log('🔍 [Hospitalización] Buscando registros de filiación:', { page, pageSize, filter });
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
@@ -145,10 +142,7 @@ export const filiacionService = {
         return { data: mapped, pagination: { total: mapped.length, page, pageSize, totalPages: Math.ceil(mapped.length / pageSize) } };
       }
 
-      const url = buildUrl(API_ENDPOINTS.filiation.search, params);
-      console.log('🏥 Consultando filiación:', url);
-      
-      const response = await fetchApi(url);
+      const url = buildUrl(API_ENDPOINTS.filiation.search, params);      const response = await fetchApi(url);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -156,10 +150,7 @@ export const filiacionService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('✅ Filiación obtenida:', data);
-      
-      if (data.data && Array.isArray(data.data)) {
+      const data = await response.json();      if (data.data && Array.isArray(data.data)) {
         data.data = data.data.map((record: any) => mapFromBackend(record));
       }
       
@@ -182,22 +173,14 @@ export const filiacionService = {
    * Get a single filiacion record by ID (PACIENTE or HISTORIA)
    */
   async getFiliacionById(id: string): Promise<Filiacion | null> {
-    try {
-      console.log(`🔍 [Hospitalización] Buscando registro de filiación con ID: ${id}`);
-      
-      if (!id || typeof id !== 'string') {
+    try {      if (!id || typeof id !== 'string') {
         console.error(`ID inválido: ${id}`);
         return null;
       }
       
-      const url = API_ENDPOINTS.filiation.byId(id);
-      console.log('🏥 Consultando filiación por ID:', url);
+      const url = API_ENDPOINTS.filiation.byId(id);      const response = await fetchApi(url);
       
-      const response = await fetchApi(url);
-      
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró registro de filiación con ID ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
@@ -205,10 +188,7 @@ export const filiacionService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('✅ Registro de filiación encontrado:', data);
-      
-      return mapFromBackend(data);
+      const data = await response.json();      return mapFromBackend(data);
     } catch (error) {
       console.error(`❌ Error en getFiliacionById(${id}):`, error);
       return null;
@@ -219,10 +199,7 @@ export const filiacionService = {
    * Search filiacion records by historia clinica
    */
   async searchByHistoria(historia: string): Promise<Filiacion[]> {
-    try {
-      console.log(`🔍 [Hospitalización] Buscando por historia: ${historia}`);
-      
-      const params = { historia, pageSize: '10' };
+    try {      const params = { historia, pageSize: '10' };
       const url = buildUrl(API_ENDPOINTS.filiation.search, params);
       
       const response = await fetchApi(url);
@@ -231,10 +208,7 @@ export const filiacionService = {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Encontrados ${data.data?.length || 0} registros por historia`);
-      
-      return (data.data || []).map((record: any) => mapFromBackend(record));
+      const data = await response.json();      return (data.data || []).map((record: any) => mapFromBackend(record));
     } catch (error) {
       console.error(`❌ Error en searchByHistoria(${historia}):`, error);
       return [];
@@ -245,10 +219,7 @@ export const filiacionService = {
    * Search filiacion records by DNI/documento
    */
   async searchByDocumento(documento: string, tipoDocumento: string = 'D'): Promise<Filiacion[]> {
-    try {
-      console.log(`🔍 [Hospitalización] Buscando por documento: ${documento}`);
-      
-      const params = new URLSearchParams({ tipoDocumento, documento });
+    try {      const params = new URLSearchParams({ tipoDocumento, documento });
       const url = `${API_ENDPOINTS.filiation.searchByDocument}?${params}`;
       
       const response = await fetchApi(url);
@@ -261,10 +232,7 @@ export const filiacionService = {
       const list: any[] = Array.isArray(data) ? data
         : Array.isArray(data?.data) ? data.data
         : (data && !data.error && (data.PACIENTE || data.paciente)) ? [data]
-        : [];
-      console.log(`✅ Encontrados ${list.length} registros por documento`);
-      
-      return list.map((record: any) => mapFromBackend(record));
+        : [];      return list.map((record: any) => mapFromBackend(record));
     } catch (error) {
       console.error(`❌ Error en searchByDocumento(${documento}):`, error);
       return [];
@@ -275,10 +243,7 @@ export const filiacionService = {
    * Search filiacion records by name (nombres, apellidos)
    */
   async searchByName(name: string): Promise<Filiacion[]> {
-    try {
-      console.log(`🔍 [Hospitalización] Buscando por nombre: ${name}`);
-      
-      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
+    try {      const url = `${API_ENDPOINTS.filiation.searchByName}?nombres=${encodeURIComponent(name)}`;
       
       const response = await fetchApi(url);
       
@@ -291,10 +256,7 @@ export const filiacionService = {
         : Array.isArray(data?.data) ? data.data
         : Array.isArray(data?.pacientes) ? data.pacientes
         : Array.isArray(data?.content) ? data.content
-        : [];
-      console.log(`✅ Encontrados ${list.length} registros por nombre`);
-      
-      return list.map((record: any) => mapFromBackend(record));
+        : [];      return list.map((record: any) => mapFromBackend(record));
     } catch (error) {
       console.error(`❌ Error en searchByName(${name}):`, error);
       return [];
@@ -305,10 +267,7 @@ export const filiacionService = {
    * Count filiacion records with optional filtering
    */
   async countFiliacion(filter: FiliacionFilter = {}): Promise<number> {
-    try {
-      console.log('📊 [Hospitalización] Contando registros con filtros:', filter);
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: '1',
         pageSize: '1',
       };
@@ -325,10 +284,7 @@ export const filiacionService = {
       }
       
       const data = await response.json();
-      const total = data.pagination?.total || 0;
-      
-      console.log(`✅ Total de registros: ${total}`);
-      return total;
+      const total = data.pagination?.total || 0;      return total;
     } catch (error) {
       console.error('❌ Error en countFiliacion:', error);
       return 0;

@@ -42,10 +42,7 @@ export class CuentaValidationService {
    */
   async getCuentaActivaByPacienteIdAndSeguro(pacienteId: string, tipoSeguro: string): Promise<CuentaActiva | null> {
     try {
-      const seguroNormalizado = normalizarSeguroCuenta(tipoSeguro);
-      console.log(`🔍 Buscando cuenta activa para paciente: ${pacienteId} con seguro: ${tipoSeguro} → ${seguroNormalizado}`);
-      
-      const url = buildUrl(API_ENDPOINTS.cuentas.byPacienteAndSeguro(pacienteId), {
+      const seguroNormalizado = normalizarSeguroCuenta(tipoSeguro);      const url = buildUrl(API_ENDPOINTS.cuentas.byPacienteAndSeguro(pacienteId), {
         seguro: seguroNormalizado,
         origen: 'HO',
         estado: '1',
@@ -53,19 +50,14 @@ export class CuentaValidationService {
       
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró cuenta activa para paciente ${pacienteId}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const cuenta = await response.json();
-      console.log(`✅ Cuenta encontrada para paciente ${pacienteId}:`, cuenta);
-      
-      return cuenta;
+      const cuenta = await response.json();      return cuenta;
     } catch (error: any) {
       console.error(`❌ Error al obtener cuenta del paciente ${pacienteId}:`, error);
       return null;
@@ -76,22 +68,14 @@ export class CuentaValidationService {
    * Valida si un FUA está activo según las reglas de 3 u 8 horas
    */
   async validateFuaActivo(fuaNumber: string): Promise<boolean> {
-    try {
-      console.log(`🔍 Validando FUA activo: ${fuaNumber}`);
-      
-      const url = API_ENDPOINTS.cuentas.fua.validate(fuaNumber);
+    try {      const url = API_ENDPOINTS.cuentas.fua.validate(fuaNumber);
       const response = await fetchApi(url);
       
-      if (!response.ok) {
-        console.log(`⚠️ FUA ${fuaNumber} no encontrado o no válido`);
-        return false;
+      if (!response.ok) {        return false;
       }
       
       const data = await response.json();
-      const esValido = data.isValid || data.esValido || false;
-      
-      console.log(`✅ FUA ${fuaNumber} validación: ${esValido}`);
-      return esValido;
+      const esValido = data.isValid || data.esValido || false;      return esValido;
     } catch (error) {
       console.error(`❌ Error al validar FUA ${fuaNumber}:`, error);
       return false;
@@ -103,10 +87,7 @@ export class CuentaValidationService {
    */
   async validateCuentaAndFua(pacienteId: string, tipoSeguro: string): Promise<CuentaValidationResult> {
     try {
-      const seguroNormalizado = normalizarSeguroCuenta(tipoSeguro);
-      console.log(`🔍 Validando cuenta y FUA para paciente: ${pacienteId}, seguro: ${tipoSeguro} → ${seguroNormalizado}`);
-      
-      const url = buildUrl(API_ENDPOINTS.cuentas.validateCuentaAndFua, {
+      const seguroNormalizado = normalizarSeguroCuenta(tipoSeguro);      const url = buildUrl(API_ENDPOINTS.cuentas.validateCuentaAndFua, {
         pacienteId,
         tipoSeguro: seguroNormalizado,
       });
@@ -124,10 +105,7 @@ export class CuentaValidationService {
         };
       }
       
-      const result = await response.json();
-      console.log(`✅ Resultado validación:`, result);
-      
-      return {
+      const result = await response.json();      return {
         isValid: result.isValid || result.valid || false,
         cuentaId: result.cuentaId || null,
         fuaId: result.fuaId || null,
@@ -150,10 +128,7 @@ export class CuentaValidationService {
    * Obtiene información detallada de una cuenta específica
    */
   async getCuentaDetails(cuentaId: string): Promise<CuentaActiva | null> {
-    try {
-      console.log(`🔍 Obteniendo detalles de cuenta: ${cuentaId}`);
-      
-      const url = API_ENDPOINTS.cuentas.byId(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.byId(cuentaId);
       const response = await fetchApi(url);
       
       if (response.status === 404) {
@@ -176,10 +151,7 @@ export class CuentaValidationService {
    * Obtiene información detallada de un FUA específico
    */
   async getFuaDetails(fuaNumber: string): Promise<FuaActivo | null> {
-    try {
-      console.log(`🔍 Obteniendo detalles de FUA: ${fuaNumber}`);
-      
-      const url = API_ENDPOINTS.cuentas.fua.details(fuaNumber);
+    try {      const url = API_ENDPOINTS.cuentas.fua.details(fuaNumber);
       const response = await fetchApi(url);
       
       if (response.status === 404) {
@@ -202,19 +174,11 @@ export class CuentaValidationService {
    * Obtiene el número de FUA activa asociado a una cuenta
    */
   async getFUAActivaByCuentaId(cuentaId: string): Promise<string | null> {
-    try {
-      console.log(`🔍 Buscando FUA activa para cuenta: ${cuentaId}`);
-      
-      const cuenta = await this.getCuentaDetails(cuentaId);
+    try {      const cuenta = await this.getCuentaDetails(cuentaId);
       
       if (cuenta && cuenta.NROFUA) {
-        const nroFua = cuenta.NROFUA.trim();
-        console.log(`✅ FUA encontrada para cuenta ${cuentaId}: ${nroFua}`);
-        return nroFua;
-      }
-      
-      console.log(`⚠️ No se encontró FUA activa para la cuenta ${cuentaId}`);
-      return null;
+        const nroFua = cuenta.NROFUA.trim();        return nroFua;
+      }      return null;
     } catch (error: any) {
       console.error(`❌ Error al obtener FUA de cuenta ${cuentaId}:`, error);
       return null;
@@ -225,10 +189,7 @@ export class CuentaValidationService {
    * Actualiza el estado de una FUA a 0 (inactiva)
    */
   async updateFUA(nroFua: string): Promise<boolean> {
-    try {
-      console.log(`🔄 Actualizando estado de FUA ${nroFua} a inactivo`);
-      
-      const url = API_ENDPOINTS.cuentas.fua.updateEstado(nroFua);
+    try {      const url = API_ENDPOINTS.cuentas.fua.updateEstado(nroFua);
       const response = await fetchApi(url, {
         method: 'PUT',
         body: JSON.stringify({ estado: '0' }),
@@ -236,10 +197,7 @@ export class CuentaValidationService {
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ FUA ${nroFua} actualizada a estado inactivo`);
-      return true;
+      }      return true;
     } catch (error: any) {
       console.error(`❌ Error al actualizar estado de FUA ${nroFua}:`, error);
       return false;
@@ -250,10 +208,7 @@ export class CuentaValidationService {
    * Actualiza el estado de una cuenta a 0 (inactiva)
    */
   async updateCUENTA(cuentaId: string): Promise<boolean> {
-    try {
-      console.log(`🔄 Actualizando estado de cuenta ${cuentaId} a inactivo`);
-      
-      const url = API_ENDPOINTS.cuentas.updateEstado(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.updateEstado(cuentaId);
       const response = await fetchApi(url, {
         method: 'PUT',
         body: JSON.stringify({ estado: '0' }),
@@ -261,10 +216,7 @@ export class CuentaValidationService {
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ Cuenta ${cuentaId} actualizada a estado inactivo`);
-      return true;
+      }      return true;
     } catch (error: any) {
       console.error(`❌ Error al actualizar estado de cuenta ${cuentaId}:`, error);
       return false;
@@ -276,10 +228,7 @@ export class CuentaValidationService {
    * Implementa borrado lógico
    */
   async updateCuentaAndFUA(cuentaId: string): Promise<{ success: boolean, message: string }> {
-    try {
-      console.log(`🔄 Iniciando borrado lógico para cuenta: ${cuentaId}`);
-      
-      const url = API_ENDPOINTS.cuentas.logicalDelete(cuentaId);
+    try {      const url = API_ENDPOINTS.cuentas.logicalDelete(cuentaId);
       const response = await fetchApi(url, {
         method: 'PUT',
       });
@@ -292,10 +241,7 @@ export class CuentaValidationService {
         };
       }
       
-      const result = await response.json();
-      console.log(`✅ Borrado lógico completado:`, result);
-      
-      return {
+      const result = await response.json();      return {
         success: true,
         message: result.message || `Cuenta ${cuentaId} actualizada correctamente`
       };

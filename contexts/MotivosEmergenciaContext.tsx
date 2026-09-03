@@ -52,20 +52,12 @@ export function MotivosEmergenciaProvider({ children }: { children: React.ReactN
   useEffect(() => {
     const loadMotivosEmergencia = async () => {
       try {
-        setLoading(true)
-
-        console.log('🚑 [MotivosEmergenciaContext] fetching motivos de emergencia')
-        const items = await motivoEmergenciaService.findAll()
+        setLoading(true)        const items = await motivoEmergenciaService.findAll()
 
         const motivosData: MotivoEmergencia[] = items.map((item: any) => ({
           MOTIVO_EMERGENCIA: getItemCode(item),
           NOMBRE: getItemName(item),
-        }))
-
-        console.log('🚑 [MotivosEmergenciaContext] items count', motivosData.length)
-        if (motivosData.length > 0) {
-          console.log('🚑 [MotivosEmergenciaContext] first mapped item', motivosData[0])
-        }
+        }))        if (motivosData.length > 0) {        }
         setMotivosEmergencia(motivosData)
 
       } catch (error) {

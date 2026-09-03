@@ -265,9 +265,7 @@ export function EmergencyFormRefactored({
   // Solo para emergencias nuevas, no para edición
   useEffect(() => {
     if (!emergencyId && !emergencyData) {
-      // Es una emergencia nueva, refrescar la hora del servidor
-      console.log('🕐 Refrescando fecha/hora del servidor para nueva emergencia');
-      refreshDateTime();
+      // Es una emergencia nueva, refrescar la hora del servidor      refreshDateTime();
     }
   }, []); // Solo al montar el componente
   
@@ -614,9 +612,7 @@ export function EmergencyFormRefactored({
         SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1),
         ESTADO_CIVIL: (() => {
           const raw = getCivilStatusCode(filiacionData?.estadoCivil, filiacionData?.NOMBRE_ESTADO_CIVIL) || getCivilStatusCode(formData.estadoCivil) || '';
-          const padded = raw.padEnd(2, ' ').substring(0, 2);
-          console.log('📋 ESTADO_CIVIL enviado:', { raw, padded, filiacion: filiacionData?.estadoCivil, form: formData.estadoCivil, nombre: filiacionData?.NOMBRE_ESTADO_CIVIL });
-          return padded;
+          const padded = raw.padEnd(2, ' ').substring(0, 2);          return padded;
         })(),
         // También enviar camelCase por si el DTO de Spring espera ese nombre; se rellena a 2 caracteres igual que ESTADO_CIVIL
         estadoCivil: (() => {
@@ -765,10 +761,7 @@ export function EmergencyFormRefactored({
       // Verificar si el seguro requiere cuenta (0, 02, 17)
       const segurosConCuenta = ['0', '00', '02', '17'];
       
-      if (segurosConCuenta.includes(seguroToCheck)) {
-        console.log(`🔍 Verificando cuentas activas para paciente ${patientId} con seguro ${seguroToCheck}`);
-        
-        // Verificar si hay múltiples cuentas activas (filtrado por origen=EM)
+      if (segurosConCuenta.includes(seguroToCheck)) {        // Verificar si hay múltiples cuentas activas (filtrado por origen=EM)
         try {
           const url = `${API_SPRING_URL}/accounts/patient/${encodeURIComponent(patientId)}?estado=1&origen=EM&seguro=${encodeURIComponent(seguroToCheck)}`;
           const resp = await fetch(url);
@@ -787,10 +780,7 @@ export function EmergencyFormRefactored({
 
         const existingAccount = await checkExistingAccount(seguroToCheck);
         
-        if (existingAccount) {
-          console.log(`⚠️ Cuenta activa encontrada: ${existingAccount.cuentaId}`);
-          
-          // Guardar datos pendientes para después del diálogo
+        if (existingAccount) {          // Guardar datos pendientes para después del diálogo
           setPendingFormData({
             emergencyIdToUse: emergencyId,
             ordenToUse: formData.orden || '',
@@ -815,14 +805,10 @@ export function EmergencyFormRefactored({
   };
 
   // Handlers para el diálogo de cuenta
-  const handleReuseAccount = async (cuentaId: string) => {
-    console.log(`♻️ Usuario eligió reutilizar cuenta: ${cuentaId}`);
-    await processFormWithAccountOption(cuentaId, false); // Reutilizar cuenta existente
+  const handleReuseAccount = async (cuentaId: string) => {    await processFormWithAccountOption(cuentaId, false); // Reutilizar cuenta existente
   };
 
-  const handleCreateNewAccount = async () => {
-    console.log(`➕ Usuario eligió crear nueva cuenta`);
-    await processFormWithAccountOption(undefined, true); // Forzar creación de nueva cuenta
+  const handleCreateNewAccount = async () => {    await processFormWithAccountOption(undefined, true); // Forzar creación de nueva cuenta
   };
 
   const handleCloseAccountDialog = () => {
@@ -921,10 +907,7 @@ export function EmergencyFormRefactored({
       // Cargar EMPRESASEGURO si existe (para edición)
       if (emergencyData.EMPRESASEGURO) {
         const empresaCode = emergencyData.EMPRESASEGURO?.toString().trim() || '';
-        const empresaNombre = emergencyData.EMPRESASEG_NOMBRE?.toString().trim() || '';
-        console.log(`📋 Cargando EMPRESASEGURO: ${empresaCode} - ${empresaNombre}`);
-        
-        setFormData(prev => ({
+        const empresaNombre = emergencyData.EMPRESASEG_NOMBRE?.toString().trim() || '';        setFormData(prev => ({
           ...prev,
           aseguradora: empresaCode,
           aseguradoraDisplay: empresaNombre ? `(${empresaCode}) - ${empresaNombre}` : empresaCode

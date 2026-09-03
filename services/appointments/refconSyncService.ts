@@ -59,10 +59,7 @@ export async function obtenerDatosCitaRefcon(citaId: string, usuarioAsigna: stri
   error?: string
   data?: any
 }> {
-  try {
-    console.log('🔍 Obteniendo datos de cita desde REFCON:', citaId)
-
-    const response = await fetch(`${API_CITA_URL}/cita/refcon/recibir-cita/${citaId}`, {
+  try {    const response = await fetch(`${API_CITA_URL}/cita/refcon/recibir-cita/${citaId}`, {
       method: 'GET',
       headers: {
         'accept': '*/*',
@@ -76,10 +73,7 @@ export async function obtenerDatosCitaRefcon(citaId: string, usuarioAsigna: stri
       throw new Error(`Error ${response.status}: ${errorText}`)
     }
 
-    const data = await response.json()
-    console.log('✅ Datos de cita obtenidos desde REFCON:', data)
-
-    return {
+    const data = await response.json()    return {
       success: true,
       data
     }
@@ -100,10 +94,7 @@ export async function sincronizarCitaConRefcon(payload: RefconSyncPayload): Prom
   error?: string
   data?: any
 }> {
-  try {
-    console.log('🔄 Sincronizando cita con REFCON:', payload)
-
-    const response = await fetch(`${API_REFCON_URL}/referencia/recibir-cita`, {
+  try {    const response = await fetch(`${API_REFCON_URL}/referencia/recibir-cita`, {
       method: 'POST',
       headers: {
         'accept': '*/*',
@@ -118,10 +109,7 @@ export async function sincronizarCitaConRefcon(payload: RefconSyncPayload): Prom
       throw new Error(`Error ${response.status}: ${errorText}`)
     }
 
-    const data = await response.json()
-    console.log('✅ Cita sincronizada exitosamente con REFCON:', data)
-
-    return {
+    const data = await response.json()    return {
       success: true,
       data
     }
@@ -194,10 +182,7 @@ export async function actualizarEstadoRefcon(citaId: string, estadoRefcon: numbe
   error?: string
   data?: any
 }> {
-  try {
-    console.log(`🔄 Actualizando estado REFCON para cita ${citaId} a estado: ${estadoRefcon}`)
-
-    const response = await fetch(`${API_REFCON_URL}/cita/${citaId}/refcon-estado?estadoRefcon=${estadoRefcon}`, {
+  try {    const response = await fetch(`${API_REFCON_URL}/cita/${citaId}/refcon-estado?estadoRefcon=${estadoRefcon}`, {
       method: 'PUT',
       headers: {
         'accept': '*/*',
@@ -210,10 +195,7 @@ export async function actualizarEstadoRefcon(citaId: string, estadoRefcon: numbe
       throw new Error(`Error ${response.status}: ${errorText}`)
     }
 
-    const data = await response.json()
-    console.log('✅ Estado REFCON actualizado exitosamente:', data)
-
-    return {
+    const data = await response.json()    return {
       success: true,
       data
     }

@@ -209,9 +209,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI';
       const dni = patient.DOCUMENTO || patient.dni || patient.documento;
       
-      if (patient && noTieneFoto && esDNI && dni && !reniecButtonUsed) {
-        console.log('📸 STRING_FOTO es null/vacío, consultando RENIEC automáticamente...');
-        await handleUpdateFromReniec();
+      if (patient && noTieneFoto && esDNI && dni && !reniecButtonUsed) {        await handleUpdateFromReniec();
       } else {
       }
     };
@@ -234,10 +232,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       || (typeof patient.tipoDocumento === 'object' ? (patient.tipoDocumento?.tipoDocumento || '').trim() : '')
     const esDNI = tipoDocStr.trim() === 'D' || tipoDocStr.toUpperCase() === 'DNI'
     const esCE = tipoDocStr.trim() === 'CE' || String(dni).trim().length === 9
-    if (!esDNI && !esCE) return
-
-    console.log('🏥 Auto-validando SIS al abrir el modal para DNI:', dni)
-    validateSISAndUpdateSeguro(String(dni).trim(), false)
+    if (!esDNI && !esCE) return    validateSISAndUpdateSeguro(String(dni).trim(), false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient])
   
@@ -441,19 +436,13 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
 
   // ✅ Función para validar SIS y actualizar seguro automáticamente usando el servicio
   const validateSISAndUpdateSeguro = async (dni: string, showToast: boolean = false) => {
-    try {
-      console.log('🏥 Validando SIS para DNI:', dni);
-      
-      // Usar el servicio consultarSIS existente
+    try {      // Usar el servicio consultarSIS existente
       const result = await consultarSIS(dni);
 
       if (result.success && result.data) {
         // Mapear tipoSeguro (CODSIS) a SEGURO usando el servicio
         const nombreCompleto = formData.nombres || patient.NOMBRES || patient.nombres || '';
-        const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);
-        
-        console.log(`✅ Seguro SIS detectado: ${seguroId} (CODSIS: ${result.data.tipoSeguro})`);
-        setFormData(prev => ({
+        const seguroId = mapSISSeguroToLocal(result.data.tipoSeguro, nombreCompleto);        setFormData(prev => ({
           ...prev,
           tipoSeguro: seguroId
         }));
@@ -466,9 +455,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             variant: "default"
           });
         }
-      } else {
-        console.log('⚠️ No se encontró seguro SIS, asignando PAGANTE');
-        setFormData(prev => ({
+      } else {        setFormData(prev => ({
           ...prev,
           tipoSeguro: '0' // PAGANTE
         }));
@@ -505,11 +492,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
           variant: "destructive"
         });
         return;
-      }
-
-      console.log('🔄 Consultando RENIEC con useReniec hook...');
-      
-      // Usar el hook useReniec que llama a la API correcta
+      }      // Usar el hook useReniec que llama a la API correcta
       const result = await consultarReniec(dni);
       
       if (result.success && result.data) {
@@ -551,36 +534,24 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       }
 
       // ✅ Continuar SOLO cuando éxito y no degradado
-      if (result.success && result.data && !(result as any).degraded) {
-        console.log('✅ Datos de RENIEC obtenidos:', result.data);
-        console.log('📋 Datos mapeados completos:', result.data);
-        
-        // ✅ Consultar ubigeos correctos usando códigos RENIEC
+      if (result.success && result.data && !(result as any).degraded) {        // ✅ Consultar ubigeos correctos usando códigos RENIEC
         let lugarNacimientoUbigeo = formData.lugarNacimiento;
         let distritoProcedenciaUbigeo = formData.distritoProcedencia;
         
         // ✅ Consultar Lugar de Nacimiento si hay código RENIEC
         let ubigeoWarnings: string[] = [];
         
-        if (result.data.ubigeoReniecNacimiento) {
-          console.log('🗺️ Consultando UBIGEO para lugar de nacimiento:', result.data.ubigeoReniecNacimiento);
-          const ubigeoNac = await getUbigeoByReniecCode(result.data.ubigeoReniecNacimiento);
+        if (result.data.ubigeoReniecNacimiento) {          const ubigeoNac = await getUbigeoByReniecCode(result.data.ubigeoReniecNacimiento);
           if (ubigeoNac) {
-            lugarNacimientoUbigeo = ubigeoNac;
-            console.log('✅ UBIGEO Lugar de Nacimiento:', ubigeoNac);
-          } else {
+            lugarNacimientoUbigeo = ubigeoNac;          } else {
             ubigeoWarnings.push(`Lugar de Nacimiento (código RENIEC: ${result.data.ubigeoReniecNacimiento})`);
           }
         }
         
         // ✅ Consultar Distrito de Procedencia si hay código RENIEC
-        if (result.data.ubigeoReniecProcedencia) {
-          console.log('🗺️ Consultando UBIGEO para distrito de procedencia:', result.data.ubigeoReniecProcedencia);
-          const ubigeoProc = await getUbigeoByReniecCode(result.data.ubigeoReniecProcedencia);
+        if (result.data.ubigeoReniecProcedencia) {          const ubigeoProc = await getUbigeoByReniecCode(result.data.ubigeoReniecProcedencia);
           if (ubigeoProc) {
-            distritoProcedenciaUbigeo = ubigeoProc;
-            console.log('✅ UBIGEO Distrito de Procedencia:', ubigeoProc);
-          } else {
+            distritoProcedenciaUbigeo = ubigeoProc;          } else {
             ubigeoWarnings.push(`Distrito de Procedencia (código RENIEC: ${result.data.ubigeoReniecProcedencia})`);
           }
         }
@@ -759,10 +730,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       if (formData.nombres?.trim()) updateData.nombre = formData.nombres.trim()
       // ✅ Convertir fecha a formato LocalDateTime que acepta el backend
       if (formData.fechaNacimiento) {
-        updateData.fechaNacimiento = convertToLocalDateTime(formData.fechaNacimiento)
-        console.log('📅 Fecha convertida:', formData.fechaNacimiento, '→', updateData.fechaNacimiento)
-        
-        // ✅ Calcular edad en formato '000a00m00d' (campo obligatorio)
+        updateData.fechaNacimiento = convertToLocalDateTime(formData.fechaNacimiento)        // ✅ Calcular edad en formato '000a00m00d' (campo obligatorio)
         const birthDate = new Date(formData.fechaNacimiento)
         const today = new Date()
         
@@ -893,10 +861,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
         throw new Error(`Error al actualizar el paciente: ${errorText}`);
       }
 
-      const result = await response.json()
-      console.log('Paciente actualizado:', result)
-      
-      // Mostrar dialog de éxito
+      const result = await response.json()      // Mostrar dialog de éxito
       setShowSuccessDialog(true)
     } catch (error) {
       console.error('Error al actualizar paciente:', error)

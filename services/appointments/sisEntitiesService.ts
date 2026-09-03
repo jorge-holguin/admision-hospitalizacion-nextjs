@@ -13,14 +13,9 @@ export async function obtenerEntidadSISPorCodigo(codigo: string): Promise<{
   data?: EntidadSIS
   error?: string
 }> {
-  try {
-    console.log('🏥 Obteniendo entidad SIS por código:', codigo)
+  try {    const entidad = await entidadSisService.getEntidadSisByCode(codigo)
 
-    const entidad = await entidadSisService.getEntidadSisByCode(codigo)
-
-    if (entidad) {
-      console.log('✅ Entidad SIS obtenida:', entidad)
-      return {
+    if (entidad) {      return {
         success: true,
         data: {
           ENTIDADSIS: entidad.ENTIDADSIS,

@@ -91,10 +91,7 @@ export function ConsultorioDinamicoSelector({
       params.set('size', '500') // Obtener suficientes para extraer consultorios únicos
       
       // NO incluir el parámetro 'consultorio' para obtener todas las citas del día
-      const url = `${apiUrl}/cita/buscar/nombreConsultorio?${params.toString()}`
-      
-      console.log('🔍 ConsultorioDinamicoSelector: Cargando consultorios del día:', url)
-      const res = await fetch(url, { signal })
+      const url = `${apiUrl}/cita/buscar/nombreConsultorio?${params.toString()}`      const res = await fetch(url, { signal })
       
       if (!res.ok) {
         console.warn('⚠️ ConsultorioDinamicoSelector: Error:', res.status)
@@ -122,10 +119,7 @@ export function ConsultorioDinamicoSelector({
       
       // Ordenar alfabéticamente por nombre
       const sortedConsultorios = Array.from(consultoriosMap.values())
-        .sort((a, b) => a.consultorioNombre.localeCompare(b.consultorioNombre))
-      
-      console.log(`✅ ConsultorioDinamicoSelector: ${sortedConsultorios.length} consultorios encontrados para ${dateStr}`)
-      setConsultorios(sortedConsultorios)
+        .sort((a, b) => a.consultorioNombre.localeCompare(b.consultorioNombre))      setConsultorios(sortedConsultorios)
       setLoadedForDate(dateStr)
     } catch (error: any) {
       if (error.name !== 'AbortError') {
@@ -182,9 +176,7 @@ export function ConsultorioDinamicoSelector({
     }
 
     // Configurar nuevo timer para búsqueda por texto libre
-    const timer = setTimeout(() => {
-      console.log('🔍 Búsqueda por texto libre (única):', search)
-      if (onFreeTextSearch) {
+    const timer = setTimeout(() => {      if (onFreeTextSearch) {
         onFreeTextSearch(search)
         setLastFreeTextSearch(search.trim()) // Guardar que ya hicimos esta búsqueda
       }

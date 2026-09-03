@@ -69,10 +69,7 @@ async function fetchAttentions(
     ? `${API_SPRING_URL}/hospitalization/attentions/${encodeURIComponent(effectivePatientId)}`
     : `${API_SPRING_URL}/hospitalization/attentions`
 
-  const url = `${basePath}?${queryParams.toString()}`
-  console.log('🌐 origenHospitalizacionService → Spring:', url)
-
-  const response = await fetch(url, {
+  const url = `${basePath}?${queryParams.toString()}`  const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
     },

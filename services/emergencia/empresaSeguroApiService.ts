@@ -32,10 +32,7 @@ function normalize(raw: any): EmpresaSeguro {
  * Endpoint: GET /api/maestro/empresaseguro/obtener-todos
  */
 export async function getAllEmpresasSeguro(): Promise<EmpresaSeguro[]> {
-  const url = API_ENDPOINTS.utils.empresasSeguro;
-  console.log("🛡️ [empresaSeguroApiService] consultando:", url);
-
-  const response = await fetchApi(url, {
+  const url = API_ENDPOINTS.utils.empresasSeguro;  const response = await fetchApi(url, {
     headers: { accept: "*/*" },
   });
 

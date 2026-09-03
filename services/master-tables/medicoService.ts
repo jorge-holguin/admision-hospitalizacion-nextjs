@@ -144,10 +144,7 @@ export const medicoServerService = {
     pageSize: number = 10,
     filters: MedicoFilters = {}
   ): Promise<PaginatedResponse<Medico>> {
-    try {
-      console.log(`🔍 Buscando médicos - página ${page}, tamaño ${pageSize}`);
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
@@ -168,11 +165,7 @@ export const medicoServerService = {
       
       const data = Array.isArray(result) ? result : (result.data || []);
       const total = result.total || data.length;
-      const normalized = data.map(normalizeMedico);
-      
-      console.log(`✅ Encontrados ${normalized.length} médicos (total: ${total})`);
-      
-      return {
+      const normalized = data.map(normalizeMedico);      return {
         data: normalized,
         total,
         page,
@@ -186,25 +179,17 @@ export const medicoServerService = {
   },
 
   async getMedicoById(id: string): Promise<Medico | null> {
-    try {
-      console.log(`🔍 Buscando médico: ${id}`);
-      
-      const url = API_ENDPOINTS.masterTables.medicos.byId(id);
+    try {      const url = API_ENDPOINTS.masterTables.medicos.byId(id);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró médico ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Médico encontrado: ${id}`);
-      
-      return normalizeMedico(data);
+      const data = await response.json();      return normalizeMedico(data);
     } catch (error) {
       console.error(`❌ Error in medicoServerService.getMedicoById(${id}):`, error);
       throw error;
@@ -212,10 +197,7 @@ export const medicoServerService = {
   },
 
   async createMedico(data: Partial<Medico>): Promise<Medico> {
-    try {
-      console.log(`➕ Creando médico: ${data.MEDICO}`);
-
-      // El DTO de Spring Boot usa camelCase para sus propiedades.
+    try {      // El DTO de Spring Boot usa camelCase para sus propiedades.
       // Enviamos el payload original y una copia con claves camelCase.
       const payload = {
         ...data,
@@ -223,10 +205,7 @@ export const medicoServerService = {
       };
 
       const url = API_ENDPOINTS.masterTables.medicos.list;
-      const body = JSON.stringify(payload);
-      console.log('📦 Payload createMedico:', body);
-
-      const response = await fetchApi(url, {
+      const body = JSON.stringify(payload);      const response = await fetchApi(url, {
         method: 'POST',
         body,
       });
@@ -236,10 +215,7 @@ export const medicoServerService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      console.log(`✅ Médico creado: ${data.MEDICO}`);
-
-      return normalizeMedico(result);
+      const result = await response.json();      return normalizeMedico(result);
     } catch (error) {
       console.error('❌ Error in medicoServerService.createMedico:', error);
       throw error;
@@ -247,10 +223,7 @@ export const medicoServerService = {
   },
 
   async updateMedico(id: string, data: Partial<Medico>): Promise<Medico | null> {
-    try {
-      console.log(`🔄 Actualizando médico: ${id}`);
-
-      // El DTO de Spring Boot usa camelCase para sus propiedades.
+    try {      // El DTO de Spring Boot usa camelCase para sus propiedades.
       // Enviamos el payload original y una copia con claves camelCase.
       const payload = {
         ...data,
@@ -258,17 +231,12 @@ export const medicoServerService = {
       };
 
       const url = API_ENDPOINTS.masterTables.medicos.byId(id);
-      const body = JSON.stringify(payload);
-      console.log('📦 Payload updateMedico:', body);
-
-      const response = await fetchApi(url, {
+      const body = JSON.stringify(payload);      const response = await fetchApi(url, {
         method: 'PUT',
         body,
       });
 
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró médico ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
 
       if (!response.ok) {
@@ -276,10 +244,7 @@ export const medicoServerService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      console.log(`✅ Médico actualizado: ${id}`);
-
-      return normalizeMedico(result);
+      const result = await response.json();      return normalizeMedico(result);
     } catch (error) {
       console.error(`❌ Error in medicoServerService.updateMedico(${id}):`, error);
       throw error;
@@ -287,25 +252,17 @@ export const medicoServerService = {
   },
 
   async deleteMedico(id: string): Promise<boolean> {
-    try {
-      console.log(`🗑️ Eliminando médico: ${id}`);
-      
-      const url = API_ENDPOINTS.masterTables.medicos.byId(id);
+    try {      const url = API_ENDPOINTS.masterTables.medicos.byId(id);
       const response = await fetchApi(url, {
         method: 'DELETE',
       });
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró médico ${id}`);
-        return false;
+      if (response.status === 404) {        return false;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ Médico eliminado: ${id}`);
-      return true;
+      }      return true;
     } catch (error) {
       console.error(`❌ Error in medicoServerService.deleteMedico(${id}):`, error);
       throw error;
@@ -318,10 +275,7 @@ export const medicoServerService = {
     consultorio?: string;
     codigos?: string;
   }): Promise<Medico[]> {
-    try {
-      console.log('🔍 Buscando médicos con filtros:', params);
-      
-      const queryParams: Record<string, string> = {
+    try {      const queryParams: Record<string, string> = {
         page: '1',
         pageSize: '10',
       };
@@ -339,10 +293,7 @@ export const medicoServerService = {
       
       const result = await response.json();
       const data = Array.isArray(result) ? result : (result.data || []);
-      const normalized = data.map(normalizeMedico);
-      
-      console.log(`✅ Encontrados ${normalized.length} médicos`);
-      return normalized;
+      const normalized = data.map(normalizeMedico);      return normalized;
     } catch (error) {
       console.error('❌ Error in medicoServerService.searchMedicos:', error);
       throw error;
@@ -350,10 +301,7 @@ export const medicoServerService = {
   },
 
   async suggestCode(nombreCompleto?: string): Promise<{ code?: string; candidatos?: string[] }> {
-    try {
-      console.log('🔢 Obteniendo código de médico', nombreCompleto ? `para: ${nombreCompleto}` : '');
-      
-      const url = API_ENDPOINTS.masterTables.medicos.suggestCode;
+    try {      const url = API_ENDPOINTS.masterTables.medicos.suggestCode;
       const response = await fetchApi(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -366,10 +314,7 @@ export const medicoServerService = {
       
       const result = await response.json();
       const code = result.code || result.suggestedCode;
-      const candidatos = result.candidatos || (code ? [String(code)] : []);
-      
-      console.log(`✅ Código sugerido: ${candidatos.join(', ') || code}`);
-      return { code: code ? String(code) : undefined, candidatos };
+      const candidatos = result.candidatos || (code ? [String(code)] : []);      return { code: code ? String(code) : undefined, candidatos };
     } catch (error) {
       console.error('❌ Error in medicoServerService.suggestCode:', error);
       throw error;

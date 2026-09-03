@@ -67,10 +67,7 @@ function extractS028Permissions(payload: any): Set<string> {
 
     for (const code of collectOpciones(modulos)) {
       codes.add(code);
-    }
-
-    console.log(`🔑 S028 permisos extraídos: ${codes.size} códigos`, [...codes]);
-  } catch {
+    }  } catch {
     // ignore parse errors — fallback is full access
   }
   return codes;
@@ -145,9 +142,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       if (codes.size > 0) {
         saveCached(codes);
-        setPermissions(codes);
-        console.log(`✅ Permisos S028 cargados: ${codes.size} opciones`);
-      } else {
+        setPermissions(codes);      } else {
         console.warn('⚠️ Módulo S028 no encontrado en permisos — acceso total como fallback');
       }
     } catch (err) {

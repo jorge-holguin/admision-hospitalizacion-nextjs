@@ -21,10 +21,7 @@ export function EmergencyModalProvider({
   onClose,
   patientId,
   patientName
-}: EmergencyModalProviderProps) {
-  console.log('🚑 [EmergencyModalProvider] render', { isOpen, patientId, patientName })
-
-  // Solo renderizar los providers cuando el modal esté abierto
+}: EmergencyModalProviderProps) {  // Solo renderizar los providers cuando el modal esté abierto
   if (!isOpen) {
     return (
       <EmergencyMainModal

@@ -144,9 +144,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
       let patientsData: any[] = (data.data as any[]) || []
         
         // Si se busca por nombre, obtener fotos de los pacientes
-        if (searchType === 'nombre' && patientsData.length > 0) {
-          console.log('🖼️ Obteniendo fotos de pacientes...')
-          // Obtener fotos en paralelo para todos los pacientes
+        if (searchType === 'nombre' && patientsData.length > 0) {          // Obtener fotos en paralelo para todos los pacientes
           const patientsWithPhotos = await Promise.all(
             patientsData.map(async (patient: Patient) => {
               const pacienteId = patient.PACIENTE || patient.HISTORIA
@@ -157,9 +155,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
               return patient
             })
           )
-          patientsData = patientsWithPhotos
-          console.log('✅ Fotos obtenidas para', patientsData.filter((p: any) => p.STRING_FOTO).length, 'pacientes')
-        }
+          patientsData = patientsWithPhotos        }
         
         setPatients(patientsData as Patient[])
     } catch (error) {
@@ -192,18 +188,9 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     setShowFiliationSearch(true)
   }
 
-  const handleFiliationSearchComplete = (reniecData: any, sisData?: any) => {
-    console.log('🔄 handleFiliationSearchComplete en PatientSearchModal (appointments):')
-    console.log('   - reniecData recibido:', reniecData ? 'Sí' : 'No')
-    console.log('   - sisData recibido:', sisData ? 'Sí' : 'No')
-    if (sisData) {
-      console.log('   - sisData.tipoSeguro:', sisData.tipoSeguro)
-      console.log('   - sisData completo:', JSON.stringify(sisData, null, 2))
-    }
+  const handleFiliationSearchComplete = (reniecData: any, sisData?: any) => {    if (sisData) {    }
     setReniecData(reniecData)
-    setSisData(sisData || null)
-    console.log('✅ Estados actualizados, abriendo modal de registro')
-    setShowFiliationSearch(false)
+    setSisData(sisData || null)    setShowFiliationSearch(false)
     setShowRegistrationModal(true)
   }
 
@@ -221,9 +208,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     // ✅ En lugar de cerrar, buscar al paciente recién creado
     const documentToSearch = newPatientDocument || prefilledDocument
     
-    if (documentToSearch) {
-      console.log('🔍 Buscando paciente recién creado:', documentToSearch)
-      setSearchTerm(documentToSearch)
+    if (documentToSearch) {      setSearchTerm(documentToSearch)
       setSearchType('documento')
       setPrefilledDocument("")
       setHasSearched(true)
@@ -234,14 +219,9 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         const data = await filiacionService.getPaginatedFiliacion(
           { documento: documentToSearch.trim() },
           { page: 1, pageSize: 10 }
-        )
-        console.log('📦 Respuesta de búsqueda:', data)
+        )        const patients = (data.data as any[]) || []
 
-        const patients = (data.data as any[]) || []
-
-        if (Array.isArray(patients) && patients.length > 0) {
-          console.log('✅ Paciente encontrado:', patients[0])
-          setPatients(patients as Patient[])
+        if (Array.isArray(patients) && patients.length > 0) {          setPatients(patients as Patient[])
         } else {
           console.warn('⚠️ No se encontró el paciente recién creado')
           setPatients([])

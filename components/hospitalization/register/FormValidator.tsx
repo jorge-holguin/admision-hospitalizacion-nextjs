@@ -52,10 +52,7 @@ export function validateHospitalizationForm(formData: FormData): ValidationResul
   });
   
   // Si la procedencia es RN, no validamos el código de origen de atención
-  if (formData.procedencia === 'RN') {
-    console.log('Procedencia es RN - aplicando validación especial');
-    
-    // Para RN, validamos todos los campos excepto el código de origen de atención
+  if (formData.procedencia === 'RN') {    // Para RN, validamos todos los campos excepto el código de origen de atención
     const rnRequiredFields = [
       { key: 'hospitalizedIn', label: 'Hospitalizado en' },
       { key: 'authorizingDoctor', label: 'Médico Autorizante' },

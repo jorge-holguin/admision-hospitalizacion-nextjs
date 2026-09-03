@@ -37,10 +37,7 @@ export function SISVerification({
   className = "", 
   buttonSize = "sm",
   onVerificationComplete 
-}: SISVerificationProps) {
-  console.log('🛡️ [SISVerification] render', { patientId, documento, buttonSize })
-
-  const { toast } = useToast();
+}: SISVerificationProps) {  const { toast } = useToast();
   
   // Estado para almacenar el resultado de la verificación
   const [verificationState, setVerificationState] = useState<SISVerificationState>({
@@ -54,10 +51,7 @@ export function SISVerification({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Función para verificar SIS
-  const handleVerifySIS = async () => {
-    console.log('🛡️ [SISVerification] handleVerifySIS called', { patientId, documento, isDialogOpen });
-
-    if (!documento) {
+  const handleVerifySIS = async () => {    if (!documento) {
       console.warn('🛡️ [SISVerification] documento is empty/missing');
       toast({
         title: "Error",
@@ -76,17 +70,8 @@ export function SISVerification({
     });
 
     // Abrir el modal de inmediato para mostrar progreso
-    setIsDialogOpen(true);
-    console.log('🛡️ [SISVerification] dialog set to open');
-
-    try {
-      console.log(`📋 Verificando SIS - Documento: ${documento} (${documento.length} dígitos)`);
-
-      // Usar el servicio existente que lee NEXT_PUBLIC_API_BACKEND_URL / NEXT_PUBLIC_API_CITAS_MASTER_URL
-      const sisResult = await consultarSIS(documento);
-      console.log('🛡️ [SISVerification] service response', sisResult);
-
-      const data = sisResult.data;
+    setIsDialogOpen(true);    try {      // Usar el servicio existente que lee NEXT_PUBLIC_API_BACKEND_URL / NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const sisResult = await consultarSIS(documento);      const data = sisResult.data;
       const resultado = (data?.resultado || sisResult.error || '').trim();
 
       const trimField = (value?: string | null) => (value ? value.trim() : undefined);

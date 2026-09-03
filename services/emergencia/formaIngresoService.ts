@@ -12,10 +12,7 @@ export interface FormaIngreso {
  */
 export class FormaIngresoService {
   async findAll(): Promise<FormaIngreso[]> {
-    try {
-      console.log('🔍 FormaIngresoService: Obteniendo formas de ingreso desde Spring Boot');
-      
-      const response = await fetch(API_ENDPOINTS.emergencia.admissionTypes, {
+    try {      const response = await fetch(API_ENDPOINTS.emergencia.admissionTypes, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -27,10 +24,7 @@ export class FormaIngresoService {
       }
 
       const data = await response.json();
-      const items = data.items || data.data || data;
-      console.log(`✅ FormaIngresoService: ${items.length} formas de ingreso obtenidas`);
-      
-      return items;
+      const items = data.items || data.data || data;      return items;
     } catch (error) {
       console.error('❌ Error al obtener formas de ingreso:', error);
       return [];

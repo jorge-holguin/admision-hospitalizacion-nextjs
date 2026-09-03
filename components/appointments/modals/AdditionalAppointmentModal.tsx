@@ -120,10 +120,7 @@ function AdditionalAppointmentModalContent({
 
   // Initialize form when modal opens
   useEffect(() => {
-    if (isOpen && patient) {
-      console.log('🔄 Inicializando modal para paciente:', patient.PACIENTE || patient.HISTORIA)
-      
-      // Set today's date
+    if (isOpen && patient) {      // Set today's date
       const today = new Date()
       setSelectedCalendarDate(today)
       setIsFechaConfirmed(true) // Fecha inicial confirmada
@@ -202,10 +199,7 @@ function AdditionalAppointmentModalContent({
         const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=25`)
         
         if (response.ok) {
-          const data = await response.json()
-          console.log('📋 Citas existentes del paciente:', data)
-          
-          // Verificar si hay citas para el consultorio seleccionado
+          const data = await response.json()          // Verificar si hay citas para el consultorio seleccionado
           if (Array.isArray(data) && data.length > 0) {
             const citasEnConsultorio = data.filter((cita: any) => 
               cita.consultorio?.trim() === consultorio?.trim() || 
@@ -353,10 +347,7 @@ function AdditionalAppointmentModalContent({
 
   // Función para cargar datos completos del paciente con foto
   const loadPatientPhotoAndData = async (pacienteId: string) => {
-    try {
-      console.log('🖼️ Cargando foto y datos del paciente:', pacienteId)
-      
-      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
+    try {      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
       
       if (!response.ok) {
@@ -364,10 +355,7 @@ function AdditionalAppointmentModalContent({
         return
       }
       
-      const data = await response.json()
-      console.log('✅ Datos del paciente con foto cargados:', data)
-      
-      // Actualizar refreshedPatient con los datos completos incluyendo foto
+      const data = await response.json()      // Actualizar refreshedPatient con los datos completos incluyendo foto
       setRefreshedPatient({
         ...patient,
         ...data,
@@ -437,11 +425,7 @@ function AdditionalAppointmentModalContent({
         // recibidoRefcon: 0=manual, 1=pendiente sync (fallido), 2=synced OK (por defecto), 3=reutilizada (estado 5 o 7)
         // Inicialmente asumimos éxito (2), solo cambiamos a 1 si REFCON falla
         recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2)
-      }
-      
-      console.log('🚀 Enviando cita adicional:', requestBody)
-      
-      // Extraer el ID de la cita creada primero para poder actualizar REFCON después
+      }      // Extraer el ID de la cita creada primero para poder actualizar REFCON después
       // (En citas adicionales, necesitamos crear primero y luego actualizar REFCON)
       
       // Call the API
@@ -490,30 +474,14 @@ function AdditionalAppointmentModalContent({
           variant: "destructive"
         })
         return
-      }
-      
-      console.log('✅ Respuesta de la API:', responseData)
-      
-      // Extraer el ID de la cita creada de la respuesta
-      const citaId = responseData.citaId || responseData.id || responseData.data?.citaId || null
-      
-      console.log('🎯 Estableciendo showSuccess = true')
-      console.log('📋 Datos de cita creada:', responseData)
-      
-      // Guardar datos de la cita creada
+      }      // Extraer el ID de la cita creada de la respuesta
+      const citaId = responseData.citaId || responseData.id || responseData.data?.citaId || null      // Guardar datos de la cita creada
       setCreatedAppointment(responseData)
-      setShowSuccess(true)
-      
-      console.log('✅ showSuccess establecido, el modal debería aparecer')
-      
-      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
+      setShowSuccess(true)      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
       const esReferenciaManualSync = referenciaIdSeleccionada?.startsWith('manual-')
       
       if (referenciaIdSeleccionada && citaId && esSeguroSIS(tipoSeguro) && !esReferenciaManualSync && !skipRefconSync) {
-        try {
-          console.log('🔄 Iniciando sincronización con REFCON (Seguro SIS detectado)...')
-          
-          const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
+        try {          const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
           
           // 1. Obtener datos de la cita desde REFCON
           const citaRefconResult = await obtenerDatosCitaRefcon(citaId, usuarioDni)
@@ -521,26 +489,17 @@ function AdditionalAppointmentModalContent({
           if (!citaRefconResult.success || !citaRefconResult.data) {
             console.warn('⚠️ No se pudieron obtener datos de REFCON:', citaRefconResult.error)
           } else {
-            const datosRefcon = citaRefconResult.data
-            console.log('📋 Datos obtenidos de REFCON:', datosRefcon)
-            
-            // 2. Construir payload con datos obtenidos + idReferencia
+            const datosRefcon = citaRefconResult.data            // 2. Construir payload con datos obtenidos + idReferencia
             const refconPayload = {
               codUnicoDestino: datosRefcon.codUnicoDestino || "00005947",
               idReferencia: referenciaIdSeleccionada,
               datosCita: datosRefcon.datosCita || {},
               datosMedico: datosRefcon.datosMedico || {},
               personalRegistra: datosRefcon.personalRegistra || {}
-            }
-            
-            console.log('📦 Payload para sincronización:', refconPayload)
-            
-            // 3. Sincronizar con REFCON
+            }            // 3. Sincronizar con REFCON
             const syncResult = await sincronizarCitaConRefcon(refconPayload)
             
-            if (syncResult.success) {
-              console.log('✅ Cita sincronizada exitosamente con REFCON')
-              setRefconSyncSuccess(true)
+            if (syncResult.success) {              setRefconSyncSuccess(true)
               setRefconSyncError(null)
               // Estado REFCON 2 ya fue establecido al crear la cita, no se requiere actualización
             } else {
@@ -548,12 +507,8 @@ function AdditionalAppointmentModalContent({
               setRefconSyncSuccess(false)
               setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
               
-              // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló
-              console.log('🔄 Actualizando estado REFCON a 1 (sincronización fallida)...')
-              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
-              if (estadoRefconResult.success) {
-                console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
-              } else {
+              // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
+              if (estadoRefconResult.success) {              } else {
                 console.warn('⚠️ No se pudo actualizar estado REFCON a 1:', estadoRefconResult.error)
               }
             }
@@ -565,24 +520,14 @@ function AdditionalAppointmentModalContent({
           
           // Actualizar estado REFCON a 1 por error
           if (citaId) {
-            try {
-              console.log('🔄 Actualizando estado REFCON a 1 (error en sincronización)...')
-              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
-              if (estadoRefconResult.success) {
-                console.log('✅ Estado REFCON actualizado a 1 (pendiente)')
-              }
+            try {              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
+              if (estadoRefconResult.success) {              }
             } catch (updateError) {
               console.warn('⚠️ No se pudo actualizar estado REFCON:', updateError)
             }
           }
         }
-      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {
-        console.log('ℹ️ Sincronización REFCON omitida: Referencia ingresada manualmente')
-      } else if (referenciaIdSeleccionada && skipRefconSync) {
-        console.log('ℹ️ Sincronización REFCON omitida: Referencia con estado RECIBIDO o CITADO (no requiere sincronización)')
-      } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {
-        console.log('ℹ️ Sincronización REFCON omitida: Seguro no es SIS (código:', tipoSeguro, ')')
-      }
+      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {      } else if (referenciaIdSeleccionada && skipRefconSync) {      } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {      }
       
       // Imprimir la cita automáticamente si tenemos el ID
       if (citaId) {
@@ -611,20 +556,14 @@ function AdditionalAppointmentModalContent({
   }
 
   const imprimirCitaAsignada = async (citaId: string) => {
-    try {
-      console.log('🖨️ Obteniendo datos de la cita para imprimir:', citaId)
-      
-      // Obtener datos completos de la cita
+    try {      // Obtener datos completos de la cita
       const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${citaId}`)
       
       if (!response.ok) {
         throw new Error('No se pudo obtener los datos de la cita')
       }
       
-      const citaData = await response.json()
-      console.log('📋 Datos de cita recibidos para impresión:', citaData)
-      
-      // Obtener el operador desde el JWT
+      const citaData = await response.json()      // Obtener el operador desde el JWT
       const operador = extractNombreCompletoFromToken() || 'OPERADOR'
       
       // Formatear turno
@@ -638,9 +577,7 @@ function AdditionalAppointmentModalContent({
         try {
           const entidadResult = await obtenerEntidadSISPorCodigo(citaData.entidadSis.trim())
           if (entidadResult.success && entidadResult.data) {
-            eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}`
-            console.log('✅ EESS formateado:', eessFormatted)
-          } else {
+            eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}`          } else {
             eessFormatted = citaData.entidadSis.trim()
           }
         } catch (error) {
@@ -666,13 +603,7 @@ function AdditionalAppointmentModalContent({
         // Incluir campos SIS si existen
         ...(citaData.numRef && { nroRef: citaData.numRef }),
         ...(eessFormatted && { eess: eessFormatted })
-      }
-      
-      console.log('🖨️ Enviando cita a imprimir:', citaDto)
-      await imprimirCita(citaDto)
-      
-      console.log('✅ Cita enviada a imprimir correctamente')
-    } catch (error) {
+      }      await imprimirCita(citaDto)    } catch (error) {
       console.error('❌ Error al imprimir cita:', error)
       // No mostrar error al usuario ya que la creación fue exitosa
     }

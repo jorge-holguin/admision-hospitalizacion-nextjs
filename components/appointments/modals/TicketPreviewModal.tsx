@@ -69,13 +69,9 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
         return
       }
 
-      try {
-        console.log('🔍 Obteniendo nombre de entidad SIS:', ticketData.entidadSis)
-        const result = await obtenerEntidadSISPorCodigo(ticketData.entidadSis.trim())
+      try {        const result = await obtenerEntidadSISPorCodigo(ticketData.entidadSis.trim())
         if (result.success && result.data) {
-          setEntidadSisNombre(result.data.NOMBRE)
-          console.log('✅ Nombre de entidad SIS obtenido:', result.data.NOMBRE)
-        } else {
+          setEntidadSisNombre(result.data.NOMBRE)        } else {
           console.warn('⚠️ No se pudo obtener el nombre de la entidad SIS')
           setEntidadSisNombre('')
         }

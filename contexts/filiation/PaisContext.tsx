@@ -31,15 +31,11 @@ export function PaisProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      setLoading(true)
-      console.log('🔍 PaisContext: Buscando países:', `${API_BASE_URL}/maestro/pais/buscar?nombre=${nombre}&limite=20`)
-      const response = await fetch(`${API_BASE_URL}/maestro/pais/buscar?nombre=${encodeURIComponent(nombre)}&limite=20`)
+      setLoading(true)      const response = await fetch(`${API_BASE_URL}/maestro/pais/buscar?nombre=${encodeURIComponent(nombre)}&limite=20`)
       
       if (!response.ok) throw new Error('Error al buscar países')
       
-      const data = await response.json()
-      console.log('✅ PaisContext: Países encontrados:', data?.length || 0, 'registros')
-      setPaises(data || [])
+      const data = await response.json()      setPaises(data || [])
       setError(null)
     } catch (err) {
       console.error('❌ Error al buscar países:', err)

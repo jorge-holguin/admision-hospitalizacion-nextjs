@@ -33,18 +33,12 @@ export function FormasIngresoProvider({ children }: { children: React.ReactNode 
 
   const loadFormasIngreso = async () => {
     try {
-      setLoading(true)
-
-      console.log('🚑 [FormasIngresoContext] fetching formas de ingreso')
-      const items = await formaIngresoService.findAll()
+      setLoading(true)      const items = await formaIngresoService.findAll()
 
       const formasData: FormaIngreso[] = items.map((item: any) => ({
         FORMA_INGRESO: item.codigo || item.formaIngreso || item.FORMA_INGRESO || '',
         NOMBRE: item.nombre || item.NOMBRE || ''
-      }))
-
-      console.log('🚑 [FormasIngresoContext] items count', formasData.length)
-      setFormasIngreso(formasData)
+      }))      setFormasIngreso(formasData)
 
     } catch (error) {
       console.error('❌ Error al cargar formas de ingreso en contexto:', error)

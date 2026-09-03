@@ -58,10 +58,7 @@ export const localidadServerService = {
     pageSize: number = 10,
     filters: LocalidadFilters = {}
   ): Promise<PaginatedResponse<Localidad>> {
-    try {
-      console.log(`🔍 Buscando localidades - página ${page}, tamaño ${pageSize}`);
-      
-      const params: Record<string, string> = {
+    try {      const params: Record<string, string> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
@@ -81,11 +78,7 @@ export const localidadServerService = {
       // Normalizar respuesta
       const data = Array.isArray(result) ? result : (result.data || []);
       const total = result.total || data.length;
-      const normalized = data.map(normalizeLocalidad);
-      
-      console.log(`✅ Encontradas ${normalized.length} localidades (total: ${total})`);
-      
-      return {
+      const normalized = data.map(normalizeLocalidad);      return {
         data: normalized,
         total,
         page,
@@ -99,25 +92,17 @@ export const localidadServerService = {
   },
 
   async getLocalidadById(id: string): Promise<Localidad | null> {
-    try {
-      console.log(`🔍 Buscando localidad: ${id}`);
-      
-      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
+    try {      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró localidad ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Localidad encontrada: ${id}`);
-      
-      return normalizeLocalidad(data);
+      const data = await response.json();      return normalizeLocalidad(data);
     } catch (error) {
       console.error(`❌ Error in localidadServerService.getLocalidadById(${id}):`, error);
       throw error;
@@ -125,10 +110,7 @@ export const localidadServerService = {
   },
 
   async createLocalidad(data: Partial<Localidad>): Promise<Localidad> {
-    try {
-      console.log(`➕ Creando localidad: ${data.LOCALIDAD}`);
-      
-      const url = API_ENDPOINTS.masterTables.localidades.list;
+    try {      const url = API_ENDPOINTS.masterTables.localidades.list;
       const response = await fetchApi(url, {
         method: 'POST',
         body: JSON.stringify(data),
@@ -139,10 +121,7 @@ export const localidadServerService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();
-      console.log(`✅ Localidad creada: ${data.LOCALIDAD}`);
-      
-      return normalizeLocalidad(result);
+      const result = await response.json();      return normalizeLocalidad(result);
     } catch (error) {
       console.error('❌ Error in localidadServerService.createLocalidad:', error);
       throw error;
@@ -150,18 +129,13 @@ export const localidadServerService = {
   },
 
   async updateLocalidad(id: string, data: Partial<Localidad>): Promise<Localidad | null> {
-    try {
-      console.log(`🔄 Actualizando localidad: ${id}`);
-      
-      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
+    try {      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
       const response = await fetchApi(url, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró localidad ${id}`);
-        return null;
+      if (response.status === 404) {        return null;
       }
       
       if (!response.ok) {
@@ -169,10 +143,7 @@ export const localidadServerService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();
-      console.log(`✅ Localidad actualizada: ${id}`);
-      
-      return normalizeLocalidad(result);
+      const result = await response.json();      return normalizeLocalidad(result);
     } catch (error) {
       console.error(`❌ Error in localidadServerService.updateLocalidad(${id}):`, error);
       throw error;
@@ -180,25 +151,17 @@ export const localidadServerService = {
   },
 
   async deleteLocalidad(id: string): Promise<boolean> {
-    try {
-      console.log(`🗑️ Eliminando localidad: ${id}`);
-      
-      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
+    try {      const url = API_ENDPOINTS.masterTables.localidades.byId(id);
       const response = await fetchApi(url, {
         method: 'DELETE',
       });
       
-      if (response.status === 404) {
-        console.log(`⚠️ No se encontró localidad ${id}`);
-        return false;
+      if (response.status === 404) {        return false;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      console.log(`✅ Localidad eliminada: ${id}`);
-      return true;
+      }      return true;
     } catch (error) {
       console.error(`❌ Error in localidadServerService.deleteLocalidad(${id}):`, error);
       throw error;

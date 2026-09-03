@@ -79,16 +79,8 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
       // Si no hay búsqueda, obtener por código de país: /maestro/pais/{codigo}
       const url = search 
         ? `${baseUrl}/maestro/pais/buscar?nombre=${encodeURIComponent(search)}`
-        : `${baseUrl}/maestro/pais/${value || ""}`;
-      
-      console.log('🔍 Cargando países desde:', url);
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      console.log('✅ Países cargados:', data);
-      
-      // El backend puede devolver un solo objeto (para /{codigo}) o un arreglo (para /buscar)
+        : `${baseUrl}/maestro/pais/${value || ""}`;      const response = await fetch(url);
+      const data = await response.json();      // El backend puede devolver un solo objeto (para /{codigo}) o un arreglo (para /buscar)
       if (Array.isArray(data)) {
         setPaises(data);
       } else if (data) {

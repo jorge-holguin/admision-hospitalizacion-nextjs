@@ -62,17 +62,12 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       
       const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL 
       // desde y hasta deben ser iguales (misma fecha)
-      const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`
-      
-      console.log('🔍 MedicoSelector: Cargando médicos-consultorios:', url)
-      const res = await fetch(url, { signal })
+      const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`      const res = await fetch(url, { signal })
       if (!res.ok) {
         console.warn('⚠️ MedicoSelector: Error al cargar médicos-consultorios:', res.status)
         return
       }
-      const data: MedicoConsultorioItem[] = await res.json()
-      console.log('✅ MedicoSelector: Médicos-consultorios cargados:', data.length)
-      setMedicoConsultorioItems(data)
+      const data: MedicoConsultorioItem[] = await res.json()      setMedicoConsultorioItems(data)
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('❌ MedicoSelector: Error:', error)

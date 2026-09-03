@@ -19,10 +19,7 @@ class NextIdService {
    * Obtiene el siguiente ID de emergencia y número de orden
    */
   async getNextIds(): Promise<NextIds> {
-    try {
-      console.log('🔍 NextIdService: Obteniendo siguiente ID de emergencia desde Spring Boot');
-      
-      const response = await fetch(API_ENDPOINTS.emergencia.nextId, {
+    try {      const response = await fetch(API_ENDPOINTS.emergencia.nextId, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -33,10 +30,7 @@ class NextIdService {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      const data: NextIdResponse = await response.json();
-      console.log(`✅ NextIdService: ID obtenido: ${data.nextId}`);
-      
-      return {
+      const data: NextIdResponse = await response.json();      return {
         emergenciaId: data.nextId,
         orden: data.orden || '001'
       };

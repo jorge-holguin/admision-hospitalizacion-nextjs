@@ -45,23 +45,13 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
       return codigoLimpio && !medicoCache.current.has(codigoLimpio);
     });
     
-    if (!codigosFaltantes.length) {
-      console.log('Todos los médicos ya están en cache');
-      return;
-    }
-    
-    console.log(`Cargando ${codigosFaltantes.length} médicos faltantes:`, codigosFaltantes);
-    
-    try {
+    if (!codigosFaltantes.length) {      return;
+    }    try {
       setLoading(true);
       const codigosParam = codigosFaltantes.join(',');
       
       const { medicoServerService } = await import('@/services/master-tables/medicoService');
-      const nuevosMedicos = await medicoServerService.searchMedicos({ codigos: codigosParam });
-      
-      console.log(`Cargados ${nuevosMedicos.length} médicos adicionales`);
-      
-      // Actualizar el cache y el estado
+      const nuevosMedicos = await medicoServerService.searchMedicos({ codigos: codigosParam });      // Actualizar el cache y el estado
       nuevosMedicos.forEach((medico: MedicoInfo) => {
         if (medico.MEDICO) {
           medicoCache.current.set(medico.MEDICO.trim(), medico);
@@ -91,19 +81,11 @@ export function MedicosProvider({ children }: { children: React.ReactNode }) {
 
   // Función para cargar médicos por especialidad
   const loadMedicosByEspecialidad = useCallback(async (especialidad: string) => {
-    if (!especialidad) return;
-    
-    console.log(`Cargando médicos de especialidad: ${especialidad}`);
-    
-    try {
+    if (!especialidad) return;    try {
       setLoading(true);
       
       const { medicoServerService } = await import('@/services/master-tables/medicoService');
-      const nuevosMedicos = await medicoServerService.searchMedicos({ especialidad });
-      
-      console.log(`Cargados ${nuevosMedicos.length} médicos de especialidad ${especialidad}`);
-      
-      // Actualizar el cache y el estado
+      const nuevosMedicos = await medicoServerService.searchMedicos({ especialidad });      // Actualizar el cache y el estado
       nuevosMedicos.forEach((medico: MedicoInfo) => {
         if (medico.MEDICO) {
           medicoCache.current.set(medico.MEDICO.trim(), medico);

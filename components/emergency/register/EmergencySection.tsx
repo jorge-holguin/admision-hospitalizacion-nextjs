@@ -116,9 +116,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
     if (effectiveLoadingMotivos || contextHasValidCodes) return
     let cancelled = false
     const load = async () => {
-      try {
-        console.log('🚑 [EmergencySection] fallback: cargando motivos directamente')
-        const items = await motivoEmergenciaService.findAll()
+      try {        const items = await motivoEmergenciaService.findAll()
         if (!cancelled) setFallbackMotivos(items || [])
       } catch (error) {
         console.error('❌ [EmergencySection] error cargando motivos:', error)
@@ -198,25 +196,17 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
   // ===== Ya no necesitamos cargas remotas, usamos contextos =====
   const loadMotivos = async (search: string = "") => {
-    // Esta función ya no hace nada, solo muestra logs
-    console.log('📊 Usando motivos desde contexto:', contextMotivos?.length || 0);
-  };
+    // Esta función ya no hace nada, solo muestra logs  };
 
   // Ya no necesitamos cargar consultorios manualmente, usamos el contexto
   const loadConsultorios = async (search: string = "") => {
-    // Esta función ya no hace nada, solo muestra logs
-    console.log('🏥 Usando consultorios desde contexto:', contextConsultorios?.length || 0);
-  };
+    // Esta función ya no hace nada, solo muestra logs  };
 
   const loadFormasIngreso = async (search: string = "") => {
-    // Esta función ya no hace nada, solo muestra logs
-    console.log('🚪 Usando formas de ingreso desde contexto:', contextFormasIngreso?.length || 0);
-  };
+    // Esta función ya no hace nada, solo muestra logs  };
 
   const loadSeguros = async (search: string = "") => {
-    // Esta función ya no hace nada, solo muestra logs
-    console.log('🛡️ Usando seguros desde contexto:', contextSeguros?.length || 0);
-  };
+    // Esta función ya no hace nada, solo muestra logs  };
 
   useEffect(() => {
   }, [contextMotivos, contextFormasIngreso, contextConsultorios, contextSeguros]);
@@ -498,10 +488,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             let seguroValue = opt.value;
             let seguroData = opt.data;
             
-            if (seguroValue === '06') {
-              console.log('Seguro ESSALUD (06) detectado, cambiando automáticamente a PAGANTE (0)');
-              
-              // Find PAGANTE in the list of available insurance options
+            if (seguroValue === '06') {              // Find PAGANTE in the list of available insurance options
               const paganteSeguro = seguros.find(s => 
                 (s.Seguro && s.Seguro.trim() === '0') || 
                 (s.SEGURO && s.SEGURO.trim() === '0')
@@ -552,9 +539,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             options={formatEmpresasSeguro}
             loading={loadingEmpresasSeguro}
             search={searchAseguradora}
-            onSearchChange={(v: string) => {
-              console.log('⌨️ Escribiendo en búsqueda de aseguradora:', v);
-              setSearchAseguradora(v);
+            onSearchChange={(v: string) => {              setSearchAseguradora(v);
               // El debounce en useEffect hará el fetch automáticamente
             }}
             onSelect={(opt: OptionItem) => {

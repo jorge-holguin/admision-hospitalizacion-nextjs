@@ -38,10 +38,7 @@ export function EmergencyMainModal({
   onClose,
   patientId,
   patientName
-}: EmergencyMainModalProps) {
-  console.log('🚑 [EmergencyMainModal] render', { isOpen, patientId, patientName })
-
-  const { patientData } = usePatient()
+}: EmergencyMainModalProps) {  const { patientData } = usePatient()
   const [currentStep, setCurrentStep] = useState<ModalStep>('list')
   const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(null)
   const [selectedEmergencyData, setSelectedEmergencyData] = useState<EmergencyData | null>(null)

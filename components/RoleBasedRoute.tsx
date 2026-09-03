@@ -64,9 +64,7 @@ export default function RoleBasedRoute({
       }
 
       if (isMounted) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ Acceso autorizado para ${moduleName}`);
-        }
+        if (process.env.NODE_ENV === 'development') {        }
         setIsAuthorized(true);
         setIsLoading(false);
       }

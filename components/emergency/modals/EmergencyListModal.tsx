@@ -175,16 +175,9 @@ export function EmergencyListModal({
 
   // Cargar emergencias
   const fetchEmergencies = async (page = 1, pageSize = 5) => {
-    if (!patientId) return
-
-    console.log('🚑 [EmergencyListModal] fetchEmergencies', { patientId, page, pageSize })
-
-    try {
+    if (!patientId) return    try {
       setLoading(true)
-      const result: any = await emergenciaService.getEmergenciasByPacienteId(patientId, { page, pageSize })
-      console.log('🚑 [EmergencyListModal] data', result)
-
-      // El endpoint Spring puede devolver: array plano, { data: [...] } o { content: [...] }
+      const result: any = await emergenciaService.getEmergenciasByPacienteId(patientId, { page, pageSize })      // El endpoint Spring puede devolver: array plano, { data: [...] } o { content: [...] }
       const rawList = extractRawList(result)
       const list = rawList.map(mapApiToEmergencyData)
       setEmergencies(list)
@@ -208,9 +201,7 @@ export function EmergencyListModal({
     }
   }
 
-  useEffect(() => {
-    console.log('🚑 [EmergencyListModal] effect', { isOpen, patientId })
-    if (isOpen && patientId) {
+  useEffect(() => {    if (isOpen && patientId) {
       fetchEmergencies()
     }
   }, [isOpen, patientId])
@@ -227,9 +218,7 @@ export function EmergencyListModal({
       // Desactivar la cuenta asociada si existe
       if (cuentaId) {
         try {
-          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })
-          console.log(`✅ Cuenta ${cuentaId} desactivada tras anular emergencia`)
-        } catch (cuentaErr) {
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })        } catch (cuentaErr) {
           console.warn('⚠️ No se pudo desactivar la cuenta:', cuentaErr)
         }
       }

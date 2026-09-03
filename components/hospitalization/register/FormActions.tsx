@@ -120,10 +120,7 @@ export function FormActions({
     if (requiresFuaValidation && patientId) {
       setCheckingFua(true)
       try {
-        const trimmedCode = insuranceCode?.split(' ')[0] || ''
-        console.log('🏥 Validando cuenta usando contexto (FormActions) para:', patientId, trimmedCode)
-        
-        // Usar contexto en lugar de llamada directa
+        const trimmedCode = insuranceCode?.split(' ')[0] || ''        // Usar contexto en lugar de llamada directa
         const accountData = await fetchPatientAccountBySeguro(patientId, trimmedCode)
         
         setHasFua(!!accountData)

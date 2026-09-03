@@ -36,21 +36,12 @@ export function DiagnosticosProvider({ children }: { children: React.ReactNode }
 
   const loadDiagnosticos = async (origen?: string) => {
     try {
-      setLoading(true)
-      console.log('🩺 Cargando diagnósticos desde contexto...', origen ? `para origen: ${origen}` : '')
-
-      const items = await diagnosticoService.findAllEmergencia(undefined, origen, 100)
-      console.log('✅ Diagnósticos cargados en contexto:', items)
-
-      // Extraer y mapear los items de la respuesta
+      setLoading(true)      const items = await diagnosticoService.findAllEmergencia(undefined, origen, 100)      // Extraer y mapear los items de la respuesta
       const diagnosticosData: Diagnostico[] = items.map((item: any) => ({
         CODIGO: item.Codigo || item.codigo || item.CODIGO || '',
         DESCRIPCION: item.Nombre || item.nombre || item.DESCRIPCION || '',
         ACTIVO: item.Activo ?? item.activo ?? item.ACTIVO ?? 1
-      }))
-
-      console.log('🩺 Datos procesados de diagnósticos:', diagnosticosData)
-      setDiagnosticos(diagnosticosData)
+      }))      setDiagnosticos(diagnosticosData)
 
     } catch (error) {
       console.error('❌ Error al cargar diagnósticos en contexto:', error)
@@ -59,9 +50,7 @@ export function DiagnosticosProvider({ children }: { children: React.ReactNode }
         { CODIGO: 'Z00.0', DESCRIPCION: 'Examen médico general' },
         { CODIGO: 'Z51.1', DESCRIPCION: 'Sesión de quimioterapia' },
         { CODIGO: 'I10', DESCRIPCION: 'Hipertensión esencial' }
-      ];
-      console.log('🩺 Usando datos de fallback para diagnósticos')
-      setDiagnosticos(fallbackData)
+      ];      setDiagnosticos(fallbackData)
     } finally {
       setLoading(false)
     }

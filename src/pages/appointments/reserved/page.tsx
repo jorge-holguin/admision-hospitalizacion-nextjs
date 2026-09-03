@@ -571,33 +571,20 @@ export default function ReservedAppointmentsPage() {
 
   // Manejar creación de historia clínica - Abrir modal de búsqueda
   const handleCrearHistoriaClinica = () => {
-    if (!reservaSinPaciente) return
-    
-    console.log('🔍 Abriendo modal de búsqueda para crear historia clínica')
-    console.log('   - Tipo documento:', reservaSinPaciente.tipoDocumento)
-    console.log('   - Número documento:', reservaSinPaciente.numeroDocumento)
-    
-    // Cerrar modal de advertencia y abrir modal de búsqueda
+    if (!reservaSinPaciente) return    // Cerrar modal de advertencia y abrir modal de búsqueda
     setShowPacienteNoEncontradoModal(false)
     setShowSearchModal(true)
   }
 
   // Manejar cuando PatientSearchModal encuentra o no encuentra datos
-  const handleSearchComplete = (reniecData: any, sisData: any) => {
-    console.log('✅ Búsqueda completada, abriendo modal de registro')
-    console.log('   - reniecData:', reniecData ? 'Presente' : 'Ausente')
-    console.log('   - sisData:', sisData ? 'Presente' : 'Ausente')
-    
-    setReniecData(reniecData)
+  const handleSearchComplete = (reniecData: any, sisData: any) => {    setReniecData(reniecData)
     setSisData(sisData)
     setShowSearchModal(false)
     setShowRegistrationModal(true)
   }
 
   // Manejar cuando se encuentra un paciente existente
-  const handlePatientFound = (patientData: any) => {
-    console.log('👤 Paciente encontrado en BD local:', patientData.HISTORIA)
-    toast({
+  const handlePatientFound = (patientData: any) => {    toast({
       title: "Paciente Encontrado",
       description: `El paciente ${patientData.NOMBRES} ya está registrado con HC: ${patientData.HISTORIA}`,
     })
@@ -626,9 +613,7 @@ export default function ReservedAppointmentsPage() {
   }
 
   // Manejar cancelación del modal de búsqueda
-  const handleSearchCancel = () => {
-    console.log('❌ Búsqueda cancelada, volviendo al modal de advertencia')
-    setShowSearchModal(false)
+  const handleSearchCancel = () => {    setShowSearchModal(false)
     setShowPacienteNoEncontradoModal(true)
   }
 
@@ -674,10 +659,7 @@ export default function ReservedAppointmentsPage() {
       return
     }
 
-    setIsRevirtiendo(true)
-    console.log('🔄 Revirtiendo estado de solicitud:', reservaARevertir.codigo)
-    
-    try {
+    setIsRevirtiendo(true)    try {
       const usuarioApellido = extractDocumentFromToken()
       
       // Determinar si la cita fue asignada (CITADO) o hubo error (DENEGADO)
@@ -685,9 +667,7 @@ export default function ReservedAppointmentsPage() {
       const errorFlag = !esEstadoCitado // error: true si fue denegado, false si fue citado
       
       // Si la cita fue asignada (CITADO), primero liberar la cita
-      if (esEstadoCitado && reservaARevertir.citaId) {
-        console.log('🔓 Liberando cita asignada:', reservaARevertir.citaId)
-        try {
+      if (esEstadoCitado && reservaARevertir.citaId) {        try {
           const liberarResponse = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${reservaARevertir.citaId}/liberar`, {
             method: 'PUT',
             headers: {
@@ -700,9 +680,7 @@ export default function ReservedAppointmentsPage() {
           if (!liberarResponse.ok) {
             console.warn(`⚠️ Advertencia al liberar cita: ${liberarResponse.status}`)
             // Continuamos con la reversión aunque falle la liberación
-          } else {
-            console.log('✅ Cita liberada exitosamente')
-          }
+          } else {          }
         } catch (liberarError) {
           console.error('❌ Error al liberar cita:', liberarError)
           // Continuamos con la reversión aunque falle la liberación

@@ -317,26 +317,17 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
-        const url = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`
-        console.log('🔍 Buscando citas:', url)
-        const res = await fetch(url)
+        const url = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`        const res = await fetch(url)
         if (!res.ok) {
           console.error('❌ Error en respuesta:', res.status, res.statusText)
           setFilteredAppointments([])
           setTotalCount(0)
           return
         }
-        const data = await res.json()
-        console.log('📦 Respuesta raw:', data)
-        
-        // Determinar si la respuesta es un array o tiene un campo content/items
+        const data = await res.json()        // Determinar si la respuesta es un array o tiene un campo content/items
         const list = Array.isArray(data) ? data : 
                      Array.isArray(data?.content) ? data.content : 
-                     Array.isArray(data?.items) ? data.items : []
-        
-        console.log('📋 Lista de citas:', list.length, 'items. Primer item:', list[0])
-                
-        const mapped = list.map((it: any, idx: number) => ({
+                     Array.isArray(data?.items) ? data.items : []        const mapped = list.map((it: any, idx: number) => ({
           id: String(it.citaId || it.CITAID || it.id || it.ID || `R${idx}`),
           estado: Number(it.estado ?? it.ESTADO ?? 1),
           fecha: String(it.fecha ?? it.FECHA ?? new Date().toISOString().slice(0,10)),
@@ -411,9 +402,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         return
       }
       
-      const timer = setTimeout(() => {
-        console.log('🔍 Búsqueda por nombre de consultorio:', consultorioNameSearch)
-        searchAppointmentsByParams()
+      const timer = setTimeout(() => {        searchAppointmentsByParams()
       }, 500) // 500ms de debounce
       
       return () => clearTimeout(timer)
@@ -441,11 +430,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           setTotalCount(0)
           return
         }
-        const data = await res.json()
-        
-        console.log('🔍 Búsqueda por ID - Respuesta API:', data)
-        
-        // Verificar si realmente se encontró una cita válida
+        const data = await res.json()        // Verificar si realmente se encontró una cita válida
         if (!data || (Array.isArray(data) && data.length === 0)) {
           setFilteredAppointments([])
           setTotalCount(0)

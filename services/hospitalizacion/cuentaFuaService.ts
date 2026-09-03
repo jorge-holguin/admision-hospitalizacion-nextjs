@@ -19,10 +19,7 @@ export interface FuaCheckResult {
  * Verifica si un paciente tiene un FUA activo en las últimas 3 horas
  */
 export async function checkActiveFua(patientId: string): Promise<FuaCheckResult> {
-  try {
-    console.log(`🔍 Verificando FUA activo para paciente: ${patientId}`);
-    
-    const url = API_ENDPOINTS.cuentas.fua.checkActivaByPaciente(patientId);
+  try {    const url = API_ENDPOINTS.cuentas.fua.checkActivaByPaciente(patientId);
     const response = await fetchApi(url);
     
     if (response.status === 404) {
@@ -40,11 +37,7 @@ export async function checkActiveFua(patientId: string): Promise<FuaCheckResult>
     const data = await response.json();
     
     const hasFua = data && (data.hasFua || data.ID_CUENTA);
-    const fuaId = hasFua ? (data.fuaId || data.ID_CUENTA) : null;
-    
-    console.log(`${hasFua ? '✅' : '⚠️'} FUA ${hasFua ? 'activo encontrado' : 'no encontrado'} para paciente ${patientId}`);
-    
-    return { 
+    const fuaId = hasFua ? (data.fuaId || data.ID_CUENTA) : null;    return { 
       hasFua,
       fuaId,
       message: hasFua 

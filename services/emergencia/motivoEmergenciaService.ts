@@ -12,10 +12,7 @@ export interface MotivoEmergencia {
  */
 export class MotivoEmergenciaService {
   async findAll(): Promise<MotivoEmergencia[]> {
-    try {
-      console.log('🔍 MotivoEmergenciaService: Obteniendo motivos de emergencia desde Spring Boot');
-      
-      const response = await fetch(API_ENDPOINTS.emergencia.reasons, {
+    try {      const response = await fetch(API_ENDPOINTS.emergencia.reasons, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -27,10 +24,7 @@ export class MotivoEmergenciaService {
       }
 
       const data = await response.json();
-      const items = data.items || data.data || data;
-      console.log(`✅ MotivoEmergenciaService: ${items.length} motivos de emergencia obtenidos`);
-      
-      return items;
+      const items = data.items || data.data || data;      return items;
     } catch (error) {
       console.error('❌ Error al obtener motivos de emergencia:', error);
       return [];

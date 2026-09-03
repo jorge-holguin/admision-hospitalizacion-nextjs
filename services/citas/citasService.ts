@@ -114,10 +114,7 @@ export async function searchCitasByDocumento(
   size: number = 10,
   tipoDocumento: string = 'D'
 ): Promise<CitaSearchResult> {
-  try {
-    console.log(`🔍 Buscando citas por documento: ${documento}, tipo: ${tipoDocumento}`);
-
-    const params: Record<string, string> = {
+  try {    const params: Record<string, string> = {
       documento,
       tipoDocumento,
       page: page.toString(),
@@ -145,11 +142,7 @@ export async function searchCitasByDocumento(
     // Normalizar respuesta del backend
     const content = (result.content || result.data || []).map(normalizeCita);
     const totalElements = result.totalElements || result.total || content.length;
-    const totalPages = result.totalPages || Math.ceil(totalElements / size);
-
-    console.log(`✅ Encontradas ${content.length} citas (total: ${totalElements})`);
-
-    return {
+    const totalPages = result.totalPages || Math.ceil(totalElements / size);    return {
       content,
       totalElements,
       totalPages,
@@ -172,10 +165,7 @@ export async function searchCitasByNombres(
   page: number = 0,
   size: number = 10
 ): Promise<CitaSearchResult> {
-  try {
-    console.log(`🔍 Buscando citas por nombre: ${nombres}`);
-
-    const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres });
+  try {    const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres });
     const response = await fetchApi(url);
 
     if (!response.ok) {
@@ -190,9 +180,7 @@ export async function searchCitasByNombres(
       ? result
       : (result.data || result.content || result.pacientes || result.result || []);
 
-    if (pacientes.length === 0) {
-      console.log('⚠️ No se encontró paciente por nombre');
-      return { content: [], totalElements: 0, totalPages: 0, last: true };
+    if (pacientes.length === 0) {      return { content: [], totalElements: 0, totalPages: 0, last: true };
     }
 
     const paciente = pacientes[0];
@@ -211,11 +199,7 @@ export async function searchCitasByNombres(
       (typeof paciente.tipoDocumento === 'string' ? paciente.tipoDocumento.trim() : undefined) ||
       (typeof paciente.tipoDocument === 'string' ? paciente.tipoDocument.trim() : undefined) ||
       (typeof paciente.documentType === 'string' ? paciente.documentType.trim() : undefined) ||
-      'D';
-
-    console.log(`✅ Paciente encontrado: ${paciente.NOMBRES || paciente.nombres || paciente.nombre}, documento: ${documento}, tipo: ${tipoDocumento}`);
-
-    return searchCitasByDocumento(documento, filters, page, size, tipoDocumento);
+      'D';    return searchCitasByDocumento(documento, filters, page, size, tipoDocumento);
   } catch (error) {
     console.error('❌ Error searching citas by nombres:', error);
     throw new Error('Error al buscar citas por nombres');
@@ -230,10 +214,7 @@ export async function updateFechaPago(
   fechaPago: Date,
   estado: string = '3'
 ): Promise<void> {
-  try {
-    console.log(`🔄 Actualizando fecha de pago para cita: ${citaId}`);
-
-    const url = `${API_ENDPOINTS.citas.byId(citaId)}/fecha-pago`;
+  try {    const url = `${API_ENDPOINTS.citas.byId(citaId)}/fecha-pago`;
     const response = await fetchApi(url, {
       method: 'PUT',
       body: JSON.stringify({
@@ -245,10 +226,7 @@ export async function updateFechaPago(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-    }
-
-    console.log(`✅ FECHA_PAGO y ESTADO='${estado}' actualizados para cita ${citaId}`);
-  } catch (error) {
+    }  } catch (error) {
     console.error('❌ Error al actualizar FECHA_PAGO y ESTADO:', error);
     throw new Error('Error al actualizar fecha de pago y estado de la cita');
   }
@@ -264,10 +242,7 @@ export async function getMedicosByDate(
   fecha: string,
   consultorio?: string
 ): Promise<MedicoByDate[]> {
-  try {
-    console.log(`🔍 Obteniendo médicos por fecha: ${fecha}${consultorio ? ` y consultorio ${consultorio}` : ''}`);
-
-    const params: Record<string, string> = { fecha };
+  try {    const params: Record<string, string> = { fecha };
     if (consultorio) params.consultorio = consultorio;
 
     const url = buildUrl(`${API_ENDPOINTS.citas.base}/medicos-por-fecha`, params);
@@ -286,10 +261,7 @@ export async function getMedicosByDate(
     const medicos = data.map((item: any) => ({
       MEDICO: (item.MEDICO || item.medico || '').trim(),
       NOMBRE: (item.NOMBRE || item.nombre || '').trim(),
-    }));
-
-    console.log(`✅ Médicos encontrados: ${medicos.length}`);
-    return medicos;
+    }));    return medicos;
   } catch (error) {
     console.error('❌ Error al obtener médicos por fecha:', error);
     throw new Error('Error al obtener médicos por fecha');

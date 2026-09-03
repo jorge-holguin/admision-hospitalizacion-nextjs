@@ -59,9 +59,7 @@ export function PatientPendingAppointments({
         throw new Error('Error al cargar citas pendientes')
       }
       
-      const data = await response.json()
-      console.log('📋 Citas pendientes del paciente:', data)
-      setAppointments(data || [])
+      const data = await response.json()      setAppointments(data || [])
     } catch (error) {
       console.error('❌ Error cargando citas pendientes:', error)
       setError('No se pudieron cargar las citas pendientes')

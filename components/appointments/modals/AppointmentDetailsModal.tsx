@@ -92,9 +92,7 @@ export function AppointmentDetailsModal({
     const fetchDiagnosticos = async () => {
       try {
         setLoadingDiagnosticos(true)
-        const url = API_ENDPOINTS.citas.diagnosticos(appointment.id)
-        console.log(`🌐 Cargando diagnósticos desde Spring:`, url)
-        const res = await fetch(url)
+        const url = API_ENDPOINTS.citas.diagnosticos(appointment.id)        const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
           const diagnosticos = data.diagnosticos ?? data ?? []
