@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import loginBgImage from "@/assets/login-bg.png"
+import loginBgImage from "../assets/login-bg.png"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
