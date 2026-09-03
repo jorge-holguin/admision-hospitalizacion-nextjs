@@ -70,9 +70,7 @@ export function HospitalizationViewModal({
         // Respuesta directa del objeto de hospitalización (con o sin mapeo de mayúsculas)
         hospitalizationData = normalizeHospitalizationData(data)
       } else {
-        // Formato desconocido
-        console.warn('Formato de respuesta desconocido:', data)
-        throw new Error('Formato de respuesta desconocido')
+        // Formato desconocido        throw new Error('Formato de respuesta desconocido')
       }
 
       setHospitalizationData(hospitalizationData) 

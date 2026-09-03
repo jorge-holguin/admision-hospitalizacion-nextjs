@@ -240,16 +240,12 @@ function isBlank(value: any): boolean {
  */
 export async function getEmergenciaById(id: string): Promise<EmergenciaData | null> {
   try {
-    if (!id) {
-      console.warn('⚠️ ID de emergencia no proporcionado');
-      return null;
+    if (!id) {      return null;
     }
     
     const url = buildUrl(API_ENDPOINTS.emergencia.byId(id));    const response = await fetchApi(url);
     
-    if (response.status === 404) {
-      console.warn('⚠️ Emergencia no encontrada:', id);
-      return null;
+    if (response.status === 404) {      return null;
     }
     
     if (!response.ok) {
@@ -277,9 +273,7 @@ export async function getEmergenciaById(id: string): Promise<EmergenciaData | nu
           data.direccion       = data.direccion       ?? p?.direccion       ?? p?.DIRECCION       ?? null;
           data.telefono1       = data.telefono1       ?? p?.telefono1       ?? p?.TELEFONO1       ?? null;
           data.estadoCivil     = data.estadoCivil     ?? getCivilStatusCode(p?.estadoCivil     ?? p?.ESTADO_CIVIL    ?? p?.ESTADOCIVIL, p?.NOMBRE_ESTADO_CIVIL ?? p?.nombreEstadoCivil) ?? null;        }
-      } catch (enrichErr) {
-        console.warn('⚠️ No se pudieron enriquecer datos del paciente en emergencia:', enrichErr);
-      }
+      } catch (enrichErr) {      }
     }
 
     // Fallback final: si aún faltan nombres separados pero tenemos el campo NOMBRES,

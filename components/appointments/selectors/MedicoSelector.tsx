@@ -63,9 +63,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL 
       // desde y hasta deben ser iguales (misma fecha)
       const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`      const res = await fetch(url, { signal })
-      if (!res.ok) {
-        console.warn('⚠️ MedicoSelector: Error al cargar médicos-consultorios:', res.status)
-        return
+      if (!res.ok) {        return
       }
       const data: MedicoConsultorioItem[] = await res.json()      setMedicoConsultorioItems(data)
     } catch (error: any) {

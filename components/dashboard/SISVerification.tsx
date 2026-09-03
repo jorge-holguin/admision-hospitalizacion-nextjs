@@ -51,9 +51,7 @@ export function SISVerification({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Función para verificar SIS
-  const handleVerifySIS = async () => {    if (!documento) {
-      console.warn('🛡️ [SISVerification] documento is empty/missing');
-      toast({
+  const handleVerifySIS = async () => {    if (!documento) {      toast({
         title: "Error",
         description: "No se encontró número de documento para este paciente",
         variant: "destructive"

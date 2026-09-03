@@ -113,16 +113,12 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     }
 
     // Fetch fresh permissions from the auth API
-    if (!API_AUTH) {
-      console.warn('⚠️ NEXT_PUBLIC_AUTH_API_URL no configurada — permisos S028 deshabilitados (acceso total)');
-      setIsLoaded(true);
+    if (!API_AUTH) {      setIsLoaded(true);
       return;
     }
 
     const documento = extractDocumentFromToken();
-    if (!documento) {
-      console.warn('⚠️ No se pudo extraer el documento del token — permisos S028 deshabilitados (acceso total)');
-      setIsLoaded(true);
+    if (!documento) {      setIsLoaded(true);
       return;
     }
 
@@ -131,9 +127,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        console.warn(`⚠️ Permisos S028: respuesta ${response.status} — usando acceso total como fallback`);
-        setIsLoaded(true);
+      if (!response.ok) {        setIsLoaded(true);
         return;
       }
 
@@ -142,12 +136,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       if (codes.size > 0) {
         saveCached(codes);
-        setPermissions(codes);      } else {
-        console.warn('⚠️ Módulo S028 no encontrado en permisos — acceso total como fallback');
-      }
-    } catch (err) {
-      console.warn('⚠️ No se pudieron cargar permisos S028 — acceso total como fallback', err);
-    } finally {
+        setPermissions(codes);      } else {      }
+    } catch (err) {    } finally {
       setIsLoaded(true);
     }
   }, []);

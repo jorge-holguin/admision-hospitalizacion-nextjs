@@ -129,9 +129,7 @@ function AdditionalAppointmentModalContent({
       // Set default seguro from patient data
       if (patient.SEGURO) {
         setTipoSeguro(patient.SEGURO)
-      } else {
-        console.warn('⚠️ Paciente no tiene SEGURO definido:', patient)
-        setTipoSeguro("") // Reset si no hay seguro
+      } else {        setTipoSeguro("") // Reset si no hay seguro
       }
       
       // Cargar foto y datos adicionales del paciente
@@ -350,9 +348,7 @@ function AdditionalAppointmentModalContent({
     try {      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
       
-      if (!response.ok) {
-        console.warn('⚠️ No se pudo cargar foto del paciente')
-        return
+      if (!response.ok) {        return
       }
       
       const data = await response.json()      // Actualizar refreshedPatient con los datos completos incluyendo foto
@@ -486,9 +482,7 @@ function AdditionalAppointmentModalContent({
           // 1. Obtener datos de la cita desde REFCON
           const citaRefconResult = await obtenerDatosCitaRefcon(citaId, usuarioDni)
           
-          if (!citaRefconResult.success || !citaRefconResult.data) {
-            console.warn('⚠️ No se pudieron obtener datos de REFCON:', citaRefconResult.error)
-          } else {
+          if (!citaRefconResult.success || !citaRefconResult.data) {          } else {
             const datosRefcon = citaRefconResult.data            // 2. Construir payload con datos obtenidos + idReferencia
             const refconPayload = {
               codUnicoDestino: datosRefcon.codUnicoDestino || "00005947",
@@ -502,15 +496,11 @@ function AdditionalAppointmentModalContent({
             if (syncResult.success) {              setRefconSyncSuccess(true)
               setRefconSyncError(null)
               // Estado REFCON 2 ya fue establecido al crear la cita, no se requiere actualización
-            } else {
-              console.warn('⚠️ Error al sincronizar con REFCON (no crítico):', syncResult.error)
-              setRefconSyncSuccess(false)
+            } else {              setRefconSyncSuccess(false)
               setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
               
               // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
-              if (estadoRefconResult.success) {              } else {
-                console.warn('⚠️ No se pudo actualizar estado REFCON a 1:', estadoRefconResult.error)
-              }
+              if (estadoRefconResult.success) {              } else {              }
             }
           }
         } catch (refconError) {
@@ -522,9 +512,7 @@ function AdditionalAppointmentModalContent({
           if (citaId) {
             try {              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
               if (estadoRefconResult.success) {              }
-            } catch (updateError) {
-              console.warn('⚠️ No se pudo actualizar estado REFCON:', updateError)
-            }
+            } catch (updateError) {            }
           }
         }
       } else if (referenciaIdSeleccionada && esReferenciaManualSync) {      } else if (referenciaIdSeleccionada && skipRefconSync) {      } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {      }
@@ -580,9 +568,7 @@ function AdditionalAppointmentModalContent({
             eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}`          } else {
             eessFormatted = citaData.entidadSis.trim()
           }
-        } catch (error) {
-          console.warn('⚠️ Error al obtener nombre de entidad SIS, usando solo código:', error)
-          eessFormatted = citaData.entidadSis.trim()
+        } catch (error) {          eessFormatted = citaData.entidadSis.trim()
         }
       }
       
@@ -1250,9 +1236,7 @@ function AdditionalAppointmentModalContent({
                             const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                             if (result.success && result.data) {
                               setEessNombreOrigen(result.data.NOMBRE)
-                            } else {
-                              console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
-                              setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
+                            } else {                              setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
                             }
                           } else {
                             // Si no hay código, usar el nombre que viene de la referencia

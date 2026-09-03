@@ -497,9 +497,7 @@ export function HospitalizationFormRefactored({
             selectedCuentaIdRef.current = null;
             forceCreateNewRef.current = false;
 
-            if (!asegurarResponse.ok) {
-              console.warn('⚠️ Endpoint /hospitalization/accounts no disponible, se ignora. Status:', asegurarResponse.status);
-            } else {
+            if (!asegurarResponse.ok) {            } else {
               const asegurarResult = await asegurarResponse.json();
 
               if (asegurarResult.ok && asegurarResult.cuentaId) {
@@ -521,13 +519,9 @@ export function HospitalizationFormRefactored({
                       accountList = accounts.data;
                     }
                     const found = accountList.some((a: any) => String(a.cuentaId || a.CUENTAID) === String(asegurarResult.cuentaId));
-                    if (!found) {
-                      console.warn(`⚠️ Cuenta ${asegurarResult.cuentaId} no encontrada con origen HO. Posible origen EM/CE.`);
-                    } else {                    }
+                    if (!found) {                    } else {                    }
                   }
-                } catch (validateError) {
-                  console.warn('⚠️ No se pudo validar origen HO de la cuenta:', validateError);
-                }
+                } catch (validateError) {                }
 
                 // Actualizar el registro de hospitalización con el cuentaId
                 // El backend no acepta PATCH sobre /hospitalization/{id}; se usa PUT con el mismo
@@ -567,9 +561,7 @@ export function HospitalizationFormRefactored({
                     })
                   });
 
-                  if (!updateResponse.ok) {
-                    console.warn('⚠️ No se pudo actualizar CUENTAID. Status:', updateResponse.status);
-                  } else {
+                  if (!updateResponse.ok) {                  } else {
                     const updateResult = await updateResponse.json();
                     if (updateResult.success === false) {
                       console.error('Error al actualizar la hospitalización con el CUENTAID:', updateResult.message);
@@ -578,9 +570,7 @@ export function HospitalizationFormRefactored({
                 } catch (updateError) {
                   console.error('Error al actualizar la hospitalización con el CUENTAID:', updateError);
                 }
-              } else {
-                console.warn(`No se pudo asegurar la cuenta: ${asegurarResult.mensaje}`);
-              }
+              } else {              }
             }
           } catch (error) {
             console.error('Error al asegurar la cuenta:', error);
@@ -711,9 +701,7 @@ export function HospitalizationFormRefactored({
       
       setLoading(false);
     } else if (!dateTimeLoading && !contextServerDateTime) {
-      // Fallback a fecha/hora local si el contexto no está disponible
-      console.warn('⚠️ Contexto ServerDateTime no disponible, usando fecha/hora local');
-      const now = new Date();
+      // Fallback a fecha/hora local si el contexto no está disponible      const now = new Date();
       const localDate = now.toISOString().split('T')[0];
       const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
@@ -764,9 +752,7 @@ export function HospitalizationFormRefactored({
             selectedCuentaIdRef.current = cuentaId;          }
         } else if (!cancelled) {
           selectedCuentaIdRef.current = null;        }
-      } catch (err) {
-        console.warn('⚠️ Error validando cuenta activa al cambiar financiamiento:', err);
-      }
+      } catch (err) {      }
     })();
 
     return () => { cancelled = true; };

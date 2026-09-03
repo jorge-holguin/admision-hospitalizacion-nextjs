@@ -42,16 +42,12 @@ export const extractDocumentFromToken = (): string => {
   try {
     // Obtener el token de forma segura
     const authToken = getAuthToken();
-    if (!authToken) {
-      console.warn('No se encontró authToken en localStorage');
-      return '';
+    if (!authToken) {      return '';
     }
     
     // Decodificar el token (solo la parte del payload)
     const tokenParts = authToken.split('.');
-    if (tokenParts.length !== 3) {
-      console.warn('Token JWT no tiene el formato correcto');
-      return '';
+    if (tokenParts.length !== 3) {      return '';
     }
     
     // Decodificar la parte del payload (segunda parte)
@@ -59,9 +55,7 @@ export const extractDocumentFromToken = (): string => {
     
     // Extraer el campo 'sub' que contiene el documento
     const documento = payload.sub;
-    if (!documento) {
-      console.warn('No se encontró el campo "sub" en el token');
-      return '';
+    if (!documento) {      return '';
     }
     
     return documento;
@@ -79,16 +73,12 @@ export const extractNombreCompletoFromToken = (): string => {
   try {
     // Obtener el token de forma segura
     const authToken = getAuthToken();
-    if (!authToken) {
-      console.warn('No se encontró authToken en localStorage');
-      return '';
+    if (!authToken) {      return '';
     }
     
     // Decodificar el token (solo la parte del payload)
     const tokenParts = authToken.split('.');
-    if (tokenParts.length !== 3) {
-      console.warn('Token JWT no tiene el formato correcto');
-      return '';
+    if (tokenParts.length !== 3) {      return '';
     }
     
     // Decodificar la parte del payload (segunda parte)
@@ -96,9 +86,7 @@ export const extractNombreCompletoFromToken = (): string => {
     
     // Extraer el campo 'nombreCompleto'
     const nombreCompleto = payload.nombreCompleto;
-    if (!nombreCompleto) {
-      console.warn('No se encontró el campo "nombreCompleto" en el token');
-      return '';
+    if (!nombreCompleto) {      return '';
     }
     
     return nombreCompleto;
@@ -116,16 +104,12 @@ export const extractPuestoFromToken = (): string | null => {
   try {
     // Obtener el token de forma segura
     const authToken = getAuthToken();
-    if (!authToken) {
-      console.warn('No se encontró authToken en localStorage');
-      return null;
+    if (!authToken) {      return null;
     }
     
     // Decodificar el token (solo la parte del payload)
     const tokenParts = authToken.split('.');
-    if (tokenParts.length !== 3) {
-      console.warn('Token JWT no tiene el formato correcto');
-      return null;
+    if (tokenParts.length !== 3) {      return null;
     }
     
     // Decodificar la parte del payload (segunda parte)
@@ -133,9 +117,7 @@ export const extractPuestoFromToken = (): string | null => {
     
     // Extraer el campo 'puesto'
     const puesto = payload.puesto;
-    if (!puesto) {
-      console.warn('No se encontró el campo "puesto" en el token');
-      return null;
+    if (!puesto) {      return null;
     }
     
     return puesto;

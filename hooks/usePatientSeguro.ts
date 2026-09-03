@@ -58,9 +58,7 @@ export const usePatientSeguro = (patientId: string | null): UsePatientSeguroRetu
           nombreSeguro,
           seguroDisplay
         };        setSeguroData(seguroInfo);
-      } else {
-        console.warn('No se encontraron datos del paciente en filiacion2');
-        setSeguroData(null);
+      } else {        setSeguroData(null);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';

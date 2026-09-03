@@ -123,9 +123,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         return data.foto || data.STRING_FOTO || data.photo || null
       }
       return null
-    } catch (error) {
-      console.warn('Error fetching patient photo:', error)
-      return null
+    } catch (error) {      return null
     }
   }
 
@@ -222,9 +220,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         )        const patients = (data.data as any[]) || []
 
         if (Array.isArray(patients) && patients.length > 0) {          setPatients(patients as Patient[])
-        } else {
-          console.warn('⚠️ No se encontró el paciente recién creado')
-          setPatients([])
+        } else {          setPatients([])
         }
       } catch (error) {
         console.error('❌ Error buscando paciente recién creado:', error)

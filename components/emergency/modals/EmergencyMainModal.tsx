@@ -102,9 +102,7 @@ export function EmergencyMainModal({
   }
 
   // Validar que tenemos el patientId
-  if (!patientId) {
-    console.warn('🚑 [EmergencyMainModal] missing patientId, returning null')
-    return null
+  if (!patientId) {    return null
   }
 
   return (

@@ -677,9 +677,7 @@ export default function ReservedAppointmentsPage() {
             body: JSON.stringify(`Reversión de solicitud: ${motivoParam}`)
           })
           
-          if (!liberarResponse.ok) {
-            console.warn(`⚠️ Advertencia al liberar cita: ${liberarResponse.status}`)
-            // Continuamos con la reversión aunque falle la liberación
+          if (!liberarResponse.ok) {            // Continuamos con la reversión aunque falle la liberación
           } else {          }
         } catch (liberarError) {
           console.error('❌ Error al liberar cita:', liberarError)

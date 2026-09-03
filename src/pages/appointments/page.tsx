@@ -712,9 +712,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           const atencionData = await parseReleaseResponse(atencionRes)
 
           if (!atencionRes.ok) {
-            if (atencionRes.status === 409) {
-              console.warn('Atención ya liberada o no puede liberarse:', atencionData.message)
-            } else {
+            if (atencionRes.status === 409) {            } else {
               throw new Error(`Cita liberada, pero falló la liberación de atención: ${atencionData.message || atencionRes.status}`)
             }
           }

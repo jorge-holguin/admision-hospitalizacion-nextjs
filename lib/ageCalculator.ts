@@ -81,9 +81,7 @@ export function calculateAge(
   };
 
   const birthDate = parseBirthDate(fechaNacimiento);
-  if (!birthDate) {
-    console.warn('⚠️ No se pudo parsear la fecha de nacimiento:', fechaNacimiento);
-    return defaultResult;
+  if (!birthDate) {    return defaultResult;
   }
 
   const today = fechaReferencia || new Date();

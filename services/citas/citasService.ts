@@ -189,9 +189,7 @@ export async function searchCitasByNombres(
       (typeof paciente.documento === 'string' ? paciente.documento.trim() : undefined) ||
       (typeof paciente.document === 'string' ? paciente.document.trim() : undefined);
 
-    if (!documento) {
-      console.warn('⚠️ Paciente encontrado sin documento, no se puede buscar citas');
-      return { content: [], totalElements: 0, totalPages: 0, last: true };
+    if (!documento) {      return { content: [], totalElements: 0, totalPages: 0, last: true };
     }
 
     const tipoDocumento =

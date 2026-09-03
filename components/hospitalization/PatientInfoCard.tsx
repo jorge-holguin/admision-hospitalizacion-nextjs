@@ -133,9 +133,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   // Efecto para cargar los datos del paciente usando el contexto
   useEffect(() => {
     const loadPatientData = async () => {
-      if (!patientId) {
-        console.warn('PatientInfoCard: No patientId provided');
-        return;
+      if (!patientId) {        return;
       }
 
       // Si tenemos initialData, aún así cargar los datos completos desde la API de filiación

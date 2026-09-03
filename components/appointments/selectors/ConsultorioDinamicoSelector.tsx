@@ -93,9 +93,7 @@ export function ConsultorioDinamicoSelector({
       // NO incluir el parámetro 'consultorio' para obtener todas las citas del día
       const url = `${apiUrl}/cita/buscar/nombreConsultorio?${params.toString()}`      const res = await fetch(url, { signal })
       
-      if (!res.ok) {
-        console.warn('⚠️ ConsultorioDinamicoSelector: Error:', res.status)
-        setConsultorios([])
+      if (!res.ok) {        setConsultorios([])
         return
       }
       

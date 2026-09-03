@@ -218,9 +218,7 @@ export function EmergencyListModal({
       // Desactivar la cuenta asociada si existe
       if (cuentaId) {
         try {
-          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })        } catch (cuentaErr) {
-          console.warn('⚠️ No se pudo desactivar la cuenta:', cuentaErr)
-        }
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(cuentaId), { method: 'POST' })        } catch (cuentaErr) {        }
       }
 
       toast({

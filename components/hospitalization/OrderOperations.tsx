@@ -79,9 +79,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
       // Desactivar la cuenta asociada si existe
       if (deleteCuentaId) {
         try {
-          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });        } catch (cuentaErr) {
-          console.warn('⚠️ No se pudo desactivar la cuenta:', cuentaErr);
-        }
+          await fetchApi(API_ENDPOINTS.accounts.deactivate(deleteCuentaId), { method: 'POST' });        } catch (cuentaErr) {        }
       }
 
       // Notificar éxito
@@ -108,9 +106,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
 
   // OBSOLETO: Ahora se usa el sistema de modales
   // Método para editar una orden existente
-  const handleEditOrder = (orderId: string, patientId: string) => {
-    console.warn('⚠️ handleEditOrder está obsoleto. Usa el sistema de modales de hospitalización.');
-    toast({
+  const handleEditOrder = (orderId: string, patientId: string) => {    toast({
       title: 'Función obsoleta',
       description: 'Por favor usa el botón de Hospitalización en la tabla de pacientes',
       variant: 'default'
@@ -119,9 +115,7 @@ export function useOrderOperations(props?: OrderOperationsProps) {
 
   // OBSOLETO: Ahora se usa el sistema de modales
   // Método para crear una nueva orden
-  const handleNewOrder = (patientId: string, getPacienteData?: () => Promise<any>) => {
-    console.warn('⚠️ handleNewOrder está obsoleto. Usa el sistema de modales de hospitalización.');
-    toast({
+  const handleNewOrder = (patientId: string, getPacienteData?: () => Promise<any>) => {    toast({
       title: 'Función obsoleta',
       description: 'Por favor usa el botón de Hospitalización en la tabla de pacientes',
       variant: 'default'

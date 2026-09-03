@@ -44,9 +44,7 @@ export async function fetchMaestroExamenByCpms(cpms: string): Promise<MaestroExa
   try {
     const base = APOYO_DIAGNOSTICO_BASE_URL.replace(/\/+$/, '')
     const res = await fetch(`${base}/api/maestros/cpms/${encodeURIComponent(cpms.trim())}`)
-    if (!res.ok) {
-      console.warn(`⚠️ No se pudo consultar maestro para CPMS ${cpms}: ${res.status}`)
-      return null
+    if (!res.ok) {      return null
     }
     const json = await res.json()
     const raw: unknown[] = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []

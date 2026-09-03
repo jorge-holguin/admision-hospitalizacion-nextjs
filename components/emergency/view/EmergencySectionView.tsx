@@ -572,9 +572,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       const consultorioHaCambiado = consultorioOriginal !== consultorioNuevo;
       
       if (consultorioHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
-        // No hay endpoint expuesto en Spring para actualizar el consultorio de la cuenta.
-        console.warn(`📋 Cambio de consultorio detectado (${consultorioOriginal} → ${consultorioNuevo}), pero no hay endpoint Spring disponible para actualizar CUENTA`);
-      }
+        // No hay endpoint expuesto en Spring para actualizar el consultorio de la cuenta.      }
       
       const updateData: any = {
         TIPOATENCION: limitLength(formData.tipoAtencion, 1),          // Char(1)

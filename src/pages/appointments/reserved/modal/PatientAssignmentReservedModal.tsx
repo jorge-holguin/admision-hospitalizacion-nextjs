@@ -443,9 +443,7 @@ function PatientAssignmentReservedModalContent({
           }
         })
         
-        if (!reservasResponse.ok) {
-          console.warn(`⚠️ Advertencia al actualizar solicitud de reserva: ${reservasResponse.status} ${reservasResponse.statusText}`)
-        }
+        if (!reservasResponse.ok) {        }
       }
       
       // Guardar datos de asignación para notificar al padre DESPUÉS de que el usuario confirme
@@ -465,9 +463,7 @@ function PatientAssignmentReservedModalContent({
           // 1. Obtener datos de la cita desde REFCON
           const citaRefconResult = await obtenerDatosCitaRefcon(appointment.citaId, usuarioApellido)
           
-          if (!citaRefconResult.success || !citaRefconResult.data) {
-            console.warn('⚠️ No se pudieron obtener datos de REFCON:', citaRefconResult.error)
-            return
+          if (!citaRefconResult.success || !citaRefconResult.data) {            return
           }
           
           const datosRefcon = citaRefconResult.data
@@ -487,9 +483,7 @@ function PatientAssignmentReservedModalContent({
             setRefconSyncSuccess(true)
             setRefconSyncError(null)
             // Estado REFCON 2 ya fue establecido al asignar la cita, no se requiere actualización
-          } else {
-            console.warn(' Error al sincronizar con REFCON (no crítico):', syncResult.error)
-            setRefconSyncSuccess(false)
+          } else {            setRefconSyncSuccess(false)
             setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
             
             // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló

@@ -643,9 +643,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
       if (appointment.idSolicitudCita) {
         const reservasApiUrl = `${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`
         const reservasResponse = await fetch(reservasApiUrl, { method: 'PUT', headers: { 'accept': '*/*' } })
-        if (!reservasResponse.ok) {
-          console.warn(`⚠️ Advertencia al actualizar solicitud de reserva: ${reservasResponse.status}`)
-        }
+        if (!reservasResponse.ok) {        }
       }
 
       const assignmentData = { ...requestBody, appointmentId: appointment.citaId, success: true, responseData }
@@ -718,9 +716,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
           body: JSON.stringify(apoyoBody),
         })
         if (!apoyoRes.ok) {
-          const apoyoErr = await apoyoRes.json().catch(() => ({}))
-          console.warn('⚠️ Error al vincular orden de apoyo diagnóstico (no crítico):', apoyoErr)
-        }
+          const apoyoErr = await apoyoRes.json().catch(() => ({}))        }
       } catch (apoyoError) {
         console.error('❌ Error en apoyo diagnóstico (no crítico):', apoyoError)
       }

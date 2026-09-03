@@ -34,9 +34,7 @@ interface ReniecResponse {
         }
   
         // Si no hay configuración de API, usar datos simulados
-        if (!this.API_URL || !this.API_TOKEN) {
-          console.warn('⚠️ RENIEC API no configurada, usando datos simulados')
-          return this.getMockData(dni)
+        if (!this.API_URL || !this.API_TOKEN) {          return this.getMockData(dni)
         }
   
         // Llamada real a la API de RENIEC
@@ -74,9 +72,7 @@ interface ReniecResponse {
       } catch (error) {
         console.error('❌ Error consultando RENIEC:', error)
         
-        // En caso de error, devolver datos simulados como fallback
-        console.warn('🔄 Usando datos simulados como fallback')
-        return this.getMockData(dni)
+        // En caso de error, devolver datos simulados como fallback        return this.getMockData(dni)
       }
     }
   

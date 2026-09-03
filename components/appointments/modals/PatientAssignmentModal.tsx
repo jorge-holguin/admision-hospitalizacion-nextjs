@@ -255,9 +255,7 @@ function PatientAssignmentModalContent({
         const idToUse = patient.PACIENTE || patient.HISTORIA
         if (idToUse) {
           loadEnhancedPatientData(idToUse)
-        } else {
-          console.warn('⚠️ No se encontró ID de paciente válido para cargar datos adicionales')
-          setEnhancedPatient(patient)
+        } else {          setEnhancedPatient(patient)
         }
       } else {
         setEnhancedPatient(patient)
@@ -390,9 +388,7 @@ function PatientAssignmentModalContent({
               return
             }
           }
-        } catch (checkError) {
-          console.warn('⚠️ No se pudo verificar reservas de la cita:', checkError)
-          // No bloquear la asignación si la verificación falla
+        } catch (checkError) {          // No bloquear la asignación si la verificación falla
         }
       }
 
@@ -882,9 +878,7 @@ function PatientAssignmentModalContent({
                           const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                           if (result.success && result.data) {
                             setEessNombreOrigen(result.data.NOMBRE)
-                          } else {
-                            console.warn('⚠️ No se pudo obtener nombre de entidad SIS, usando valor de referencia')
-                            setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
+                          } else {                            setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
                           }
                         } else {
                           // Si no hay código, usar el nombre que viene de la referencia

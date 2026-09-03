@@ -86,9 +86,7 @@ export async function mergePDFs(pdfUrls: string[]): Promise<string> {
         // Verificar que el tipo de contenido sea PDF
         const contentType = response.headers.get('content-type');
         
-        if (!contentType || !contentType.includes('application/pdf')) {
-          console.warn(`El tipo de contenido no es PDF: ${contentType}`);
-          // Continuar de todos modos, ya que algunos servidores pueden no configurar correctamente los headers
+        if (!contentType || !contentType.includes('application/pdf')) {          // Continuar de todos modos, ya que algunos servidores pueden no configurar correctamente los headers
         }
         
         const pdfBytes = await response.arrayBuffer();

@@ -289,9 +289,7 @@ function processPhotoData(photoData: string): string {
       }
     } else {
       // Validate the data URL format
-      if (!photoData.match(/^data:(image\/(jpeg|png|gif|webp|svg\+xml));base64,/)) {
-        console.warn('Unusual data URL format:', photoData.substring(0, 30));
-        // Try to fix common issues with data URLs
+      if (!photoData.match(/^data:(image\/(jpeg|png|gif|webp|svg\+xml));base64,/)) {        // Try to fix common issues with data URLs
         if (photoData.includes('base64,')) {
           // Extract just the base64 part and reconstruct
           const base64Part = photoData.split('base64,')[1];

@@ -71,9 +71,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
 
       try {        const result = await obtenerEntidadSISPorCodigo(ticketData.entidadSis.trim())
         if (result.success && result.data) {
-          setEntidadSisNombre(result.data.NOMBRE)        } else {
-          console.warn('⚠️ No se pudo obtener el nombre de la entidad SIS')
-          setEntidadSisNombre('')
+          setEntidadSisNombre(result.data.NOMBRE)        } else {          setEntidadSisNombre('')
         }
       } catch (error) {
         console.error('❌ Error al obtener nombre de entidad SIS:', error)
@@ -273,9 +271,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
             new ClipboardItem({ 'image/png': blob })
           ])
           copiado = true
-        } catch (clipboardError) {
-          console.warn('Clipboard API falló:', clipboardError)
-        }
+        } catch (clipboardError) {        }
       }
 
       if (copiado) {
