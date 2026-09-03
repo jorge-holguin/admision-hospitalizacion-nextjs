@@ -60,7 +60,7 @@ export default function LoginPage() {
           alt="Hospital Building"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/85 to-blue-700/70 z-10"></div>
+        <div className="absolute inset-0 bg-blue-900/40 z-10"></div>
         <div className="absolute inset-0 z-20 flex items-center justify-center p-8">
           <div className="text-white text-center max-w-lg p-8 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20">
             <h1 className="text-5xl font-extrabold mb-3 text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
