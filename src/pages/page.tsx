@@ -85,12 +85,12 @@ export default function LoginPage() {
           <CardContent className="p-8 md:p-10">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
-                <Image
+                <img
                   src="/hjatch-logo.jpg"
                   alt="Hospital José Agurto Tello de Chosica"
                   width={90}
                   height={90}
-                  className="rounded-full shadow-md"
+                  className="rounded-full shadow-md object-cover"
                 />
               </div>
               <h1 className="text-2xl font-bold text-blue-900 mb-1">SISTEMA DE GESTIÓN</h1>
