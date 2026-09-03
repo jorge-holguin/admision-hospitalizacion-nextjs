@@ -103,7 +103,7 @@ interface PatientViewModalProps {
 
 export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalProps) {
   const [localidadNombre, setLocalidadNombre] = useState<string>('')
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
 
   // Cargar nombre de localidad desde API
   useEffect(() => {

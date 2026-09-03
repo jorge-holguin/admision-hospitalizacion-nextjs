@@ -33,7 +33,7 @@ export function LocalidadSelector({
   const [loading, setLoading] = useState(false)
   const [selectedLocalidadData, setSelectedLocalidadData] = useState<Localidad | null>(null)
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
 
   // ✅ Cargar datos de la localidad seleccionada para mostrar "código - nombre"
   useEffect(() => {

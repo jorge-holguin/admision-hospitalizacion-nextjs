@@ -86,7 +86,7 @@ export function useReniec() {
       const moduloAplicativo = 'ADMISION';
 
       // URL de RENIEC desde variable de entorno
-      const reniecBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
+      const reniecBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
       const reniecUrl = `${reniecBaseUrl}/reniec/datos-completos?dni=${dni}&usuario=${usuarioFinal}&app=${app}&ip=${ip}&urlAplicativo=${urlAplicativo}&moduloAplicativo=${moduloAplicativo}`;
 
       // Crear AbortController para timeout de 15 segundos

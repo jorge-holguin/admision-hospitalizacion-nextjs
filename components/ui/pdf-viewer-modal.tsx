@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { Download, Printer, ArrowLeft, FileText, AlertCircle, RefreshCw } from "lucide-react"
 import { mergePDFs, downloadMergedPDF, printMergedPDF } from '@/utils/pdfUtils'
-import { useRouter } from 'next/navigation'
+import { useRouter } from "@/lib/router"
+
 
 interface PDFViewerModalProps {
   open: boolean

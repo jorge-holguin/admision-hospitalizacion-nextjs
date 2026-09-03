@@ -61,7 +61,7 @@ interface ReferenciaContextState {
 
 const ReferenciaContext = createContext<ReferenciaContextState | undefined>(undefined)
 
-const API_REFCON_URL = process.env.NEXT_PUBLIC_API_REFCON_URL || 'http://192.168.0.31:9011/api'
+const API_REFCON_URL = import.meta.env.VITE_API_REFCON_URL || 'http://192.168.0.31:9011/api'
 const ESTABLECIMIENTO_DESTINO = '5947' // Hospital Jose Agurto Tello
 
 export function ReferenciaProvider({ children }: Readonly<{ children: ReactNode }>) {

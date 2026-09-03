@@ -17,8 +17,8 @@ interface ReniecResponse {
   }
   
   export class ReniecService {
-    private static readonly API_URL = process.env.NEXT_PUBLIC_RENIEC_API_URL || ''
-    private static readonly API_TOKEN = process.env.NEXT_PUBLIC_RENIEC_API_TOKEN || ''
+    private static readonly API_URL = import.meta.env.VITE_RENIEC_API_URL || ''
+    private static readonly API_TOKEN = import.meta.env.VITE_RENIEC_API_TOKEN || ''
   
     /**
      * Consulta datos de una persona en RENIEC por DNI

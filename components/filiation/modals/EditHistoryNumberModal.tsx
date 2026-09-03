@@ -73,7 +73,7 @@ export function EditHistoryNumberModal({
         throw new Error("No se pudo obtener el usuario actual")
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const url = `${apiUrl}/historia-clinica/pacientes/actualizar-historia/${patientId}?historiaNueva=${encodeURIComponent(newHistory.trim())}&argumento=${encodeURIComponent(argument.trim())}&usuario=${usuario}`
 
       console.log('🔄 Actualizando número de historia:', url)

@@ -7,7 +7,8 @@ import { Printer, Calendar, Clock, User, Stethoscope, Building2, CreditCard, Fil
 import { toast } from "@/components/ui/use-toast"
 import { imprimirCita, type CitaDto } from "@/services/appointments/printService"
 import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesService"
-import Image from "next/image"
+import Image from "@/components/Image"
+
 import html2canvas from "html2canvas"
 
 export type TicketData = {

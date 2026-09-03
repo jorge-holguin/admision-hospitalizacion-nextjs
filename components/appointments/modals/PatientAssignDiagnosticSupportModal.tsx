@@ -136,11 +136,11 @@ interface PatientAssignDiagnosticSupportModalProps {
   searchType?: 'document' | 'name'
 }
 
-const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-// const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
-const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
-const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
+const APOYO_DIAGNOSTICO_BASE_URL = import.meta.env.VITE_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
+const apiBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
+// const FHIR_BASE_URL = import.meta.env.VITE_API_FHIR_URL || 'http://192.168.0.252:9015'
+const REFERENCIA_BASE_URL = import.meta.env.VITE_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
+const EESS_DESTINO = import.meta.env.VITE_EESS_CODIGO || '5947'
 
 const SIS_SEGUROS_CODES = ['20', '21', '22', '23', '24', '25']
 

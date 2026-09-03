@@ -1,7 +1,8 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from "@/lib/router"
+
 import { getAuthToken, refreshToken, setAuthToken, removeAuthToken, getCurrentUser, UserInfo } from '@/lib/auth';
 import { PatientDataProvider } from '@/contexts/PatientDataContext';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';

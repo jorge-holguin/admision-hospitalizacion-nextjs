@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Eye, Search, RefreshCw, Calendar, User, Clock, FileText, UserCheck, XCircle, RotateCcw } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
-import { PatientAssignmentReservedModal } from "@/app/appointments/reserved/modal/PatientAssignmentReservedModal"
-import { PatientAssignmentReservedDiagnosticSupportModal } from "@/app/appointments/reserved/modal/PatientAssignmentReservedDiagnosticSupportModal"
-import { useRouter } from "next/navigation"
+import { PatientAssignmentReservedModal } from "./modal/PatientAssignmentReservedModal"
+import { PatientAssignmentReservedDiagnosticSupportModal } from "./modal/PatientAssignmentReservedDiagnosticSupportModal"
+import { useRouter } from "@/lib/router"
+
 import { toast } from "@/components/ui/use-toast"
 import { TipoCitaProvider } from "@/contexts/TipoCitaContext"
 import { SegurosCitaProvider } from "@/contexts/SegurosCitaContext"
@@ -223,7 +224,7 @@ export default function ReservedAppointmentsPage() {
     setLoadingEspecialidades(true)
     try {
       const { fechaInicio, fechaFin } = getDateRange()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/app-citas/especialidades?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`)
+      const response = await fetch(`${import.meta.env.VITE_API_RESERVAS_URL}/app-citas/especialidades?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`)
       
       if (!response.ok) {
         throw new Error('Error al cargar especialidades')
@@ -253,7 +254,7 @@ export default function ReservedAppointmentsPage() {
     setLoading(true)
     try {
       // Construir URL con filtros
-      let url = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/listar-paginado?`
+      let url = `${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/listar-paginado?`
       
       // Agregar filtro de especialidad solo si no es "all"
       if (selectedEspecialidad && selectedEspecialidad !== 'all') {
@@ -370,7 +371,7 @@ export default function ReservedAppointmentsPage() {
   // Obtener información completa de la solicitud incluyendo citaId
   const getSolicitudInfo = async (codigo: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/codigo/${codigo}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/codigo/${codigo}`, {
         method: 'GET',
         headers: {
           'accept': '*/*'
@@ -400,7 +401,7 @@ export default function ReservedAppointmentsPage() {
       // Obtener usuario si no se proporciona
       const usuarioFinal = usuario || extractDocumentFromToken()
       
-      const url = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/codigo/${codigo}/estado`
+      const url = `${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/codigo/${codigo}/estado`
       const body: any = { 
         estado: nuevoEstado,
         usuario: usuarioFinal
@@ -687,7 +688,7 @@ export default function ReservedAppointmentsPage() {
       if (esEstadoCitado && reservaARevertir.citaId) {
         console.log('🔓 Liberando cita asignada:', reservaARevertir.citaId)
         try {
-          const liberarResponse = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${reservaARevertir.citaId}/liberar`, {
+          const liberarResponse = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${reservaARevertir.citaId}/liberar`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',

@@ -20,7 +20,7 @@ export function ReligionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
 
   useEffect(() => {
     loadReligiones()

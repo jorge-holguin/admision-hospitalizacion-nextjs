@@ -15,8 +15,8 @@ import {
   type CiexItem,
 } from "./OrdenDetallesList"
 
-const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
-const API_CITAS_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api'
+const APOYO_DIAGNOSTICO_BASE_URL = import.meta.env.VITE_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
+const API_CITAS_URL = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api'
 
 const truncateObservacion = (value?: string | null) => (value || '').trim().slice(0, MAX_OBSERVACION_LENGTH)
 

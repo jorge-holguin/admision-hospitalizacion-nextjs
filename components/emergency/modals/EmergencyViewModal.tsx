@@ -276,7 +276,7 @@ export function EmergencyViewModal({
   const loadFullPatientData = async (pacienteId: string) => {
     try {
       setIsLoadingFullPatient(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${pacienteId}`)
       
       if (!response.ok) {

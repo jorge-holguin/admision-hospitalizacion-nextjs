@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/router"
+
 import { extractPuestoFromToken } from "@/utils/jwtUtils";
 
 interface RoleBasedRouteProps {

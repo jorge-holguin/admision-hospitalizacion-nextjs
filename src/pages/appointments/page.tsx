@@ -75,7 +75,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
   // Lista vacía para almacenar citas
   const emptyAppointments: any[] = []
   const APOYO_DIAGNOSTICO_CONSULTORIOS = ['7010', '7020']
-  const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
+  const APOYO_DIAGNOSTICO_BASE_URL = import.meta.env.VITE_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
 
   export default function AppointmentsPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -317,7 +317,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
-        const url = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`
+        const url = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`
         console.log('🔍 Buscando citas:', url)
         const res = await fetch(url)
         if (!res.ok) {
@@ -434,7 +434,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
       }
       setIsRefreshing(true)
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${encodeURIComponent(id)}`)
+        const res = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${encodeURIComponent(id)}`)
         if (!res.ok) {
           // Si no encuentra la cita, mostrar lista vacía en lugar de aplicar filtros
           setFilteredAppointments([])
@@ -510,7 +510,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const validarReservaActiva = async (citaId: string): Promise<boolean> => {
       try {
         setIsValidatingReserva(true)
-        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+        const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
         const response = await fetch(`${apiUrl}/cita/cita-valida-solicitud?citaId=${citaId}`)
         
         if (!response.ok) {
@@ -690,7 +690,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
 
         // 1. Liberar la cita en el servicio regular de citas
         const citaBody = JSON.stringify(motivo.trim())
-        const citaRes = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}/liberar`, {
+        const citaRes = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${citaId}/liberar`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

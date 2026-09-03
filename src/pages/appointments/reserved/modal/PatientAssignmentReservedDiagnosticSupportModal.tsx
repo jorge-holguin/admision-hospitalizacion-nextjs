@@ -4,20 +4,20 @@ import React, { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
-import { PatientPendingAppointmentsModal, type PendingAppointment } from "../../../../components/appointments/patient/PatientPendingAppointmentsModal"
+import { PatientInfoCardAppointment } from "@/components/appointments/patient/PatientInfoCardAppointment"
+import { PatientPendingAppointmentsModal, type PendingAppointment } from "@/components/appointments/patient/PatientPendingAppointmentsModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle, ClipboardList, MapPin, Trash2, Pencil, Calendar as CalendarIcon } from "lucide-react"
-import { TipoCitaSelector } from "../../../../components/appointments/selectors/TipoCitaSelector"
-import { TipoSeguroSelector } from "../../../../components/appointments/selectors/TipoSeguroSelector"
-import { EntidadSisSelector } from "../../../../components/appointments/selectors/EntidadSisSelector"
-import { ReferenciaSelector } from "../../../../components/appointments/selectors/ReferenciaSelector"
+import { TipoCitaSelector } from "@/components/appointments/selectors/TipoCitaSelector"
+import { TipoSeguroSelector } from "@/components/appointments/selectors/TipoSeguroSelector"
+import { EntidadSisSelector } from "@/components/appointments/selectors/EntidadSisSelector"
+import { ReferenciaSelector } from "@/components/appointments/selectors/ReferenciaSelector"
 import { useTipoCita } from "@/contexts/TipoCitaContext"
 import { useSegurosCita } from "@/contexts/SegurosCitaContext"
 import { ReferenciaProvider, useReferencia } from "@/contexts/ReferenciaContext"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SimpleSISVerification } from "../../../../components/appointments/patient/SimpleSISVerification"
+import { SimpleSISVerification } from "@/components/appointments/patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { datetimeService } from '@/services/datetimeService'
@@ -26,12 +26,12 @@ import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesS
 import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/UpdateClinicalHistoryButton"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CrearOrdenApoyoDiagnosticoModal, type OrdenToEdit } from "../../../../components/appointments/modals/CrearOrdenApoyoDiagnosticoModal"
+import { CrearOrdenApoyoDiagnosticoModal, type OrdenToEdit } from "@/components/appointments/modals/CrearOrdenApoyoDiagnosticoModal"
 import { verificarExamenesConPedido } from "@/services/apoyoDiagnostico/maestroService"
 
-const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
-const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
-const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
+const APOYO_DIAGNOSTICO_BASE_URL = import.meta.env.VITE_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
+const REFERENCIA_BASE_URL = import.meta.env.VITE_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
+const EESS_DESTINO = import.meta.env.VITE_EESS_CODIGO || '5947'
 const ESTADOS_REF_PERMITIDOS = ['ACEPTADO', 'PACIENTE RECIBIDO', 'PACIENTE CITADO']
 const MAX_OBSERVACION_LENGTH = 200
 
@@ -223,7 +223,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
 
   const { tiposCita } = useTipoCita()
   const { seguros } = useSegurosCita()
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const apiBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
 
   const [selectedTipoCita, setSelectedTipoCita] = useState("")
   const [selectedSeguro, setSelectedSeguro] = useState("")
@@ -612,7 +612,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
         recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2)
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${appointment.citaId}/asignar`
+      const apiUrl = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${appointment.citaId}/asignar`
 
       const response = await fetch(apiUrl, {
         method: 'PUT',
@@ -641,7 +641,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
       }
 
       if (appointment.idSolicitudCita) {
-        const reservasApiUrl = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`
+        const reservasApiUrl = `${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`
         const reservasResponse = await fetch(reservasApiUrl, { method: 'PUT', headers: { 'accept': '*/*' } })
         if (!reservasResponse.ok) {
           console.warn(`⚠️ Advertencia al actualizar solicitud de reserva: ${reservasResponse.status}`)

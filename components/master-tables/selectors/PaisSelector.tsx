@@ -73,7 +73,7 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
   const loadPaises = async (search: string = "") => {
     setLoading(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+      const baseUrl = import.meta.env.VITE_API_BACKEND_URL;
       
       // Si hay búsqueda, usar endpoint de búsqueda por nombre
       // Si no hay búsqueda, obtener por código de país: /maestro/pais/{codigo}

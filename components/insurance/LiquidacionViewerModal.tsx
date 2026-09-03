@@ -19,9 +19,9 @@ interface LiquidacionViewerModalProps {
 //      GET {FIRMADO_BASE}/ConsultaExterna/Fua056/getDocumentoFirmado?idDocumento=...&idTipoDocumento=11
 //   2ª opción (fallback ante 400/500/error de red):
 //      GET {API_BASE}/reporte/liquidacion?citaId=...
-const API_BASE = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+const API_BASE = import.meta.env.VITE_API_CITAS_MASTER_URL
 const FIRMADO_BASE =
-  process.env.NEXT_PUBLIC_FIRMADO_URL ?? "http://192.168.0.20:9200"
+  import.meta.env.VITE_FIRMADO_URL ?? "http://192.168.0.20:9200"
 const ID_TIPO_DOCUMENTO_LIQUIDACION = "11"
 
 export function LiquidacionViewerModal({ open, onClose, citaId, cuentaId, idDocumento }: LiquidacionViewerModalProps) {

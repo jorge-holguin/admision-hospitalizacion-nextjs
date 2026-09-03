@@ -1,6 +1,6 @@
 // Authentication utility functions
 
-const API_AUTH = process.env.NEXT_PUBLIC_AUTH_API_URL;
+const API_AUTH = import.meta.env.VITE_AUTH_API_URL;
 
 // User interface based on JWT payload
 export interface UserInfo {

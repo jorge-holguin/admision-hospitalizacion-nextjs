@@ -4,10 +4,10 @@
  */
 
 // URL base del backend Spring Boot
-export const API_SPRING_URL = process.env.NEXT_PUBLIC_API_SPRING_URL || 'http://192.168.5.239:9011/api';
+export const API_SPRING_URL = import.meta.env.VITE_API_SPRING_URL || 'http://192.168.5.239:9011/api';
 
 // URL base del backend legacy (usado por SIS y otras APIs antiguas)
-export const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL || 'http://192.168.0.252:9011/api';
+export const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL || 'http://192.168.0.252:9011/api';
 
 // URLs específicas por módulo
 export const API_ENDPOINTS = {

@@ -21,7 +21,7 @@ export const availableDatesService = {
   async fetchAvailableDates(params: FetchAvailableDatesParams): Promise<AvailableDate[]> {
     try {
       const { fechaInicio, fechaFin, turnoConsulta, consultorioId } = params;
-      const baseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL;
+      const baseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL;
       
       // Convertir formato de fecha de yyyy-MM-dd a dd/MM/yyyy
       const formatDate = (date: string) => {

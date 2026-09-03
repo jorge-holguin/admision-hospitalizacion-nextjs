@@ -98,7 +98,7 @@ export function Step1BasicData({
         
         if (esCodigoReniec) {
           try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/reniec/${codigoTrimmed}`)
+            const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/maestro/ubigeo/reniec/${codigoTrimmed}`)
             if (response.ok) {
               const text = await response.text()
               if (text && text.trim()) {
@@ -115,7 +115,7 @@ export function Step1BasicData({
           }
         } else {
           try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/ubigeo/${codigoTrimmed}`)
+            const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/maestro/ubigeo/${codigoTrimmed}`)
             if (response.ok) {
               const text = await response.text()
               if (text && text.trim()) {

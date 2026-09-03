@@ -1,7 +1,7 @@
 // Servicio para sincronizar citas con REFCON
 
-const API_REFCON_URL = process.env.NEXT_PUBLIC_API_REFCON_URL || 'http://192.168.0.31:9011/api'
-const API_CITA_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL 
+const API_REFCON_URL = import.meta.env.VITE_API_REFCON_URL || 'http://192.168.0.31:9011/api'
+const API_CITA_URL = import.meta.env.VITE_API_CITAS_MASTER_URL 
 
 // Códigos de seguros SIS
 const SEGUROS_SIS = ['20', '21', '22', '23', '24', '25']

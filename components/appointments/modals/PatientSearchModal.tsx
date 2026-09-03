@@ -116,7 +116,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
   // Función para obtener foto del paciente
   const fetchPatientPhoto = async (pacienteId: string): Promise<string | null> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
       const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
       if (response.ok) {
         const data = await response.json()

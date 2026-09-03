@@ -36,7 +36,7 @@ export function PaisSelector({
   // Usar contexto para búsqueda dinámica
   const { paises, loading, searchPaises } = usePais()
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
 
   // ✅ Cargar datos del país seleccionado para mostrar "código - nombre"
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, createContext, useContext, ReactNode, Suspense } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useLocation } from 'react-router-dom'
 import { Spinner } from './ui/spinner'
 
 interface LoadingContextType {
@@ -12,23 +12,17 @@ const LoadingContext = createContext<LoadingContextType>({ isLoading: false })
 
 export const useLoading = () => useContext(LoadingContext)
 
-// Componente interno que usa useSearchParams (debe estar envuelto en Suspense)
 function LoadingProviderInner({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const { pathname, search } = useLocation()
 
   useEffect(() => {
-    // Cuando la ruta cambia, mostrar el loader
     setIsLoading(true)
-    
-    // Pequeño retraso para evitar parpadeos en navegaciones rápidas
     const timer = setTimeout(() => {
       setIsLoading(false)
     }, 500)
-    
     return () => clearTimeout(timer)
-  }, [pathname, searchParams])
+  }, [pathname, search])
 
   return (
     <LoadingContext.Provider value={{ isLoading }}>
@@ -45,7 +39,6 @@ function LoadingProviderInner({ children }: { children: ReactNode }) {
   )
 }
 
-// Componente exportado que envuelve en Suspense para Next.js 15
 export function LoadingProvider({ children }: { children: ReactNode }) {
   return (
     <Suspense fallback={null}>

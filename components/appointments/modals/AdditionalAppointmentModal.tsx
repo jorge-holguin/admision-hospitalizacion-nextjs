@@ -116,7 +116,7 @@ function AdditionalAppointmentModalContent({
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
 
   // Get API base URL from environment
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
+  const apiBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
 
   // Initialize form when modal opens
   useEffect(() => {
@@ -198,7 +198,7 @@ function AdditionalAppointmentModalContent({
 
       setLoadingExistingAppointments(true)
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+        const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
         const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=25`)
         
         if (response.ok) {
@@ -356,7 +356,7 @@ function AdditionalAppointmentModalContent({
     try {
       console.log('🖼️ Cargando foto y datos del paciente:', pacienteId)
       
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
       
       if (!response.ok) {
@@ -615,7 +615,7 @@ function AdditionalAppointmentModalContent({
       console.log('🖨️ Obteniendo datos de la cita para imprimir:', citaId)
       
       // Obtener datos completos de la cita
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${citaId}`)
       
       if (!response.ok) {
         throw new Error('No se pudo obtener los datos de la cita')

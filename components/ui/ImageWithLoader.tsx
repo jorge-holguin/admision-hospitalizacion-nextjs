@@ -1,39 +1,24 @@
 "use client";
 
-import { useState } from 'react';
-import Image, { ImageProps } from 'next/image';
+import React, { useState } from 'react';
+import Image from '@/components/Image';
 import { cn } from '@/lib/utils';
 import { User } from 'lucide-react';
 
-interface ImageWithLoaderProps extends Omit<ImageProps, 'className'> {
-  /**
-   * Clase CSS a aplicar cuando la imagen está cargada
-   */
+interface ImageWithLoaderProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'className' | 'src' | 'alt'> {
+  src: string
+  alt: string
+  priority?: boolean
   loadedClassName?: string;
-  
-  /**
-   * Clase CSS a aplicar mientras la imagen está cargando
-   */
   loadingClassName?: string;
-  
-  /**
-   * Clase CSS base que se aplica siempre
-   */
   className?: string;
-  
-  /**
-   * Duración de la transición en milisegundos
-   * @default 300
-   */
   transitionDuration?: number;
 }
 
-/**
- * Componente que muestra una imagen con efecto de transición al cargar
- */
 export default function ImageWithLoader({
   src,
   alt,
+  priority,
   loadedClassName,
   loadingClassName,
   className,
@@ -42,21 +27,17 @@ export default function ImageWithLoader({
 }: ImageWithLoaderProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  
-  // Manejar el evento de carga completada
+
   const handleLoad = () => {
     setIsLoaded(true);
     setHasError(false);
   };
-  
-  // Manejar errores de carga
+
   const handleError = () => {
-    console.warn(`⚠️ Error al cargar imagen: ${alt}`);
     setHasError(true);
     setIsLoaded(false);
   };
-  
-  // Si hay error, mostrar placeholder
+
   if (hasError) {
     return (
       <div className={cn('flex items-center justify-center bg-gray-100', className)}>
@@ -64,17 +45,15 @@ export default function ImageWithLoader({
       </div>
     );
   }
-  
+
   return (
     <Image
       src={src}
       alt={alt}
+      priority={priority}
       className={cn(
-        // Clases base que siempre se aplican
         'transition-opacity duration-300 ease-in-out',
-        // Clase personalizada base
         className,
-        // Clases condicionales según el estado de carga
         isLoaded 
           ? cn('opacity-100', loadedClassName) 
           : cn('opacity-0', loadingClassName)

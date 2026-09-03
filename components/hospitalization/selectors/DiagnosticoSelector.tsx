@@ -18,6 +18,7 @@ import { Diagnostico } from "@/services/hospitalizacion/diagnosticoService";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "@/hooks/use-toast";
+import { API_SPRING_URL } from "@/lib/api-config";
 
 // Extender la interfaz Diagnostico
 interface DiagnosticoExtendido extends Diagnostico {
@@ -28,13 +29,12 @@ interface DiagnosticoExtendido extends Diagnostico {
 }
 
 // Base API y endpoints derivados
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
-const API_CIEX = process.env.NEXT_PUBLIC_API_CIEX_URL;
+const API_CIEX = import.meta.env.VITE_API_CIEX_URL;
 
 const ENDPOINTS = {
   CIEX: `${API_CIEX}/ciex`, // ✅ Usar API externa de CIEX
-  DIAGNOSTICOS: `${API_BASE}/hospitalization/diagnostics`,
-  DIAGNOSTICOS_EMERGENCIA: `${API_BASE}/hospitalization/diagnostics`
+  DIAGNOSTICOS: `${API_SPRING_URL}/diagnosticos`,
+  DIAGNOSTICOS_EMERGENCIA: `${API_SPRING_URL}/diagnosticos/buscar`
 } as const;
 
 // Tipos de origen de hospitalización

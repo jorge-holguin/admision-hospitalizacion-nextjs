@@ -116,7 +116,7 @@ async function getUbigeoFromReniec(ubigeoReniec: string): Promise<string> {
     if (!ubigeoReniec) return ''
         
     // Llamar directamente a la API externa (CORS habilitado)
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+    const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
     const response = await fetch(`${API_BASE_URL}/maestro/ubigeo/reniec/${ubigeoReniec}`)
     
     if (!response.ok) {
@@ -293,7 +293,7 @@ export async function saveHistoriaClinica(
     }
     
     // Llamar directamente a la API externa del servidor Spring Boot
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes?usuario=${encodeURIComponent(usuario)}`
+    const apiUrl = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/historia-clinica/pacientes?usuario=${encodeURIComponent(usuario)}`
     
     const response = await fetch(apiUrl, {
       method: 'POST',

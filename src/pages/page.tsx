@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { User, Lock } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/Image"
+
 import { useAuth } from "@/components/AuthProvider"
 
 
 // API base URL
-const API_AUTH = process.env.NEXT_PUBLIC_AUTH_API_URL;
+const API_AUTH = import.meta.env.VITE_AUTH_API_URL;
 
 export default function LoginPage() {
   const { login } = useAuth();

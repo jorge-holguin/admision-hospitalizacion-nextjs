@@ -125,7 +125,7 @@ export function AppointmentDetailsModal({
     const fetchLiberacionData = async () => {
       try {
         setLoadingLiberacion(true)
-        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+        const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
         
         // Obtener datos de liberación
         const resLib = await fetch(`${apiUrl}/citas-liberadas/${appointment.id}`)

@@ -4,20 +4,20 @@ import React, { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PatientInfoCardAppointment } from "../../../../components/appointments/patient/PatientInfoCardAppointment"
-import { PatientPendingAppointmentsModal, type PendingAppointment } from "../../../../components/appointments/patient/PatientPendingAppointmentsModal"
+import { PatientInfoCardAppointment } from "@/components/appointments/patient/PatientInfoCardAppointment"
+import { PatientPendingAppointmentsModal, type PendingAppointment } from "@/components/appointments/patient/PatientPendingAppointmentsModal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Clock, User, Stethoscope, CheckCircle, ArrowLeft, XCircle, AlertTriangle } from "lucide-react"
-import { TipoCitaSelector } from "../../../../components/appointments/selectors/TipoCitaSelector"
-import { TipoSeguroSelector } from "../../../../components/appointments/selectors/TipoSeguroSelector"
-import { EntidadSisSelector } from "../../../../components/appointments/selectors/EntidadSisSelector"
-import { ReferenciaSelector } from "../../../../components/appointments/selectors/ReferenciaSelector"
+import { TipoCitaSelector } from "@/components/appointments/selectors/TipoCitaSelector"
+import { TipoSeguroSelector } from "@/components/appointments/selectors/TipoSeguroSelector"
+import { EntidadSisSelector } from "@/components/appointments/selectors/EntidadSisSelector"
+import { ReferenciaSelector } from "@/components/appointments/selectors/ReferenciaSelector"
 import { useTipoCita } from "@/contexts/TipoCitaContext"
 import { useSegurosCita } from "@/contexts/SegurosCitaContext"
 import { ReferenciaProvider } from "@/contexts/ReferenciaContext"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SimpleSISVerification } from "../../../../components/appointments/patient/SimpleSISVerification"
+import { SimpleSISVerification } from "@/components/appointments/patient/SimpleSISVerification"
 import { toast } from "@/components/ui/use-toast"
 import { extractDocumentFromToken } from '@/utils/jwtUtils'
 import { datetimeService } from '@/services/datetimeService'
@@ -26,7 +26,7 @@ import { obtenerEntidadSISPorCodigo } from "@/services/appointments/sisEntitiesS
 import { convertTo12HourFormat } from "@/utils/timeUtils"
 import { UpdateClinicalHistoryButton } from "@/components/appointments/patient/UpdateClinicalHistoryButton"
 
-// const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
+// const FHIR_BASE_URL = import.meta.env.VITE_API_FHIR_URL || 'http://192.168.0.252:9015'
 
 
 interface Patient {
@@ -193,7 +193,7 @@ function PatientAssignmentReservedModalContent({
   const { tiposCita } = useTipoCita()
   const { seguros } = useSegurosCita()
   
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const apiBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
   
   const [selectedTipoCita, setSelectedTipoCita] = useState("")
   const [selectedSeguro, setSelectedSeguro] = useState("")
@@ -390,7 +390,7 @@ function PatientAssignmentReservedModalContent({
       }
       
       // 1. Construir la URL usando la variable de entorno para asignar cita
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${appointment.citaId}/asignar`;
+      const apiUrl = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${appointment.citaId}/asignar`;
       
       // 2. Realizar la solicitud PUT para asignar la cita
       const response = await fetch(apiUrl, {
@@ -434,7 +434,7 @@ function PatientAssignmentReservedModalContent({
       
       // 3. Llamar a la API de reservas para marcar la solicitud como "CITAR"
       if (appointment.idSolicitudCita) {
-        const reservasApiUrl = `${process.env.NEXT_PUBLIC_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`;
+        const reservasApiUrl = `${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`;
         
         const reservasResponse = await fetch(reservasApiUrl, {
           method: 'PUT',

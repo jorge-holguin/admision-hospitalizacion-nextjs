@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from "@/lib/router"
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Spinner } from "@/components/ui/spinner"
@@ -456,7 +457,7 @@ export function HospitalizationViewRefactored({
                   onUpdatePatient={async () => {
                     try {
                       setIsLoadingFullPatient(true)
-                      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+                      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
                       const response = await fetch(`${apiUrl}/historia-clinica/pacientes/${patientId}`)
                       if (response.ok) {
                         const data = await response.json()

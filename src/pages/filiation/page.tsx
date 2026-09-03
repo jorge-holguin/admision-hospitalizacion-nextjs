@@ -14,7 +14,8 @@ import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "@/lib/router"
+import { useLocation } from "react-router-dom"
 import { SISVerification, SISVerificationResult } from "@/components/dashboard/SISVerification"
 import { usePatient } from "@/contexts/PatientContext"
 import { EmergencyModalProvider } from "@/components/emergency/modals/EmergencyModalProvider"
@@ -189,8 +190,8 @@ export default function FiliationPage() {
   }, [searchTerm, searchType, searchDocumentType, handleFilterChange])
 
   const router = useRouter();
-  const pathname = usePathname();
-  const isClinicalHistory = pathname?.includes('/historias-clinicas') ?? false;
+  const { pathname } = useLocation();
+  const isClinicalHistory = pathname.includes('/historias-clinicas');
   const { setPatientData } = usePatient();
 
   // Normaliza campos que el backend puede devolver en UPPERCASE o camelCase
@@ -391,7 +392,7 @@ export default function FiliationPage() {
       console.log(`🔍 Cargando datos completos de historia clínica para paciente: ${patientId}`);
       setIsLoadingPatientHistory(true);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${patientId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${patientId}`);
       
       if (!response.ok) {
         throw new Error(`Error al obtener historia clínica: ${response.status}`);

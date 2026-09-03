@@ -35,7 +35,7 @@ export function TiposDocumentoProvider({ children }: { children: React.ReactNode
       setLoading(true)
       
       // Usar la API externa directamente (misma que usa filiation)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/tipoDocumento`)
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/maestro/tipoDocumento`)
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

@@ -13,7 +13,7 @@ import { extractDocumentFromToken } from '@/utils/jwtUtils';
 
 const S028_CODE = 'S028';
 const STORAGE_KEY = 's028_permissions_v2';
-const API_AUTH = process.env.NEXT_PUBLIC_AUTH_API_URL;
+const API_AUTH = import.meta.env.VITE_AUTH_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

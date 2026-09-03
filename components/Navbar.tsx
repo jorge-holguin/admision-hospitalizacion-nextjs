@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Link } from "@/lib/router"
+
+import { useRouter } from "@/lib/router"
+
 import { ChevronDown, LogOut, Menu, Settings, User } from "lucide-react"
 import { UserProfile } from "./UserProfile"
 import { useAuth } from "./AuthProvider"
@@ -83,16 +85,14 @@ export function Navbar({
                 <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
                   <p className="font-medium">Mi cuenta</p>
                 </div>
-                {/* <Link 
-                  href="/profile"
+                {/* <Link to="/profile"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   onClick={() => setDropdownOpen(false)}
                 >
                   <User className="w-4 h-4 mr-2" />
                   <span>Perfil</span>
                 </Link>
-                <Link 
-                  href="/settings"
+                <Link to="/settings"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   onClick={() => setDropdownOpen(false)}
                 >

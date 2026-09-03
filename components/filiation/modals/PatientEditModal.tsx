@@ -880,7 +880,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       // Obtener usuario del JWT
       const usuario = extractDocumentFromToken();
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}?usuario=${encodeURIComponent(usuario || '')}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${pacienteId}?usuario=${encodeURIComponent(usuario || '')}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

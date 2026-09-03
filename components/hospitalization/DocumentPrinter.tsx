@@ -5,7 +5,7 @@ import { printMergedPDF } from '@/utils/pdfUtils';
 import { useAuth } from '@/components/AuthProvider';
 
 // Obtener la URL de la API desde las variables de entorno
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL;
 
 interface DocumentPrinterProps {
   onPrintComplete?: () => void;

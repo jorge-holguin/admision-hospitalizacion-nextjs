@@ -1,7 +1,7 @@
 // Servicios para el módulo de Seguros (Auditoría de FUAs)
 // Endpoints base: NEXT_PUBLIC_API_CITAS_MASTER_URL
 
-const API_BASE = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+const API_BASE = import.meta.env.VITE_API_CITAS_MASTER_URL
 
 export interface Cita {
   citaId: string

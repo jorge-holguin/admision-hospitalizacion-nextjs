@@ -87,8 +87,8 @@ interface PatientAssignmentModalProps {
   searchType?: 'document' | 'name'
 }
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
-// const FHIR_BASE_URL = process.env.NEXT_PUBLIC_API_FHIR_URL || 'http://192.168.0.252:9015'
+const apiBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
+// const FHIR_BASE_URL = import.meta.env.VITE_API_FHIR_URL || 'http://192.168.0.252:9015'
 
 // Componente interno que usa el contexto de referencias
 function PatientAssignmentModalContent({ 
@@ -303,7 +303,7 @@ function PatientAssignmentModalContent({
   const imprimirCitaAsignada = async (citaId: string) => {
     try {
       // Obtener datos completos de la cita
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${citaId}`)
       
       if (!response.ok) {
         throw new Error('No se pudo obtener los datos de la cita')
@@ -370,7 +370,7 @@ function PatientAssignmentModalContent({
     
     try {
       // Verificar si la cita tiene una solicitud/reserva pendiente antes de asignar
-      const reservasApiUrl = process.env.NEXT_PUBLIC_API_RESERVAS_URL
+      const reservasApiUrl = import.meta.env.VITE_API_RESERVAS_URL
       if (reservasApiUrl) {
         try {
           const checkReservaUrl = `${reservasApiUrl}/solicitudes/cita/${appointment.id}/estados?estados=PENDIENTE&estados=EN_REVISION&estados=CITADO`
@@ -426,7 +426,7 @@ function PatientAssignmentModalContent({
       }
       
       // Construir la URL usando la variable de entorno
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${appointment.id}/asignar`;
+      const apiUrl = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${appointment.id}/asignar`;
       
       // Realizar la solicitud PUT
       const response = await fetch(apiUrl, {

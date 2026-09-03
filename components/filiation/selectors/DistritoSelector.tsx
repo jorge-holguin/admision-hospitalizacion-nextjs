@@ -41,7 +41,7 @@ export function DistritoSelector({
     setLoading(true)
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/maestro/buscar/ubigeo?filtro=${encodeURIComponent(filtro)}&limite=20`
+        `${import.meta.env.VITE_API_CITAS_MASTER_URL}/maestro/buscar/ubigeo?filtro=${encodeURIComponent(filtro)}&limite=20`
       )
       if (!response.ok) throw new Error('Error al buscar distritos')
       

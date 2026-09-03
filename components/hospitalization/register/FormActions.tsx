@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button'
 import { Loader2, Save, AlertCircle, CheckCircle2, X } from "lucide-react"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "@/lib/router"
+
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useEffect, useState } from 'react'
 import { usePatientAccount } from '@/contexts/PatientAccountContext'

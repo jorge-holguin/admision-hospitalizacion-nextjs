@@ -301,7 +301,7 @@ export async function getUbigeoByReniecCode(codigoReniec: string): Promise<strin
   if (!codigoReniec || codigoReniec.length !== 6) return undefined;
 
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
+    const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
     const response = await fetch(`${API_BASE_URL}/maestro/ubigeo/reniec/${codigoReniec}`);
     if (!response.ok) return undefined;
 
@@ -321,7 +321,7 @@ export async function getGradoInstruccionByReniecCode(codigoReniec: string): Pro
   if (!codigoReniec) return undefined;
   
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
+    const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011/api';
     const response = await fetch(`${API_BASE_URL}/maestro/grado-instruccion/buscar?limite=50`);
     
     if (!response.ok) return undefined;

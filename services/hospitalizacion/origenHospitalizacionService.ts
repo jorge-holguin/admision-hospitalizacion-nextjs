@@ -37,7 +37,7 @@ interface FindAllParams {
   onlyPending?: boolean
 }
 
-const API_SPRING_URL = process.env.NEXT_PUBLIC_API_SPRING_URL
+const API_SPRING_URL = import.meta.env.VITE_API_SPRING_URL
 
 async function fetchAttentions(
   params: FindAllParams

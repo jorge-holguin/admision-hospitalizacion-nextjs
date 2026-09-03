@@ -72,7 +72,7 @@ export function PatientPendingAppointmentsModal({
       setIsLoading(true)
       setError(null)
       
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const response = await fetch(
         `${apiUrl}/cita/cita-valida-paciente?paciente=${pacienteId}&limite=${limite}`
       )

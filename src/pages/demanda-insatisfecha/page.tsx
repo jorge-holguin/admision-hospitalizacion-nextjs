@@ -1,23 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, Suspense } from "react"
 import { Navbar } from "@/components/Navbar"
 import { Toaster } from "@/components/ui/toaster"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PhoneOff, ClipboardList, BarChart2, Home } from "lucide-react"
-import { useRouter } from "next/navigation"
-import dynamic from "next/dynamic"
+import { useRouter } from "@/lib/router"
 
-const FormDemandaInsatisfecha = dynamic(
-  () => import("@/components/demanda-insatisfecha/FormDemandaInsatisfecha"),
-  { ssr: false, loading: () => <div className="flex items-center justify-center py-20 text-blue-600 text-sm">Cargando...</div> }
+const FormDemandaInsatisfecha = React.lazy(
+  () => import("@/components/demanda-insatisfecha/FormDemandaInsatisfecha")
 )
 
-const ReportesDemandaInsatisfecha = dynamic(
-  () => import("@/components/demanda-insatisfecha/ReportesDemandaInsatisfecha"),
-  { ssr: false, loading: () => <div className="flex items-center justify-center py-20 text-blue-600 text-sm">Cargando...</div> }
+const ReportesDemandaInsatisfecha = React.lazy(
+  () => import("@/components/demanda-insatisfecha/ReportesDemandaInsatisfecha")
+)
+
+const LazyLoading = () => (
+  <div className="flex items-center justify-center py-20 text-blue-600 text-sm">Cargando...</div>
 )
 
 type Tab = "registro" | "reportes"
@@ -37,7 +38,6 @@ export default function DemandaInsatisfechaPage() {
         />
 
         <main className="container mx-auto px-4 py-6 max-w-screen-xl">
-          {/* Module header */}
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -57,7 +57,6 @@ export default function DemandaInsatisfechaPage() {
             </Button>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2 mb-4 border-b border-gray-200">
             <button
               onClick={() => setActiveTab("registro")}
@@ -81,7 +80,6 @@ export default function DemandaInsatisfechaPage() {
             </button>
           </div>
 
-          {/* Tab content */}
           <Card className="shadow-sm">
             <CardHeader className="pb-2 pt-4 px-5">
               <CardTitle className="text-sm font-semibold text-gray-700">
@@ -91,7 +89,9 @@ export default function DemandaInsatisfechaPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-5">
-              {activeTab === "registro" ? <FormDemandaInsatisfecha /> : <ReportesDemandaInsatisfecha />}
+              <Suspense fallback={<LazyLoading />}>
+                {activeTab === "registro" ? <FormDemandaInsatisfecha /> : <ReportesDemandaInsatisfecha />}
+              </Suspense>
             </CardContent>
           </Card>
         </main>

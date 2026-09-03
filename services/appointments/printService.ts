@@ -58,7 +58,7 @@ export interface CitaDto {
  * Imprime una cita enviando los datos al servicio de impresión
  */
 export async function imprimirCita(citaDto: CitaDto): Promise<void> {
-  const PRINT_API_URL = process.env.NEXT_PUBLIC_PRINT_API_URL || 'http://localhost:9100'
+  const PRINT_API_URL = import.meta.env.VITE_PRINT_API_URL || 'http://localhost:9100'
   
   try {
     const response = await fetch(`${PRINT_API_URL}/cita`, {

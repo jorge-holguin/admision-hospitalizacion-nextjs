@@ -84,9 +84,9 @@ interface ReferenciaItemEco {
   cpt_imagenes: Array<{ cpt1: string }> | string | null
 }
 
-const APOYO_DIAGNOSTICO_BASE_URL = process.env.NEXT_PUBLIC_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
-const REFERENCIA_BASE_URL = process.env.NEXT_PUBLIC_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
-const EESS_DESTINO = process.env.NEXT_PUBLIC_EESS_CODIGO || '5947'
+const APOYO_DIAGNOSTICO_BASE_URL = import.meta.env.VITE_API_APOYO_DIAGNOSTICO_URL || 'http://192.168.5.239:9020'
+const REFERENCIA_BASE_URL = import.meta.env.VITE_API_REFERENCIA_URL || 'http://192.168.0.31:9012'
+const EESS_DESTINO = import.meta.env.VITE_EESS_CODIGO || '5947'
 const ESTADOS_REF_PERMITIDOS = ['ACEPTADO', 'PACIENTE RECIBIDO', 'PACIENTE CITADO']
 const MAX_OBSERVACION_LENGTH = 200
 
@@ -181,7 +181,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
   const isDevOps = userPuesto?.toUpperCase() === 'DEVOPS'
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
+  const apiBaseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://localhost:8080/api'
 
   useEffect(() => {
     if (isOpen && patient) {
@@ -247,7 +247,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       if (!consultorio || !patient?.PACIENTE) { setExistingAppointmentsWarning(null); return }
       setLoadingExistingAppointments(true)
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+        const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
         const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=25`)
         if (response.ok) {
           const data = await response.json()
@@ -491,7 +491,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
         recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2),
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/adicional`, {
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/adicional`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -585,7 +585,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
   const imprimirCitaAsignada = async (citaId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/cita/${citaId}`)
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${citaId}`)
       if (!response.ok) throw new Error('No se pudo obtener los datos de la cita')
       const citaData = await response.json()
       const operador = extractNombreCompletoFromToken() || 'OPERADOR'

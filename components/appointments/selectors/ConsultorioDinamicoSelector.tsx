@@ -70,7 +70,7 @@ export function ConsultorioDinamicoSelector({
     
     try {
       setLoading(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.0.252:9011'
       
       const params = new URLSearchParams()
       params.set('desde', dateStr)

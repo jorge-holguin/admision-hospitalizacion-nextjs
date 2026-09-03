@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from "@/lib/router"
+
 import { Card, CardContent } from '@/components/ui/card'
 
 import { toast } from "@/components/ui/use-toast"
@@ -47,7 +48,7 @@ interface HospitalizationFormProps {
   refreshPatientKey?: number;
 }
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL;
 
 export function HospitalizationFormRefactored({ 
   patientId, 

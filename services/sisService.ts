@@ -3,8 +3,8 @@
  */
 
 const SIS_API_URL =
-  process.env.NEXT_PUBLIC_API_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL ||
+  import.meta.env.VITE_API_BACKEND_URL ||
+  import.meta.env.VITE_API_CITAS_MASTER_URL ||
   'http://192.168.0.252:9011/api'
 
 export interface SISValidationResponse {

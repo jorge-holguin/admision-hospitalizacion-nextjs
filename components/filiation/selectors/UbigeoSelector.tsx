@@ -39,7 +39,7 @@ export function UbigeoSelector({
   const [initialLoaded, setInitialLoaded] = useState(false)
   const [selectedUbigeoData, setSelectedUbigeoData] = useState<Ubigeo | null>(null)
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL
+  const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
 
   // Cargar datos del ubigeo seleccionado para mostrar "código - nombre"
   useEffect(() => {

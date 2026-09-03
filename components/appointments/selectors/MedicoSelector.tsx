@@ -60,7 +60,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       const year = fecha.getFullYear()
       const dateStr = `${day}/${month}/${year}`
       
-      const apiUrl = process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL 
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL 
       // desde y hasta deben ser iguales (misma fecha)
       const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`
       

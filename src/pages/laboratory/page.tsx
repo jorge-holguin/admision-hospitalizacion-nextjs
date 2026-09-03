@@ -14,13 +14,14 @@ import { CalendarIcon, Search, FlaskConical, Filter, RefreshCw, Home } from "luc
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/router"
+
 import { LaboratoryTable, LaboratoryCita } from "@/components/laboratory/LaboratoryTable"
 import { LaboratoryDetailModal } from "@/components/laboratory/LaboratoryDetailModal"
 import { toast } from "@/components/ui/use-toast"
 
 // URL base del API externo de laboratorio
-const LAB_API_BASE_URL = `${process.env.NEXT_PUBLIC_API_CITAS_MASTER_URL}/apoyodiagnostico/laboratorio/citas`
+const LAB_API_BASE_URL = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/apoyodiagnostico/laboratorio/citas`
 
 export default function LaboratoryPage() {
   const router = useRouter()

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, Table, Calendar, Loader2, FlaskConical, Shield, FileText, PhoneOff } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/router"
+
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { hasAccessToCitas, hasAccessToTablasMaestras, hasAccessToHospitalizacion, extractPuestoFromToken } from "@/utils/jwtUtils";
 
