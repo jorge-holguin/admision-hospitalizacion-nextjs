@@ -346,7 +346,6 @@ export default function FiliationPage() {
       // Simular búsqueda - en implementación real esto vendría del hook
       return [] // Retornar array vacío por ahora
     } catch (error) {
-      console.error('Error searching existing patient:', error)
       return []
     }
   }
@@ -404,7 +403,6 @@ export default function FiliationPage() {
       
       return flattenedData;
     } catch (error) {
-      console.error('❌ Error al cargar historia clínica:', error);
       toast({
         title: "Advertencia",
         description: "No se pudieron cargar algunos datos adicionales del paciente.",
@@ -527,7 +525,6 @@ export default function FiliationPage() {
             </div>
           ) : String(fecha);
         } catch (error) {
-          console.error("Error al formatear fecha:", error);
           return String(fecha || "");
         }
       },

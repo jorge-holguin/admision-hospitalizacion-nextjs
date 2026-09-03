@@ -243,7 +243,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         setDatesWithAppointments(available)
         setDatesWithoutAvailability(unavailable)
       } catch (error) {
-        console.error('Error al cargar fechas disponibles:', error)
         setDatesWithAppointments([])
       } finally {
         setLoadingDates(false)
@@ -313,7 +312,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         const url = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`
         const res = await fetch(url)
         if (!res.ok) {
-          console.error('❌ Error en respuesta:', res.status, res.statusText)
           setFilteredAppointments([])
           setTotalCount(0)
           return
@@ -503,7 +501,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         const tieneReservaActiva = await response.json()
         return tieneReservaActiva
       } catch (error) {
-        console.error('❌ Error validando reserva:', error)
         toast({
           title: "Error",
           description: "No se pudo validar la reserva de la cita",
@@ -626,7 +623,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         setTicketData(ticket)
         setShowTicketPreview(true)
       } catch (error) {
-        console.error('❌ Error al preparar ticket:', error)
         toast({
           title: "Error",
           description: "No se pudo preparar el ticket. Intente nuevamente.",
@@ -732,7 +728,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         setReleasedCitaId(citaId)
         setShowReleaseSuccessDialog(true)
       } catch (error: any) {
-        console.error('Error al liberar cita:', error)
         setShowReleaseModal(false)
         setReleaseErrorMessage(error.message || 'No se pudo liberar la cita. Intente nuevamente.')
         setShowReleaseErrorDialog(true)

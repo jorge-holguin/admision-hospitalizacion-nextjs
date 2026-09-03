@@ -238,7 +238,6 @@ export default function ReservedAppointmentsPage() {
         setSelectedEspecialidad(data[0].idEspecialidad)
       }
     } catch (error) {
-      console.error('Error al cargar especialidades:', error)
       toast({
         title: "Error",
         description: "No se pudieron cargar las especialidades",
@@ -282,7 +281,6 @@ export default function ReservedAppointmentsPage() {
       if (data.content && data.content.length > 0) {
       }
     } catch (error) {
-      console.error('Error al cargar reservas:', error)
       toast({
         title: "Error",
         description: "No se pudieron cargar las reservas",
@@ -351,7 +349,6 @@ export default function ReservedAppointmentsPage() {
         return false
       }
     } catch (error) {
-      console.error('❌ Error al buscar paciente:', error)
       toast({
         title: "Error",
         description: "Error al buscar información del paciente",
@@ -385,7 +382,6 @@ export default function ReservedAppointmentsPage() {
       const solicitudData = await response.json()
       return solicitudData
     } catch (error) {
-      console.error('❌ Error al obtener información de la solicitud:', error)
       toast({
         title: "Error",
         description: "Error al obtener información de la solicitud",
@@ -430,7 +426,6 @@ export default function ReservedAppointmentsPage() {
 
       return true
     } catch (error) {
-      console.error('❌ Error al cambiar estado:', error)
       toast({
         title: "Error",
         description: "No se pudo cambiar el estado de la solicitud",
@@ -558,7 +553,6 @@ export default function ReservedAppointmentsPage() {
         loadReservas()
       }
     } catch (error) {
-      console.error('Error al denegar:', error)
       toast({
         title: "Error",
         description: "No se pudo denegar la solicitud",
@@ -571,20 +565,23 @@ export default function ReservedAppointmentsPage() {
 
   // Manejar creación de historia clínica - Abrir modal de búsqueda
   const handleCrearHistoriaClinica = () => {
-    if (!reservaSinPaciente) return    // Cerrar modal de advertencia y abrir modal de búsqueda
+    if (!reservaSinPaciente) return
+    // Cerrar modal de advertencia y abrir modal de búsqueda
     setShowPacienteNoEncontradoModal(false)
     setShowSearchModal(true)
   }
 
   // Manejar cuando PatientSearchModal encuentra o no encuentra datos
-  const handleSearchComplete = (reniecData: any, sisData: any) => {    setReniecData(reniecData)
+  const handleSearchComplete = (reniecData: any, sisData: any) => {
+    setReniecData(reniecData)
     setSisData(sisData)
     setShowSearchModal(false)
     setShowRegistrationModal(true)
   }
 
   // Manejar cuando se encuentra un paciente existente
-  const handlePatientFound = (patientData: any) => {    toast({
+  const handlePatientFound = (patientData: any) => {
+    toast({
       title: "Paciente Encontrado",
       description: `El paciente ${patientData.NOMBRES} ya está registrado con HC: ${patientData.HISTORIA}`,
     })
@@ -613,7 +610,8 @@ export default function ReservedAppointmentsPage() {
   }
 
   // Manejar cancelación del modal de búsqueda
-  const handleSearchCancel = () => {    setShowSearchModal(false)
+  const handleSearchCancel = () => {
+    setShowSearchModal(false)
     setShowPacienteNoEncontradoModal(true)
   }
 
@@ -659,7 +657,8 @@ export default function ReservedAppointmentsPage() {
       return
     }
 
-    setIsRevirtiendo(true)    try {
+    setIsRevirtiendo(true)
+    try {
       const usuarioApellido = extractDocumentFromToken()
       
       // Determinar si la cita fue asignada (CITADO) o hubo error (DENEGADO)
@@ -667,7 +666,8 @@ export default function ReservedAppointmentsPage() {
       const errorFlag = !esEstadoCitado // error: true si fue denegado, false si fue citado
       
       // Si la cita fue asignada (CITADO), primero liberar la cita
-      if (esEstadoCitado && reservaARevertir.citaId) {        try {
+      if (esEstadoCitado && reservaARevertir.citaId) {
+        try {
           const liberarResponse = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${reservaARevertir.citaId}/liberar`, {
             method: 'PUT',
             headers: {
@@ -677,10 +677,11 @@ export default function ReservedAppointmentsPage() {
             body: JSON.stringify(`Reversión de solicitud: ${motivoParam}`)
           })
           
-          if (!liberarResponse.ok) {            // Continuamos con la reversión aunque falle la liberación
-          } else {          }
+          if (!liberarResponse.ok) {
+            // Continuamos con la reversión aunque falle la liberación
+          } else {
+          }
         } catch (liberarError) {
-          console.error('❌ Error al liberar cita:', liberarError)
           // Continuamos con la reversión aunque falle la liberación
         }
       }
@@ -720,7 +721,6 @@ export default function ReservedAppointmentsPage() {
         loadReservas()
       }
     } catch (error) {
-      console.error('❌ Error al revertir estado:', error)
       toast({
         title: "Error",
         description: "No se pudo revertir el estado de la solicitud",

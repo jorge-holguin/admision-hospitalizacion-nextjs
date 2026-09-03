@@ -85,7 +85,8 @@ export default function LaboratoryPage() {
         params.append("nombre", searchCriteria.trim())
       }
       
-      const url = `${LAB_API_BASE_URL}/agenda?${params.toString()}`      const response = await fetch(url, {
+      const url = `${LAB_API_BASE_URL}/agenda?${params.toString()}`
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           "Accept": "*/*"
@@ -99,7 +100,8 @@ export default function LaboratoryPage() {
       const result = await response.json()
       
       // Manejar respuesta con estructura { statusCode, success, message, data: [...] }
-      const dataArray = result.data || (Array.isArray(result) ? result : [])      // Adaptar los datos al nuevo formato de la tabla
+      const dataArray = result.data || (Array.isArray(result) ? result : [])
+      // Adaptar los datos al nuevo formato de la tabla
       const adaptedData = Array.isArray(dataArray) ? dataArray.map((item: any) => ({
         idCita: item.idCita || item.ID_CITA || "",
         idPaciente: item.idPaciente || item.paciente || "",
@@ -114,7 +116,8 @@ export default function LaboratoryPage() {
       // Filtrar por estado si es necesario
       const filteredData = estado !== "all" 
         ? adaptedData.filter((item: LaboratoryCita) => item.estado === estado)
-        : adaptedData      setData(filteredData)
+        : adaptedData
+      setData(filteredData)
       
       if (filteredData.length === 0) {
         toast({
@@ -123,7 +126,6 @@ export default function LaboratoryPage() {
         })
       }
     } catch (error) {
-      console.error("Error en búsqueda con filtros:", error)
       toast({
         title: "Error",
         description: "No se pudo conectar con el servicio de laboratorio",
@@ -189,7 +191,6 @@ export default function LaboratoryPage() {
         })
       }
     } catch (error) {
-      console.error("Error en búsqueda por ID:", error)
       toast({
         title: "Error",
         description: "No se pudo conectar con el servicio de laboratorio",
@@ -235,7 +236,6 @@ export default function LaboratoryPage() {
         })
       }
     } catch (error) {
-      console.error("Error al obtener detalle:", error)
       toast({
         title: "Error",
         description: "No se pudo obtener el detalle de la cita",

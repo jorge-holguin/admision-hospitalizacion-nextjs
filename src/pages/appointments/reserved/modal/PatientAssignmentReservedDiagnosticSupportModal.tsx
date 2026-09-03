@@ -408,7 +408,6 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
         const { bloqueado, examenes } = await verificarExamenesConPedido(detallesVisibles)
         setPedidoAlert({ show: bloqueado, examenes })
       } catch (error) {
-        console.error('❌ Error verificando PEDIDO:', error)
         setPedidoAlert({ show: false, examenes: [] })
       } finally {
         setLoadingPedido(false)
@@ -643,7 +642,8 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
       if (appointment.idSolicitudCita) {
         const reservasApiUrl = `${import.meta.env.VITE_API_RESERVAS_URL}/solicitudes/${appointment.idSolicitudCita}/citar?usuarioAsigna=${usuarioApellido}`
         const reservasResponse = await fetch(reservasApiUrl, { method: 'PUT', headers: { 'accept': '*/*' } })
-        if (!reservasResponse.ok) {        }
+        if (!reservasResponse.ok) {
+        }
       }
 
       const assignmentData = { ...requestBody, appointmentId: appointment.citaId, success: true, responseData }
@@ -716,9 +716,10 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
           body: JSON.stringify(apoyoBody),
         })
         if (!apoyoRes.ok) {
-          const apoyoErr = await apoyoRes.json().catch(() => ({}))        }
+          const apoyoErr = await apoyoRes.json().catch(() => ({}))
+        }
       } catch (apoyoError) {
-        console.error('❌ Error en apoyo diagnóstico (no crítico):', apoyoError)
+        // El error en apoyo diagnóstico no es crítico; la cita principal ya fue asignada.
       }
 
       setShowSuccess(true)
@@ -729,7 +730,6 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
         duration: 5000
       })
     } catch (error: any) {
-      console.error('Error al aprobar:', error)
       toast({ title: "Error", description: error.message || "No se pudo aprobar la solicitud. Intente nuevamente.", variant: "destructive" })
     } finally {
       setIsLoading(false)

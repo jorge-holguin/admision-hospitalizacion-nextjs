@@ -348,7 +348,6 @@ function PatientAssignmentReservedModalContent({
     
     // ⚠️ VALIDACIÓN CRÍTICA: Verificar dobles citas antes de continuar
     if (hasConsultorioMatch) {
-      console.error('❌ INTENTO DE APROBAR CITA CON CONSULTORIO DUPLICADO BLOQUEADO')
       toast({
         title: "⛔ Doble Cita Detectada",
         description: "El paciente ya tiene una cita pendiente en este mismo consultorio. No se puede aprobar esta solicitud para evitar dobles citas.",
@@ -443,7 +442,8 @@ function PatientAssignmentReservedModalContent({
           }
         })
         
-        if (!reservasResponse.ok) {        }
+        if (!reservasResponse.ok) {
+        }
       }
       
       // Guardar datos de asignación para notificar al padre DESPUÉS de que el usuario confirme
@@ -463,7 +463,8 @@ function PatientAssignmentReservedModalContent({
           // 1. Obtener datos de la cita desde REFCON
           const citaRefconResult = await obtenerDatosCitaRefcon(appointment.citaId, usuarioApellido)
           
-          if (!citaRefconResult.success || !citaRefconResult.data) {            return
+          if (!citaRefconResult.success || !citaRefconResult.data) {
+            return
           }
           
           const datosRefcon = citaRefconResult.data
@@ -483,17 +484,17 @@ function PatientAssignmentReservedModalContent({
             setRefconSyncSuccess(true)
             setRefconSyncError(null)
             // Estado REFCON 2 ya fue establecido al asignar la cita, no se requiere actualización
-          } else {            setRefconSyncSuccess(false)
+          } else {
+            setRefconSyncSuccess(false)
             setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
             
             // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló
             await actualizarEstadoRefcon(appointment.citaId, 1)
           }
         } catch (refconError) {
-          console.error('❌ Error al sincronizar con REFCON:', refconError)
           setRefconSyncSuccess(false)
           setRefconSyncError(refconError instanceof Error ? refconError.message : 'Error desconocido')
-          
+
           // Actualizar estado REFCON a 1 por error
           try {
             await actualizarEstadoRefcon(appointment.citaId, 1)
@@ -534,7 +535,6 @@ function PatientAssignmentReservedModalContent({
         duration: 5000
       })
     } catch (error: any) {
-      console.error('Error al aprobar:', error)
       toast({
         title: "Error",
         description: error.message || "No se pudo aprobar la solicitud. Intente nuevamente.",
@@ -571,7 +571,6 @@ function PatientAssignmentReservedModalContent({
         onClose()
       }, 1500)
     } catch (error) {
-      console.error('Error al denegar:', error)
       toast({
         title: "Error",
         description: "No se pudo denegar la solicitud",
