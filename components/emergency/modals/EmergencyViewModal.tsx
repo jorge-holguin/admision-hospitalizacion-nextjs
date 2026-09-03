@@ -61,15 +61,7 @@ function mapApiToViewData(raw: any): any {
     ACOMPANANTE: src.acompanante || src.ACOMPANANTE || '',
     TIPO_DOCUMENTOA: src.tipoDocumentoA || src.tipoDocumentoAcompanante || src.TIPO_DOCUMENTOA || '',
     DOCUMENTOA: src.documentoA || src.documentoAcompanante || src.DOCUMENTOA || '',
-    _debug_acompanante: (() => {
-      console.log('🔍 mapApiToViewData acompañante:', {
-        documentoA: src.documentoA,
-        documentoAcompanante: src.documentoAcompanante,
-        DOCUMENTOA: src.DOCUMENTOA,
-        mapped: src.documentoA || src.documentoAcompanante || src.DOCUMENTOA || ''
-      });
-      return null;
-    })(),
+    _debug_acompanante: null,
     ESTADO: String(src.estado ?? src.ESTADO ?? ''),
     CUENTAID: src.cuentaId || src.CUENTAID || '',
     MEDICO: src.medico || src.MEDICO || '0',

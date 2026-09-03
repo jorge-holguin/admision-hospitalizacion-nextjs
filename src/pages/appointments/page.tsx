@@ -293,13 +293,6 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           qs.set('medico', String(filters.medico).trim())
         }
         
-        console.log('📍 Buscando citas:', { 
-          hasConsultorio, 
-          hasMedico, 
-          consultorioNombre: selectedConsultorioData?.NOMBRE,
-          consultorioNameSearch 
-        })
-        
         // Agregar filtro de estado si no es "all"
         if (filters.estado && filters.estado !== 'all') {
           qs.set('estado', String(filters.estado))
@@ -317,17 +310,20 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         qs.set('page', String(pageParam))
         qs.set('size', String(sizeParam))
 
-        const url = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`        const res = await fetch(url)
+        const url = `${import.meta.env.VITE_API_CITAS_MASTER_URL}/${endpoint}?${qs.toString()}`
+        const res = await fetch(url)
         if (!res.ok) {
           console.error('❌ Error en respuesta:', res.status, res.statusText)
           setFilteredAppointments([])
           setTotalCount(0)
           return
         }
-        const data = await res.json()        // Determinar si la respuesta es un array o tiene un campo content/items
+        const data = await res.json()
+        // Determinar si la respuesta es un array o tiene un campo content/items
         const list = Array.isArray(data) ? data : 
                      Array.isArray(data?.content) ? data.content : 
-                     Array.isArray(data?.items) ? data.items : []        const mapped = list.map((it: any, idx: number) => ({
+                     Array.isArray(data?.items) ? data.items : []
+        const mapped = list.map((it: any, idx: number) => ({
           id: String(it.citaId || it.CITAID || it.id || it.ID || `R${idx}`),
           estado: Number(it.estado ?? it.ESTADO ?? 1),
           fecha: String(it.fecha ?? it.FECHA ?? new Date().toISOString().slice(0,10)),
@@ -402,7 +398,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
         return
       }
       
-      const timer = setTimeout(() => {        searchAppointmentsByParams()
+      const timer = setTimeout(() => {
+        searchAppointmentsByParams()
       }, 500) // 500ms de debounce
       
       return () => clearTimeout(timer)
@@ -430,7 +427,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           setTotalCount(0)
           return
         }
-        const data = await res.json()        // Verificar si realmente se encontró una cita válida
+        const data = await res.json()
+        // Verificar si realmente se encontró una cita válida
         if (!data || (Array.isArray(data) && data.length === 0)) {
           setFilteredAppointments([])
           setTotalCount(0)
@@ -712,7 +710,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
           const atencionData = await parseReleaseResponse(atencionRes)
 
           if (!atencionRes.ok) {
-            if (atencionRes.status === 409) {            } else {
+            if (atencionRes.status === 409) {
+            } else {
               throw new Error(`Cita liberada, pero falló la liberación de atención: ${atencionData.message || atencionRes.status}`)
             }
           }

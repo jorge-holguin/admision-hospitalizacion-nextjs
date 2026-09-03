@@ -571,7 +571,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
             headers: { 'Content-Type': 'application/json', 'Usuario': extractDocumentFromToken() || 'SISTEMA' },
             body: JSON.stringify(apoyoBody),
           })
-          if (!apoyoRes.ok) { const apoyoErr = await apoyoRes.json().catch(() => ({})); console.warn('⚠️ Error al vincular orden de apoyo diagnóstico (no crítico):', apoyoErr) }
+          if (!apoyoRes.ok) { await apoyoRes.json().catch(() => ({})) }
         } catch (apoyoError) { console.error('❌ Error en apoyo diagnóstico (no crítico):', apoyoError) }
       }
 

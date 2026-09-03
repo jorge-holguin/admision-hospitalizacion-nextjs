@@ -133,7 +133,8 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
   // Efecto para cargar los datos del paciente usando el contexto
   useEffect(() => {
     const loadPatientData = async () => {
-      if (!patientId) {        return;
+      if (!patientId) {
+        return;
       }
 
       // Si tenemos initialData, aún así cargar los datos completos desde la API de filiación
@@ -184,15 +185,6 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             patientDataObj.maternalSurname,
             patientDataObj.names
           ].filter(Boolean).join(' ').toUpperCase();
-          
-          // Log para depuración de extracción de seguro y paciente
-          console.log('📋 PatientInfoCard datos mapeados:', {
-            pacienteId: patientDataObj.pacienteId,
-            insuranceCode: patientDataObj.insuranceCode,
-            insurance: patientDataObj.insurance,
-            names: patientDataObj.names,
-            age: patientDataObj.age
-          });
 
           // Actualizamos el estado con los datos del paciente
           setPatientData(patientDataObj);

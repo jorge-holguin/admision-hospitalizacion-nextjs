@@ -196,13 +196,6 @@ export function HospitalizationFormRefactored({
         // Pre-poblar financiamiento con el seguro del paciente (solo si aún no fue seleccionado)
         financing: prev.financing || data.insuranceCode || ''
       };
-      console.log('🩺 HospitalizationForm datos recibidos:', {
-        pacienteId: next.patienteDBId,
-        insuranceCode: data.insuranceCode,
-        financing: next.financing,
-        names: next.names,
-        age: next.age
-      });
       return next;
     });
   }, [patientId, setPatientData]);
@@ -400,7 +393,8 @@ export function HospitalizationFormRefactored({
         ACOMPANANTE_DIRECCION: truncate(formData.companionAddress || '', 100),
         // ✅ Solo enviamos los campos con valores reales
         // Los campos null/vacíos no se envían para evitar sobrescribir valores por defecto de la BD
-      };      // Determinar si es creación o actualización
+      };
+      // Determinar si es creación o actualización
       const method = 'POST';
       const url = `${API_SPRING_URL}/hospitalization`;
       
@@ -437,7 +431,8 @@ export function HospitalizationFormRefactored({
           throw new Error(errorMsg);
         }
         
-        const result = await response.json();        // Verificar que realmente se creó en la BD
+        const result = await response.json();
+        // Verificar que realmente se creó en la BD
         // Si el backend devuelve 20x sin campo 'success', asumimos éxito.
         if (result.success === false) {
           throw new Error(result.message || result.error || 'Error al crear la hospitalización');
@@ -497,7 +492,8 @@ export function HospitalizationFormRefactored({
             selectedCuentaIdRef.current = null;
             forceCreateNewRef.current = false;
 
-            if (!asegurarResponse.ok) {            } else {
+            if (!asegurarResponse.ok) {
+            } else {
               const asegurarResult = await asegurarResponse.json();
 
               if (asegurarResult.ok && asegurarResult.cuentaId) {
@@ -519,9 +515,12 @@ export function HospitalizationFormRefactored({
                       accountList = accounts.data;
                     }
                     const found = accountList.some((a: any) => String(a.cuentaId || a.CUENTAID) === String(asegurarResult.cuentaId));
-                    if (!found) {                    } else {                    }
+                    if (!found) {
+                    } else {
+                    }
                   }
-                } catch (validateError) {                }
+                } catch (validateError) {
+                }
 
                 // Actualizar el registro de hospitalización con el cuentaId
                 // El backend no acepta PATCH sobre /hospitalization/{id}; se usa PUT con el mismo
@@ -561,7 +560,8 @@ export function HospitalizationFormRefactored({
                     })
                   });
 
-                  if (!updateResponse.ok) {                  } else {
+                  if (!updateResponse.ok) {
+                  } else {
                     const updateResult = await updateResponse.json();
                     if (updateResult.success === false) {
                       console.error('Error al actualizar la hospitalización con el CUENTAID:', updateResult.message);
@@ -570,7 +570,8 @@ export function HospitalizationFormRefactored({
                 } catch (updateError) {
                   console.error('Error al actualizar la hospitalización con el CUENTAID:', updateError);
                 }
-              } else {              }
+              } else {
+              }
             }
           } catch (error) {
             console.error('Error al asegurar la cuenta:', error);
@@ -591,9 +592,11 @@ export function HospitalizationFormRefactored({
         ];
         
         try {
-          // Intentar método primario: imprimir cada PDF por separado usando la API directa          const directPrintSuccess = await printMultiplePdfsViaDirectApi(pdfUrls);
+          // Intentar método primario: imprimir cada PDF por separado usando la API directa
+          const directPrintSuccess = await printMultiplePdfsViaDirectApi(pdfUrls);
           
-          if (directPrintSuccess) {            toast({
+          if (directPrintSuccess) {
+            toast({
               title: "Impresión iniciada",
               description: "Los documentos se están enviando a la impresora.",
               variant: "default"
@@ -607,7 +610,8 @@ export function HospitalizationFormRefactored({
               router.push(`/hospitalization/orders/${patientId}`);
             }
           } else {
-            // Si falla el método primario, usar el método secundario (merge PDF)            // Imprimir directamente los PDFs sin mostrar el visor usando el método actual
+            // Si falla el método primario, usar el método secundario (merge PDF)
+            // Imprimir directamente los PDFs sin mostrar el visor usando el método actual
             // La redirección se maneja en el callback onPrintComplete del hook useDocumentPrinter
             handleDirectPrint(pdfUrls);
             
@@ -619,7 +623,8 @@ export function HospitalizationFormRefactored({
         } catch (printError) {
           console.error('Error en el proceso de impresión:', printError);
           
-          // Si ocurre cualquier error, usar el método secundario (merge PDF)          handleDirectPrint(pdfUrls);
+          // Si ocurre cualquier error, usar el método secundario (merge PDF)
+          handleDirectPrint(pdfUrls);
           
           // Si estamos en modo modal, llamar a onSuccess incluso si falla la impresión
           if (isModal && onSuccess) {
@@ -701,7 +706,8 @@ export function HospitalizationFormRefactored({
       
       setLoading(false);
     } else if (!dateTimeLoading && !contextServerDateTime) {
-      // Fallback a fecha/hora local si el contexto no está disponible      const now = new Date();
+      // Fallback a fecha/hora local si el contexto no está disponible
+      const now = new Date();
       const localDate = now.toISOString().split('T')[0];
       const localTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
@@ -740,7 +746,8 @@ export function HospitalizationFormRefactored({
           estado: '1',
           origen: 'HO',
           seguro: seguroCode,
-        });        const resp = await fetchApi(url);
+        });
+        const resp = await fetchApi(url);
         if (!resp.ok || cancelled) return;
 
         const data = await resp.json();
@@ -749,10 +756,13 @@ export function HospitalizationFormRefactored({
         if (list.length > 0) {
           const cuentaId = String(list[0].cuentaId || list[0].CUENTAID || list[0].CUENTA_ID || '');
           if (cuentaId && !cancelled) {
-            selectedCuentaIdRef.current = cuentaId;          }
+            selectedCuentaIdRef.current = cuentaId;
+          }
         } else if (!cancelled) {
-          selectedCuentaIdRef.current = null;        }
-      } catch (err) {      }
+          selectedCuentaIdRef.current = null;
+        }
+      } catch (err) {
+      }
     })();
 
     return () => { cancelled = true; };

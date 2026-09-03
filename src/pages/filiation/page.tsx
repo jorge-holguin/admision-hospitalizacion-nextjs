@@ -69,16 +69,6 @@ export default function FiliationPage() {
   const canCrearEmer       = hasPermission(PERMISOS.EMERGENCIA.CREAR)
   const canVerificarSIS    = hasPermission(PERMISOS.PACIENTES.VER_SIS)
 
-  // Debug: log permission state and button visibility
-  useEffect(() => {
-    console.log('🔐 [FiliationPage] permissions', {
-      isLoaded,
-      count: permissions.size,
-      codes: [...permissions],
-      canCrearEmer,
-      canVerificarSIS,
-    })
-  }, [isLoaded, permissions])
   const [searchTerm, setSearchTerm] = useState("")
   const [searchType, setSearchType] = useState<"historia" | "documento" | "nombres">("documento")
   const [isSearching, setIsSearching] = useState(false)
@@ -224,12 +214,6 @@ export default function FiliationPage() {
     const documento = getPatientDocument(patient)
     const historia = getPatientHistoria(patient)
 
-    console.log('🚨 [FiliationPage] handleEmergencySelect', {
-      patient,
-      resolvedPatientId: patientId,
-      resolvedPatientName: patientName,
-    })
-
     // Save patient data to context
     setPatientData({
       hc: historia,
@@ -242,14 +226,6 @@ export default function FiliationPage() {
     setSelectedPatientForEmergency(patient);
     setIsEmergencyModalOpen(true);
   };
-
-  // Debug: track emergency modal state changes
-  useEffect(() => {
-    console.log('🚨 [FiliationPage] emergency modal state', {
-      isEmergencyModalOpen,
-      selectedPatientForEmergency,
-    })
-  }, [isEmergencyModalOpen, selectedPatientForEmergency])
 
   // Funciones para manejar los modales de filiación
   const handleNewPatientClick = () => {
@@ -388,7 +364,8 @@ export default function FiliationPage() {
 
   // Función para cargar datos completos de historia clínica
   const fetchPatientHistoryData = async (patientId: string) => {
-    try {      setIsLoadingPatientHistory(true);
+    try {
+      setIsLoadingPatientHistory(true);
       
       const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/historia-clinica/pacientes/${patientId}`);
       

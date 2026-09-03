@@ -404,12 +404,6 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         estado: initialData.ESTADO || '',
         numeroCuenta: initialData.CUENTAID || '',
       });
-      
-      console.log('🔍 EmergencySectionView loaded:', {
-        DOCUMENTOA: initialData.DOCUMENTOA,
-        TIPO_DOCUMENTOA: initialData.TIPO_DOCUMENTOA,
-        documentoA: cleanApiString(initialData.DOCUMENTOA)
-      });
     }
   }, [initialData]);
 
@@ -572,7 +566,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
       const consultorioHaCambiado = consultorioOriginal !== consultorioNuevo;
       
       if (consultorioHaCambiado && cuentaParaActualizar && cuentaParaActualizar !== 'No disponible') {
-        // No hay endpoint expuesto en Spring para actualizar el consultorio de la cuenta.      }
+        // No hay endpoint expuesto en Spring para actualizar el consultorio de la cuenta.
+      }
       
       const updateData: any = {
         TIPOATENCION: limitLength(formData.tipoAtencion, 1),          // Char(1)
@@ -1102,7 +1097,8 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
                       options={formatEmpresasSeguro}
                       loading={loadingEmpresasSeguro}
                       search={searchAseguradora}
-                      onSearchChange={(v: string) => {                        setSearchAseguradora(v);
+                      onSearchChange={(v: string) => {
+                        setSearchAseguradora(v);
                         // El debounce en useEffect hará el fetch automáticamente
                       }}
                       onSelect={(value: string, data: any) => {
