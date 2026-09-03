@@ -12,8 +12,6 @@ import Image from "@/components/Image"
 
 import { useAuth } from "@/components/AuthProvider"
 
-
-// API base URL
 const API_AUTH = import.meta.env.VITE_AUTH_API_URL;
 
 export default function LoginPage() {
@@ -26,27 +24,24 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-    
+
     try {
       const response = await fetch(`${API_AUTH}/api/v1/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: credentials.username,
           password: credentials.password
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || 'Error en la autenticación');
       }
-      
+
       if (data.success && data.data) {
-        // Use the login function from AuthProvider
         login(data.data.jwt, data.data.primerInicio);
       } else {
         setError(data.message || 'Error en la autenticación');
@@ -59,43 +54,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-gradient-to-br from-blue-50 to-blue-100">
       {/* Left side - Hospital Image */}
-      <div className="hidden md:flex md:w-1/2 relative">
-        <div className="absolute inset-0 bg-blue-800/50 z-10"></div>
+      <div className="hidden md:flex md:w-1/2 relative min-h-screen">
         <img
           src="/login-bg.png"
           alt="Hospital Building"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <div className="text-white text-center p-8 bg-blue-900/40 backdrop-blur-sm rounded-lg shadow-lg">
-            <h1 className="text-4xl font-bold mb-4 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">HOSPITAL</h1>
-            <h2 className="text-2xl font-semibold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">JOSÉ AGURTO TELLO DE CHOSICA</h2>
-            <p className="text-lg mt-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">ATENCIÓN EMERGENCIAS 24 HORAS</p>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/85 to-blue-700/70 z-10"></div>
+        <div className="absolute inset-0 z-20 flex items-center justify-center p-8">
+          <div className="text-white text-center max-w-lg p-8 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20">
+            <h1 className="text-5xl font-extrabold mb-3 text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              HOSPITAL
+            </h1>
+            <h2 className="text-2xl md:text-3xl font-semibold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              JOSÉ AGURTO TELLO DE CHOSICA
+            </h2>
+            <div className="mt-4 h-1 w-24 bg-yellow-400 mx-auto rounded-full"></div>
+            <p className="text-lg mt-4 text-white/90 font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              ATENCIÓN EMERGENCIAS 24 HORAS
+            </p>
           </div>
         </div>
       </div>
 
       {/* Right side - Login Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md shadow-2xl border-0">
-          <CardContent className="p-8">
+      <div className="w-full md:w-1/2 min-h-screen flex items-center justify-center p-6 md:p-12">
+        <Card className="w-full max-w-md bg-white shadow-2xl border-0 rounded-2xl">
+          <CardContent className="p-8 md:p-10">
             <div className="text-center mb-8">
-              <Image
-                src="/hjatch-logo.jpg"
-                alt="Hospital José Agurto Tello de Chosica"
-                width={80}
-                height={80}
-                className="mx-auto mb-4"
-              />
-              <h1 className="text-2xl font-bold text-blue-900 mb-2">SISTEMA DE GESTIÓN HOSPITALARIA</h1>
-              <p className="text-blue-700">Hospital José Agurto Tello de Chosica</p>
+              <div className="flex justify-center mb-4">
+                <Image
+                  src="/hjatch-logo.jpg"
+                  alt="Hospital José Agurto Tello de Chosica"
+                  width={90}
+                  height={90}
+                  className="rounded-full shadow-md"
+                />
+              </div>
+              <h1 className="text-2xl font-bold text-blue-900 mb-1">SISTEMA DE GESTIÓN</h1>
+              <h2 className="text-2xl font-bold text-blue-900 mb-2">HOSPITALARIA</h2>
+              <p className="text-sm text-blue-700 font-medium">Hospital José Agurto Tello de Chosica</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
-              <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold text-gray-700">Ingreso al sistema</h2>
+            <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
+              <div className="text-center mb-2">
+                <span className="text-base font-semibold text-gray-700">Ingreso al sistema</span>
               </div>
 
               <div className="space-y-4">
@@ -111,7 +116,7 @@ export default function LoginPage() {
                       placeholder="Documento de Identidad"
                       value={credentials.username}
                       onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-                      className="pl-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="pl-10 h-12 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       autoComplete="off"
                       required
                     />
@@ -130,7 +135,7 @@ export default function LoginPage() {
                       placeholder="Contraseña"
                       value={credentials.password}
                       onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                      className="pl-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="pl-10 h-12 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       autoComplete="new-password"
                       required
                     />
@@ -142,14 +147,16 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-md"
                 disabled={isLoading}
               >
                 {isLoading ? "PROCESANDO..." : "INGRESAR AL SISTEMA"}
               </Button>
             </form>
 
-            <div className="mt-8 text-center text-xs text-gray-500">© Derechos Reservados HJATCH - UEI - 2025</div>
+            <div className="mt-8 text-center text-xs text-gray-500">
+              © Derechos Reservados HJATCH - UEI - 2026
+            </div>
           </CardContent>
         </Card>
       </div>
