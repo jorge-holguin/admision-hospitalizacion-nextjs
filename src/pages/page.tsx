@@ -61,9 +61,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex">
       {/* Left side - Hospital Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
+      <div className="hidden md:flex md:w-1/2 relative">
         <div className="absolute inset-0 bg-blue-800/50 z-10"></div>
-        <Image src="/login-bg.png" alt="Hospital Building" fill className="object-cover" />
+        <Image src="/login-bg.png" alt="Hospital Building" fill priority className="object-cover" />
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="text-white text-center p-8 bg-blue-900/40 backdrop-blur-sm rounded-lg shadow-lg">
             <h1 className="text-4xl font-bold mb-4 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">HOSPITAL</h1>
@@ -74,7 +74,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
         <Card className="w-full max-w-md shadow-2xl border-0">
           <CardContent className="p-8">
             <div className="text-center mb-8">
