@@ -74,7 +74,8 @@ export function EditHistoryNumberModal({
       }
 
       const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
-      const url = `${apiUrl}/historia-clinica/pacientes/actualizar-historia/${patientId}?historiaNueva=${encodeURIComponent(newHistory.trim())}&argumento=${encodeURIComponent(argument.trim())}&usuario=${usuario}`      const response = await fetch(url, {
+      const url = `${apiUrl}/historia-clinica/pacientes/actualizar-historia/${patientId}?historiaNueva=${encodeURIComponent(newHistory.trim())}&argumento=${encodeURIComponent(argument.trim())}&usuario=${usuario}`
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -84,7 +85,8 @@ export function EditHistoryNumberModal({
       if (!response.ok) {
         const errorText = await response.text()
         throw new Error(errorText || `Error ${response.status}`)
-      }      onSuccess(newHistory.trim())
+      }
+      onSuccess(newHistory.trim())
       handleClose()
     } catch (err: any) {
       console.error('❌ Error al actualizar número de historia:', err)
@@ -98,7 +100,7 @@ export function EditHistoryNumberModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-blue-800 font-semibold flex items-center gap-2">
+          <DialogTitle className="text-blue-800 font-semibold flex flex-wrap items-center gap-2">
             <FileText className="h-5 w-5" />
             Editar Número de Historia Clínica
           </DialogTitle>

@@ -247,7 +247,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-blue-800 flex items-center">
+            <DialogTitle className="text-xl font-bold text-blue-800 flex flex-wrap items-center">
               <User className="w-6 h-6 mr-2" />
               Información del Paciente - H.C. {mappedPatient?.hc || 'N/A'}
             </DialogTitle>

@@ -229,7 +229,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
     return (
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-amber-600 flex items-center gap-2">
+          <DialogTitle className="text-xl font-bold text-amber-600 flex flex-wrap items-center gap-2">
             <Clock className="h-6 w-6" />
             Falla en servicio RENIEC
           </DialogTitle>
@@ -279,7 +279,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
     return (
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
+          <DialogTitle className="text-xl font-bold text-red-600 flex flex-wrap items-center gap-2">
             <AlertCircle className="h-6 w-6" />
             Paciente ya existe
           </DialogTitle>

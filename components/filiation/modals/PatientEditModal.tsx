@@ -1069,7 +1069,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-green-600">
               <CheckCircle className="h-6 w-6" />
               Actualización Exitosa
             </DialogTitle>
