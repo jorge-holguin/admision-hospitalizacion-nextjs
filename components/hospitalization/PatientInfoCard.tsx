@@ -360,16 +360,16 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             
           <div className="space-y-2">
             {patientData.address && (
-              <div className="flex items-start gap-2">
-                <Home className="h-4 w-4 text-gray-400 mt-1" />
-                <span className="text-sm">{patientData.address}</span>
+              <div className="flex flex-wrap items-start gap-2">
+                <Home className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
+                <span className="text-sm min-w-0 break-words flex-1">{patientData.address}</span>
               </div>
             )}
 
             {patientData.district && (
               <div className="flex flex-wrap items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{patientData.district}</span>
+                <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm min-w-0 break-words flex-1">{patientData.district}</span>
               </div>
             )}
 
