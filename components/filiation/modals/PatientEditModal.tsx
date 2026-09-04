@@ -1027,36 +1027,36 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
       </div>
 
       {/* Navigation Footer */}
-      <div className="flex justify-between items-center pt-6 border-t">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t">
         <div>
           {currentStep > 1 && (
-            <Button variant="outline" onClick={handlePrevious}>
+            <Button variant="outline" onClick={handlePrevious} className="w-full sm:w-auto">
               <ChevronLeft className="w-4 h-4 mr-2" />
               Anterior
             </Button>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
 
           {currentStep === 1 ? (
-            <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleNext} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
               Siguiente
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : currentStep === 2 ? (
             <>
-              <Button onClick={handleNext} variant="outline" className="bg-gray-100 hover:bg-gray-200">
+              <Button onClick={handleNext} variant="outline" className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200">
                 Siguiente (Opcional)
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5">
+              <Button onClick={handleSubmit} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 px-6 py-2.5">
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Actualizar Historia Clínica
               </Button>
             </>
           ) : (
-            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5">
+            <Button onClick={handleSubmit} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 px-6 py-2.5">
               <CheckCircle className="w-4 h-4 mr-2" />
               Actualizar Historia Clínica
             </Button>

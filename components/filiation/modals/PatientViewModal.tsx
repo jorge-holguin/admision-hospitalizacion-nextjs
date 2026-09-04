@@ -531,13 +531,13 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         </Card> */}
       </div>
       {/* Footer con acciones */}
-      <div className="flex justify-between items-center pt-6 border-t">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t">
         <div>
           <p className="text-sm text-gray-500">
             Historia clínica creada el: {new Date().toLocaleDateString("es-PE")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={async () => {
@@ -587,12 +587,12 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 window.open(url, '_blank', 'noopener,noreferrer')
               }
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Printer className="w-4 h-4 mr-2" />
             Imprimir Hoja de Filiación
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cerrar
           </Button>
           {/* <Button onClick={onEdit} className="bg-orange-600 hover:bg-orange-700">

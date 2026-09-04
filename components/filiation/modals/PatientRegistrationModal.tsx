@@ -679,19 +679,19 @@ export function PatientRegistrationModal({
         </div>
 
         {/* Navigation Footer */}
-        <div className="flex justify-between items-center pt-6 border-t">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t">
           <div>
             {currentStep > 1 && (
-              <Button variant="outline" onClick={handlePrevious}>
+              <Button variant="outline" onClick={handlePrevious} className="w-full sm:w-auto">
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Anterior
               </Button>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
             {currentStep === 1 ? (
-              <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
+              <Button onClick={handleNext} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
                 Siguiente
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
@@ -700,7 +700,7 @@ export function PatientRegistrationModal({
                 <Button 
                   onClick={handleNext} 
                   variant="outline" 
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50"
                   disabled={isSaving}
                 >
                   Siguiente (Opcional)
@@ -708,7 +708,7 @@ export function PatientRegistrationModal({
                 </Button>
                 <Button 
                   onClick={handleSubmit} 
-                  className="bg-green-600 hover:bg-green-700"
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
                   disabled={isSaving}
                 >
                   {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -718,7 +718,7 @@ export function PatientRegistrationModal({
             ) : (
               <Button 
                 onClick={handleSubmit} 
-                className="bg-green-600 hover:bg-green-700"
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
                 disabled={isSaving}
               >
                 {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

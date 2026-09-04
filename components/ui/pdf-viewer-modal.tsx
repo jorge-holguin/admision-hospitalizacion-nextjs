@@ -190,15 +190,14 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
           )}
         </div>
         
-        <DialogFooter className="flex justify-between items-center pt-4">
-          <div></div> {/* Espacio vacío para mantener la alineación */}
-          
-          <div className="flex flex-wrap gap-2">
+        <DialogFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-4">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleDownload} 
               disabled={loading || pdfData.length === 0}
+              className="w-full sm:w-auto"
             >
               <Download className="w-4 h-4 mr-2" />
               Descargar
@@ -208,6 +207,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
               size="sm" 
               onClick={handlePrint} 
               disabled={loading || pdfData.length === 0}
+              className="w-full sm:w-auto"
             >
               <Printer className="w-4 h-4 mr-2" />
               Imprimir
@@ -217,6 +217,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
                 variant="outline" 
                 size="sm" 
                 onClick={() => router.push(`/hospitalization/orders/${patientId}`)}
+                className="w-full sm:w-auto"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Ir a Órdenes
@@ -226,6 +227,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
               variant="default" 
               size="sm" 
               onClick={() => router.push('/hospitalization')}
+              className="w-full sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver a Hospitalización
