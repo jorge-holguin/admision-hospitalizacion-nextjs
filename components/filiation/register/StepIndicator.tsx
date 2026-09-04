@@ -14,7 +14,7 @@ const steps = [
 
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-between overflow-x-auto pb-1 mb-6 min-w-0">
       {steps.map((step, index) => (
         <div key={step.id} className="flex items-center">
           <div
