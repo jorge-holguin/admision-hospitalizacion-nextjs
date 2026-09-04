@@ -1055,25 +1055,25 @@ export default function FiliationPage() {
 
                   {/* Datos del paciente */}
                   <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-500 text-sm">Nombre</span>
                       <span className="font-medium text-gray-800">
                         {nnConfirmation.resumenPaciente?.paterno} {nnConfirmation.resumenPaciente?.materno} {nnConfirmation.resumenPaciente?.nombre}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-500 text-sm">Sexo</span>
                       <span className="font-medium text-gray-800">
                         {nnConfirmation.resumenPaciente?.sexo === 'M' ? 'Masculino' : nnConfirmation.resumenPaciente?.sexo === 'F' ? 'Femenino' : nnConfirmation.resumenPaciente?.sexo || '-'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-500 text-sm">Fecha Nacimiento</span>
                       <span className="font-medium text-gray-800">{nnConfirmation.resumenPaciente?.fechaNacimiento || '-'}</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-500 text-sm">Dirección</span>
-                      <span className="font-medium text-gray-800 text-right max-w-[200px] truncate">{nnConfirmation.resumenPaciente?.direccion || '-'}</span>
+                      <span className="font-medium text-gray-800 text-right sm:max-w-[200px] truncate">{nnConfirmation.resumenPaciente?.direccion || '-'}</span>
                     </div>
                   </div>
 

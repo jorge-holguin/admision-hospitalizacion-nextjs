@@ -1027,7 +1027,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
 
                       {isPacientePeriferico && (
                         <div className="space-y-2 border border-blue-200 rounded-lg p-3 bg-blue-50/50">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                             <span className="text-sm font-semibold text-blue-800 flex items-center gap-1">
                               <MapPin className="h-4 w-4" />
                               Orden de referencia externa
@@ -1075,7 +1075,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                     onClick={() => { setSelectedRefItem(ref); setOrdenCreadaId(null); setShowCrearOrdenModal(false) }}
                                     className={`p-2 rounded border cursor-pointer text-xs space-y-0.5 transition-colors ${isSel ? 'border-blue-500 bg-blue-100 ring-1 ring-blue-400' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
                                   >
-                                    <div className="flex items-center justify-between gap-2">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                       <span className="font-semibold text-gray-800">{ref.datos_referencia?.numero_referencia}</span>
                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${ref.datos_referencia?.codigoEstado === '3' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                                         {ref.datos_referencia?.estado}
