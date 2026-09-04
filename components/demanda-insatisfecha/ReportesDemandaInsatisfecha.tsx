@@ -261,8 +261,8 @@ export default function ReportesDemandaInsatisfecha() {
           <span className="text-sm font-medium">Cargando datos...</span>
         </div>
       ) : (
-        <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
-          <Table>
+        <div className="rounded-lg border bg-white shadow-sm overflow-x-auto table-responsive">
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow className="bg-gray-50">
                 {COLUMNS.map(c => (

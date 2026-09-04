@@ -476,8 +476,8 @@ export default function FormDemandaInsatisfecha() {
       </div>
 
       {/* Records table */}
-      <div className="rounded-lg border bg-white overflow-x-auto shadow-sm">
-        <Table>
+      <div className="rounded-lg border bg-white overflow-x-auto table-responsive shadow-sm">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="text-xs font-semibold">Fecha<br />Registro</TableHead>
