@@ -435,7 +435,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+    <form onSubmit={handleSubmit} className="space-y-4 p-1 min-w-0">
       {/* Información Personal */}
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
         <h3 className="text-lg font-medium mb-3 flex items-center">

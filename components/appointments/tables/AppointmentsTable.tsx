@@ -49,6 +49,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
   const canAsignarPasadas = hasPermission(PERMISOS.CITAS.ASG_CITAS_PASADAS)
   const canVerDetalle    = hasPermission(PERMISOS.CITAS.VER_DETALLE)
   const canImprimir      = hasPermission(PERMISOS.CITAS.IMPRIMIR)
+  const canReagendar     = hasPermission(PERMISOS.CITAS.REAGENDAR)
 
   const isPastDate = (dateStr?: string | null) => {
     if (!dateStr) return false
@@ -89,9 +90,16 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
     const name = (apt.seguroNombre ?? '').toString().trim().toUpperCase()
 
     if (codePart === '0' || codePart === '00' || name.includes('PAGANTE')) return '0'
+    if (codePart === '02' || codePart === '2' || name.includes('SOAT')) return '02'
     if (codePart === '05' || name.includes('CRÉDITO') || name.includes('CREDITO')) return '05'
     if (codePart === '13' || name.includes('PROGRAMA')) return '13'
     return ''
+  }
+
+  const canReprogramarApt = (apt: AppointmentRow): boolean => {
+    const estado = Number(apt.estado)
+    const segCode = getSeguroCode(apt)
+    return estado === 3 && (segCode === '0' || segCode === '02')
   }
 
   // No longer needed since medicoNombre and consultorioNombre come directly from API
@@ -187,6 +195,17 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                         <Printer className="w-4 h-4" />
                       </Button>
                     )}
+                    {canReagendar && canReprogramarApt(appointment) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAction("reschedule", appointment)}
+                        title="Reprogramar"
+                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                      >
+                        <CalendarClock className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -271,6 +290,16 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                     }
                   >
                     Imprimir
+                  </Button>
+                )}
+                {canReagendar && canReprogramarApt(appointment) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onAction("reschedule", appointment)}
+                    className="text-xs text-orange-600 border-orange-300 hover:bg-orange-50"
+                  >
+                    Reprogramar
                   </Button>
                 )}
               </div>

@@ -83,6 +83,7 @@ interface OrdenApoyoDiagnostico {
   estadoOrden: string
   regFechaCreacion?: string
   regUsuarioCreacion?: string
+  periferico?: boolean
   detalles: OrdenDetalle[]
 }
 
@@ -1403,17 +1404,19 @@ function PatientAssignDiagnosticSupportModalContent({
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
                                       type="button"
-                                      title="Editar orden"
+                                      title={ord.periferico ? 'Editar orden' : 'Solo disponible para órdenes periféricas'}
+                                      disabled={!ord.periferico}
                                       onClick={() => setConfirmDialog({ type: 'edit', orden: ord })}
-                                      className="p-1.5 rounded text-blue-600 hover:bg-blue-100 transition-colors"
+                                      className={`p-1.5 rounded transition-colors ${ord.periferico ? 'text-blue-600 hover:bg-blue-100' : 'text-gray-400 cursor-not-allowed'}`}
                                     >
                                       <Pencil className="h-3.5 w-3.5" />
                                     </button>
                                     <button
                                       type="button"
-                                      title="Eliminar orden"
+                                      title={ord.periferico ? 'Eliminar orden' : 'Solo disponible para órdenes periféricas'}
+                                      disabled={!ord.periferico}
                                       onClick={() => setConfirmDialog({ type: 'delete', orden: ord })}
-                                      className="p-1.5 rounded text-red-600 hover:bg-red-100 transition-colors"
+                                      className={`p-1.5 rounded transition-colors ${ord.periferico ? 'text-red-600 hover:bg-red-100' : 'text-gray-400 cursor-not-allowed'}`}
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>

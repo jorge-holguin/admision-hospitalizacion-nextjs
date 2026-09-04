@@ -889,9 +889,9 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Calendario (25%) */}
-                <div className="xl:col-span-1 space-y-6">
+                <div className="lg:col-span-1 space-y-6">
                   <Card className="shadow-lg border-0">
                     <CardHeader className="bg-blue-50 border-b">
                       <div className="flex items-center justify-between">
@@ -982,7 +982,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                 </div>
     
                 {/* Tabla (75%) */}
-                <div className="xl:col-span-3">
+                <div className="lg:col-span-3">
                   <Card className="shadow-lg border-0">
                     <CardHeader className="bg-blue-50 border-b">
                       <div className="flex items-center justify-between">
@@ -1399,9 +1399,9 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               isOpen={showRescheduleModal}
               onClose={() => setShowRescheduleModal(false)}
               appointment={selectedAppointment}
-              onConfirm={async (data) => {
-                // TODO: Implement API call for appointment rescheduling
+              onConfirm={async (_data) => {
                 setShowRescheduleModal(false)
+                searchAppointmentsByParams()
               }}
             />
 

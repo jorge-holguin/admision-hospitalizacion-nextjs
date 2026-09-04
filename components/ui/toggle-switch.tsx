@@ -6,6 +6,7 @@ interface ToggleSwitchProps {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   className?: string;
+  checkedClassName?: string;
   size?: "sm" | "md" | "lg";
 }
 
@@ -14,6 +15,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   onChange,
   disabled = false,
   className = "",
+  checkedClassName = "",
   size = "md",
 }) => {
   const handleClick = () => {
@@ -49,7 +51,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       onClick={handleClick}
       className={cn(
         "relative inline-flex shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        checked ? "bg-black" : "bg-gray-200",
+        checked ? (checkedClassName || "bg-black") : "bg-gray-200",
         disabled && "opacity-50 cursor-not-allowed",
         sizeClasses[size].container,
         className

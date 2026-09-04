@@ -356,7 +356,7 @@ export function EmergencyListModal({
                         <RelatoDisplay relato={emergency.RELATO} />
                       </TableCell>
                       <TableCell>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60 inline-flex">
                           {/* Botón Ver - siempre disponible incluso para anulados */}
                           <Button
                             variant="outline"

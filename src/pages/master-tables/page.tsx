@@ -12,7 +12,7 @@ import { LocalidadesTable } from "@/components/master-tables/tables/LocalidadesT
 import { MedicoForm } from "@/components/master-tables/modals/MedicoForm"
 import { ConsultorioForm } from "@/components/master-tables/modals/ConsultorioForm"
 import { LocalidadForm } from "@/components/master-tables/modals/LocalidadForm"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { MasterTableModal } from "@/components/master-tables/modals/MasterTableModal"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import RoleBasedRoute from "@/components/RoleBasedRoute"
 import { usePermissions } from "@/contexts/PermissionsContext"
@@ -145,50 +145,47 @@ export default function MasterTablesPage() {
       </main>
 
       {/* Diálogo para Médicos */}
-      <Dialog open={medicoDialogOpen} onOpenChange={setMedicoDialogOpen}>
-        <DialogContent 
-          className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
-          onInteractOutside={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>{selectedMedico ? "Editar Médico" : "Nuevo Médico"}</DialogTitle>
-          </DialogHeader>
-          <MedicoForm 
-            medico={selectedMedico} 
-            onClose={handleMedicoDialogClose} 
-            onSuccess={handleMedicoDialogClose}
-            onRefresh={medicoRefreshRef.current ? async () => { medicoRefreshRef.current?.(); } : undefined}
-          />
-        </DialogContent>
-      </Dialog>
+      <MasterTableModal
+        open={medicoDialogOpen}
+        onOpenChange={setMedicoDialogOpen}
+        title={selectedMedico ? "Editar Médico" : "Nuevo Médico"}
+        size="lg"
+      >
+        <MedicoForm
+          medico={selectedMedico}
+          onClose={handleMedicoDialogClose}
+          onSuccess={handleMedicoDialogClose}
+          onRefresh={medicoRefreshRef.current ? async () => { medicoRefreshRef.current?.(); } : undefined}
+        />
+      </MasterTableModal>
 
       {/* Diálogo para Consultorios */}
-      <Dialog open={consultorioDialogOpen} onOpenChange={setConsultorioDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{selectedConsultorio ? "Editar Consultorio" : "Nuevo Consultorio"}</DialogTitle>
-          </DialogHeader>
-          <ConsultorioForm 
-            consultorio={selectedConsultorio} 
-            onClose={handleConsultorioDialogClose} 
-            onSuccess={handleConsultorioDialogClose} 
-          />
-        </DialogContent>
-      </Dialog>
+      <MasterTableModal
+        open={consultorioDialogOpen}
+        onOpenChange={setConsultorioDialogOpen}
+        title={selectedConsultorio ? "Editar Consultorio" : "Nuevo Consultorio"}
+        size="md"
+      >
+        <ConsultorioForm
+          consultorio={selectedConsultorio}
+          onClose={handleConsultorioDialogClose}
+          onSuccess={handleConsultorioDialogClose}
+        />
+      </MasterTableModal>
 
       {/* Diálogo para Localidades */}
-      <Dialog open={localidadDialogOpen} onOpenChange={setLocalidadDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{selectedLocalidad ? "Editar Localidad" : "Nueva Localidad"}</DialogTitle>
-          </DialogHeader>
-          <LocalidadForm 
-            localidad={selectedLocalidad} 
-            onClose={handleLocalidadDialogClose} 
-            onSuccess={handleLocalidadDialogClose} 
-          />
-        </DialogContent>
-      </Dialog>
+      <MasterTableModal
+        open={localidadDialogOpen}
+        onOpenChange={setLocalidadDialogOpen}
+        title={selectedLocalidad ? "Editar Localidad" : "Nueva Localidad"}
+        size="sm"
+      >
+        <LocalidadForm
+          localidad={selectedLocalidad}
+          onClose={handleLocalidadDialogClose}
+          onSuccess={handleLocalidadDialogClose}
+        />
+      </MasterTableModal>
       </div>
       </RoleBasedRoute>
     </ProtectedRoute>

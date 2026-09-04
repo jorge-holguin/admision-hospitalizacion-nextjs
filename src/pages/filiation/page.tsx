@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
@@ -14,12 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Home, Loader2, Search, Siren, CheckCircle, UserPlus, MoreVertical, Edit, Trash2, Eye, Ban } from "lucide-react"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Navbar } from "@/components/Navbar"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -35,6 +30,7 @@ import { FiliationProvider } from "@/contexts/filiation/FiliationProvider"
 import { calculateAge } from "@/lib/ageCalculator"
 import { extractDocumentFromToken } from "@/utils/jwtUtils"
 import { convertISOToSQLDate } from "@/utils/timeUtils"
+
 
 // Filiation components
 import { PatientSearchBar } from "@/components/filiation/PatientSearchBar"
@@ -661,58 +657,46 @@ export default function FiliationPage() {
             )}
 
             {isClinicalHistory ? (
-              /* Iconos directos para /historias-clinicas */
-              <div className="flex items-center gap-1">
+              /* Iconos con etiquetas para /historias-clinicas */
+              <div className="inline-flex items-center gap-0.5 p-1 rounded-lg border border-gray-200 bg-white shadow-sm">
                 {canVerPaciente && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={() => handleViewPatient(patient)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Ver historia</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2.5 flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs font-medium"
+                    onClick={() => handleViewPatient(patient)}
+                  >
+                    <Eye className="h-3.5 w-3.5 shrink-0" />
+                    Ver
+                  </Button>
+                )}
+                {canVerPaciente && (canEditarPaciente || !isAnulada) && (
+                  <div className="w-px h-5 bg-gray-200" />
                 )}
                 {canEditarPaciente && !isAnulada && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                        onClick={() => handleEditPatient(patient)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Editar</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2.5 flex items-center gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md text-xs font-medium"
+                    onClick={() => handleEditPatient(patient)}
+                  >
+                    <Edit className="h-3.5 w-3.5 shrink-0" />
+                    Editar
+                  </Button>
+                )}
+                {canEditarPaciente && !isAnulada && (
+                  <div className="w-px h-5 bg-gray-200" />
                 )}
                 {!isAnulada && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeletePatient(patient)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Anular</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2.5 flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md text-xs font-medium"
+                    onClick={() => handleDeletePatient(patient)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                    Eliminar
+                  </Button>
                 )}
               </div>
             ) : (
@@ -788,38 +772,16 @@ export default function FiliationPage() {
             <CardTitle className="flex items-center justify-between font-bold text-gray-900">
               <span className="text-lg">Búsqueda de Pacientes</span>
               <div className="flex items-center gap-2">
-                <ToggleGroup
-                  type="single"
-                  value={estadoFiltro}
-                  onValueChange={(value) => {
-                    if (value === "1" || value === "0") {
-                      setEstadoFiltro(value)
-                    }
-                  }}
-                  disabled={isLoading}
-                  className={`rounded-xl p-1.5 border shadow-sm transition-colors duration-200 ${
-                    estadoFiltro === "1" ? "bg-green-100/70 border-green-200" : "bg-red-100/70 border-red-200"
-                  }`}
-                >
-                  <ToggleGroupItem
-                    value="1"
-                    aria-label="Mostrar historias activas"
-                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
-                      text-green-700 hover:bg-green-50 hover:text-green-800
-                      data-[state=on]:bg-green-600 data-[state=on]:text-white data-[state=on]:shadow data-[state=on]:hover:bg-green-700"
-                  >
-                    Activas
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="0"
-                    aria-label="Mostrar historias anuladas"
-                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
-                      text-red-700 hover:bg-red-50 hover:text-red-800
-                      data-[state=on]:bg-red-600 data-[state=on]:text-white data-[state=on]:shadow data-[state=on]:hover:bg-red-700"
-                  >
-                    Anuladas
-                  </ToggleGroupItem>
-                </ToggleGroup>
+                <div className="flex items-center gap-2">
+                  <ToggleSwitch
+                    checked={estadoFiltro === "1"}
+                    onChange={(checked: boolean) => setEstadoFiltro(checked ? "1" : "0")}
+                    disabled={isLoading}
+                    size="md"
+                    checkedClassName="bg-green-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700 select-none">Solo Activos</span>
+                </div>
                 {canCrearPaciente && (
                   <Button
                     onClick={handleNewPatientClick}

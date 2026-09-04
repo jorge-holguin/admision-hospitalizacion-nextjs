@@ -39,8 +39,8 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
       if (signal?.aborted) return
       setItems(
         result.data.map((item: any) => ({
-          CONSULTORIO: String(item.CONSULTORIO || item.consultorio || ''),
-          NOMBRE: String(item.NOMBRE || item.nombre || ''),
+          CONSULTORIO: String(item.CONSULTORIO || item.consultorio || '').trim(),
+          NOMBRE: String(item.NOMBRE || item.nombre || '').trim(),
           ESPECIALIDAD: item.ESPECIALIDAD || item.especialidad,
           ACTIVO: item.ACTIVO ?? item.activo,
         }))
@@ -63,6 +63,14 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
       ctrl.abort()
     }
   }, [open, search])
+
+  // Load selected value on mount so the display shows "code - name" before opening
+  useEffect(() => {
+    if (value === 'all' || !value) return
+    const ctrl = new AbortController()
+    load(value.trim(), ctrl.signal)
+    return () => ctrl.abort()
+  }, [value])
 
   // No carga inicial para evitar duplicados en StrictMode; se carga al abrir
 
