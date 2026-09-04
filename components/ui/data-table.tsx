@@ -112,7 +112,7 @@ export function DataTable<T>({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto table-responsive">
           <Table>
             <TableHeader>
               <TableRow>
