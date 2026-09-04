@@ -438,12 +438,12 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4 p-1 min-w-0">
       {/* Información Personal */}
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-medium mb-3 flex items-center">
+        <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
           <User className="mr-2 h-5 w-5" /> Información Personal
         </h3>
 
         <div className="space-y-2 mb-4">
-          <Label htmlFor="EESS" className="flex items-center">
+          <Label htmlFor="EESS" className="flex flex-wrap items-center">
             <Building className="mr-2 h-4 w-4" /> Cod EESS (HJATCH)
           </Label>
           <Input id="EESS" name="EESS" value={formData.EESS} disabled className="bg-gray-100" />
@@ -451,7 +451,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="space-y-2">
-            <Label htmlFor="APATERNO" className="flex items-center">
+            <Label htmlFor="APATERNO" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Apellido Paterno *
             </Label>
             <Input
@@ -466,7 +466,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="AMATERNO" className="flex items-center">
+            <Label htmlFor="AMATERNO" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Apellido Materno *
             </Label>
             <Input
@@ -481,7 +481,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="NOMBRES" className="flex items-center">
+            <Label htmlFor="NOMBRES" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Nombres *
             </Label>
             <Input
@@ -498,7 +498,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="TIPO_DOCUMENTO" className="flex items-center">
+            <Label htmlFor="TIPO_DOCUMENTO" className="flex flex-wrap items-center">
               <Fingerprint className="mr-2 h-4 w-4" /> Tipo Documento *
             </Label>
             <select
@@ -521,7 +521,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="DNI" className="flex items-center">
+            <Label htmlFor="DNI" className="flex flex-wrap items-center">
               <Fingerprint className="mr-2 h-4 w-4" /> Número Documento *
             </Label>
             <Input
@@ -537,7 +537,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <Label htmlFor="MEDICO" className="flex items-center">
+              <Label htmlFor="MEDICO" className="flex flex-wrap items-center">
                 <Hash className="mr-2 h-4 w-4" /> Código *
               </Label>
               {!medico && loadingCodigos && (
@@ -592,7 +592,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="FECHNAC" className="flex items-center">
+            <Label htmlFor="FECHNAC" className="flex flex-wrap items-center">
               <Calendar className="mr-2 h-4 w-4" /> Fecha de Nacimiento <span className="text-red-500 ml-1">*</span>
             </Label>
             <Input
@@ -605,7 +605,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="GENERO" className="flex items-center">
+            <Label htmlFor="GENERO" className="flex flex-wrap items-center">
               <Users className="mr-2 h-4 w-4" /> Género <span className="text-red-500 ml-1">*</span>
             </Label>
             <select
@@ -625,7 +625,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="CORREO" className="flex items-center">
+            <Label htmlFor="CORREO" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Correo Electrónico
             </Label>
             <Input
@@ -639,7 +639,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="TELEFONO" className="flex items-center">
+            <Label htmlFor="TELEFONO" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Teléfono
             </Label>
             <Input
@@ -657,14 +657,14 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
       {/* Información Profesional */}
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-medium mb-3 flex items-center">
+        <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
           <Award className="mr-2 h-5 w-5" /> Información Profesional
         </h3>
 
         {/* Fila 1: Abreviatura, Colegiatura, Profesión */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="ABREVIATURA" className="flex items-center">
+            <Label htmlFor="ABREVIATURA" className="flex flex-wrap items-center">
               <BadgeCheck className="mr-2 h-4 w-4" /> Abreviatura *
             </Label>
             <select
@@ -696,7 +696,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="COLEGIO" className="flex items-center">
+            <Label htmlFor="COLEGIO" className="flex flex-wrap items-center">
               <BookOpen className="mr-2 h-4 w-4" /> Colegiatura *
             </Label>
             <Input
@@ -711,7 +711,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label className="flex items-center">
+            <Label className="flex flex-wrap items-center">
               <Briefcase className="mr-2 h-4 w-4" /> Profesión
             </Label>
             <ProfesionColegioSelector
@@ -726,7 +726,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         {/* Fila 2: Col. Especialidad, 2da y 3ra Especialidad */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="COLESP" className="flex items-center">
+            <Label htmlFor="COLESP" className="flex flex-wrap items-center">
               <Stethoscope className="mr-2 h-4 w-4" /> Col. Especialidad
             </Label>
             <Input
@@ -796,7 +796,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
       {/* Especialidad y Área */}
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-medium mb-3 flex items-center">
+        <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
           <Stethoscope className="mr-2 h-5 w-5" /> Especialidad y Área
         </h3>
 
@@ -804,7 +804,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Especialidad principal */}
           <div className="space-y-2">
-            <Label className="flex items-center">
+            <Label className="flex flex-wrap items-center">
               <Award className="mr-2 h-4 w-4" /> Especialidad Actual *
             </Label>
             <Popover open={especialidadOpen} onOpenChange={setEspecialidadOpen}>
@@ -858,7 +858,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
           {/* Consultorio principal */}
           <div className="space-y-2">
-            <Label className="flex items-center">
+            <Label className="flex flex-wrap items-center">
               <Building className="mr-2 h-4 w-4" /> Departamento/Servicio *
             </Label>
             <Popover open={consultorioOpen} onOpenChange={setConsultorioOpen}>
@@ -933,7 +933,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             {/* Segunda especialidad */}
             <div className="space-y-2">
-              <Label className="flex items-center">
+              <Label className="flex flex-wrap items-center">
                 <Award className="mr-2 h-4 w-4" /> Segunda Especialidad *
               </Label>
               <Popover open={especialidad2Open} onOpenChange={setEspecialidad2Open}>
@@ -987,7 +987,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
             {/* Consultorio 2 */}
             <div className="space-y-2">
-              <Label className="flex items-center">
+              <Label className="flex flex-wrap items-center">
                 <Building className="mr-2 h-4 w-4" />Departamento/Servicio *
               </Label>
               <Popover open={consultorio2Open} onOpenChange={setConsultorio2Open}>
@@ -1062,13 +1062,13 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
       {/* Información Laboral */}
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-medium mb-3 flex items-center">
+        <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
           <Briefcase className="mr-2 h-5 w-5" /> Información Laboral
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="CODHIS" className="flex items-center">
+            <Label htmlFor="CODHIS" className="flex flex-wrap items-center">
               <Hash className="mr-2 h-4 w-4" /> Código HIS
             </Label>
             <Input
@@ -1082,7 +1082,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="CONTRATO" className="flex items-center">
+            <Label htmlFor="CONTRATO" className="flex flex-wrap items-center">
               <Briefcase className="mr-2 h-4 w-4" /> Condición Laboral *
             </Label>
             <select
@@ -1103,11 +1103,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex items-center">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex flex-wrap items-center">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading || apiLoading} className="flex items-center">
+        <Button type="submit" disabled={isLoading || apiLoading} className="flex flex-wrap items-center">
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

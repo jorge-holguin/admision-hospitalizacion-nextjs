@@ -231,13 +231,13 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-1 min-w-0">
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-medium mb-3 flex items-center">
+        <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
           <Hash className="mr-2 h-5 w-5" /> Información Básica
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="space-y-2">
-            <Label htmlFor="CONSULTORIO" className="flex items-center">
+            <Label htmlFor="CONSULTORIO" className="flex flex-wrap items-center">
               <Hash className="mr-2 h-4 w-4" /> Código *
             </Label>
             <div className="relative">
@@ -261,7 +261,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="UPSTRAMA" className="flex items-center">
+            <Label htmlFor="UPSTRAMA" className="flex flex-wrap items-center">
               <Building className="mr-2 h-4 w-4" /> Código UPS
             </Label>
             <Input
@@ -273,7 +273,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="HIS_CODSERVICIO" className="flex items-center">
+            <Label htmlFor="HIS_CODSERVICIO" className="flex flex-wrap items-center">
               <Settings className="mr-2 h-4 w-4" /> Código HIS
             </Label>
             <Input
@@ -288,7 +288,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="NOMBRE" className="flex items-center">
+            <Label htmlFor="NOMBRE" className="flex flex-wrap items-center">
               <FileText className="mr-2 h-4 w-4" /> Nombre *
             </Label>
             <Input
@@ -300,7 +300,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ABREVIATURA" className="flex items-center">
+            <Label htmlFor="ABREVIATURA" className="flex flex-wrap items-center">
               <Tag className="mr-2 h-4 w-4" /> Abreviatura *
             </Label>
             <Input
@@ -315,13 +315,13 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
       </div>
 
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-medium mb-3 flex items-center">
+        <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
           <Stethoscope className="mr-2 h-5 w-5" /> Configuración Médica
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="space-y-2">
-            <Label className="flex items-center">
+            <Label className="flex flex-wrap items-center">
               <Award className="mr-2 h-4 w-4" /> Especialidad *
             </Label>
             <Popover open={openEspecialidad} onOpenChange={setOpenEspecialidad}>
@@ -355,7 +355,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
             </Popover>
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center">
+            <Label className="flex flex-wrap items-center">
               <Tag className="mr-2 h-4 w-4" /> Tipo *
             </Label>
             <Popover open={openTipo} onOpenChange={setOpenTipo}>
@@ -392,7 +392,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="ORDEN" className="flex items-center">
+            <Label htmlFor="ORDEN" className="flex flex-wrap items-center">
               <ListOrdered className="mr-2 h-4 w-4" /> Orden
             </Label>
             <Input
@@ -404,7 +404,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="NUMERO" className="flex items-center">
+            <Label htmlFor="NUMERO" className="flex flex-wrap items-center">
               <Hash className="mr-2 h-4 w-4" /> Número
             </Label>
             <Input
@@ -418,14 +418,14 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
       </div>
 
       <div className="border border-gray-200 rounded-lg p-4 mb-4">
-  <h3 className="text-lg font-medium mb-3 flex items-center">
+  <h3 className="text-lg font-medium mb-3 flex flex-wrap items-center">
     <Settings className="mr-2 h-5 w-5" /> Configuración de Estado
   </h3>
   
   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div className="space-y-2">
       <Label className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center">
           <ToggleLeft className="mr-2 h-4 w-4" /> Programa ROL
         </div>
         <ToggleSwitch 
@@ -436,7 +436,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     </div>
     <div className="space-y-2">
       <Label className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center">
           <ToggleRight className="mr-2 h-4 w-4" /> Muestra ROL
         </div>
         <ToggleSwitch 
@@ -447,7 +447,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     </div>
     <div className="space-y-2">
       <Label className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center">
           <Settings className="mr-2 h-4 w-4" /> Estado
         </div>
         <ToggleSwitch 
@@ -459,11 +459,11 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
   </div>
 </div>  
 
-      <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex items-center">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex flex-wrap items-center">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading} className="flex items-center">
+        <Button type="submit" disabled={isLoading} className="flex flex-wrap items-center">
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

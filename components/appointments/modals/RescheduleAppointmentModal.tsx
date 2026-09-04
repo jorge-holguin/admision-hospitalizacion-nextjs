@@ -302,7 +302,7 @@ export function RescheduleAppointmentModal({
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-md" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-2 text-green-700">
+            <DialogTitle className="flex flex-wrap items-center justify-center gap-2 text-green-700">
               <CheckCircle className="h-6 w-6" />
               ¡Reprogramación Exitosa!
             </DialogTitle>
