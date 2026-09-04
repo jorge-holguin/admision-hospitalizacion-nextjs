@@ -194,7 +194,7 @@ export function Step1BasicData({
             </div>
 
             {/* Campos del sistema */}
-            <div className="flex-1 grid grid-cols-3 gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="hc" className="flex items-center text-sm font-medium text-gray-700">
                   <FileText className="w-4 h-4 mr-1" />
