@@ -318,7 +318,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
                       className="flex items-start py-2"
                     >
                       <div className="flex flex-col w-full">
-                        <div className="flex justify-between w-full">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 w-full">
                           <span className="font-bold text-primary">{diagnostico.Codigo}</span>
                           {selectedDiagnostico?.Codigo === diagnostico.Codigo && (
                             <Check className="h-4 w-4 flex-shrink-0 text-primary" />

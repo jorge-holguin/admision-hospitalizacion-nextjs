@@ -46,24 +46,24 @@ function RevertirModalContent({ reserva, isLoading, onConfirm, onCancel }: Rever
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
           <h4 className="font-semibold text-orange-900">Datos de la Solicitud:</h4>
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
               <span className="text-gray-600">Código:</span>
               <span className="font-medium text-orange-700">{reserva.codigo}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
               <span className="text-gray-600">Estado Actual:</span>
               <span className="font-medium">{reserva.estado}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
               <span className="text-gray-600">Paciente:</span>
               <span className="font-medium">{reserva.nombres}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
               <span className="text-gray-600">Especialidad:</span>
               <span className="font-medium">{reserva.especialidadNombre}</span>
             </div>
             {reserva.citaId && (
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <span className="text-gray-600">Cita ID:</span>
                 <span className="font-medium">{reserva.citaId}</span>
               </div>
@@ -1305,27 +1305,27 @@ export default function ReservedAppointmentsPage() {
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
                   <h4 className="font-semibold text-orange-900">Solicitud en Revisión:</h4>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-600">Código:</span>
                       <span className="font-medium text-orange-700">{solicitudEnRevision.codigo}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-600">Paciente:</span>
                       <span className="font-medium">{solicitudEnRevision.nombres}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-600">Documento:</span>
                       <span className="font-medium">{solicitudEnRevision.numeroDocumento}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-600">Especialidad:</span>
                       <span className="font-medium">{solicitudEnRevision.especialidadNombre}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-600">Médico:</span>
                       <span className="font-medium">{solicitudEnRevision.medicoNombre}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-600">Fecha:</span>
                       <span className="font-medium">{solicitudEnRevision.fecha} - {solicitudEnRevision.hora}</span>
                     </div>

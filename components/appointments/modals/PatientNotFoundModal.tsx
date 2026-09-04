@@ -52,19 +52,19 @@ export function PatientNotFoundModal({
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
             <h4 className="font-semibold text-red-900">Datos de la Solicitud:</h4>
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <span className="text-gray-600">Código:</span>
                 <span className="font-medium text-red-700">{reserva.codigo}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <span className="text-gray-600">Paciente:</span>
                 <span className="font-medium">{reserva.nombres}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <span className="text-gray-600">Documento:</span>
                 <span className="font-medium">{reserva.numeroDocumento}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <span className="text-gray-600">Especialidad:</span>
                 <span className="font-medium">{reserva.especialidadNombre}</span>
               </div>
