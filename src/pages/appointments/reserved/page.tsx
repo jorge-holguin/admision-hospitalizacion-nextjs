@@ -815,7 +815,7 @@ export default function ReservedAppointmentsPage() {
             {/* Filtros y búsqueda */}
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <Search className="h-5 w-5" />
                     Filtros y Búsqueda
@@ -829,7 +829,7 @@ export default function ReservedAppointmentsPage() {
                       setSelectedEstado("all")
                       setCurrentPage(0)
                     }}
-                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 w-full sm:w-auto"
                   >
                     <RotateCcw className="h-4 w-4" />
                     Limpiar Filtros
@@ -905,7 +905,7 @@ export default function ReservedAppointmentsPage() {
             {/* Tabla de reservas */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Solicitudes de Reservas
@@ -922,8 +922,8 @@ export default function ReservedAppointmentsPage() {
                     <span className="ml-2">Cargando reservas...</span>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
+                  <div className="overflow-x-auto table-responsive">
+                    <Table className="min-w-[700px]">
                       <TableHeader>
                         <TableRow className="bg-gray-50">
                           <TableHead className="font-semibold">CÓDIGO</TableHead>
@@ -1078,7 +1078,7 @@ export default function ReservedAppointmentsPage() {
 
                 {/* Paginación */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-6 pt-4 border-t">
                     <div className="text-sm text-gray-500">
                       Página {currentPage + 1} de {totalPages} - Total: {totalElements} registros
                     </div>
