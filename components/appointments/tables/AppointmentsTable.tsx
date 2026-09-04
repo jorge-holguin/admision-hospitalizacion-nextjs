@@ -108,10 +108,10 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
   // }, [appointments, loadMedicosByCodigos]);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto table-responsive">
       {/* Desktop Table */}
       <div className="hidden md:block">
-        <Table>
+        <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="font-semibold">Estado</TableHead>
@@ -219,18 +219,18 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
         {appointments.map((appointment) => (
           <Card key={appointment.id} className="border border-gray-200">
             <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-gray-600">
                   {new Date(appointment.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {appointment.hora}
                 </div>
                 {getEstadoBadge(appointment.estado)}
               </div>
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div><span className="text-gray-600">ID:</span> <span className="font-medium">{appointment.id}</span></div>
                 <div><span className="text-gray-600">Orden:</span> <span className="font-medium">{appointment.numero || '-'}</span></div>
                 <div><span className="text-gray-600">Turno:</span> <span className="font-medium">{turnode(appointment)}</span></div>
               </div>
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div><span className="text-gray-600">Consultorio:</span> <span className="font-medium">{displayConsultorio(appointment)}</span></div>
               </div>
               <div>
