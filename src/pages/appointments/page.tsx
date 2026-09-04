@@ -932,7 +932,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                       {filters.consultorio !== 'all' && selectedConsultorioData?.ESPECIALIDAD && (
                         <div className="p-4 border-t bg-gray-50">
                           <div className="flex flex-col gap-2 text-sm">
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-4">
                               <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
                                 <span className="text-gray-700">Citas disponibles</span>
@@ -1417,7 +1417,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
             <Dialog open={showReleaseSuccessDialog} onOpenChange={setShowReleaseSuccessDialog}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-green-700 font-semibold">
+                  <DialogTitle className="flex flex-wrap items-center gap-2 text-green-700 font-semibold">
                     <CheckCircle className="w-6 h-6" />
                     ¡Cita Liberada Exitosamente!
                   </DialogTitle>
@@ -1447,7 +1447,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
             <Dialog open={showReleaseErrorDialog} onOpenChange={setShowReleaseErrorDialog}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-red-700 font-semibold">
+                  <DialogTitle className="flex flex-wrap items-center gap-2 text-red-700 font-semibold">
                     <XCircle className="w-6 h-6" />
                     No se puede Liberar la Cita
                   </DialogTitle>
