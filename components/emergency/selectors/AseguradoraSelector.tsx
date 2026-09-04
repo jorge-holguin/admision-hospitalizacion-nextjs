@@ -123,7 +123,7 @@ export function AseguradoraSelector({
             disabled={disabled || isLoading}
           >
             {isLoading && !open ? (
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Cargando...
               </span>
@@ -142,7 +142,7 @@ export function AseguradoraSelector({
             />
             <CommandList>
               {isLoading ? (
-                <div className="flex items-center justify-center py-6">
+                <div className="flex flex-wrap items-center justify-center py-6">
                   <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                 </div>
               ) : (

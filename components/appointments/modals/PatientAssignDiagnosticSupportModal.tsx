@@ -844,7 +844,7 @@ function PatientAssignDiagnosticSupportModalContent({
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader className="flex-shrink-0">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {onBack && (
                 <Button variant="ghost" size="sm" onClick={onBack} className="p-2 hover:bg-gray-100" disabled={isLoading}>
                   <ArrowLeft className="h-4 w-4" />
@@ -916,7 +916,7 @@ function PatientAssignDiagnosticSupportModalContent({
               {/* Izquierda — Paciente */}
               <div className="flex flex-col h-full">
                 {isLoadingPatientData ? (
-                  <Card className="h-full flex items-center justify-center">
+                  <Card className="h-full flex flex-wrap items-center justify-center">
                     <CardContent className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                       <p className="text-sm text-gray-600">Cargando información del paciente...</p>
@@ -947,14 +947,14 @@ function PatientAssignDiagnosticSupportModalContent({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Fecha</Label>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span className="text-sm">{appointment.fecha}</span>
                         </div>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Hora</Label>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
                           <Clock className="h-4 w-4 text-gray-400" />
                           <span className="text-sm">{appointment.hora}</span>
                         </div>
@@ -962,7 +962,7 @@ function PatientAssignDiagnosticSupportModalContent({
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Consultorio</Label>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
                         <User className="h-4 w-4 text-gray-400" />
                         <span className="text-sm">
                           {appointment.consultorioNombre
@@ -973,7 +973,7 @@ function PatientAssignDiagnosticSupportModalContent({
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Médico</Label>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
                         <Stethoscope className="h-4 w-4 text-gray-400" />
                         <span className="text-sm">
                           {appointment.medicoNombre
@@ -1075,7 +1075,7 @@ function PatientAssignDiagnosticSupportModalContent({
                     )}
 
                     {/* Checkbox Paciente Periférico */}
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
                       <Checkbox
                         id="paciente-periferico"
                         checked={isPacientePeriferico}
@@ -1100,8 +1100,8 @@ function PatientAssignDiagnosticSupportModalContent({
                     {isPacientePeriferico && (
                       <div className="space-y-2 border border-blue-200 rounded-lg p-3 bg-blue-50/50">
                         {/* Header con acción principal */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-blue-800 flex items-center gap-1">
+                        <div className="flex flex-wrap items-center justify-between">
+                          <span className="text-sm font-semibold text-blue-800 flex flex-wrap items-center gap-1">
                             <MapPin className="h-4 w-4" />
                             Orden de referencia externa
                           </span>
@@ -1166,7 +1166,7 @@ function PatientAssignDiagnosticSupportModalContent({
 
                         {/* Estado: cargando */}
                         {loadingReferencia && (
-                          <div className="flex items-center gap-2 py-3 justify-center text-xs text-blue-600">
+                          <div className="flex flex-wrap items-center gap-2 py-3 justify-center text-xs text-blue-600">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Consultando referencias en REFCON...
                           </div>
@@ -1207,7 +1207,7 @@ function PatientAssignDiagnosticSupportModalContent({
                                     isSelected ? 'border-blue-500 bg-blue-100 ring-1 ring-blue-400' : 'border-gray-200 bg-white hover:bg-gray-50'
                                   }`}
                                 >
-                                  <div className="flex items-center justify-between gap-2">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
                                     <span className="font-semibold text-gray-800">{ref.datos_referencia?.numero_referencia}</span>
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
                                       ref.datos_referencia?.codigoEstado === '3' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
@@ -1215,7 +1215,7 @@ function PatientAssignDiagnosticSupportModalContent({
                                       {ref.datos_referencia?.estado}
                                     </span>
                                   </div>
-                                  <div className="text-gray-500 flex items-center gap-2 flex-wrap">
+                                  <div className="text-gray-500 flex flex-wrap items-center gap-2 flex-wrap">
                                     <span>{ref.datos_referencia?.fecha_referencia}</span>
                                     {diag && <span className="font-mono bg-yellow-50 text-yellow-800 px-1 rounded">{diag.codigo_ciex}</span>}
                                     {cpms
@@ -1246,7 +1246,7 @@ function PatientAssignDiagnosticSupportModalContent({
                         Orden de Apoyo al Diagnóstico <span className="text-red-500">*</span>
                       </Label>
                       {loadingOrdenes ? (
-                        <div className="flex items-center gap-2 h-10 border rounded-md px-3 bg-gray-50">
+                        <div className="flex flex-wrap items-center gap-2 h-10 border rounded-md px-3 bg-gray-50">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                           <span className="text-sm text-gray-500">Cargando órdenes...</span>
                         </div>
@@ -1306,7 +1306,7 @@ function PatientAssignDiagnosticSupportModalContent({
                                     onClick={() => seleccionable && setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))}
                                     title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}
                                   >
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex flex-wrap items-center gap-2 flex-wrap">
                                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${origen.color}`} title={origen.label}>
                                         <span className="uppercase tracking-wide">{ord.origen?.trim()}</span>
                                         <span className="font-normal opacity-90">{origen.label}</span>
@@ -1320,12 +1320,12 @@ function PatientAssignDiagnosticSupportModalContent({
                                         </span>
                                       )}
                                       {!seleccionable && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
+                                        <span className="inline-flex flex-wrap items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
                                           Requiere aprobación
                                         </span>
                                       )}
                                       {fechaCreacion && (
-                                        <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded" title={`Creada el ${ord.regFechaCreacion}`}>
+                                        <span className="inline-flex flex-wrap items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded" title={`Creada el ${ord.regFechaCreacion}`}>
                                           <Calendar className="h-3 w-3" />
                                           {fechaCreacion}
                                         </span>
@@ -1377,8 +1377,8 @@ function PatientAssignDiagnosticSupportModalContent({
                                                   </span>
                                                 )}
                                                 {completado
-                                                  ? <span className="shrink-0 inline-flex items-center px-1.5 py-0 rounded text-[10px] font-semibold bg-green-100 text-green-800 border border-green-300">✓ Completado</span>
-                                                  : <span className="shrink-0 inline-flex items-center px-1.5 py-0 rounded text-[10px] font-semibold bg-orange-100 text-orange-700 border border-orange-300">Pendiente</span>
+                                                  ? <span className="shrink-0 inline-flex flex-wrap items-center px-1.5 py-0 rounded text-[10px] font-semibold bg-green-100 text-green-800 border border-green-300">✓ Completado</span>
+                                                  : <span className="shrink-0 inline-flex flex-wrap items-center px-1.5 py-0 rounded text-[10px] font-semibold bg-orange-100 text-orange-700 border border-orange-300">Pendiente</span>
                                                 }
                                               </li>
                                             )
@@ -1401,7 +1401,7 @@ function PatientAssignDiagnosticSupportModalContent({
                                       </div>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-1 shrink-0">
+                                  <div className="flex flex-wrap items-center gap-1 shrink-0">
                                     <button
                                       type="button"
                                       title={ord.periferico ? 'Editar orden' : 'Solo disponible para órdenes periféricas'}
@@ -1429,7 +1429,7 @@ function PatientAssignDiagnosticSupportModalContent({
                       )}
 
                       {loadingPedido && (
-                        <div className="flex items-center gap-2 text-xs text-amber-600 mt-3">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-amber-600 mt-3">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600" />
                           Verificando requisitos del examen...
                         </div>

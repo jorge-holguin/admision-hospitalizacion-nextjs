@@ -619,7 +619,7 @@ function PatientAssignmentReservedModalContent({
 
             {!refconSyncSuccess && refconSyncError && (
               <div className="w-full bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left space-y-1">
-                <p className="font-semibold flex items-center gap-1">
+                <p className="font-semibold flex flex-wrap items-center gap-1">
                   <AlertTriangle className="h-4 w-4" />
                   Sincronización con REFCON incompleta
                 </p>
@@ -641,13 +641,13 @@ function PatientAssignmentReservedModalContent({
             {/* Sincronización RENHICE/FHIR deshabilitada temporalmente
             {fhirSyncResult?.ok && (
               <div className="w-full bg-teal-50 border border-teal-200 text-teal-800 rounded-lg p-3 text-sm text-left">
-                <p className="font-semibold mb-1 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Sincronización RENHICE</p>
+                <p className="font-semibold mb-1 flex flex-wrap items-center gap-1"><CheckCircle className="h-4 w-4" /> Sincronización RENHICE</p>
                 <p>Paciente registrado correctamente en RENHICE.{fhirSyncResult.scusUuid ? ` SCUS UUID: ${fhirSyncResult.scusUuid}` : ''}</p>
               </div>
             )}
             {fhirSyncResult !== null && !fhirSyncResult.ok && (
               <div className="w-full bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left">
-                <p className="font-semibold flex items-center gap-1"><AlertCircle className="h-4 w-4" /> Sincronización RENHICE</p>
+                <p className="font-semibold flex flex-wrap items-center gap-1"><AlertCircle className="h-4 w-4" /> Sincronización RENHICE</p>
                 <p>{fhirSyncResult.message || 'No se pudo sincronizar con RENHICE'}</p>
               </div>
             )}
@@ -689,7 +689,7 @@ function PatientAssignmentReservedModalContent({
         <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {onBack && (
                 <Button
                   variant="ghost"
@@ -768,14 +768,14 @@ function PatientAssignmentReservedModalContent({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Fecha</Label>
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         {appointment.fecha}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Hora</Label>
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-gray-400" />
                         {appointment.hora}
                       </div>
@@ -786,14 +786,14 @@ function PatientAssignmentReservedModalContent({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Especialidad</Label>
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
                         <Stethoscope className="h-4 w-4 text-gray-400" />
                         {appointment.especialidadNombre || appointment.especialidad}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Médico</Label>
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
                         <User className="h-4 w-4 text-gray-400" />
                         {appointment.medicoNombre || appointment.medico}
                       </div>
@@ -805,7 +805,7 @@ function PatientAssignmentReservedModalContent({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Tipo de Cita segun Reserva</Label>
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span className="font-medium">{appointment.tipoCita}</span>
                         </div>
@@ -813,7 +813,7 @@ function PatientAssignmentReservedModalContent({
                       {appointment.tipoCita === 'INTERCONSULTA' && appointment.especialidadInterconsulta && (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-gray-600">Especialidad de Interconsulta</Label>
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
                             <Stethoscope className="h-4 w-4 text-blue-400" />
                             <span className="font-medium text-blue-600">{appointment.especialidadInterconsulta}</span>
                           </div>

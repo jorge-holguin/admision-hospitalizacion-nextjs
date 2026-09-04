@@ -111,7 +111,7 @@ export default function MasterTablesPage() {
           <Button
             variant="outline"
             size="lg"
-            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 w-full sm:w-auto"
+            className="flex flex-wrap items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 w-full sm:w-auto"
             onClick={() => (window.location.href = "/dashboard")}
           >
             <Home className="h-10 w-10" />

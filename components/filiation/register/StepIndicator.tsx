@@ -14,9 +14,9 @@ const steps = [
 
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
   return (
-    <div className="flex items-center justify-between overflow-x-auto pb-1 mb-6 min-w-0">
+    <div className="flex flex-wrap items-center justify-between overflow-x-auto pb-1 mb-6 min-w-0">
       {steps.map((step, index) => (
-        <div key={step.id} className="flex items-center">
+        <div key={step.id} className="flex flex-wrap items-center">
           <div
             className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
               currentStep >= step.id ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"

@@ -695,7 +695,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
             )}
             {!refconSyncSuccess && refconSyncError && (
               <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left space-y-1">
-                <p className="font-semibold flex items-center gap-1"><AlertTriangle className="h-4 w-4" />Sincronización con REFCON incompleta</p>
+                <p className="font-semibold flex flex-wrap items-center gap-1"><AlertTriangle className="h-4 w-4" />Sincronización con REFCON incompleta</p>
                 <p>✅ La cita fue creada correctamente, pero REFCON devolvió un error.</p>
               </div>
             )}
@@ -746,15 +746,15 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
               <Card className="flex-1">
                 <CardContent className="p-6 space-y-6">
                   <div>
-                    <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
+                    <h3 className="font-semibold text-gray-800 mb-4 flex flex-wrap items-center">
                       Información de la Cita
                       <span className="ml-2 text-xs text-gray-500 font-normal">(Siga el orden: Consultorio → Turno → Fecha → Médico)</span>
                     </h3>
 
                     {/* PASO 1: Consultorio */}
                     <div className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</div>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex flex-wrap items-center justify-center text-xs font-bold">1</div>
                         <Label className="text-sm font-medium text-gray-700">Consultorio <span className="text-red-500">*</span></Label>
                       </div>
                       <ConsultorioCitasSelector
@@ -767,13 +767,13 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                         }}
                         className="w-full"
                       />
-                      {loadingExistingAppointments && <div className="mt-2 text-xs text-gray-500 flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" />Verificando citas existentes...</div>}
+                      {loadingExistingAppointments && <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" />Verificando citas existentes...</div>}
                       {existingAppointmentsWarning && <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-md p-2 text-yellow-800 text-sm">{existingAppointmentsWarning}</div>}
                     </div>
 
                     {/* PASO 2: Turno */}
                     <div className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consultorio ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>2</div>
                         <Label className="text-sm font-medium text-gray-700">Turno <span className="text-red-500">*</span></Label>
                       </div>
@@ -787,11 +787,11 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                     {/* PASO 3: Fecha */}
                     <div className="mb-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consultorio && turno ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>3</div>
                           <Label className="text-sm font-medium text-gray-700">Fecha de la Cita <span className="text-red-500">*</span></Label>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {isDevOps && (
                             <div className="flex flex-wrap items-center gap-2">
                               <Checkbox id="showPastDatesDiag" checked={showPastDates} onCheckedChange={(checked) => setShowPastDates(checked as boolean)} />
@@ -824,18 +824,18 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                           )}
                         </>
                       )}
-                      {loadingDates && consultorio && turno && <div className="mt-2 text-xs text-gray-500 flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" />Cargando fechas disponibles para turno {turno}...</div>}
+                      {loadingDates && consultorio && turno && <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" />Cargando fechas disponibles para turno {turno}...</div>}
                     </div>
 
                     {/* PASO 4: Médico */}
                     <div className="mb-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consultorio && turno && isFechaConfirmed ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>4</div>
                           <Label className="text-sm font-medium text-gray-700">Médico <span className="text-red-500">*</span></Label>
                         </div>
                         <div>
-                          {loadingMedicos && <span className="text-xs text-gray-500 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Cargando...</span>}
+                          {loadingMedicos && <span className="text-xs text-gray-500 flex flex-wrap items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Cargando...</span>}
                           {!loadingMedicos && availableMedicos.length > 0 && <span className="text-xs text-green-600">{availableMedicos.length} disponible{availableMedicos.length !== 1 ? 's' : ''}</span>}
                         </div>
                       </div>
@@ -908,12 +908,12 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
                     {/* Apoyo al Diagnóstico — siempre visible en este modal */}
                     <div className="mt-4 border border-blue-200 rounded-lg p-3 bg-blue-50/30 space-y-3">
-                      <h4 className="font-semibold text-blue-800 text-sm flex items-center gap-2">
+                      <h4 className="font-semibold text-blue-800 text-sm flex flex-wrap items-center gap-2">
                         <ClipboardList className="h-4 w-4" />
                         Apoyo al Diagnóstico
                       </h4>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Checkbox
                           id="paciente-periferico-diagsup"
                           checked={isPacientePeriferico}
@@ -929,8 +929,8 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
                       {isPacientePeriferico && (
                         <div className="space-y-2 border border-blue-200 rounded-lg p-3 bg-blue-50/50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-blue-800 flex items-center gap-1"><MapPin className="h-4 w-4" />Orden de referencia externa</span>
+                          <div className="flex flex-wrap items-center justify-between">
+                            <span className="text-sm font-semibold text-blue-800 flex flex-wrap items-center gap-1"><MapPin className="h-4 w-4" />Orden de referencia externa</span>
                             {(() => {
                               let btnLabel: React.ReactNode
                               if (loadingReferenciaEco) btnLabel = <><Loader2 className="h-3 w-3 animate-spin mr-1.5" />Buscando...</>
@@ -954,7 +954,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                               )
                             })()}
                           </div>
-                          {loadingReferenciaEco && <div className="flex items-center gap-2 py-3 justify-center text-xs text-blue-600"><Loader2 className="h-4 w-4 animate-spin" />Consultando referencias en REFCON...</div>}
+                          {loadingReferenciaEco && <div className="flex flex-wrap items-center gap-2 py-3 justify-center text-xs text-blue-600"><Loader2 className="h-4 w-4 animate-spin" />Consultando referencias en REFCON...</div>}
                           {!loadingReferenciaEco && referenciaItemsEco.length === 0 && <p className="text-xs text-gray-500 text-center py-2">Haga clic en <strong>Completar y Crear Orden</strong> para consultar la referencia.</p>}
                           {referenciaItemsEco.length > 0 && (
                             <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
@@ -966,11 +966,11 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                   <div key={ref.datos_referencia?.id_referencia} onClick={() => { setSelectedRefItemEco(ref); setOrdenCreadaId(null); setShowCrearOrdenModal(false) }}
                                     className={`p-2 rounded border cursor-pointer text-xs space-y-0.5 transition-colors ${isSelected ? 'border-blue-500 bg-blue-100 ring-1 ring-blue-400' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
                                   >
-                                    <div className="flex items-center justify-between gap-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
                                       <span className="font-semibold text-gray-800">{ref.datos_referencia?.numero_referencia}</span>
                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${ref.datos_referencia?.codigoEstado === '3' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{ref.datos_referencia?.estado}</span>
                                     </div>
-                                    <div className="text-gray-500 flex items-center gap-2 flex-wrap">
+                                    <div className="text-gray-500 flex flex-wrap items-center gap-2 flex-wrap">
                                       <span>{ref.datos_referencia?.fecha_referencia}</span>
                                       {diag && <span className="font-mono bg-yellow-50 text-yellow-800 px-1 rounded">{diag.codigo_ciex}</span>}
                                       {cpms ? <span className="text-green-700">✅ CPMS: {cpms}</span> : <span className="text-amber-600">⚠️ Sin CPMS</span>}
@@ -993,7 +993,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                         <div className="space-y-1">
                           <Label className="text-sm font-medium text-gray-700">Orden de Apoyo al Diagnóstico</Label>
                           {loadingOrdenes ? (
-                            <div className="flex items-center gap-2 h-10 border rounded-md px-3 bg-gray-50">
+                            <div className="flex flex-wrap items-center gap-2 h-10 border rounded-md px-3 bg-gray-50">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                               <span className="text-sm text-gray-500">Cargando órdenes...</span>
                             </div>
@@ -1018,7 +1018,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                   <div key={ord.idOrden} className={`border rounded-lg p-2.5 transition-colors ${isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
                                     <div className="flex items-start justify-between gap-2">
                                       <div className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => seleccionable && setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))} title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}>
-                                        <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="flex flex-wrap items-center gap-2 flex-wrap">
                                           <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{servicioLabel}</span>
                                           {estadoOrdenBadge && (
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${estadoOrdenBadge.color}`}>
@@ -1026,18 +1026,18 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                             </span>
                                           )}
                                           {!seleccionable && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
+                                            <span className="inline-flex flex-wrap items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
                                               Requiere aprobación
                                             </span>
                                           )}
-                                          {fechaCreacion && <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded"><CalendarIcon className="h-3 w-3" />{fechaCreacion}</span>}
+                                          {fechaCreacion && <span className="inline-flex flex-wrap items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded"><CalendarIcon className="h-3 w-3" />{fechaCreacion}</span>}
                                         </div>
                                         {detallesVisibles.length > 0 && (
                                           <ul className="flex flex-col gap-1 pl-1 mt-1.5">
                                             {detallesVisibles.map((d, idx) => {
                                               const completado = d.estadoDetalle === '2'
                                               return (
-                                                <li key={idx} className="flex items-center gap-1.5 text-xs">
+                                                <li key={idx} className="flex flex-wrap items-center gap-1.5 text-xs">
                                                   <span className={`shrink-0 w-1 h-1 rounded-full ${completado ? 'bg-gray-300' : 'bg-blue-500'}`} />
                                                   <span className={`truncate ${completado ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                                                     {d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`}
@@ -1049,7 +1049,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                           </ul>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex flex-wrap items-center gap-1">
                                         <button type="button" onClick={() => handleEditarOrdenEcografia(ord)} className="p-1.5 rounded text-blue-600 hover:bg-blue-100 transition-colors shrink-0" title="Editar orden"><Pencil className="h-3.5 w-3.5" /></button>
                                         <button type="button" onClick={() => setConfirmDialogOrden({ type: 'delete', orden: ord })} className="p-1.5 rounded text-red-600 hover:bg-red-100 transition-colors shrink-0" title="Eliminar orden"><Trash2 className="h-3.5 w-3.5" /></button>
                                       </div>
@@ -1061,7 +1061,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                           )}
 
                           {loadingPedido && (
-                            <div className="flex items-center gap-2 text-xs text-amber-600 mt-3">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-amber-600 mt-3">
                               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600" />
                               Verificando requisitos del examen...
                             </div>

@@ -784,11 +784,11 @@ export default function ReservedAppointmentsPage() {
           <main className="page-shell py-8">
             {/* Header */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <Button 
                   variant="outline" 
                   onClick={() => router.push('/appointments')}
-                  className="flex items-center gap-2"
+                  className="flex flex-wrap items-center gap-2"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Volver a Citas
@@ -805,7 +805,7 @@ export default function ReservedAppointmentsPage() {
                   loadEspecialidades()
                   loadReservas()
                 }}
-                className="flex items-center gap-2"
+                className="flex flex-wrap items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
                 Actualizar
@@ -816,7 +816,7 @@ export default function ReservedAppointmentsPage() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <span className="flex items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-2">
                     <Search className="h-5 w-5" />
                     Filtros y Búsqueda
                   </span>
@@ -829,7 +829,7 @@ export default function ReservedAppointmentsPage() {
                       setSelectedEstado("all")
                       setCurrentPage(0)
                     }}
-                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 w-full sm:w-auto"
+                    className="flex flex-wrap items-center gap-2 text-gray-600 hover:text-gray-900 w-full sm:w-auto"
                   >
                     <RotateCcw className="h-4 w-4" />
                     Limpiar Filtros
@@ -906,7 +906,7 @@ export default function ReservedAppointmentsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <span className="flex items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Solicitudes de Reservas
                   </span>
@@ -950,7 +950,7 @@ export default function ReservedAppointmentsPage() {
                               {reserva.citaId || '-'}
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <User className="h-4 w-4 text-gray-400" />
                                 <div>
                                   <div className="font-medium">{reserva.nombres}</div>
@@ -982,7 +982,7 @@ export default function ReservedAppointmentsPage() {
                               {formatTurno(reserva.turno)}
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Clock className="h-4 w-4 text-gray-400" />
                                 <div>
                                   <div className="font-medium">{reserva.fecha}</div>
@@ -1027,7 +1027,7 @@ export default function ReservedAppointmentsPage() {
                                     reserva.estado === "ELIMINADO" ||
                                     reserva.estado === "DENEGADO"
                                   }
-                                  className="flex items-center gap-2"
+                                  className="flex flex-wrap items-center gap-2"
                                 >
                                   <UserCheck className="h-4 w-4" />
                                   {loadingReservas.has(reserva.codigo)
@@ -1047,7 +1047,7 @@ export default function ReservedAppointmentsPage() {
                                     reserva.estado === "EN_REVISION" ||
                                     reserva.estado === "EN REVISION"
                                   }
-                                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700"
+                                  className="flex flex-wrap items-center gap-2 text-orange-600 hover:text-orange-700"
                                 >
                                   <RotateCcw className="h-4 w-4" />
                                   Revertir

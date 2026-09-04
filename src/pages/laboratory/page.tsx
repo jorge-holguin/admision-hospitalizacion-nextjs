@@ -316,8 +316,8 @@ export default function LaboratoryPage() {
       <div className="page-shell py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex flex-wrap items-center justify-center">
             <FlaskConical className="w-6 h-6 text-blue-600" />
           </div>
           <div>
@@ -329,7 +329,7 @@ export default function LaboratoryPage() {
         {/* Botón Dashboard en el header */}
         <Button 
           onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 text-base w-full sm:w-auto"
+          className="flex flex-wrap items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 text-base w-full sm:w-auto"
           size="lg"
         >
           <Home className="w-5 h-5" />
@@ -345,7 +345,7 @@ export default function LaboratoryPage() {
             <Button 
               variant="outline" 
               onClick={handleClearFilters}
-              className="flex items-center gap-2"
+              className="flex flex-wrap items-center gap-2"
               size="sm"
             >
               <Filter className="w-4 h-4" />
@@ -355,7 +355,7 @@ export default function LaboratoryPage() {
               variant="outline" 
               onClick={handleRefresh}
               disabled={!hasSearched || isLoading}
-              className="flex items-center gap-2"
+              className="flex flex-wrap items-center gap-2"
               size="sm"
             >
               <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />

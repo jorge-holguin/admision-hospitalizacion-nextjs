@@ -294,7 +294,7 @@ export const DiagnosticoSelector: React.FC<DiagnosticoSelectorProps> = ({
           />
           <CommandList>
             {loading && (
-              <div className="flex items-center justify-center p-4">
+              <div className="flex flex-wrap items-center justify-center p-4">
                 <Spinner className="mr-2" />
                 <span>Cargando diagnósticos...</span>
               </div>

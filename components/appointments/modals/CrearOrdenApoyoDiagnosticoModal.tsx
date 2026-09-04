@@ -430,8 +430,8 @@ export function CrearOrdenApoyoDiagnosticoModal({
           {/* ── Referencia info (si existe) ── */}
           {referencia?.datos_referencia?.numero_referencia && (
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-blue-800 flex items-center gap-1">
+              <div className="flex flex-wrap items-center justify-between">
+                <span className="font-semibold text-blue-800 flex flex-wrap items-center gap-1">
                   <FileText className="h-4 w-4" />
                   Referencia {referencia.datos_referencia.numero_referencia}
                 </span>
@@ -442,11 +442,11 @@ export function CrearOrdenApoyoDiagnosticoModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-700">
                 <div><span className="font-medium">Fecha:</span> {referencia.datos_referencia.fecha_referencia}</div>
                 <div><span className="font-medium">Origen:</span> {referencia.datos_referencia.codigo_establecimiento_origen}</div>
-                <div className="col-span-2 flex items-center gap-2">
+                <div className="col-span-2 flex flex-wrap items-center gap-2">
                   <Stethoscope className="h-3.5 w-3.5 text-blue-600 shrink-0" />
                   <span className="font-medium text-blue-700">{upsInfo.label}</span>
                 </div>
-                <div className="col-span-2 flex items-center gap-2">
+                <div className="col-span-2 flex flex-wrap items-center gap-2">
                   <span className="font-medium">Diagnóstico ref.:</span>
                   {diag ? (
                     <span className="font-mono bg-yellow-50 text-yellow-800 px-1.5 py-0.5 rounded text-xs">

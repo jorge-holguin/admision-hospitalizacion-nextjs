@@ -216,7 +216,7 @@ function renderSISDialogDescription(state: SISVerificationState) {
 function renderSISDialogContent(state: SISVerificationState) {
   if (state.isLoading) {
     return (
-      <div className="flex items-center justify-center py-6">
+      <div className="flex flex-wrap items-center justify-center py-6">
         <Loader2 className="h-8 w-8 animate-spin text-green-500" />
       </div>
     )

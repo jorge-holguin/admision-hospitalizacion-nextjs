@@ -30,7 +30,7 @@ export function ErrorAlert({ title = "Error", message, onClose, show }: ErrorAle
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex flex-wrap items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
       <div 
@@ -38,9 +38,9 @@ export function ErrorAlert({ title = "Error", message, onClose, show }: ErrorAle
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 p-6 pb-4 border-b border-red-200 bg-red-50">
+        <div className="flex flex-wrap items-center gap-3 p-6 pb-4 border-b border-red-200 bg-red-50">
           <div className="flex-shrink-0">
-            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full">
+            <div className="flex flex-wrap items-center justify-center w-12 h-12 bg-red-100 rounded-full">
               <AlertCircle className="w-7 h-7 text-red-600" />
             </div>
           </div>

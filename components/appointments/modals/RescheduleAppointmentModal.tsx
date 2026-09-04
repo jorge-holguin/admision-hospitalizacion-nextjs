@@ -378,7 +378,7 @@ export function RescheduleAppointmentModal({
                 onConsultorioDataChange={(data) => setConsultorioData(data)}
               />
               {consultorioNombreDisplay && (
-                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-blue-600 mt-1 flex flex-wrap items-center gap-1">
                   <Building2 className="h-3 w-3" /> {consultorioNombreDisplay}
                 </p>
               )}
@@ -408,7 +408,7 @@ export function RescheduleAppointmentModal({
                 <Label className="text-xs font-medium text-gray-600">
                   3. Seleccionar Fecha <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Checkbox
                     id="showPastDatesReschedule"
                     checked={showPastDates}
@@ -436,7 +436,7 @@ export function RescheduleAppointmentModal({
                     className="border-0 shadow-none bg-transparent"
                   />
                   {loadingDates && (
-                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                    <p className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1">
                       <Loader2 className="h-3 w-3 animate-spin" /> Cargando fechas...
                     </p>
                   )}
@@ -449,7 +449,7 @@ export function RescheduleAppointmentModal({
 
             {/* 4. Available slot cards */}
             {loadingCita && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" /> Buscando cupos disponibles...
               </div>
             )}
@@ -475,19 +475,19 @@ export function RescheduleAppointmentModal({
                             : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="flex items-center gap-1 text-sm font-semibold text-gray-800">
+                        <div className="flex flex-wrap items-center justify-between mb-1">
+                          <span className="flex flex-wrap items-center gap-1 text-sm font-semibold text-gray-800">
                             <Clock className="h-3.5 w-3.5 text-blue-500" />
                             {cita.hora || '—'}
                           </span>
-                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <span className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
                             <Hash className="h-3 w-3" />N°{cita.numero || '—'}
                           </span>
                         </div>
                         <p className="text-xs text-gray-600 truncate" title={cita.medicoNombre || cita.medico}>
                           {cita.medicoNombre || cita.medico || '—'}
                         </p>
-                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                        <p className="text-xs text-gray-400 flex flex-wrap items-center gap-1 mt-0.5">
                           <Building2 className="h-3 w-3" />
                           {cita.consultorioNombre?.trim() || cita.consultorio?.trim() || '—'}
                         </p>
@@ -507,7 +507,7 @@ export function RescheduleAppointmentModal({
 
             {/* Patient info — full card */}
             {loadingPatient ? (
-              <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-2 text-sm text-gray-500">
+              <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" /> Cargando datos del paciente...
               </div>
             ) : (

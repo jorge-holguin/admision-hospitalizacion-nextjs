@@ -271,7 +271,7 @@ export function ReferenciaSelector({
             setManualMode(!manualMode)
           }}
           disabled={disabled}
-          className="flex items-center gap-2 border-gray-900 text-gray-900 hover:bg-gray-100 h-10 px-4"
+          className="flex flex-wrap items-center gap-2 border-gray-900 text-gray-900 hover:bg-gray-100 h-10 px-4"
         >
           <Edit3 className="h-4 w-4" />
           Manual
@@ -280,7 +280,7 @@ export function ReferenciaSelector({
 
       {/* Loading state */}
       {isLoading && (
-        <div className="flex items-center justify-center p-4 border rounded-lg bg-gray-50">
+        <div className="flex flex-wrap items-center justify-center p-4 border rounded-lg bg-gray-50">
           <Loader2 className="h-5 w-5 animate-spin text-gray-400 mr-2" />
           <span className="text-sm text-gray-600">Consultando referencias...</span>
         </div>
@@ -308,7 +308,7 @@ export function ReferenciaSelector({
       {/* Modo de ingreso manual */}
       {manualMode && (
         <div className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-wrap items-center justify-between mb-2">
             <Label className="text-sm font-semibold text-gray-800">
               Ingreso Manual de Referencia
             </Label>
@@ -383,7 +383,7 @@ export function ReferenciaSelector({
           >
             <SelectTrigger className="w-full h-auto min-h-[40px]">
               {selectedReferencia ? (
-                <div className="flex items-center gap-2 py-1 text-left w-full">
+                <div className="flex flex-wrap items-center gap-2 py-1 text-left w-full">
                   <span className="text-xs font-bold uppercase bg-green-100 text-green-700 px-2 py-1 rounded">
                     {selectedReferencia.estado}
                   </span>
@@ -444,7 +444,7 @@ export function ReferenciaSelector({
                       fontWeight: 500
                     }}
                   >
-                    <div className="flex items-center gap-2 py-2 px-1 ">
+                    <div className="flex flex-wrap items-center gap-2 py-2 px-1 ">
                       <span
                         className="text-xs font-bold uppercase px-2 py-1 rounded"
                         style={{

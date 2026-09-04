@@ -80,8 +80,8 @@ export function TimeSlotSelector({
   return (
     <Card className={`${className} h-full`}>
       <CardHeader className="pb-3 px-4 pt-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-blue-800 flex items-center">
+        <div className="flex flex-wrap items-center justify-between">
+          <h3 className="text-sm font-semibold text-blue-800 flex flex-wrap items-center">
             <Clock className="w-4 h-4 mr-1" />
             {formatDateHeader(selectedDate)}
           </h3>
@@ -114,7 +114,7 @@ export function TimeSlotSelector({
                     disabled={!available}
                     title={available ? `${appointmentCount} citas` : "Sin disponibilidad"}
                   >
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex flex-wrap items-center justify-between w-full">
                       <span className="text-base font-medium">{slot.time}</span>
                       {appointmentCount > 0 && (
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">

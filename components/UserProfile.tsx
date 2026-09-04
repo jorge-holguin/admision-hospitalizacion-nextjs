@@ -9,7 +9,7 @@ export function UserProfile() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-4 min-w-0">
+      <div className="flex flex-wrap items-center gap-4 min-w-0">
         <div className="text-right min-w-0">
           <p className="text-sm font-medium truncate">Cargando...</p>
           <p className="text-xs opacity-90 truncate">Usuario</p>
@@ -20,7 +20,7 @@ export function UserProfile() {
   }
 
   return (
-    <div className="flex items-center gap-4 min-w-0">
+    <div className="flex flex-wrap items-center gap-4 min-w-0">
       <div className="text-right min-w-0">
         <p className="text-sm font-medium truncate">{user.nombreCompleto}</p>
         <p className="text-xs opacity-90 truncate">{user.puesto}</p>

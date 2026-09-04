@@ -230,7 +230,7 @@ export function HospitalizationViewModal({
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex flex-wrap items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               <span className="ml-2 text-gray-600">Cargando datos de hospitalización...</span>
             </div>

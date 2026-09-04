@@ -75,7 +75,7 @@ export function DeleteConfirmationDialog({
           <Button
             onClick={onConfirm}
             disabled={isLoading || confirmDisabled}
-            className="w-full bg-red-600 hover:bg-red-700 text-white sm:w-auto flex items-center gap-2"
+            className="w-full bg-red-600 hover:bg-red-700 text-white sm:w-auto flex flex-wrap items-center gap-2"
           >
             {isLoading ? (
               <>

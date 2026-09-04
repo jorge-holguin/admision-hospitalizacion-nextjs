@@ -69,7 +69,7 @@ export function AccountConfirmationDialog({
 
         <div className="py-2">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-2 text-amber-800 font-medium text-sm">
+            <div className="flex flex-wrap items-center gap-2 text-amber-800 font-medium text-sm">
               <Wallet className="h-4 w-4 flex-shrink-0" />
               Información de la Cuenta
             </div>

@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Mostrar spinner mientras se verifica la autenticación
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-wrap items-center justify-center min-h-screen">
         <Spinner size="lg" />
       </div>
     )

@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -63,7 +63,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         take: 100
       });
 
-      // Filtrar los orÃ­genes por el campo ORIGEN si estÃ¡ definido el origenFilter
+      // Filtrar los orígenes por el campo ORIGEN si está definido el origenFilter
       let origenesFiltrados = items as OrigenHospitalizacion[];
       if (isValidOrigen) {
         origenesFiltrados = origenesFiltrados.filter((origen) =>
@@ -73,8 +73,8 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
 
       setOrigenes(origenesFiltrados);
     } catch (error) {
-      console.error('Error al cargar orÃ­genes de hospitalizaciÃ³n:', error);
-      setError('Error al cargar orÃ­genes de hospitalizaciÃ³n');
+      console.error('Error al cargar orígenes de hospitalización:', error);
+      setError('Error al cargar orígenes de hospitalización');
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
     // Llamar al callback con el valor y el objeto completo
     onChange(displayValue, origen);
     
-    // Actualizar el origen de atenciÃ³n (modo solo lectura)
+    // Actualizar el origen de atención (modo solo lectura)
     if (onAttentionOriginChange) {
       const attentionOrigin = origen.ORIGEN === 'CE' ? 'Consulta Externa' : 
                             origen.ORIGEN === 'EM' ? 'Emergencia' : 
@@ -111,7 +111,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       onAttentionOriginChange(attentionOrigin);
     }
     
-    // Actualizar el mÃ©dico seleccionado
+    // Actualizar el médico seleccionado
     if (onMedicoChange && medicoValue) {
       onMedicoChange(medicoValue, {
         MEDICO: medicoCode,
@@ -119,7 +119,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       });
     }
     
-    // Actualizar el diagnÃ³stico seleccionado
+    // Actualizar el diagnóstico seleccionado
     if (onDiagnosticoChange && origen.DX) {
       try {
         // El formato puede ser "CODIGO DESCRIPCION" o "CODIGO , DESCRIPCION"
@@ -129,17 +129,17 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         
         // Verificar si contiene una coma (formato de STRING_AGG)
         if (dxString.includes(',')) {
-          // Tomar solo el primer diagnÃ³stico (antes de la primera coma)
+          // Tomar solo el primer diagnóstico (antes de la primera coma)
           dxString = dxString.split(',')[0].trim();
         }
         
-        // Extraer el cÃ³digo (primeras letras/nÃºmeros hasta el primer espacio)
+        // Extraer el código (primeras letras/números hasta el primer espacio)
         const match = dxString.match(/^([A-Z0-9\.]+)\s+(.+)$/);
         if (match) {
           dxCode = match[1].trim();
           dxName = match[2].trim();
         } else {
-          // Si no se puede separar, usar todo como cÃ³digo
+          // Si no se puede separar, usar todo como código
           dxCode = dxString;
         }
         
@@ -152,7 +152,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
           });
         }
       } catch (error) {
-        console.error('Error al procesar el diagnÃ³stico:', error);
+        console.error('Error al procesar el diagnóstico:', error);
       }
     }
     
@@ -162,7 +162,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         let seguroCode = origen.SEGURO.trim();
         
         // CASO ESPECIAL: Si el origen es EM (Emergencia) y el seguro es 06 (ESSALUD),
-        // redirigir automÃ¡ticamente a 0 (PAGANTE)
+        // redirigir automáticamente a 0 (PAGANTE)
         if (origen.ORIGEN === 'EM' && seguroCode === '06') {
           seguroCode = '0';
         }
@@ -178,12 +178,12 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
                 Nombre: seguro.nombre,
               });
             } else {
-              // Si no se encuentra el seguro, usar solo el cÃ³digo
+              // Si no se encuentra el seguro, usar solo el código
               onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
             }
           } catch (error) {
-            console.error('Error al buscar informaciÃ³n del seguro:', error);
-            // En caso de error, usar solo el cÃ³digo
+            console.error('Error al buscar información del seguro:', error);
+            // En caso de error, usar solo el código
             onSeguroChange(seguroCode, { Seguro: seguroCode, Nombre: '' });
           }
         }
@@ -192,7 +192,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
       }
     }
     
-    // Si se proporcionÃ³ la funciÃ³n para cargar diagnÃ³sticos, llamarla
+    // Si se proporcionó la función para cargar diagnósticos, llamarla
     if (onLoadDiagnosticos) {
       onLoadDiagnosticos(
         origen.ORIGEN as 'CE' | 'EM', 
@@ -226,7 +226,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         </PopoverTrigger>
         <PopoverContent className="w-full max-w-[400px] p-0">
           <Command>
-            <div className="flex items-center border-b px-3">
+            <div className="flex flex-wrap items-center border-b px-3">
               <CommandInput 
                 placeholder="Buscar origen..." 
                 className="font-medium"
@@ -237,7 +237,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
               />
             </div>
             {onShowAllOriginsChange && (
-              <div className="flex items-center px-3 py-2 border-b">
+              <div className="flex flex-wrap items-center px-3 py-2 border-b">
                 <label className="flex flex-wrap items-center gap-2 text-sm cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -252,9 +252,9 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
             <CommandList>
               <CommandEmpty className="font-medium text-gray-500">
                 {loading ? (
-                  <div className="flex items-center justify-center p-4">
+                  <div className="flex flex-wrap items-center justify-center p-4">
                     <Spinner size="sm" />
-                    <span className="ml-2">Cargando orÃ­genes...</span>
+                    <span className="ml-2">Cargando orígenes...</span>
                   </div>
                 ) : error ? (
                   <div className="text-center p-4 text-red-500">{error}</div>
@@ -282,7 +282,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
                         <span>{displayValue}</span>
                         <span className="text-xs text-gray-500">
                           {origen.ORIGEN === 'CE' ? 'CONSULTA EXTERNA' : 'EMERGENCIA'}
-                          {origen.MEDICO && origen.NOM_MEDICO && ` - MÃ©dico: ${origen.MEDICO}`}
+                          {origen.MEDICO && origen.NOM_MEDICO && ` - Médico: ${origen.MEDICO}`}
                         </span>
                       </div>
                     </CommandItem>

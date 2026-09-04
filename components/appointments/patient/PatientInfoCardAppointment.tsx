@@ -137,7 +137,7 @@ export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProp
                 />
               </div>
             ) : (
-              <div className="w-full h-full rounded-lg bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-sm">
+              <div className="w-full h-full rounded-lg bg-gray-100 flex flex-wrap items-center justify-center border-2 border-gray-200 shadow-sm">
                 <User className="h-12 w-12 text-gray-400" />
               </div>
             )}
@@ -154,28 +154,28 @@ export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProp
 
         {/* Información básica */}
         <div className="grid grid-cols-1 gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CreditCard className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>DNI:</strong> {patient.DOCUMENTO || 'No especificado'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Nacimiento:</strong> {formatDate(patient.FECHA_NACIMIENTO)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Edad:</strong> {patient.EDAD || 'No especificado'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
@@ -185,7 +185,7 @@ export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProp
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Heart className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Estado Civil:</strong>{' '}
@@ -206,20 +206,20 @@ export const PatientInfoCardAppointment: React.FC<PatientInfoCardAppointmentProp
         <div className="border-t pt-3">
           <h4 className="font-medium text-sm text-gray-700 mb-2">Contacto</h4>
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <House className="h-4 w-4 text-gray-400" />
               <span className="text-sm">
                 {patient.DIRECCION || 'Dirección no especificada'}
               </span>
             </div>
             {patient.TELEFONO1 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patient.TELEFONO1}</span>
               </div>
             )}
             {patient.CORREO && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Mail className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patient.CORREO}</span>
               </div>

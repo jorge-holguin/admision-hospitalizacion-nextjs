@@ -65,7 +65,7 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
             <CommandList>
               <CommandEmpty>
                 {loadingHospitalizacion ? (
-                  <div className="flex items-center justify-center p-4">
+                  <div className="flex flex-wrap items-center justify-center p-4">
                     <Spinner size="sm" />
                     <span className="ml-2">Cargando...</span>
                   </div>
@@ -81,7 +81,7 @@ export const ConsultorioSelector: React.FC<ConsultorioSelectorProps> = ({
                       key={consultorio.CONSULTORIO}
                       value={consultorioValue}
                       onSelect={handleSelect}
-                      className="flex items-center justify-between py-2"
+                      className="flex flex-wrap items-center justify-between py-2"
                     >
                       <span>{consultorioValue}</span>
                       <Check

@@ -351,7 +351,7 @@ export function EmergencyViewModal({
         <div className="flex-1 overflow-auto">
           {statusInfo.isReadOnly && currentMode === 'view' && emergencyData?.ESTADO !== '2' && (
             <Alert className="mb-6 bg-amber-50 border-amber-200">
-              <AlertTitle className="text-amber-800 flex items-center gap-2">
+              <AlertTitle className="text-amber-800 flex flex-wrap items-center gap-2">
                 <Copy className="h-4 w-4" />
                 Registro en modo lectura
               </AlertTitle>

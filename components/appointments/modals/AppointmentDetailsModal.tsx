@@ -19,7 +19,7 @@ interface AppointmentDetailsModalProps {
 function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <span className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1">
+      <span className="text-xs text-gray-500 uppercase tracking-wide flex flex-wrap items-center gap-1">
         {icon}
         {label}
       </span>
@@ -182,7 +182,7 @@ export function AppointmentDetailsModal({
         {/* Header compacto */}
         <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-5 text-white">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="bg-white/20 rounded-lg p-2">
                 <FileText className="h-6 w-6" />
               </div>
@@ -200,7 +200,7 @@ export function AppointmentDetailsModal({
         <div className="px-6 py-5 space-y-5">
           {/* Cita - Card azul */}
           <div className="bg-white border border-blue-100 rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-blue-50/70 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
+            <div className="bg-blue-50/70 px-4 py-2 border-b border-blue-100 flex flex-wrap items-center gap-2">
               <Calendar className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-semibold text-blue-800">Información de la Cita</span>
             </div>
@@ -215,7 +215,7 @@ export function AppointmentDetailsModal({
           {/* Ubicación y médico */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
                 <div className="bg-indigo-100 p-1.5 rounded-lg">
                   <Stethoscope className="h-4 w-4 text-indigo-600" />
                 </div>
@@ -230,7 +230,7 @@ export function AppointmentDetailsModal({
               <p className="text-xs text-gray-500 mt-1">Código: {appointment.medico || appointment.MEDICO || '-'}</p>
             </div>
             <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
                 <div className="bg-emerald-100 p-1.5 rounded-lg">
                   <Building className="h-4 w-4 text-emerald-600" />
                 </div>
@@ -248,7 +248,7 @@ export function AppointmentDetailsModal({
 
           {/* Paciente */}
           <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-gray-50/70 px-4 py-2 border-b border-gray-100 flex items-center gap-2">
+            <div className="bg-gray-50/70 px-4 py-2 border-b border-gray-100 flex flex-wrap items-center gap-2">
               <User className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-semibold text-gray-800">Paciente</span>
             </div>
@@ -256,7 +256,7 @@ export function AppointmentDetailsModal({
               <div className="space-y-1">
                 <span className="text-xs text-gray-500 uppercase tracking-wide">Nombre</span>
                 {loadingPatient ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     <Spinner className="h-4 w-4" /> Cargando...
                   </div>
                 ) : (
@@ -281,11 +281,11 @@ export function AppointmentDetailsModal({
                 </p>
               </div>
               <div className="space-y-1">
-                <span className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono 1</span>
+                <span className="text-xs text-gray-500 uppercase tracking-wide flex flex-wrap items-center gap-1"><Phone className="h-3 w-3" /> Teléfono 1</span>
                 <p className="text-sm font-medium text-gray-900">{patientData?.telefono1 || appointment.telefono1 || '-'}</p>
               </div>
               <div className="space-y-1">
-                <span className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1"><Phone className="h-3 w-3" /> Teléfono 2</span>
+                <span className="text-xs text-gray-500 uppercase tracking-wide flex flex-wrap items-center gap-1"><Phone className="h-3 w-3" /> Teléfono 2</span>
                 <p className="text-sm font-medium text-gray-900">{patientData?.telefono2 || appointment.telefono2 || '-'}</p>
               </div>
               <div className="space-y-1">
@@ -298,21 +298,21 @@ export function AppointmentDetailsModal({
           {/* Adicionales */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <Clipboard className="h-4 w-4 text-amber-600" />
                 <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Orden</span>
               </div>
               <p className="text-sm font-semibold text-gray-900">{appointment.numero || '-'}</p>
             </div>
             <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <Hospital className="h-4 w-4 text-purple-600" />
                 <span className="text-xs font-semibold text-purple-800 uppercase tracking-wide">Establecimiento</span>
               </div>
               <p className="text-sm font-semibold text-gray-900">{appointment.entidadSis || appointment.ENTIDADSIS || '-'}</p>
             </div>
             <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <MapPin className="h-4 w-4 text-cyan-600" />
                 <span className="text-xs font-semibold text-cyan-800 uppercase tracking-wide">N° Referencia</span>
               </div>
@@ -322,7 +322,7 @@ export function AppointmentDetailsModal({
 
           {/* Diagnósticos */}
           <div className="bg-white border border-green-100 rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-green-50/70 px-4 py-2 border-b border-green-100 flex items-center gap-2">
+            <div className="bg-green-50/70 px-4 py-2 border-b border-green-100 flex flex-wrap items-center gap-2">
               <Activity className="h-4 w-4 text-green-600" />
               <span className="text-sm font-semibold text-green-800">Diagnósticos</span>
             </div>
@@ -330,7 +330,7 @@ export function AppointmentDetailsModal({
               {(() => {
                 if (loadingDiagnosticos) {
                   return (
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                       <Spinner className="h-4 w-4" />
                       Cargando diagnósticos...
                     </div>
@@ -374,7 +374,7 @@ export function AppointmentDetailsModal({
 
           {/* Usuario y Liberación */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className={`p-1.5 rounded-lg ${appointment.estado == '0' ? 'bg-red-100' : 'bg-blue-100'}`}>
                 <User className={`h-4 w-4 ${appointment.estado == '0' ? 'text-red-600' : 'text-blue-600'}`} />
               </div>
@@ -387,12 +387,12 @@ export function AppointmentDetailsModal({
             </div>
 
             {loadingLiberacion ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500 bg-white p-3 rounded-lg border">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 bg-white p-3 rounded-lg border">
                 <Spinner className="h-4 w-4" /> Cargando historial de liberación...
               </div>
             ) : liberacionData ? (
               <div className="bg-white rounded-lg border border-orange-200 overflow-hidden">
-                <div className="bg-orange-50 px-4 py-2 border-b border-orange-100 flex items-center gap-2">
+                <div className="bg-orange-50 px-4 py-2 border-b border-orange-100 flex flex-wrap items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-orange-600" />
                   <span className="text-sm font-semibold text-orange-800">Historial de Liberación</span>
                 </div>
@@ -432,7 +432,7 @@ export function AppointmentDetailsModal({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-sm text-gray-500 bg-white p-3 rounded-lg border">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 bg-white p-3 rounded-lg border">
                 <AlertCircle className="h-4 w-4" />
                 No se encontraron registros de liberación para esta cita
               </div>

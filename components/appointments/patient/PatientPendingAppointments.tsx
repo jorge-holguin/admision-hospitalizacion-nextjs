@@ -96,7 +96,7 @@ export function PatientPendingAppointments({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-4">
+          <div className="flex flex-wrap items-center justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-sm text-gray-600">Cargando...</span>
           </div>
@@ -142,7 +142,7 @@ export function PatientPendingAppointments({
   return (
     <Card className="border-blue-200">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between">
           <CardTitle className="text-sm font-medium text-blue-800 flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4" />
             Citas Pendientes ({appointments.length})
@@ -174,14 +174,14 @@ export function PatientPendingAppointments({
                 }`}
               >
                 {isMatching && (
-                  <div className="flex items-center gap-1 text-orange-700 font-medium mb-1">
+                  <div className="flex flex-wrap items-center gap-1 text-orange-700 font-medium mb-1">
                     <AlertCircle className="h-3 w-3" />
                     <span className="text-xs">Mismo consultorio</span>
                   </div>
                 )}
                 
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center justify-between mb-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <Calendar className="h-3 w-3 text-gray-500" />
                     <span className="font-medium">{formatDateToDDMMYYYY(appointment.fecha)}</span>
                     {appointment.hora && (
@@ -191,12 +191,12 @@ export function PatientPendingAppointments({
                   {getEstadoBadge(appointment.estado)}
                 </div>
                 
-                <div className="flex items-center gap-1 text-gray-600 mb-1">
+                <div className="flex flex-wrap items-center gap-1 text-gray-600 mb-1">
                   <Stethoscope className="h-3 w-3" />
                   <span className="truncate">{appointment.medicoNombre}</span>
                 </div>
                 
-                <div className="flex items-center gap-1 text-gray-600">
+                <div className="flex flex-wrap items-center gap-1 text-gray-600">
                   <User className="h-3 w-3" />
                   <span className="truncate">{appointment.consultorioNombre}</span>
                 </div>

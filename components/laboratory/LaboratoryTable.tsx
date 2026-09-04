@@ -106,7 +106,7 @@ export function LaboratoryTable({
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-16 text-gray-500">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
+                      <div className="w-16 h-16 bg-blue-50 rounded-full flex flex-wrap items-center justify-center">
                         <Eye className="h-8 w-8 text-blue-400" />
                       </div>
                       <span className="text-lg font-medium">Utilice los filtros para buscar citas</span>

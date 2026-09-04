@@ -46,7 +46,7 @@ export function TipoDocumentoSelector({ value, onChange, disabled, excludeCodes 
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-10 border rounded-md bg-gray-50">
+      <div className="flex flex-wrap items-center justify-center h-10 border rounded-md bg-gray-50">
         <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
         <span className="ml-2 text-sm text-gray-500">Cargando...</span>
       </div>
@@ -55,7 +55,7 @@ export function TipoDocumentoSelector({ value, onChange, disabled, excludeCodes 
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-10 border rounded-md bg-red-50 text-red-600 text-sm">
+      <div className="flex flex-wrap items-center justify-center h-10 border rounded-md bg-red-50 text-red-600 text-sm">
         Error al cargar tipos de documento
       </div>
     )

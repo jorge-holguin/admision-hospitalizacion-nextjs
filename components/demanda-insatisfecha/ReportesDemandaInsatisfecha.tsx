@@ -194,7 +194,7 @@ export default function ReportesDemandaInsatisfecha() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between flex-wrap gap-2">
         <h3 className="text-base font-semibold text-gray-800">Filtros de Búsqueda</h3>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => buscar(0)} disabled={loading}>
@@ -298,9 +298,9 @@ export default function ReportesDemandaInsatisfecha() {
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-xs text-gray-600">
+      <div className="flex flex-wrap items-center justify-between text-xs text-gray-600">
         <span>{totalRows} registro{totalRows !== 1 ? "s" : ""} encontrado{totalRows !== 1 ? "s" : ""}</span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="h-7 text-xs px-3" onClick={() => buscar(0)} disabled={currentPage === 0 || loading}>«</Button>
           <Button variant="outline" size="sm" className="h-7 text-xs px-3" onClick={() => buscar(currentPage - 1)} disabled={currentPage === 0 || loading}>‹</Button>
           <span className="px-2">Pág. {currentPage + 1} / {totalPages}</span>

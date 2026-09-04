@@ -82,7 +82,7 @@ export function LiquidacionViewerModal({ open, onClose, citaId, cuentaId, idDocu
         </DialogHeader>
         <div className="flex-1 relative bg-gray-100 overflow-hidden">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+            <div className="absolute inset-0 flex flex-wrap items-center justify-center bg-gray-50 z-10">
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="w-8 h-8 animate-spin text-[#4F9BB6]" />
                 <p className="text-sm text-gray-500">Cargando documento de liquidación...</p>

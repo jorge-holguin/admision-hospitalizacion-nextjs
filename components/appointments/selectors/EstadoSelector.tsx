@@ -85,7 +85,7 @@ export function EstadoSelector({ label = "Estado", value, onChange, className = 
                     }}
                   >
                     <Check className={`mr-2 h-4 w-4 ${value === o.value ? "opacity-100" : "opacity-0"}`} />
-                    <div className="flex items-center">
+                    <div className="flex flex-wrap items-center">
                       <div className={`w-3 h-3 rounded-full ${o.color} mr-2`}></div>
                       {o.label}
                     </div>

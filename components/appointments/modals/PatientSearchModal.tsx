@@ -278,7 +278,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         <div className="space-y-4">
           {/* Search Section */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between">
               <Label className="text-sm font-semibold">Buscar Paciente</Label>
               {hasSearched && (
                 <Button variant="outline" size="sm" onClick={resetSearch}>

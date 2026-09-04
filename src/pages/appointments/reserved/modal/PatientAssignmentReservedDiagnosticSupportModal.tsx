@@ -780,7 +780,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
             )}
             {!refconSyncSuccess && refconSyncError && (
               <div className="w-full bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left space-y-1">
-                <p className="font-semibold flex items-center gap-1"><AlertTriangle className="h-4 w-4" />Sincronización con REFCON incompleta</p>
+                <p className="font-semibold flex flex-wrap items-center gap-1"><AlertTriangle className="h-4 w-4" />Sincronización con REFCON incompleta</p>
                 <p>✅ La cita fue asignada correctamente, pero REFCON devolvió un error.</p>
                 <p className="text-xs text-orange-900">Por favor, informe al área responsable para la sincronización manual.</p>
               </div>
@@ -810,7 +810,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {onBack && (
                 <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">
                   <ArrowLeft className="h-4 w-4" />
@@ -867,33 +867,33 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Fecha</Label>
-                        <div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-gray-400" />{appointment.fecha}</div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-gray-400" />{appointment.fecha}</div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Hora</Label>
-                        <div className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4 text-gray-400" />{appointment.hora}</div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm"><Clock className="h-4 w-4 text-gray-400" />{appointment.hora}</div>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Especialidad</Label>
-                        <div className="flex items-center gap-2 text-sm"><Stethoscope className="h-4 w-4 text-gray-400" />{appointment.especialidadNombre || appointment.especialidad}</div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm"><Stethoscope className="h-4 w-4 text-gray-400" />{appointment.especialidadNombre || appointment.especialidad}</div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Médico</Label>
-                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" />{appointment.medicoNombre || appointment.medico}</div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" />{appointment.medicoNombre || appointment.medico}</div>
                       </div>
                     </div>
                     {appointment.tipoCita && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-gray-600">Tipo de Cita según Reserva</Label>
-                          <div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-gray-400" /><span className="font-medium">{appointment.tipoCita}</span></div>
+                          <div className="flex flex-wrap items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-gray-400" /><span className="font-medium">{appointment.tipoCita}</span></div>
                         </div>
                         {appointment.tipoCita === 'INTERCONSULTA' && appointment.especialidadInterconsulta && (
                           <div className="space-y-2">
                             <Label className="text-sm font-medium text-gray-600">Especialidad de Interconsulta</Label>
-                            <div className="flex items-center gap-2 text-sm"><Stethoscope className="h-4 w-4 text-blue-400" /><span className="font-medium text-blue-600">{appointment.especialidadInterconsulta}</span></div>
+                            <div className="flex flex-wrap items-center gap-2 text-sm"><Stethoscope className="h-4 w-4 text-blue-400" /><span className="font-medium text-blue-600">{appointment.especialidadInterconsulta}</span></div>
                           </div>
                         )}
                       </div>
@@ -998,12 +998,12 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
 
                     {/* Apoyo al Diagnóstico — siempre visible en este modal */}
                     <div className="mt-4 border border-blue-200 rounded-lg p-3 bg-blue-50/30 space-y-3">
-                      <h4 className="font-semibold text-blue-800 text-sm flex items-center gap-2">
+                      <h4 className="font-semibold text-blue-800 text-sm flex flex-wrap items-center gap-2">
                         <ClipboardList className="h-4 w-4" />
                         Apoyo al Diagnóstico
                       </h4>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Checkbox
                           id="paciente-periferico-diag"
                           checked={isPacientePeriferico}
@@ -1028,7 +1028,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                       {isPacientePeriferico && (
                         <div className="space-y-2 border border-blue-200 rounded-lg p-3 bg-blue-50/50">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                            <span className="text-sm font-semibold text-blue-800 flex items-center gap-1">
+                            <span className="text-sm font-semibold text-blue-800 flex flex-wrap items-center gap-1">
                               <MapPin className="h-4 w-4" />
                               Orden de referencia externa
                             </span>
@@ -1081,7 +1081,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                         {ref.datos_referencia?.estado}
                                       </span>
                                     </div>
-                                    <div className="text-gray-500 flex items-center gap-2 flex-wrap">
+                                    <div className="text-gray-500 flex flex-wrap items-center gap-2 flex-wrap">
                                       <span>{ref.datos_referencia?.fecha_referencia}</span>
                                       {diag && <span className="font-mono bg-yellow-50 text-yellow-800 px-1 rounded">{diag.codigo_ciex}</span>}
                                       {cpms ? <span className="text-green-700">✅ CPMS: {cpms}</span> : <span className="text-amber-600">⚠️ Sin CPMS</span>}
@@ -1107,7 +1107,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                         <div className="space-y-1">
                           <Label className="text-sm font-medium text-gray-700">Orden de Apoyo al Diagnóstico</Label>
                           {loadingOrdenes ? (
-                            <div className="flex items-center gap-2 h-10 border rounded-md px-3 bg-gray-50">
+                            <div className="flex flex-wrap items-center gap-2 h-10 border rounded-md px-3 bg-gray-50">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                               <span className="text-sm text-gray-500">Cargando órdenes...</span>
                             </div>
@@ -1136,7 +1136,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                   >
                                     <div className="flex items-start justify-between gap-2">
                                       <div className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => seleccionable && setSelectedOrdenEcografia(isSel ? '' : String(ord.idOrden))} title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}>
-                                        <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="flex flex-wrap items-center gap-2 flex-wrap">
                                           <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{servicioLabel}</span>
                                           {estadoOrdenBadge && (
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${estadoOrdenBadge.color}`}>
@@ -1144,12 +1144,12 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                             </span>
                                           )}
                                           {!seleccionable && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
+                                            <span className="inline-flex flex-wrap items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200" title="Esta orden aún no puede seleccionarse para una cita">
                                               Requiere aprobación
                                             </span>
                                           )}
                                           {fechaCreacion && (
-                                            <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                                            <span className="inline-flex flex-wrap items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                                               <CalendarIcon className="h-3 w-3" />{fechaCreacion}
                                             </span>
                                           )}
@@ -1159,7 +1159,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                             {detallesVisibles.map((d, idx) => {
                                               const completado = d.estadoDetalle === '2'
                                               return (
-                                                <li key={idx} className="flex items-center gap-1.5 text-xs">
+                                                <li key={idx} className="flex flex-wrap items-center gap-1.5 text-xs">
                                                   <span className={`shrink-0 w-1 h-1 rounded-full ${completado ? 'bg-gray-300' : 'bg-blue-500'}`} />
                                                   <span className={`truncate ${completado ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                                                     {d.cpmsDescripcion?.trim() || `CPMS ${d.cpms || d.idProcedimiento}`}
@@ -1171,7 +1171,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                           </ul>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex flex-wrap items-center gap-1">
                                         <button type="button" onClick={() => handleEditarOrden(ord)} className="p-1.5 rounded text-blue-600 hover:bg-blue-100 transition-colors shrink-0" title="Editar orden">
                                           <Pencil className="h-3.5 w-3.5" />
                                         </button>
@@ -1187,7 +1187,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                           )}
 
                           {loadingPedido && (
-                            <div className="flex items-center gap-2 text-xs text-amber-600 mt-3">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-amber-600 mt-3">
                               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600" />
                               Verificando requisitos del examen...
                             </div>

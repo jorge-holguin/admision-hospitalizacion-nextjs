@@ -614,7 +614,7 @@ function PatientAssignmentModalContent({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {onBack && (
               <Button
                 variant="ghost"
@@ -712,7 +712,7 @@ function PatientAssignmentModalContent({
           {/* Izquierda */}
           <div className="flex flex-col h-full">
             {isLoadingPatientData ? (
-              <Card className="h-full flex items-center justify-center">
+              <Card className="h-full flex flex-wrap items-center justify-center">
                 <CardContent className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                   <p className="text-sm text-gray-600">Cargando información completa del paciente...</p>
@@ -749,21 +749,21 @@ function PatientAssignmentModalContent({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Fecha</Label>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className="text-sm">{appointment.fecha}</span>
                     </div>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Hora</Label>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <Clock className="h-4 w-4 text-gray-400" />
                       <span className="text-sm">{appointment.hora}</span>
                     </div>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Consultorio</Label>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <User className="h-4 w-4 text-gray-400" />
                       <span className="text-sm">
                         {(() => {
@@ -777,7 +777,7 @@ function PatientAssignmentModalContent({
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Médico</Label>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <Stethoscope className="h-4 w-4 text-gray-400" />
                       <span className="text-sm">
                         {(() => {

@@ -541,7 +541,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
                 <Hash className="mr-2 h-4 w-4" /> Código *
               </Label>
               {!medico && loadingCodigos && (
-                <div className="flex items-center text-xs text-gray-500">
+                <div className="flex flex-wrap items-center text-xs text-gray-500">
                   <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Generando códigos...
                 </div>
               )}
@@ -1047,7 +1047,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         {/* Profesión para 2da Especialidad (fila separada) */}
         {tieneSegundaEspecialidad && (
           <div className="mt-4">
-            <Label className="flex items-center mb-2">
+            <Label className="flex flex-wrap items-center mb-2">
               <Briefcase className="mr-2 h-4 w-4" /> Profesión para 2da Especialidad
             </Label>
             <ProfesionColegioSelector

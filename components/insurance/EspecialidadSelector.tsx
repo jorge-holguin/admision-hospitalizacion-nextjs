@@ -89,7 +89,7 @@ export function EspecialidadSelector({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2 border border-[#9CD2D3] rounded-md bg-white text-sm text-[#114C5F] hover:border-[#4F9BB6] transition-all h-[38px]"
+        className="w-full flex flex-wrap items-center justify-between px-3 py-2 border border-[#9CD2D3] rounded-md bg-white text-sm text-[#114C5F] hover:border-[#4F9BB6] transition-all h-[38px]"
       >
         <span className="truncate">{getDisplayText()}</span>
         <ChevronDown

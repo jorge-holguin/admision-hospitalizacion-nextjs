@@ -933,11 +933,11 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                         <div className="p-4 border-t bg-gray-50">
                           <div className="flex flex-col gap-2 text-sm">
                             <div className="flex flex-wrap items-center gap-4">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
                                 <span className="text-gray-700">Citas disponibles</span>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
                                 <span className="text-gray-700">Sin citas disponibles</span>
                               </div>
@@ -1082,7 +1082,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           {/* Buscador por ID - Solo visible si el checkbox está marcado */}
                           {showSearchById && (
                             <>
-                              <div className="flex items-center w-full sm:w-auto">
+                              <div className="flex flex-wrap items-center w-full sm:w-auto">
                                 <Search className="h-4 w-4 mr-2 text-gray-500" />
                                 <Input
                                   placeholder="ID de cita..."
@@ -1223,7 +1223,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                       {/* Paginación */}
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
                         {/* Información y selector de tamaño */}
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-4">
                           <div className="text-sm text-gray-600">
                             Mostrando{" "}
                             {Math.min(
@@ -1236,7 +1236,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           </div>
                           
                           {/* Selector de tamaño de página */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Label className="text-sm text-gray-600 whitespace-nowrap">
                               Items por página:
                             </Label>

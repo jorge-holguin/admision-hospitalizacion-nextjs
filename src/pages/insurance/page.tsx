@@ -373,7 +373,7 @@ export default function InsurancePage() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="page-shell py-8">
-          <div className="mb-6 flex items-center gap-3">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
             <Button
               variant="destructive"
               size="lg"
@@ -485,7 +485,7 @@ export default function InsurancePage() {
                         />
                         <CommandList>
                           {loadingConsultorios && (
-                            <div className="px-3 py-2 text-sm text-gray-500 flex items-center gap-2">
+                            <div className="px-3 py-2 text-sm text-gray-500 flex flex-wrap items-center gap-2">
                               <Loader2 className="w-4 h-4 animate-spin" />
                               Cargando consultorios...
                             </div>
@@ -638,7 +638,7 @@ export default function InsurancePage() {
                   <Label className="block text-sm font-medium text-[#114C5F] mb-2">
                     Estado del FUA
                   </Label>
-                  <div className="flex items-center h-[38px] p-0.5 border border-[#9CD2D3] rounded-md bg-white">
+                  <div className="flex flex-wrap items-center h-[38px] p-0.5 border border-[#9CD2D3] rounded-md bg-white">
                     {(["activo", "anulado", "todos"] as const).map((opt) => {
                       const isActive = estadoFuaFiltro === opt
                       const label =
@@ -739,7 +739,7 @@ export default function InsurancePage() {
                         N° FUA
                       </Label>
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-1">
-                        <span className="text-sm font-mono text-[#114C5F] bg-gray-100 px-2 py-1.5 rounded-l-md border border-r-0 border-[#9CD2D3] h-[38px] flex items-center">
+                        <span className="text-sm font-mono text-[#114C5F] bg-gray-100 px-2 py-1.5 rounded-l-md border border-r-0 border-[#9CD2D3] h-[38px] flex flex-wrap items-center">
                           00005947
                         </span>
                         <select
@@ -1021,7 +1021,7 @@ export default function InsurancePage() {
             {/* Paginación */}
             {!loading && atenciones.length > 0 && (
               <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <p className="text-sm text-gray-600">
                     Mostrando {pagination.page * pagination.size + 1} -{" "}
                     {Math.min(
@@ -1030,7 +1030,7 @@ export default function InsurancePage() {
                     )}{" "}
                     de {pagination.totalElements} resultados
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Label className="text-sm text-gray-600 whitespace-nowrap">Por página:</Label>
                     <Select
                       value={String(pageSize)}

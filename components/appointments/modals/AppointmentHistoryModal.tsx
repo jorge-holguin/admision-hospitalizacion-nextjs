@@ -570,7 +570,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
           <div className="space-y-4">
             {/* Search Section */}
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+              <h3 className="text-sm font-semibold text-blue-800 mb-3 flex flex-wrap items-center">
                 <Search className="mr-2 h-4 w-4" />
                 Búsqueda de Paciente
               </h3>
@@ -640,7 +640,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
               />
               <Label 
                 htmlFor="show-filters" 
-                className="text-sm font-medium text-gray-700 cursor-pointer flex items-center"
+                className="text-sm font-medium text-gray-700 cursor-pointer flex flex-wrap items-center"
               >
                 <Filter className="mr-2 h-4 w-4" />
                 Mostrar filtros adicionales
@@ -655,14 +655,14 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
             {/* Collapsible Filters Section */}
             {showAdditionalFilters && (
               <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-400 animate-in slide-in-from-top-2 duration-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4 flex flex-wrap items-center">
                   <Filter className="mr-2 h-4 w-4" />
                   Filtros Adicionales
                 </h3>
                 
                 {/* Date Range - Improved */}
                 <div className="mb-4">
-                  <Label className="text-sm font-medium text-gray-700 mb-3 block flex items-center">
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block flex flex-wrap items-center">
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     Rango de Fechas
                   </Label>
@@ -677,7 +677,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                           className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         />
                       </div>
-                      <div className="flex items-center justify-center sm:pt-6">
+                      <div className="flex flex-wrap items-center justify-center sm:pt-6">
                         <div className="w-full sm:w-6 h-px sm:h-1 bg-gradient-to-r from-blue-400 to-purple-400"></div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -811,13 +811,13 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
             {/* Patient Info Card */}
             {hasSearched && (
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="bg-blue-600 px-4 py-2 flex items-center gap-2">
+                <div className="bg-blue-600 px-4 py-2 flex flex-wrap items-center gap-2">
                   <User className="h-4 w-4 text-white" />
                   <span className="text-sm font-semibold text-white">Ficha del Paciente</span>
                 </div>
                 <div className="p-4">
                   {isLoadingPatientInfo ? (
-                    <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-blue-600">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Cargando datos del paciente...
                     </div>
@@ -836,7 +836,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                           className="w-16 h-16 rounded-full object-cover border-2 border-blue-300 flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center flex-shrink-0">
+                        <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex flex-wrap items-center justify-center flex-shrink-0">
                           <User className="h-8 w-8 text-blue-400" />
                         </div>
                       )}
@@ -894,7 +894,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-amber-600">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-amber-600">
                       <AlertCircle className="h-4 w-4" />
                       No se encontró información del paciente en el servicio de búsqueda.
                     </div>
@@ -994,7 +994,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             {appointment.diagnostico || <span className="text-gray-400">-</span>}
                           </TableCell>
                           <TableCell className="px-1.5 py-1.5">
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="flex flex-wrap items-center justify-center gap-1">
                               <Button
                                 size="sm"
                                 variant="outline"

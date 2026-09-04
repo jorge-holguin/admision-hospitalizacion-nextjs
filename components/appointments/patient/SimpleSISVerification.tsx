@@ -161,7 +161,7 @@ export function SimpleSISVerification({
             <AlertCircle className="h-4 w-4" />
           )}
           <AlertDescription className={verificationResult.isSuccess ? "text-green-800" : verificationResult.isServerError ? "text-orange-800" : ""}>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between">
               <span>
                 {verificationResult.manualOverride ? (
                   <span>⚠️ Continuando sin validación SIS</span>

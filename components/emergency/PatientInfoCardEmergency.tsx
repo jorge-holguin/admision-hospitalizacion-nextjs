@@ -227,7 +227,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
                 />
               </div>
             ) : (
-              <div className="w-full h-full rounded-lg bg-gray-100 flex items-center justify-center border-2 border-gray-200 shadow-sm">
+              <div className="w-full h-full rounded-lg bg-gray-100 flex flex-wrap items-center justify-center border-2 border-gray-200 shadow-sm">
                 <User className="h-12 w-12 text-gray-400" />
               </div>
             )}

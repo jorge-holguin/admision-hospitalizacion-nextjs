@@ -349,21 +349,21 @@ export function HospitalizationListModal({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-64 p-2">
                                   <DropdownMenuItem
-                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    className="flex flex-wrap items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
                                     onClick={() => handlePrintOrder(hospitalizacionId, 'filiacion')}
                                   >
                                     <FileText className="w-4 h-4 text-blue-600" />
                                     <span>Hoja Filiación</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    className="flex flex-wrap items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
                                     onClick={() => handlePrintOrder(hospitalizacionId, 'orden-consentimiento')}
                                   >
                                     <ClipboardList className="w-4 h-4 text-green-600" />
                                     <span>Orden + Consentimiento</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="flex items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
+                                    className="flex flex-wrap items-center gap-2 p-2 cursor-pointer hover:bg-blue-50 rounded-md"
                                     onClick={() => handlePrintOrder(hospitalizacionId, 'consentimiento-docencia')}
                                   >
                                     <GraduationCap className="w-4 h-4 text-amber-600" />

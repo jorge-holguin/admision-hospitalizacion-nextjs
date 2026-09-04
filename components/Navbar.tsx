@@ -47,8 +47,8 @@ export function Navbar({
   return (
     <header className="bg-blue-600 text-white shadow-lg">
       <div className="page-shell py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3 min-w-0">
             {showBackButton && (
               <button
                 onClick={() => router.push(backUrl)}
@@ -57,7 +57,7 @@ export function Navbar({
                 ← Volver
               </button>
             )}
-            <div className="shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center">
+            <div className="shrink-0 w-8 h-8 bg-white rounded-full flex flex-wrap items-center justify-center">
               <div className="w-4 h-4 bg-red-500 rounded-full"></div>
             </div>
             <div className="min-w-0">
@@ -66,11 +66,11 @@ export function Navbar({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {/* Mobile hamburger */}
             <button
               onClick={toggleMobileMenu}
-              className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-700 focus:outline-none"
+              className="lg:hidden inline-flex flex-wrap items-center justify-center rounded-md p-2 text-white hover:bg-blue-700 focus:outline-none"
               aria-label="Abrir menú"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -80,7 +80,7 @@ export function Navbar({
             <div className="relative hidden lg:block">
               <button 
                 onClick={toggleDropdown}
-                className="flex items-center gap-2 focus:outline-none"
+                className="flex flex-wrap items-center gap-2 focus:outline-none"
               >
                 <UserProfile />
                 <ChevronDown className="w-4 h-4" />
@@ -96,7 +96,7 @@ export function Navbar({
                       setDropdownOpen(false)
                       handleLogout()
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex flex-wrap items-center"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     <span>Cerrar sesión</span>
@@ -120,7 +120,7 @@ export function Navbar({
                     <Link
                       to={link.to}
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white hover:bg-blue-600"
+                      className="flex flex-wrap items-center gap-3 rounded-md px-3 py-2 text-sm text-white hover:bg-blue-600"
                     >
                       <Icon className="w-4 h-4" />
                       {link.label}

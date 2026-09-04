@@ -99,7 +99,7 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
   return (
     <div className="space-y-2">
       {label && (
-        <Label className="flex items-center">
+        <Label className="flex flex-wrap items-center">
           <Globe className="mr-2 h-4 w-4" /> {label} {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
       )}

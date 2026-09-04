@@ -171,13 +171,13 @@ export function PatientPendingAppointmentsModal({
           </DialogHeader>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex flex-wrap items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <span className="ml-3 text-gray-600">Cargando citas pendientes...</span>
             </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-600 flex items-center gap-2">
+              <p className="text-red-600 flex flex-wrap items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
                 {error}
               </p>
@@ -191,9 +191,9 @@ export function PatientPendingAppointmentsModal({
           ) : (
             <div className="space-y-3">
               {totalPages > 1 && (
-                <div className="flex items-center justify-between text-sm text-gray-600 pb-2 border-b">
+                <div className="flex flex-wrap items-center justify-between text-sm text-gray-600 pb-2 border-b">
                   <span>{appointments.length} citas en total — Página {currentPage} de {totalPages}</span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
@@ -232,7 +232,7 @@ export function PatientPendingAppointmentsModal({
                     }`}
                   >
                     {isConflicting && (
-                      <div className="flex items-center gap-2 text-red-800 font-bold mb-3 pb-2 border-b-2 border-red-400 bg-red-50 -m-4 mb-3 p-3">
+                      <div className="flex flex-wrap items-center gap-2 text-red-800 font-bold mb-3 pb-2 border-b-2 border-red-400 bg-red-50 -m-4 mb-3 p-3">
                         <AlertCircle className="h-5 w-5 animate-pulse" />
                         <div>
                           <div className="text-sm font-bold">⛔ CONFLICTO DE HORARIO</div>
@@ -242,7 +242,7 @@ export function PatientPendingAppointmentsModal({
                     )}
                     
                     {!isConflicting && hasMatch && (
-                      <div className="flex items-center gap-2 text-orange-700 font-medium mb-3 pb-2 border-b border-orange-200">
+                      <div className="flex flex-wrap items-center gap-2 text-orange-700 font-medium mb-3 pb-2 border-b border-orange-200">
                         <AlertCircle className="h-4 w-4" />
                         <span className="text-sm">
                           {matchType === 'both' && '⚠️ Mismo consultorio y especialidad'}
@@ -254,7 +254,7 @@ export function PatientPendingAppointmentsModal({
                     
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
                           <span className="font-medium text-gray-900">{formatDateToDDMMYYYY(appointment.fecha)}</span>
                           {appointment.hora && (
@@ -263,12 +263,12 @@ export function PatientPendingAppointmentsModal({
                           {getEstadoBadge(appointment.estado)}
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-1">
                           <Stethoscope className="h-3 w-3" />
                           <span className="truncate">{appointment.medicoNombre}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                           <User className="h-3 w-3" />
                           <span className="truncate">{appointment.consultorioNombre}</span>
                         </div>
@@ -293,9 +293,9 @@ export function PatientPendingAppointmentsModal({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex flex-wrap items-center justify-between pt-4 border-t">
             {totalPages > 1 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
                   <ChevronLeft className="h-4 w-4 mr-1" />Anterior
                 </Button>

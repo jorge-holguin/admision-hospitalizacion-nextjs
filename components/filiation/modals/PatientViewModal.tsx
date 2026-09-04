@@ -266,7 +266,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
               {/* Foto del Paciente */}
               <div className="flex flex-col items-center space-y-4">
-                <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
+                <div className="w-32 h-48 bg-gray-200 rounded-lg flex flex-wrap items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
                   {mappedPatient.photo ? (
                     <img 
                       src={`data:image/jpeg;base64,${mappedPatient.photo}`} 
@@ -488,7 +488,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
 
         {/* Validación RENIEC */}
         {mappedPatient.validadoReniec && (
-          <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+          <div className="flex flex-wrap items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
             <CheckCircle className="w-5 h-5" />
             <span className="font-semibold text-sm">VALIDADO POR RENIEC</span>
           </div>

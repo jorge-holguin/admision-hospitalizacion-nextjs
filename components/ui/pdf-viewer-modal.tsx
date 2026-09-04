@@ -148,7 +148,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
         
         <div className="flex-1 bg-gray-100 rounded-md overflow-hidden relative">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex flex-wrap items-center justify-center">
               <Spinner size="lg" />
               <span className="ml-2">Cargando documentos...</span>
             </div>
@@ -162,7 +162,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
               <Button 
                 variant="outline" 
                 onClick={handleRetry}
-                className="flex items-center"
+                className="flex flex-wrap items-center"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Intentar nuevamente
@@ -181,8 +181,8 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
               ))}
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-amber-500 flex items-center">
+            <div className="absolute inset-0 flex flex-wrap items-center justify-center">
+              <p className="text-amber-500 flex flex-wrap items-center">
                 <AlertCircle className="h-5 w-5 mr-2" />
                 No hay documentos para mostrar
               </p>

@@ -658,12 +658,12 @@ export default function FiliationPage() {
 
             {isClinicalHistory ? (
               /* Iconos con etiquetas para /historias-clinicas */
-              <div className="inline-flex items-center gap-0.5 p-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="inline-flex flex-wrap items-center gap-0.5 p-1 rounded-lg border border-gray-200 bg-white shadow-sm">
                 {canVerPaciente && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs font-medium"
+                    className="h-8 px-2.5 flex flex-wrap items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs font-medium"
                     onClick={() => handleViewPatient(patient)}
                   >
                     <Eye className="h-3.5 w-3.5 shrink-0" />
@@ -677,7 +677,7 @@ export default function FiliationPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 flex items-center gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md text-xs font-medium"
+                    className="h-8 px-2.5 flex flex-wrap items-center gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md text-xs font-medium"
                     onClick={() => handleEditPatient(patient)}
                   >
                     <Edit className="h-3.5 w-3.5 shrink-0" />
@@ -691,7 +691,7 @@ export default function FiliationPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md text-xs font-medium"
+                    className="h-8 px-2.5 flex flex-wrap items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md text-xs font-medium"
                     onClick={() => handleDeletePatient(patient)}
                   >
                     <Trash2 className="h-3.5 w-3.5 shrink-0" />
@@ -754,7 +754,7 @@ export default function FiliationPage() {
           <Button
             variant="outline"
             size="lg"
-            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 font-bold w-full sm:w-auto"
+            className="flex flex-wrap items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 font-bold w-full sm:w-auto"
             onClick={() => (window.location.href = "/dashboard")}
           >
             <Home className="h-10 w-10" />
@@ -772,7 +772,7 @@ export default function FiliationPage() {
             <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 font-bold text-gray-900">
               <span className="text-lg">Búsqueda de Pacientes</span>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <ToggleSwitch
                     checked={estadoFiltro === "1"}
                     onChange={(checked: boolean) => setEstadoFiltro(checked ? "1" : "0")}
@@ -967,7 +967,7 @@ export default function FiliationPage() {
               <>
                 <div className="mb-4 text-sm font-medium text-gray-700">
                   {isLoading ? (
-                    <div className="flex items-center">
+                    <div className="flex flex-wrap items-center">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       <span className="font-medium">Cargando datos...</span>
                     </div>
@@ -1038,7 +1038,7 @@ export default function FiliationPage() {
                 <DialogContent className="max-w-md">
                   {/* Header con icono */}
                   <div className="flex flex-col items-center text-center pb-4 border-b">
-                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex flex-wrap items-center justify-center mb-3">
                       <CheckCircle className="w-10 h-10 text-green-600" />
                     </div>
                     <DialogTitle className="text-xl font-bold text-gray-800">¡Historia Clínica Creada!</DialogTitle>
@@ -1147,7 +1147,7 @@ export default function FiliationPage() {
       <Dialog open={anulacionExitosa.open} onOpenChange={(open) => setAnulacionExitosa({ open, patientName: anulacionExitosa.patientName })}>
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex flex-wrap items-center justify-center mb-4">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
             <DialogTitle className="text-xl font-bold text-gray-900">Historia anulada</DialogTitle>

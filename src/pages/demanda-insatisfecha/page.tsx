@@ -18,7 +18,7 @@ const ReportesDemandaInsatisfecha = React.lazy(
 )
 
 const LazyLoading = () => (
-  <div className="flex items-center justify-center py-20 text-blue-600 text-sm">Cargando...</div>
+  <div className="flex flex-wrap items-center justify-center py-20 text-blue-600 text-sm">Cargando...</div>
 )
 
 type Tab = "registro" | "reportes"
@@ -39,8 +39,8 @@ export default function DemandaInsatisfechaPage() {
 
         <main className="page-shell py-6">
           <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex flex-wrap items-center justify-center flex-shrink-0">
                 <PhoneOff className="w-6 h-6 text-orange-600" />
               </div>
               <div>
@@ -49,7 +49,7 @@ export default function DemandaInsatisfechaPage() {
               </div>
             </div>
             <Button
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-red-700 w-full sm:w-auto"
+              className="flex flex-wrap items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-red-700 w-full sm:w-auto"
               onClick={() => router.push("/dashboard")}
             >
               <Home className="h-4 w-4" />

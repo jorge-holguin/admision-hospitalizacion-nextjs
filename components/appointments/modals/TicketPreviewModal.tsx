@@ -354,7 +354,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               {/* Número de cita */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 rounded-xl shadow-lg">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between">
                   <div>
                     <p className="text-xs opacity-90 mb-1">N° DE CITA</p>
                     <p className="text-2xl font-bold tracking-wider">{ticketData.numero}</p>
@@ -368,11 +368,11 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
               
               {/* Fecha y hora */}
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 rounded-xl shadow-lg">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <Calendar className="h-4 w-4" />
                   <h3 className="font-bold text-xs">FECHA Y HORA</h3>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between">
                   <div>
                     <p className="text-xs opacity-90">Fecha</p>
                     <p className="text-lg font-bold">{ticketData.diaAtencion}</p>
@@ -382,7 +382,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
                     <p className="text-lg font-bold">{ticketData.hora}</p>
                   </div>
                 </div>
-                <div className="mt-2 pt-2 border-t border-orange-400 flex items-center gap-2">
+                <div className="mt-2 pt-2 border-t border-orange-400 flex flex-wrap items-center gap-2">
                   <Clock className="h-3 w-3" />
                   <span className="text-xs font-medium">Turno: {ticketData.turno}</span>
                 </div>
@@ -393,7 +393,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
               {/* Paciente */}
               <div className="md:col-span-3 bg-white rounded-lg p-3 shadow-md border border-blue-100">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <User className="h-4 w-4 text-blue-600" />
                   <p className="text-xs text-gray-500 font-medium">PACIENTE</p>
                 </div>
@@ -402,7 +402,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
               
               {/* Historia Clínica */}
               <div className="bg-blue-50 p-3 rounded-lg shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <FileText className="h-4 w-4 text-blue-600" />
                   <p className="text-xs text-gray-600 font-medium">H. Clínica</p>
                 </div>
@@ -411,7 +411,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
               
               {/* Seguro */}
               <div className="md:col-span-2 bg-green-50 p-3 rounded-lg shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <CreditCard className="h-4 w-4 text-green-600" />
                   <p className="text-xs text-gray-600 font-medium">Seguro</p>
                 </div>
@@ -425,7 +425,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
                 {/* Número de Referencia SIS */}
                 {ticketData.numRef && (
                   <div className="bg-purple-50 p-3 rounded-lg shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <FileText className="h-4 w-4 text-purple-600" />
                       <p className="text-xs text-gray-600 font-medium">Nro. Referencia SIS</p>
                     </div>
@@ -436,7 +436,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
                 {/* Entidad SIS (EESS) */}
                 {ticketData.entidadSis && (
                   <div className="bg-purple-50 p-3 rounded-lg shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <Building2 className="h-4 w-4 text-purple-600" />
                       <p className="text-xs text-gray-600 font-medium">EESS</p>
                     </div>
@@ -453,7 +453,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
             {/* Consultorio y médico */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               <div className="bg-white rounded-lg p-3 shadow-md border border-blue-100">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <Building2 className="h-4 w-4 text-blue-600" />
                   <p className="text-xs text-gray-500 font-medium">CONSULTORIO</p>
                 </div>
@@ -461,7 +461,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
               </div>
               
               <div className="bg-white rounded-lg p-3 shadow-md border border-blue-100">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <Stethoscope className="h-4 w-4 text-blue-600" />
                   <p className="text-xs text-gray-500 font-medium">MÉDICO</p>
                 </div>

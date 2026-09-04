@@ -91,17 +91,17 @@ export function EmpresaSeguroSelector({
           )}
         >
           {loading ? (
-            <span className="flex items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               Cargando...
             </span>
           ) : selectedEmpresa ? (
-            <span className="flex items-center gap-2 truncate">
+            <span className="flex flex-wrap items-center gap-2 truncate">
               <Building2 className="h-4 w-4 text-orange-500 flex-shrink-0" />
               <span className="truncate">{selectedEmpresa.NOMBRE?.trim()}</span>
             </span>
           ) : (
-            <span className="flex items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               <Building2 className="h-4 w-4 text-gray-400" />
               {placeholder}
             </span>

@@ -16,7 +16,7 @@ export function TurnoSelector({ value, onChange, label = "Turno" }: TurnoSelecto
           {label}
         </label>
       )}
-      <div className="flex items-center bg-white border border-[#9CD2D3] rounded-lg p-1 shadow-sm w-full">
+      <div className="flex flex-wrap items-center bg-white border border-[#9CD2D3] rounded-lg p-1 shadow-sm w-full">
         <button
           type="button"
           onClick={() => onChange("M")}

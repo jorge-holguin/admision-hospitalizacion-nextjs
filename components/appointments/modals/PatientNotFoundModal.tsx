@@ -80,7 +80,7 @@ export function PatientNotFoundModal({
               onClick={onCrearHistoriaClinica}
               disabled={isLoadingReniec || isDenegando}
               size="lg"
-              className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
+              className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 flex flex-wrap items-center justify-center gap-2"
             >
               {isLoadingReniec ? (
                 <>
@@ -99,8 +99,8 @@ export function PatientNotFoundModal({
           {/* Sección de denegación (colapsable/opcional) */}
           <details className="group">
             <summary className="cursor-pointer list-none">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <div className="flex flex-wrap items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-700">
                   <XCircle className="h-4 w-4" />
                   <span>¿Desea denegar la solicitud?</span>
                 </div>

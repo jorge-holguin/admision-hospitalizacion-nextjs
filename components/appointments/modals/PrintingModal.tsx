@@ -47,7 +47,7 @@ export function PrintingModal({ isOpen, onClose }: PrintingModalProps) {
               {/* Icono de impresora con animación */}
               <div className="relative">
                 <Printer className="w-16 h-16 text-blue-600 animate-pulse" />
-                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-blue-600 rounded-full flex flex-wrap items-center justify-center">
                   <span className="text-white text-xs font-bold">{Math.round(progress)}%</span>
                 </div>
               </div>

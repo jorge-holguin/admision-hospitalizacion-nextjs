@@ -451,7 +451,7 @@ export default function FormDemandaInsatisfecha() {
 
       {/* Header + Actions */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -547,7 +547,7 @@ export default function FormDemandaInsatisfecha() {
           <div className="space-y-5 py-2">
             {/* Patient section */}
             <div className="border rounded-lg p-4 space-y-4 bg-gray-50/50">
-              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                 <User className="h-4 w-4 text-blue-500" />
                 Datos del Paciente
               </h4>
@@ -576,7 +576,7 @@ export default function FormDemandaInsatisfecha() {
                   <div className="grid grid-cols-2 gap-3">
                     {/* Tipo documento */}
                     <div className="space-y-1">
-                      <Label className="text-xs text-gray-600 flex items-center gap-1">
+                      <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                         <CreditCard className="h-3 w-3 text-blue-500" />
                         Tipo de Documento *
                       </Label>
@@ -594,7 +594,7 @@ export default function FormDemandaInsatisfecha() {
 
                     {/* DNI */}
                     <div className="space-y-1">
-                      <Label className="text-xs text-gray-600 flex items-center gap-1">
+                      <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                         <Hash className="h-3 w-3 text-blue-500" />
                         Documento del Paciente *
                       </Label>
@@ -622,7 +622,7 @@ export default function FormDemandaInsatisfecha() {
 
                     {/* Nombre paciente - spans 2 cols */}
                     <div className="space-y-1 col-span-2">
-                      <Label className="text-xs text-gray-600 flex items-center gap-1">
+                      <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                         <User className="h-3 w-3 text-blue-500" />
                         Nombres del Paciente *
                       </Label>
@@ -643,7 +643,7 @@ export default function FormDemandaInsatisfecha() {
             <div className="grid grid-cols-2 gap-4">
               {/* Especialidad */}
               <div className="relative space-y-1">
-                <Label className="text-xs text-gray-600 flex items-center gap-1">
+                <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                   <Stethoscope className="h-3 w-3 text-blue-500" />
                   Especialidad *
                 </Label>
@@ -682,7 +682,7 @@ export default function FormDemandaInsatisfecha() {
 
               {/* Médico */}
               <div className="relative space-y-1">
-                <Label className="text-xs text-gray-600 flex items-center gap-1">
+                <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                   <UserCheck className="h-3 w-3 text-blue-500" />
                   Médico
                 </Label>
@@ -729,7 +729,7 @@ export default function FormDemandaInsatisfecha() {
             {/* Row 2: Fecha + Turno */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label className="text-xs text-gray-600 flex items-center gap-1">
+                <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                   <Calendar className="h-3 w-3 text-blue-500" />
                   Fecha que requiere *
                 </Label>
@@ -776,7 +776,7 @@ export default function FormDemandaInsatisfecha() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-gray-600 flex items-center gap-1">
+                <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                   <Clock className="h-3 w-3 text-blue-500" />
                   Turno *
                 </Label>
@@ -811,14 +811,14 @@ export default function FormDemandaInsatisfecha() {
 
             {/* Communication section */}
             <div className="border rounded-lg p-4 space-y-4 bg-gray-50/50">
-              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-blue-500" />
                 Detalles de la comunicación
               </h4>
               <div className="grid grid-cols-2 gap-3">
                 {/* Tipo comunicación */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-600 flex items-center gap-1">
+                  <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                     <Phone className="h-3 w-3 text-blue-500" />
                     Tipo Comunicación *
                   </Label>
@@ -834,7 +834,7 @@ export default function FormDemandaInsatisfecha() {
 
                 {/* Motivo llamada */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-600 flex items-center gap-1">
+                  <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                     <MessageSquare className="h-3 w-3 text-blue-500" />
                     Motivo*
                   </Label>
@@ -851,7 +851,7 @@ export default function FormDemandaInsatisfecha() {
 
               {/* Observación */}
               <div className="space-y-1">
-                <Label className="text-xs text-gray-600 flex items-center gap-1">
+                <Label className="text-xs text-gray-600 flex flex-wrap items-center gap-1">
                   <FileText className="h-3 w-3 text-blue-500" />
                   Observación
                 </Label>
@@ -933,7 +933,7 @@ export default function FormDemandaInsatisfecha() {
             <div className="space-y-4 py-2">
               {/* Datos del Paciente */}
               <div className="border rounded-lg p-4 space-y-4 bg-gray-50/50">
-                <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                   <User className="h-4 w-4 text-blue-500" />
                   Datos del Paciente
                 </h4>
@@ -978,7 +978,7 @@ export default function FormDemandaInsatisfecha() {
 
               {/* Detalles de la comunicación */}
               <div className="border rounded-lg p-4 space-y-4 bg-gray-50/50">
-                <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-blue-500" />
                   Detalles de la comunicación
                 </h4>
@@ -1000,7 +1000,7 @@ export default function FormDemandaInsatisfecha() {
 
               {/* Registro */}
               <div className="border rounded-lg p-4 space-y-4 bg-gray-50/50">
-                <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                   <FileText className="h-4 w-4 text-blue-500" />
                   Registro
                 </h4>

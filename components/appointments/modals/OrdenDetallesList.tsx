@@ -58,20 +58,20 @@ export function EstadoDetalleBadge({ estado }: { estado: string | undefined }): 
   if (!estado) return null
   if (estado === '2') {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 border border-green-300">
+      <span className="inline-flex flex-wrap items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 border border-green-300">
         ✓ Completado
       </span>
     )
   }
   if (estado === '0') {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-300">
+      <span className="inline-flex flex-wrap items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-300">
         Cancelado
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
+    <span className="inline-flex flex-wrap items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
       Pendiente
     </span>
   )
@@ -107,8 +107,8 @@ export function OrdenDetallesList({
         <div key={detalle.uid} className="border border-gray-200 rounded-lg p-3 space-y-3 bg-gray-50">
 
           {/* Cabecera del ítem */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Examen #{idx + 1}
               </span>
@@ -131,7 +131,7 @@ export function OrdenDetallesList({
               Examen / Procedimiento <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
-              <div className="relative flex items-center gap-2">
+              <div className="relative flex flex-wrap items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                   <Input
@@ -173,8 +173,8 @@ export function OrdenDetallesList({
               )}
             </div>
             {detalle.examen ? (
-              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded px-3 py-2 text-xs">
-                <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-between bg-green-50 border border-green-200 rounded px-3 py-2 text-xs">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
                   <span className="font-mono font-bold text-green-800">{detalle.examen.codigo}</span>
                   <span className="text-green-700">— {detalle.examen.descripcion}</span>
@@ -201,8 +201,8 @@ export function OrdenDetallesList({
             </Label>
             <div className="relative">
               {detalle.ciex ? (
-                <div className="flex items-center justify-between bg-yellow-50 border border-yellow-300 rounded px-3 py-2 text-xs">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-between bg-yellow-50 border border-yellow-300 rounded px-3 py-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-yellow-700 shrink-0" />
                     <span className="font-mono font-bold text-yellow-800">{detalle.ciex.codigo}</span>
                     {detalle.ciex.nombre && <span className="text-gray-700">— {detalle.ciex.nombre}</span>}
@@ -216,7 +216,7 @@ export function OrdenDetallesList({
                 </div>
               ) : (
                 <>
-                  <div className="relative flex items-center gap-2">
+                  <div className="relative flex flex-wrap items-center gap-2">
                     <div className="relative flex-1">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                       <Input
@@ -254,7 +254,7 @@ export function OrdenDetallesList({
 
           {/* Observación con contador visual */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between">
               <Label className="text-xs font-medium text-gray-700">Observación</Label>
               <span
                 className={`text-xs tabular-nums transition-colors ${

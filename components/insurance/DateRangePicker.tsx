@@ -82,7 +82,7 @@ export function DateRangePicker({
         <PopoverContent className="w-auto p-0 bg-white" align="start">
           <div className="p-2 space-y-2">
             {/* Cabecera compacta con accesos rápidos */}
-            <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <p className="text-xs text-gray-600 flex-1 truncate">
                 {tempRange?.from && tempRange?.to
                   ? `${format(tempRange.from, "dd/MM/yyyy")} - ${format(tempRange.to, "dd/MM/yyyy")}`

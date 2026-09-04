@@ -121,7 +121,7 @@ export const SeguroSelector: React.FC<SeguroSelectorProps> = ({
             <CommandList>
               <CommandEmpty>
                 {loading ? (
-                  <div className="flex items-center justify-center p-4">
+                  <div className="flex flex-wrap items-center justify-center p-4">
                     <Spinner size="sm" />
                     <span className="ml-2">Cargando...</span>
                   </div>

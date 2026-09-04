@@ -170,7 +170,7 @@ const VerificacionDiagnostico = forwardRef<VerificacionDiagnosticoRef, Verificac
             <AlertDescription className="mt-2">
               {mensaje}
               {cargando && (
-                <div className="mt-2 flex items-center">
+                <div className="mt-2 flex flex-wrap items-center">
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
                   <span>Verificando diagnóstico...</span>
                 </div>

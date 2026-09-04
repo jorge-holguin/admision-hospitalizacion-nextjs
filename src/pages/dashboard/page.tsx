@@ -94,7 +94,7 @@ export default function Dashboard() {
               onClick={handleFiliacionClick}
             >
               <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
                   <Home className="w-10 h-10 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -113,7 +113,7 @@ export default function Dashboard() {
             onClick={handleHistoriasClinicasClick}
           >
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-indigo-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
                 <FileText className="w-10 h-10 text-indigo-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -132,7 +132,7 @@ export default function Dashboard() {
               onClick={handleCitasClick}
             >
               <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
                   <Calendar className="w-10 h-10 text-green-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">CITAS</h3>
@@ -153,7 +153,7 @@ export default function Dashboard() {
             onClick={handleLaboratoryClick}
           >
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-purple-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
                 <FlaskConical className="w-10 h-10 text-purple-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -172,7 +172,7 @@ export default function Dashboard() {
             onClick={handleInsuranceClick}
           >
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4 border border-blue-200">
                 <Shield className="w-10 h-10 text-blue-700" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -190,7 +190,7 @@ export default function Dashboard() {
             onClick={handleDemandaInsatisfechaClick}
           >
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-orange-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
                 <PhoneOff className="w-10 h-10 text-orange-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -209,7 +209,7 @@ export default function Dashboard() {
               onClick={handleTablasMaestrasClick}
             >
               <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
                   <Table className="w-10 h-10 text-green-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -232,7 +232,7 @@ export default function Dashboard() {
 
       {/* Loading Overlay */}
       {isNavigating && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-wrap items-center justify-center">
           <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md mx-4">
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />

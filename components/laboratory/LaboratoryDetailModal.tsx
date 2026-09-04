@@ -93,7 +93,7 @@ export function LaboratoryDetailModal({
         ) : (
           <div className="space-y-6">
             {/* Header con ID y Estado */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
+            <div className="flex flex-wrap items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
               <div>
                 <span className="text-sm text-gray-500">ID de Cita</span>
                 <p className="font-mono text-lg font-semibold text-blue-800">{data.idCita || "-"}</p>
@@ -106,7 +106,7 @@ export function LaboratoryDetailModal({
 
             {/* Información del Paciente */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                 <User className="h-4 w-4 text-blue-600" />
                 Información del Paciente
               </h3>
@@ -136,7 +136,7 @@ export function LaboratoryDetailModal({
 
             {/* Información de la Cita */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                 <Calendar className="h-4 w-4 text-blue-600" />
                 Información de la Cita
               </h3>
@@ -170,7 +170,7 @@ export function LaboratoryDetailModal({
 
             {/* Información del Médico */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                 <Stethoscope className="h-4 w-4 text-blue-600" />
                 Información del Médico
               </h3>
@@ -189,7 +189,7 @@ export function LaboratoryDetailModal({
             {/* Información de Formulario */}
             {(data.idFormulario || data.nroFormulario) && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                <h3 className="font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                   <FileText className="h-4 w-4 text-blue-600" />
                   Formulario
                 </h3>
@@ -218,7 +218,7 @@ export function LaboratoryDetailModal({
 
             {/* Información Adicional */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-700 flex flex-wrap items-center gap-2">
                 <Building2 className="h-4 w-4 text-blue-600" />
                 Información Adicional
               </h3>

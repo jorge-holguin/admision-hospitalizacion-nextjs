@@ -792,7 +792,7 @@ function AdditionalAppointmentModalContent({
 
             {!refconSyncSuccess && refconSyncError && (
               <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-lg p-3 text-sm text-left space-y-1">
-                <p className="font-semibold flex items-center gap-1">
+                <p className="font-semibold flex flex-wrap items-center gap-1">
                   <AlertTriangle className="h-4 w-4" />
                   Sincronización con REFCON incompleta
                 </p>
@@ -896,15 +896,15 @@ function AdditionalAppointmentModalContent({
               <CardContent className="p-6 space-y-6">
                 {/* Información de la Cita */}
                 <div>
-                  <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
+                  <h3 className="font-semibold text-gray-800 mb-4 flex flex-wrap items-center">
                     Información de la Cita
                     <span className="ml-2 text-xs text-gray-500 font-normal">(Siga el orden: Consultorio → Turno → Fecha → Médico)</span>
                   </h3>
                   
                   {/* PASO 1: Consultorio */}
                   <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex flex-wrap items-center justify-center text-xs font-bold">1</div>
                       <Label className="text-sm font-medium text-gray-700">
                         Consultorio <span className="text-red-500">*</span>
                       </Label>
@@ -935,7 +935,7 @@ function AdditionalAppointmentModalContent({
                       className="w-full"
                     />
                     {loadingExistingAppointments && (
-                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                      <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         Verificando citas existentes...
                       </div>
@@ -949,7 +949,7 @@ function AdditionalAppointmentModalContent({
 
                   {/* PASO 2: Turno */}
                   <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                         consultorio ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
                       }`}>2</div>
@@ -978,14 +978,14 @@ function AdditionalAppointmentModalContent({
 
                   {/* PASO 3: Fecha de la Cita (Calendario + Entrada Manual) */}
                   <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between mb-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                           consultorio && turno && isFechaConfirmed ? 'bg-blue-600 text-white' : consultorio && turno ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
                         }`}>3</div>
                         <Label className="text-sm font-medium text-gray-700">Fecha de la Cita <span className="text-red-500">*</span></Label>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {isDevOps && (
                           <div className="flex flex-wrap items-center gap-2">
                             <Checkbox
@@ -1083,13 +1083,13 @@ function AdditionalAppointmentModalContent({
                             {consultorio && turno && (datesWithAppointments.length > 0 || datesWithoutAppointments.length > 0) && (
                               <div className="mt-2 p-1.5 bg-gray-50 rounded text-xs text-gray-600 space-y-0.5">
                                 {datesWithAppointments.length > 0 && (
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex flex-wrap items-center gap-1.5">
                                     <div className="w-2.5 h-2.5 bg-green-100 border border-green-300 rounded"></div>
                                     <span>Días con citas ({datesWithAppointments.length})</span>
                                   </div>
                                 )}
                                 {datesWithoutAppointments.length > 0 && (
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex flex-wrap items-center gap-1.5">
                                     <div className="w-2.5 h-2.5 bg-red-100 border border-red-300 rounded"></div>
                                     <span>Sin citas - Adicional permitido ({datesWithoutAppointments.length})</span>
                                   </div>
@@ -1102,7 +1102,7 @@ function AdditionalAppointmentModalContent({
                     )}
                     
                     {loadingDates && consultorio && turno && (
-                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                      <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         Cargando fechas disponibles para turno {turno}...
                       </div>
@@ -1111,8 +1111,8 @@ function AdditionalAppointmentModalContent({
 
                   {/* PASO 4: Médico */}
                   <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between mb-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                           consultorio && turno && isFechaConfirmed ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
                         }`}>4</div>
@@ -1122,7 +1122,7 @@ function AdditionalAppointmentModalContent({
                       </div>
                       <div>
                         {loadingMedicos && (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <span className="text-xs text-gray-500 flex flex-wrap items-center gap-1">
                             <Loader2 className="h-3 w-3 animate-spin" />
                             Cargando...
                           </span>

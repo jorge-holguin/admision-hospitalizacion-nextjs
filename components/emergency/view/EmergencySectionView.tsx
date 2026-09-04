@@ -681,7 +681,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
         {openSelect === selectName && (
           <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg">
             <div className="p-2 border-b">
-              <div className="flex items-center px-3 py-2 border rounded-md">
+              <div className="flex flex-wrap items-center px-3 py-2 border rounded-md">
                 <Search className="h-4 w-4 mr-2 text-gray-400" />
                 <input
                   type="text"
@@ -694,7 +694,7 @@ export const EmergencySectionView: React.FC<EmergencySectionViewProps> = ({
             </div>
             <div className="max-h-60 overflow-y-auto">
               {loading ? (
-                <div className="flex items-center justify-center p-4">
+                <div className="flex flex-wrap items-center justify-center p-4">
                   <Spinner size="sm" />
                 </div>
               ) : options.length > 0 ? (

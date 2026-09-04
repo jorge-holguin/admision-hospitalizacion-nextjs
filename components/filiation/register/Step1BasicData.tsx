@@ -176,7 +176,7 @@ export function Step1BasicData({
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Foto del Paciente */}
             <div className="flex flex-col items-center space-y-2">
-              <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
+              <div className="w-32 h-48 bg-gray-200 rounded-lg flex flex-wrap items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
                 {photoUrl ? (
                   <ImageWithLoader
                     key={photoTimestamp}
@@ -277,7 +277,7 @@ export function Step1BasicData({
                 </div>
               </div>
               <div>
-                <Label htmlFor="edad" className="flex items-center text-sm font-medium text-gray-700">
+                <Label htmlFor="edad" className="flex flex-wrap items-center text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4 mr-1" />
                   Edad
                 </Label>
@@ -289,7 +289,7 @@ export function Step1BasicData({
                 />
               </div>
       {/*         <div>
-                <Label htmlFor="codigoPaciente" className="flex items-center text-sm font-medium text-gray-700">
+                <Label htmlFor="codigoPaciente" className="flex flex-wrap items-center text-sm font-medium text-gray-700">
                   <Hash className="w-4 h-4 mr-1" />
                   Código de Paciente
                 </Label>
@@ -301,7 +301,7 @@ export function Step1BasicData({
                 />
               </div> */}
               <div>
-                <Label htmlFor="fechaApertura" className="flex items-center text-sm font-medium text-gray-700">
+                <Label htmlFor="fechaApertura" className="flex flex-wrap items-center text-sm font-medium text-gray-700">
                   <Clock className="w-4 h-4 mr-1" />
                   Fecha y Hora de Apertura
                 </Label>
