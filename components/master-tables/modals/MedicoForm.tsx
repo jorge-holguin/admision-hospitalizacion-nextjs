@@ -449,7 +449,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <Input id="EESS" name="EESS" value={formData.EESS} disabled className="bg-gray-100" />
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="space-y-2">
             <Label htmlFor="APATERNO" className="flex items-center">
               <User className="mr-2 h-4 w-4" /> Apellido Paterno *
@@ -496,7 +496,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="TIPO_DOCUMENTO" className="flex items-center">
               <Fingerprint className="mr-2 h-4 w-4" /> Tipo Documento *
@@ -536,7 +536,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <Label htmlFor="MEDICO" className="flex items-center">
                 <Hash className="mr-2 h-4 w-4" /> Código *
               </Label>
@@ -590,7 +590,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="FECHNAC" className="flex items-center">
               <Calendar className="mr-2 h-4 w-4" /> Fecha de Nacimiento <span className="text-red-500 ml-1">*</span>
@@ -623,7 +623,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="CORREO" className="flex items-center">
               <User className="mr-2 h-4 w-4" /> Correo Electrónico
@@ -662,7 +662,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         </h3>
 
         {/* Fila 1: Abreviatura, Colegiatura, Profesión */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="ABREVIATURA" className="flex items-center">
               <BadgeCheck className="mr-2 h-4 w-4" /> Abreviatura *
@@ -724,7 +724,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         </div>
 
         {/* Fila 2: Col. Especialidad, 2da y 3ra Especialidad */}
-        <div className="grid grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="COLESP" className="flex items-center">
               <Stethoscope className="mr-2 h-4 w-4" /> Col. Especialidad
@@ -801,7 +801,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         </h3>
 
         {/* === Fila de 2 columnas (principal) === */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Especialidad principal */}
           <div className="space-y-2">
             <Label className="flex items-center">
@@ -930,7 +930,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
 
         {/* === Fila de 2 columnas (segunda especialidad) === */}
         {tieneSegundaEspecialidad && (
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             {/* Segunda especialidad */}
             <div className="space-y-2">
               <Label className="flex items-center">
@@ -1066,7 +1066,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <Briefcase className="mr-2 h-5 w-5" /> Información Laboral
         </h3>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="CODHIS" className="flex items-center">
               <Hash className="mr-2 h-4 w-4" /> Código HIS

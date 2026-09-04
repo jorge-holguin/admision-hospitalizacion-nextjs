@@ -235,7 +235,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
           <Hash className="mr-2 h-5 w-5" /> Información Básica
         </h3>
         
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="space-y-2">
             <Label htmlFor="CONSULTORIO" className="flex items-center">
               <Hash className="mr-2 h-4 w-4" /> Código *
@@ -286,7 +286,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="NOMBRE" className="flex items-center">
               <FileText className="mr-2 h-4 w-4" /> Nombre *
@@ -319,7 +319,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
           <Stethoscope className="mr-2 h-5 w-5" /> Configuración Médica
         </h3>
         
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="space-y-2">
             <Label className="flex items-center">
               <Award className="mr-2 h-4 w-4" /> Especialidad *
@@ -390,7 +390,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="ORDEN" className="flex items-center">
               <ListOrdered className="mr-2 h-4 w-4" /> Orden
@@ -422,9 +422,9 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
     <Settings className="mr-2 h-5 w-5" /> Configuración de Estado
   </h3>
   
-  <div className="grid grid-cols-3 gap-4">
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div className="space-y-2">
-      <Label className="flex items-center justify-between">
+      <Label className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center">
           <ToggleLeft className="mr-2 h-4 w-4" /> Programa ROL
         </div>
@@ -435,7 +435,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
       </Label>
     </div>
     <div className="space-y-2">
-      <Label className="flex items-center justify-between">
+      <Label className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center">
           <ToggleRight className="mr-2 h-4 w-4" /> Muestra ROL
         </div>
@@ -446,7 +446,7 @@ export const ConsultorioForm: React.FC<ConsultorioFormProps> = ({
       </Label>
     </div>
     <div className="space-y-2">
-      <Label className="flex items-center justify-between">
+      <Label className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center">
           <Settings className="mr-2 h-4 w-4" /> Estado
         </div>
