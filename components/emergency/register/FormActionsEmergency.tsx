@@ -86,7 +86,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
       {/* Mensaje de advertencia cuando no hay cuenta válida (excepto para PAGANTE y SOAT) */}
       {isUpdate && !hasValidAccount && !isPayingOrSoat && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
-          <div className="flex items-center">
+          <div className="flex flex-wrap items-center">
             <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
             <p className="text-amber-700 font-medium">No hay cuenta válida</p>
           </div>

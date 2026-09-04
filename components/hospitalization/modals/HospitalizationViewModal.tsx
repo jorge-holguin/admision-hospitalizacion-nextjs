@@ -199,9 +199,9 @@ export function HospitalizationViewModal({
               )}
             </DialogTitle>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {submitSuccess && (
-                <div className="flex items-center gap-2 text-green-600">
+                <div className="flex flex-wrap items-center gap-2 text-green-600">
                   <CheckCircle className="h-5 w-5" />
                   <span className="text-sm font-medium">¡Guardado exitosamente!</span>
                 </div>
@@ -210,7 +210,7 @@ export function HospitalizationViewModal({
               {isReadOnly && onEdit && hospitalizationData?.ESTADO !== '0' && (
                 <Button
                   onClick={handleEditClick}
-                  className="bg-[#0074ba] hover:bg-[#0067a6] text-white  mr-6"
+                  className="bg-[#0074ba] hover:bg-[#0067a6] text-white mr-0 sm:mr-6"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Editar

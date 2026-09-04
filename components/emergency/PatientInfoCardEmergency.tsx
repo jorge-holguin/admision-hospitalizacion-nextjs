@@ -244,21 +244,21 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
 
         {/* Información básica */}
         <div className="grid grid-cols-1 gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CreditCard className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>DNI:</strong> {patientData.documento || 'No especificado'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Nacimiento:</strong> {formatDate(patientData.fechaNacimiento)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Edad:</strong> {patientData.fechaNacimiento 
@@ -267,7 +267,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
           <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
@@ -278,7 +278,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
 
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Heart className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Estado Civil:</strong> {getCivilStatusDescription(patientData.estadoCivil)}
@@ -290,26 +290,26 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
         <div className="border-t pt-3">
           <h4 className="font-medium text-sm text-gray-700 mb-2">Contacto</h4>
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <House className="h-4 w-4 text-gray-400" />
               <span className="text-sm">
                 {patientData.direccion || 'Dirección no especificada'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <MapPin className="h-4 w-4 text-gray-400" />
               <span className="text-sm">{toUbigeoStr(patientData.distritoDir)} , {toUbigeoStr(patientData.departamentoDir)}</span>
             </div>
 
             {patientData.telefono1 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patientData.telefono1}</span>
               </div>
             )}
 
             {patientData.telefono2 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patientData.telefono2}</span>
               </div>

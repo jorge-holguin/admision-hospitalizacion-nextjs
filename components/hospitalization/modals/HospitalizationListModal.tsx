@@ -194,10 +194,10 @@ export function HospitalizationListModal({
                </p>
              )}
            </div>
-           <div className="flex items-center gap-2">
+           <div className="flex flex-wrap items-center gap-2">
              <Button
                onClick={onCreateNew}
-               className="bg-green-600 hover:bg-green-700 text-white mr-6"
+               className="bg-green-600 hover:bg-green-700 text-white mr-0 sm:mr-6"
                size="sm"
              >
                <Plus className="h-4 w-4 mr-2" />
@@ -400,7 +400,7 @@ export function HospitalizationListModal({
               <div className="text-sm font-medium text-gray-700">
                 Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} - {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} hospitalizaciones
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"

@@ -307,7 +307,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
         {diagnosisData && (
           <div className="border-t pt-3">
             <h4 className="font-medium text-sm text-gray-700 mb-2">Diagnóstico</h4>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <FileText className="h-4 w-4 text-gray-400" />
               <span className="text-sm">
                 <strong>{diagnosisData.code}:</strong> {diagnosisData.description}
@@ -320,14 +320,14 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
         <div className="grid grid-cols-1 gap-3">
 
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Nacimiento:</strong> {formatDate(patientData.birthDate)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Edad:</strong> {patientData.birthDate 
@@ -336,7 +336,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Book className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Sexo:</strong>
@@ -346,7 +346,7 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Heart className="h-4 w-4 text-gray-400" />
             <span className="text-sm">
               <strong>Estado Civil:</strong> {getCivilStatusDescription(patientData.maritalStatus)}
@@ -367,14 +367,14 @@ export const PatientInfoCard: React.FC<PatientInfoCardProps> = ({
             )}
 
             {patientData.district && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patientData.district}</span>
               </div>
             )}
 
             {patientData.phone && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
                 <span className="text-sm">{patientData.phone}</span>
               </div>

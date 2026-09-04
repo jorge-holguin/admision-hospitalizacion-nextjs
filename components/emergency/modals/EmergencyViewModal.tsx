@@ -315,7 +315,7 @@ export function EmergencyViewModal({
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {currentMode === 'view' && (
               <Button
                 onClick={handleToggleEditMode}
