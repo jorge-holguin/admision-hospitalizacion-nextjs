@@ -42,8 +42,8 @@ export function PatientResultsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
+    <div className="overflow-x-auto table-responsive">
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow className="bg-gray-50">
             <TableHead className="font-semibold">H.C.</TableHead>

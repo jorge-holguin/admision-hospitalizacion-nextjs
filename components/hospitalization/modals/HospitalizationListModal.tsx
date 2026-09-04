@@ -247,8 +247,8 @@ export function HospitalizationListModal({
 
             {/* Tabla de órdenes */}
             {!loading && !error && filteredOrdenes.length > 0 && (
-              <div className="overflow-auto flex-1">
-                <Table>
+              <div className="overflow-x-auto table-responsive flex-1">
+                <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-bold text-gray-900">Estado</TableHead>

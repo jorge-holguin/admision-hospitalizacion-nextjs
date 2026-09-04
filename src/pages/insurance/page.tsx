@@ -786,8 +786,8 @@ export default function InsurancePage() {
             </div>
 
             {/* Tabla */}
-            <div className="border border-[#9CD2D3]/30 rounded-xl overflow-x-auto shadow-sm">
-              <Table className="text-sm">
+            <div className="border border-[#9CD2D3]/30 rounded-xl overflow-x-auto table-responsive shadow-sm">
+              <Table className="text-sm min-w-[1100px]">
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-[#4F9BB6]/10 to-[#9CD2D3]/10">
                     <TableHead className="font-semibold text-[#114C5F] text-sm px-2 py-2 w-[56px] text-center" title="Origen: E=Emergencia, AD=Apoyo al Diagnóstico, HO=Hospitalización, CE=Consulta Externa">ORIG.</TableHead>

@@ -952,8 +952,8 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
             {hasSearched && !isLoading && !error && appointments.length > 0 && (
               <>
                 {/* Results Table */}
-                <div className="border rounded-lg overflow-x-auto w-full">
-                  <Table className="text-sm w-full">
+                <div className="border rounded-lg overflow-x-auto table-responsive w-full">
+                  <Table className="text-sm w-full min-w-[800px]">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
                         <TableHead className="px-1.5 py-1.5">Fecha y Hora</TableHead>
