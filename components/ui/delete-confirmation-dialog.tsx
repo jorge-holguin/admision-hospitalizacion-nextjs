@@ -40,7 +40,7 @@ export function DeleteConfirmationDialog({
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
         <div className="bg-red-50 p-4 border-b border-red-100">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg text-red-700">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-lg text-red-700">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               {title}
             </DialogTitle>

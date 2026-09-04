@@ -666,7 +666,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       <Dialog open={true} onOpenChange={handleClose}>
         <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="text-center text-green-700 flex items-center justify-center">
+            <DialogTitle className="text-center text-green-700 flex flex-wrap items-center justify-center">
               <CheckCircle className="mr-2 h-6 w-6" />
               ¡Cita Creada Exitosamente!
             </DialogTitle>
@@ -710,7 +710,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] overflow-hidden flex flex-col" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-800 flex items-center">
+          <DialogTitle className="text-xl font-semibold text-gray-800 flex flex-wrap items-center">
             <Button variant="ghost" size="sm" onClick={onBack} className="mr-2 p-1"><ArrowLeft className="h-4 w-4" /></Button>
             Confirmar Asignación — Apoyo al Diagnóstico
           </DialogTitle>
@@ -1106,7 +1106,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
       <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>
         <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600"><AlertTriangle className="h-6 w-6" />⚠️ Advertencia: Posible Conflicto de Horario</DialogTitle>
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600"><AlertTriangle className="h-6 w-6" />⚠️ Advertencia: Posible Conflicto de Horario</DialogTitle>
             <DialogDescription className="text-gray-600">Se ha detectado un posible conflicto de horario con otra cita del paciente.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

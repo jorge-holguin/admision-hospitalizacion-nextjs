@@ -37,7 +37,7 @@ export function PatientNotFoundModal({
   return (
     <DialogContent className="sm:max-w-lg">
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2 text-red-600">
+        <DialogTitle className="flex flex-wrap items-center gap-2 text-red-600">
           <AlertCircle className="h-5 w-5" />
           Paciente No Encontrado
         </DialogTitle>

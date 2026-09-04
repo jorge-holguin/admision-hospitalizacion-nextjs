@@ -419,7 +419,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-base">
             <ClipboardList className="h-5 w-5 text-blue-600" />
             {ordenToEdit ? 'Editar Orden' : 'Crear Orden'} de Apoyo Diagnóstico
           </DialogTitle>

@@ -134,7 +134,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-xl flex items-center justify-between">
+          <DialogTitle className="text-xl flex flex-wrap items-center justify-between">
             <span>{title}</span>
             <div className="flex flex-wrap items-center gap-2 text-sm font-normal">
               {pdfData.length > 0 && (

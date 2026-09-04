@@ -133,7 +133,7 @@ function MotivoModal({ isOpen, onClose, onConfirm, title, action, isLoading }: M
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex flex-wrap items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
             {title}
           </DialogTitle>
@@ -758,7 +758,7 @@ function PatientAssignmentReservedModalContent({
               {/* Información de la cita */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex flex-wrap items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Información de la Cita
                   </CardTitle>
@@ -1057,7 +1057,7 @@ function PatientAssignmentReservedModalContent({
       <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>
         <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
               <AlertTriangle className="h-6 w-6" />
               ⚠️ Advertencia: Posible Conflicto de Horario
             </DialogTitle>
@@ -1123,7 +1123,7 @@ function PatientAssignmentReservedModalContent({
       <Dialog open={showEspecialidadConflictDialog} onOpenChange={setShowEspecialidadConflictDialog}>
         <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
               <AlertTriangle className="h-6 w-6" />
               ⚠️ Advertencia: Cita en Misma Especialidad
             </DialogTitle>

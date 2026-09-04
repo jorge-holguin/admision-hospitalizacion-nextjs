@@ -873,7 +873,7 @@ export default function FormDemandaInsatisfecha() {
       {/* ── Info Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={showInfo} onOpenChange={setShowInfo}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="text-blue-700 flex items-center gap-2"><Info className="h-5 w-5" /> Información</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-blue-700 flex flex-wrap items-center gap-2"><Info className="h-5 w-5" /> Información</DialogTitle></DialogHeader>
           <p className="text-sm text-gray-700">{infoMsg}</p>
           {infoDetalles.length > 0 && (
             <ul className="mt-2 list-disc list-inside space-y-1">
@@ -887,7 +887,7 @@ export default function FormDemandaInsatisfecha() {
       {/* ── Error Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={showError} onOpenChange={setShowError}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertCircle className="h-5 w-5" /> Error</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-red-600 flex flex-wrap items-center gap-2"><AlertCircle className="h-5 w-5" /> Error</DialogTitle></DialogHeader>
           <p className="text-sm text-gray-700">{errorMsg}</p>
           <DialogFooter><Button variant="destructive" onClick={() => setShowError(false)}>Cerrar</Button></DialogFooter>
         </DialogContent>
@@ -923,7 +923,7 @@ export default function FormDemandaInsatisfecha() {
       <Dialog open={showDetalle} onOpenChange={setShowDetalle}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b pb-3">
-            <DialogTitle className="text-lg flex items-center gap-2 text-blue-700">
+            <DialogTitle className="text-lg flex flex-wrap items-center gap-2 text-blue-700">
               <FileText className="h-5 w-5" />
               Detalle de Demanda Insatisfecha
             </DialogTitle>

@@ -938,7 +938,7 @@ function PatientAssignDiagnosticSupportModalContent({
                 {/* Info de la cita */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
+                    <CardTitle className="text-lg flex flex-wrap items-center gap-2">
                       <Calendar className="h-5 w-5" />
                       Información de la Cita
                     </CardTitle>
@@ -1472,7 +1472,7 @@ function PatientAssignDiagnosticSupportModalContent({
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-blue-700">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-blue-700">
               <CheckCircle className="h-5 w-5" />
               Confirmar Asignación — Ecografía
             </DialogTitle>
@@ -1517,7 +1517,7 @@ function PatientAssignDiagnosticSupportModalContent({
       <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertDialogTitle className="flex flex-wrap items-center gap-2 text-red-600">
               {errorTitle}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-700 whitespace-pre-line">

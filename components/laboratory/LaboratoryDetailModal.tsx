@@ -75,7 +75,7 @@ export function LaboratoryDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl text-blue-800">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-xl text-blue-800">
             <FileText className="h-5 w-5" />
             Detalle de Cita de Laboratorio
           </DialogTitle>

@@ -164,7 +164,7 @@ export function PatientPendingAppointmentsModal({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-blue-800">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-blue-800">
               <Calendar className="h-5 w-5" />
               Citas Pendientes del Paciente
             </DialogTitle>

@@ -1292,7 +1292,7 @@ export default function ReservedAppointmentsPage() {
           <Dialog open={showRevisionPendienteModal} onOpenChange={setShowRevisionPendienteModal}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-orange-600">
+                <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
                   <AlertCircle className="h-5 w-5" />
                   Revisión Pendiente
                 </DialogTitle>
@@ -1359,7 +1359,7 @@ export default function ReservedAppointmentsPage() {
           }}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-orange-600">
+                <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
                   <RotateCcw className="h-5 w-5" />
                   Revertir Solicitud
                 </DialogTitle>
@@ -1392,7 +1392,7 @@ export default function ReservedAppointmentsPage() {
           }}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-red-600">
+                <DialogTitle className="flex flex-wrap items-center gap-2 text-red-600">
                   <XCircle className="h-5 w-5" />
                   Motivo de Denegación
                 </DialogTitle>

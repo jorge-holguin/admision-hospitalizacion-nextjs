@@ -1178,7 +1178,7 @@ export default function FiliationPage() {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
               Anular Filiación
             </DialogTitle>

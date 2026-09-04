@@ -83,7 +83,7 @@ export function MultiAccountSelectorDialog(
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-600">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-amber-600">
             <Wallet className="h-5 w-5 flex-shrink-0" />
             {title}
           </DialogTitle>

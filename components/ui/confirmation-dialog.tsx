@@ -43,7 +43,7 @@ export function ConfirmationDialog({
     }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-lg">
             <AlertCircle className="h-5 w-5 text-blue-500" />
             {title}
           </DialogTitle>

@@ -740,7 +740,7 @@ function PatientAssignmentModalContent({
             {/* Info de la cita */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="text-lg flex flex-wrap items-center gap-2">
                   <Calendar className="h-5 w-5" />
                   Información de la Cita
                 </CardTitle>
@@ -960,7 +960,7 @@ function PatientAssignmentModalContent({
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex flex-wrap items-center gap-2">
               <Printer className="h-5 w-5 text-blue-600" />
               Imprimir Ticket de Cita
             </DialogTitle>
@@ -1021,7 +1021,7 @@ function PatientAssignmentModalContent({
     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
       <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-blue-700">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-blue-700">
             <CheckCircle className="h-5 w-5" />
             Confirmar Asignación de Cita
           </DialogTitle>
@@ -1100,7 +1100,7 @@ function PatientAssignmentModalContent({
     <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+          <AlertDialogTitle className="flex flex-wrap items-center gap-2 text-red-600">
             {errorTitle}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-gray-700 whitespace-pre-line">
@@ -1122,7 +1122,7 @@ function PatientAssignmentModalContent({
     <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>
       <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-orange-600">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
             <AlertTriangle className="h-6 w-6" />
             ⚠️ Advertencia: Posible Conflicto de Horario
           </DialogTitle>
@@ -1189,7 +1189,7 @@ function PatientAssignmentModalContent({
     <AlertDialog open={showRefconResultDialog} onOpenChange={setShowRefconResultDialog}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
+          <AlertDialogTitle className="flex flex-wrap items-center gap-2">
             {refconSyncSuccess ? (
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />

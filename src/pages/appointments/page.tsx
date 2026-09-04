@@ -1616,7 +1616,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
             <Dialog open={showReservaActivaDialog} onOpenChange={setShowReservaActivaDialog}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-orange-600">
+                  <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
                     <CalendarClock className="h-6 w-6" />
                     Cita con Reserva Activa
                   </DialogTitle>

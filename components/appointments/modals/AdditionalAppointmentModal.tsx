@@ -751,7 +751,7 @@ function AdditionalAppointmentModalContent({
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-center text-green-700 flex items-center justify-center">
+            <DialogTitle className="text-center text-green-700 flex flex-wrap items-center justify-center">
               <CheckCircle className="mr-2 h-6 w-6" />
               ¡Cita Creada Exitosamente!
             </DialogTitle>
@@ -828,7 +828,7 @@ function AdditionalAppointmentModalContent({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-800 flex items-center">
+          <DialogTitle className="text-xl font-semibold text-gray-800 flex flex-wrap items-center">
             <Button
               variant="ghost"
               size="sm"
@@ -1350,7 +1350,7 @@ function AdditionalAppointmentModalContent({
       <Dialog open={showTimeConflictDialog} onOpenChange={setShowTimeConflictDialog}>
         <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-orange-600">
               <AlertTriangle className="h-6 w-6" />
               ⚠️ Advertencia: Posible Conflicto de Horario
             </DialogTitle>

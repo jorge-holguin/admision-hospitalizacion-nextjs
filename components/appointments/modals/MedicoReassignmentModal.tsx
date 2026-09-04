@@ -105,7 +105,7 @@ export function MedicoReassignmentModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-blue-800 flex items-center">
+          <DialogTitle className="text-xl font-semibold text-blue-800 flex flex-wrap items-center">
             <User className="mr-2 h-5 w-5" />
             Reasignar Médico
           </DialogTitle>

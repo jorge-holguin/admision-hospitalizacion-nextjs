@@ -558,7 +558,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-purple-800 flex items-center">
+            <DialogTitle className="text-xl font-semibold text-purple-800 flex flex-wrap items-center">
               <History className="mr-2 h-5 w-5" />
               Historial de Citas
             </DialogTitle>

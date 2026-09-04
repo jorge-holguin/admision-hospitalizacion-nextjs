@@ -90,7 +90,7 @@ export function PatientPendingAppointments({
     return (
       <Card className="border-blue-200">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-blue-800 flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4" />
             Citas Pendientes del Paciente
           </CardTitle>
@@ -109,7 +109,7 @@ export function PatientPendingAppointments({
     return (
       <Card className="border-red-200">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-red-800 flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-red-800 flex flex-wrap items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             Error
           </CardTitle>
@@ -125,7 +125,7 @@ export function PatientPendingAppointments({
     return (
       <Card className="border-gray-200">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-gray-700 flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4" />
             Citas Pendientes del Paciente
           </CardTitle>
@@ -143,7 +143,7 @@ export function PatientPendingAppointments({
     <Card className="border-blue-200">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-blue-800 flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4" />
             Citas Pendientes ({appointments.length})
           </CardTitle>
