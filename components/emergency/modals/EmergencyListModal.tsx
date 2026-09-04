@@ -57,7 +57,7 @@ interface EmergencyListModalProps {
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   '0': { label: 'ANULADO',     className: 'bg-gray-200 text-gray-800' },
   '2': { label: 'REGISTRADO',  className: 'bg-blue-200 text-blue-800' },
-  '3': { label: 'EN ATENCIÓN', className: 'bg-yellow-200 text-yellow-800' },
+  '3': { label: 'EN ATENCIï¿½N', className: 'bg-yellow-200 text-yellow-800' },
   '4': { label: 'ATENDIDO',    className: 'bg-green-200 text-green-800' },
   '5': { label: 'CERRADO',     className: 'bg-purple-200 text-purple-800' },
   '6': { label: 'AUSENCIA',     className: 'bg-indigo-200 text-indigo-800' },
@@ -73,7 +73,7 @@ const getStatusDisplay = (estado: string) => {
   );
 };
 
-// Componente simplificado para mostrar médico sin usar contexto
+// Componente simplificado para mostrar mï¿½dico sin usar contexto
 function MedicoDisplay({ codigoMedico }: { codigoMedico?: string }) {
   if (!codigoMedico) return <span>-</span>;
   
@@ -81,13 +81,13 @@ function MedicoDisplay({ codigoMedico }: { codigoMedico?: string }) {
   return <span>({codigoLimpio})</span>;
 }
 
-// Componente para mostrar relatos con "Leer más/menos"
+// Componente para mostrar relatos con "Leer mï¿½s/menos"
 function RelatoDisplay({ relato }: { relato?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   if (!relato || relato.trim() === '') return <span>-</span>;
   
-  const maxLength = 50; // Máximo de caracteres antes de truncar
+  const maxLength = 50; // Mï¿½ximo de caracteres antes de truncar
   const shouldTruncate = relato.length > maxLength;
   
   if (!shouldTruncate) {
@@ -112,7 +112,7 @@ function RelatoDisplay({ relato }: { relato?: string }) {
 }
 
 // El endpoint /emergency/paciente/{id} devuelve un array plano con camelCase
-// Esta función lo convierte al shape uppercase que espera la tabla
+// Esta funciï¿½n lo convierte al shape uppercase que espera la tabla
 function mapApiToEmergencyData(item: any): EmergencyData {
   return {
     EMERGENCIA_ID: item.emergenciaId || item.EMERGENCIA_ID || '',
@@ -197,7 +197,7 @@ export function EmergencyListModal({
     } catch (error: any) {
       console.error('Error fetching emergencies:', error)
       toast({
-        title: "Error de conexión",
+        title: "Error de conexiï¿½n",
         description: "No se pudieron cargar las emergencias",
         variant: "destructive"
       })
@@ -314,8 +314,8 @@ export function EmergencyListModal({
                     <TableHead className="font-bold text-gray-900">Motivo</TableHead>
                     <TableHead className="font-bold text-gray-900">Seguro Liquidador</TableHead>
                     <TableHead className="font-bold text-gray-900">Cuenta</TableHead>
-                    <TableHead className="font-bold text-gray-900">Diagnóstico</TableHead>
-                    <TableHead className="font-bold text-gray-900">Médico</TableHead>
+                    <TableHead className="font-bold text-gray-900">Diagnï¿½stico</TableHead>
+                    <TableHead className="font-bold text-gray-900">Mï¿½dico</TableHead>
                     <TableHead className="font-bold text-gray-900">Relato</TableHead>
                     <TableHead className="font-bold text-gray-900">Acciones</TableHead>
                   </TableRow>
@@ -358,7 +358,7 @@ export function EmergencyListModal({
                       </TableCell>
                       <TableCell>
                         <div className="inline-flex flex-wrap gap-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60">
-                          {/* Botón Ver - siempre disponible incluso para anulados */}
+                          {/* Botï¿½n Ver - siempre disponible incluso para anulados */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -369,7 +369,7 @@ export function EmergencyListModal({
                             <Eye className="h-4 w-4" />
                           </Button>
                           
-                          {/* Botón Editar - disponible solo para estado 2, deshabilitado para otros */}
+                          {/* Botï¿½n Editar - disponible solo para estado 2, deshabilitado para otros */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -380,7 +380,7 @@ export function EmergencyListModal({
                             <Edit className="h-4 w-4" />
                           </Button>
                           
-                          {/* Botón Eliminar - disponible solo para estado 2, deshabilitado para otros */}
+                          {/* Botï¿½n Eliminar - disponible solo para estado 2, deshabilitado para otros */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -402,7 +402,7 @@ export function EmergencyListModal({
                 </Table>
               </div>
 
-              {/* Paginación */}
+              {/* Paginaciï¿½n */}
               {pagination.totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-4 px-4 py-2">
                   <div className="text-sm font-medium text-gray-700">
@@ -434,35 +434,35 @@ export function EmergencyListModal({
           )}
         </div>
 
-        {/* Dialog de confirmación de eliminación */}
+        {/* Dialog de confirmaciï¿½n de eliminaciï¿½n */}
         <DeleteConfirmationDialog
           isOpen={deleteDialog.isOpen}
           onClose={() => { setDeleteDialog({ isOpen: false, emergencyId: null, emergencyData: null }); setDeleteArgumento('') }}
           onConfirm={() => deleteDialog.emergencyId && handleDelete(deleteDialog.emergencyId)}
           title="Anular Emergencia"
-          description="Esta acción anulará el registro. La cuenta asociada también será desactivada."
+          description="Esta acciï¿½n anularï¿½ el registro. La cuenta asociada tambiï¿½n serï¿½ desactivada."
           confirmDisabled={!deleteArgumento.trim()}
           detailContent={
             deleteDialog.emergencyData && (
               <div className="space-y-3">
                 <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 text-sm">
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                     <span className="text-gray-500">ID:</span>
                     <span className="font-bold">{deleteDialog.emergencyData.EMERGENCIA_ID}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                     <span className="text-gray-500">Fecha:</span>
                     <span className="font-medium">{formatDate(deleteDialog.emergencyData.FECHA)} {deleteDialog.emergencyData.HORA}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                     <span className="text-gray-500">Consultorio:</span>
                     <span className="font-medium">{deleteDialog.emergencyData.CONSULTORIO_DESCRIPCION || deleteDialog.emergencyData.CONSULTORIO}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                     <span className="text-gray-500">Motivo:</span>
                     <span className="font-medium">{deleteDialog.emergencyData.MOTIVO_DESCRIPCION || deleteDialog.emergencyData.MOTIVO_EMERGENCIA || '-'}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                     <span className="text-gray-500">Seguro:</span>
                     <span className="font-medium">
                       {deleteDialog.emergencyData.SEGURO_NOMBRE
@@ -471,7 +471,7 @@ export function EmergencyListModal({
                     </span>
                   </div>
                   {deleteDialog.emergencyData.CUENTAID && (
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                       <span className="text-gray-500">Cuenta:</span>
                       <span className="font-bold text-blue-700">{deleteDialog.emergencyData.CUENTAID}</span>
                     </div>
@@ -479,7 +479,7 @@ export function EmergencyListModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="emergency-delete-argumento" className="text-sm font-medium text-gray-700">
-                    Argumento / Motivo de anulación <span className="text-red-500">*</span>
+                    Argumento / Motivo de anulaciï¿½n <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="emergency-delete-argumento"
