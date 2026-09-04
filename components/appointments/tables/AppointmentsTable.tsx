@@ -137,7 +137,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 <TableCell className="text-sm">{displayMedico(appointment)}</TableCell>
                 <TableCell className="text-sm">{appointment.nombre || appointment.paciente || '-'}</TableCell>
                 <TableCell>
-                  <div className="flex space-x-1">
+                  <div className="flex flex-wrap gap-1">
                     {canLiberar && (() => {
                       const seguroCode = getSeguroCode(appointment)
                       const estado = Number(appointment.estado)

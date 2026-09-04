@@ -48,8 +48,8 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
   handleFilterChange,
 }) => {
   return (
-    <div className="flex items-center space-x-2">
-      <div className="w-[200px]">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+      <div className="w-full sm:w-[200px]">
         <select
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           value={searchType}
@@ -65,7 +65,7 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
           ))}
         </select>
       </div>
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-w-0">
         {/* Search icon (always visible) */}
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
 
@@ -73,7 +73,7 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
           placeholder={`Buscar por ${
             searchTypes.find((t) => t.value === searchType)?.label || searchType
           }`}
-          className="pl-8 pr-8"
+          className="pl-8 pr-8 w-full"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           disabled={isLoading}
@@ -111,6 +111,7 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
         type="submit"
         onClick={handleSearch}
         disabled={isLoading || isSearching}
+        className="w-full sm:w-auto"
       >
         {isLoading || isSearching ? (
           <>

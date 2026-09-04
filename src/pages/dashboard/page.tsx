@@ -75,7 +75,7 @@ export default function Dashboard() {
         <Navbar />
 
         {/* Main Content */}
-        <main className="container mx-auto px-6 py-8">
+        <main className="page-shell py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Módulos de trabajo del Sistema de Admisión Web
@@ -86,7 +86,7 @@ export default function Dashboard() {
         </div>
 
         {/* Module Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid-fluid">
           {/* HOSPITALIZACIÓN / EMERGENCIA - Acceso para todos */}
           {canAccessHospitalizacion && (
             <Card

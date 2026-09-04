@@ -809,7 +809,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-4">
             <div className="flex items-center gap-3">
               {onBack && (
                 <Button variant="ghost" size="sm" onClick={onBack} className="h-8 w-8 p-0">

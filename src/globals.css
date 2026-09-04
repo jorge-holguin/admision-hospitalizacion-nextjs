@@ -2,18 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Global responsive reset ─────────────────────────────────────────────── */
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   font-variation-settings: normal;
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+img,
+svg,
+video,
+picture,
+canvas,
+iframe,
+embed {
+  max-width: 100%;
+  height: auto;
 }
 
+/* ── CSS variables with fluid scale ─────────────────────────────────────── */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -49,6 +63,21 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Fluid spacing and typography */
+    --space-xs: clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
+    --space-sm: clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
+    --space-md: clamp(0.75rem, 0.6rem + 0.75vw, 1.25rem);
+    --space-lg: clamp(1rem, 0.8rem + 1vw, 1.75rem);
+    --space-xl: clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem);
+    --space-2xl: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+
+    --text-xs: clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem);
+    --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.875rem);
+    --text-base: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+    --text-lg: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+    --text-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem);
+    --text-2xl: clamp(1.5rem, 1.25rem + 1.25vw, 2.5rem);
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -86,6 +115,61 @@ body {
   }
 }
 
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  /* Responsive page wrapper with dynamic horizontal padding */
+  .page-shell {
+    width: min(100% - 1rem, 1600px);
+    margin-inline: auto;
+    padding-inline: clamp(0.75rem, 2vw, 2rem);
+  }
+
+  @media (min-width: 640px) {
+    .page-shell {
+      width: min(100% - 2rem, 1600px);
+    }
+  }
+
+  /* Fluid responsive grid that reflows without media queries */
+  .grid-fluid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  /* Tables wrapper: horizontal scroll on narrow screens */
+  .table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Form groups: stack on mobile, row on desktop */
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  @media (min-width: 640px) {
+    .form-row {
+      flex-direction: row;
+      align-items: flex-end;
+    }
+
+    .form-row > * {
+      flex: 1 1 0%;
+      min-width: 0;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -94,5 +178,33 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Mobile fallbacks: dense grids and horizontal flex rows reflow automatically */
+@media (max-width: 639px) {
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6,
+  .grid-cols-7,
+  .grid-cols-8,
+  .grid-cols-9,
+  .grid-cols-10,
+  .grid-cols-11,
+  .grid-cols-12 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .flex-row:not(.flex-nowrap) {
+    flex-wrap: wrap;
+  }
+
+  /* Keep native tables scrollable on narrow screens */
+  .table-responsive > table,
+  .table-scroll > table {
+    display: table;
+    min-width: 640px;
   }
 }

@@ -123,7 +123,8 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         return data.foto || data.STRING_FOTO || data.photo || null
       }
       return null
-    } catch (error) {      return null
+    } catch (error) {
+      return null
     }
   }
 
@@ -142,7 +143,8 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
       let patientsData: any[] = (data.data as any[]) || []
         
         // Si se busca por nombre, obtener fotos de los pacientes
-        if (searchType === 'nombre' && patientsData.length > 0) {          // Obtener fotos en paralelo para todos los pacientes
+        if (searchType === 'nombre' && patientsData.length > 0) {
+          // Obtener fotos en paralelo para todos los pacientes
           const patientsWithPhotos = await Promise.all(
             patientsData.map(async (patient: Patient) => {
               const pacienteId = patient.PACIENTE || patient.HISTORIA
@@ -153,7 +155,8 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
               return patient
             })
           )
-          patientsData = patientsWithPhotos        }
+          patientsData = patientsWithPhotos
+        }
         
         setPatients(patientsData as Patient[])
     } catch (error) {
@@ -186,9 +189,12 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     setShowFiliationSearch(true)
   }
 
-  const handleFiliationSearchComplete = (reniecData: any, sisData?: any) => {    if (sisData) {    }
+  const handleFiliationSearchComplete = (reniecData: any, sisData?: any) => {
+    if (sisData) {
+    }
     setReniecData(reniecData)
-    setSisData(sisData || null)    setShowFiliationSearch(false)
+    setSisData(sisData || null)
+    setShowFiliationSearch(false)
     setShowRegistrationModal(true)
   }
 
@@ -206,7 +212,8 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
     // ✅ En lugar de cerrar, buscar al paciente recién creado
     const documentToSearch = newPatientDocument || prefilledDocument
     
-    if (documentToSearch) {      setSearchTerm(documentToSearch)
+    if (documentToSearch) {
+      setSearchTerm(documentToSearch)
       setSearchType('documento')
       setPrefilledDocument("")
       setHasSearched(true)
@@ -217,10 +224,13 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
         const data = await filiacionService.getPaginatedFiliacion(
           { documento: documentToSearch.trim() },
           { page: 1, pageSize: 10 }
-        )        const patients = (data.data as any[]) || []
+        )
+        const patients = (data.data as any[]) || []
 
-        if (Array.isArray(patients) && patients.length > 0) {          setPatients(patients as Patient[])
-        } else {          setPatients([])
+        if (Array.isArray(patients) && patients.length > 0) {
+          setPatients(patients as Patient[])
+        } else {
+          setPatients([])
         }
       } catch (error) {
         console.error('❌ Error buscando paciente recién creado:', error)
@@ -335,8 +345,8 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
                   </Button>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
+                <div className="border rounded-lg overflow-x-auto table-responsive">
+                  <Table className="min-w-[640px]">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
                         <TableHead>Historia</TableHead>

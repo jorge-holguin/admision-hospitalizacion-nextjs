@@ -92,7 +92,8 @@ export function AppointmentDetailsModal({
     const fetchDiagnosticos = async () => {
       try {
         setLoadingDiagnosticos(true)
-        const url = API_ENDPOINTS.citas.diagnosticos(appointment.id)        const res = await fetch(url)
+        const url = API_ENDPOINTS.citas.diagnosticos(appointment.id)
+        const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
           const diagnosticos = data.diagnosticos ?? data ?? []
@@ -337,8 +338,8 @@ export function AppointmentDetailsModal({
                 }
                 if (diagnosticos.length > 0) {
                   return (
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
+                    <div className="border rounded-lg overflow-x-auto table-responsive">
+                      <table className="w-full text-sm min-w-[640px]">
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">DX</th>

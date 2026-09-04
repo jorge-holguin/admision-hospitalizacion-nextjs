@@ -811,7 +811,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                 <Toaster />
     
             {/* Main Content */}
-            <main className="container mx-auto px-6 py-8">
+            <main className="page-shell py-8">
               {/* Header con botones de acción */}
               <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start">
                 <Button 
@@ -1050,7 +1050,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                           />
                           
                           {/* Checkbox para habilitar búsqueda por ID */}
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Checkbox
                               id="searchById"
                               checked={showSearchById}

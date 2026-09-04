@@ -781,7 +781,7 @@ export default function ReservedAppointmentsPage() {
           <div className="min-h-screen bg-gray-50">
           <Navbar />
           
-          <main className="container mx-auto px-6 py-8">
+          <main className="page-shell py-8">
             {/* Header */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start">
               <div className="flex items-center gap-4">

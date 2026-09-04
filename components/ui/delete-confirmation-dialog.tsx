@@ -63,7 +63,7 @@ export function DeleteConfirmationDialog({
           )}
         </div>
         
-        <DialogFooter className="flex flex-row justify-end gap-2 p-4 bg-gray-50 border-t border-gray-100">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row justify-end gap-2 p-4 bg-gray-50 border-t border-gray-100">
           <Button
             variant="outline"
             onClick={onClose}

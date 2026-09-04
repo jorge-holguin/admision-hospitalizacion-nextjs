@@ -104,7 +104,7 @@ export default function MasterTablesPage() {
         <Toaster />
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="page-shell py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Administración de Tablas Maestras</h1>
 

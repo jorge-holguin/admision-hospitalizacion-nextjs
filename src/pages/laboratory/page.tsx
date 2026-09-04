@@ -313,7 +313,7 @@ export default function LaboratoryPage() {
   return (
     <>
       <Navbar title="Sistema de Admisión Web" subtitle="Laboratorio" showBackButton={false} />
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="page-shell py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -339,7 +339,7 @@ export default function LaboratoryPage() {
 
       {/* Filtros */}
       <Card>
-        <CardHeader className="pb-4 flex flex-row items-center justify-between">
+        <CardHeader className="pb-4 flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg font-semibold text-blue-800">Filtros de Búsqueda</CardTitle>
           <div className="flex gap-2">
             <Button 

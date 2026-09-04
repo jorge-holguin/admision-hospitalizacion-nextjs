@@ -76,7 +76,7 @@ export default function LoginPage() {
 
       <div
         className="login-root"
-        style={{ display: "flex", minHeight: "100vh", width: "100vw", overflow: "hidden" }}
+        style={{ display: "flex", minHeight: "100vh", width: "100%", overflow: "hidden" }}
       >
         {/* ── IZQUIERDA: foto del hospital ── */}
         <div

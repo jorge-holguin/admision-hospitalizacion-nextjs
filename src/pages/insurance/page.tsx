@@ -372,7 +372,7 @@ export default function InsurancePage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="container mx-auto px-6 py-8">
+        <main className="page-shell py-8">
           <div className="mb-6 flex items-center gap-3">
             <Button
               variant="destructive"

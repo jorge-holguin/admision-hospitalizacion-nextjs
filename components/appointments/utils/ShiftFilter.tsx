@@ -24,7 +24,7 @@ export function ShiftFilter({ onShiftChange, selectedShift: externalSelectedShif
   };
 
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       <div className="flex rounded-lg border border-gray-200 p-1 shadow-sm">
         <Button
           variant={selectedShift === 'MAÑANA' ? "default" : "ghost"}

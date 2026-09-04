@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { AuthProvider } from '@/components/AuthProvider'
 import { LoadingProvider } from '@/components/LoadingProvider'
 import { HideDebugger } from '@/components/HideDebugger'
@@ -21,7 +22,9 @@ export function RootLayout({ children }: Readonly<RootLayoutProps>) {
               <EmergencyAccountProvider>
                 <PatientProvider>
                   <HideDebugger />
-                  {children}
+                  <div className="min-h-screen w-full overflow-x-hidden bg-background text-foreground">
+                    {children}
+                  </div>
                 </PatientProvider>
               </EmergencyAccountProvider>
             </PatientAccountProvider>

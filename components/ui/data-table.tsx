@@ -163,13 +163,13 @@ export function DataTable<T>({
           </Table>
         </div>
       </CardContent>
-      <CardFooter className="flex items-center justify-between px-6 pt-2">
-        <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+      <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 pt-2">
+        <div className="flex flex-col sm:flex-row items-center gap-2 text-sm font-medium text-gray-700">
           <div>
             Mostrando {data.length > 0 ? (page - 1) * pageSize + 1 : 0} a{" "}
             {Math.min(page * pageSize, total)} de {total} registros
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">Registros por página:</span>
             <Select
               value={pageSize.toString()}

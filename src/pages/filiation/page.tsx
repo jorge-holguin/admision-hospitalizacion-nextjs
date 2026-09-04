@@ -745,7 +745,7 @@ export default function FiliationPage() {
         <Toaster />
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="page-shell py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
             {isClinicalHistory ? 'Historias Clínicas' : 'Hospitalización / Emergencia'}
@@ -890,7 +890,7 @@ export default function FiliationPage() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
             <CardTitle className="font-bold text-gray-900 text-lg">Resultados de la Búsqueda</CardTitle>
             <Button
               variant="outline"

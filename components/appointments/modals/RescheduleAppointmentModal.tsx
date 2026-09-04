@@ -242,10 +242,10 @@ export function RescheduleAppointmentModal({
     const birthStr = String(birthRaw).trim()
     if (!birthStr) return ''
     try {
-      const [year, month, day] = birthStr.split('-').map(n => parseInt(n, 10))
+      const [year, month, day] = birthStr.split('-').map(n => Number.parseInt(n, 10))
       if (!year || !month || !day) return ''
       const birth = new Date(year, month - 1, day)
-      if (isNaN(birth.getTime())) return ''
+      if (Number.isNaN(birth.getTime())) return ''
       const today = new Date()
       let age = today.getFullYear() - birth.getFullYear()
       if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
@@ -455,10 +455,10 @@ export function RescheduleAppointmentModal({
             )}
             {availableCitas.length > 0 && !loadingCita && (
               <div>
-                <Label className="text-xs font-medium text-gray-600 block mb-2">
+                <span className="text-xs font-medium text-gray-600 block mb-2">
                   4. Cupos disponibles
                   <span className="ml-1 text-green-600 font-normal">({availableCitas.length} cupos)</span>
-                </Label>
+                </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {availableCitas.map((cita) => {
                     const citaId = cita.citaId || cita.id

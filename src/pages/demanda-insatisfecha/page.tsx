@@ -37,7 +37,7 @@ export default function DemandaInsatisfechaPage() {
           backUrl="/dashboard"
         />
 
-        <main className="container mx-auto px-4 py-6 max-w-screen-xl">
+        <main className="page-shell py-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">

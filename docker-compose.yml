@@ -17,7 +17,7 @@ services:
         NEXT_PUBLIC_API_SIS_URL: ${NEXT_PUBLIC_API_SIS_URL:-http://192.168.0.252:9010}
     container_name: hospital-management-system
     ports:
-      - "3000:3000"
+      - "192.168.5.239:3000:3000"
     env_file:
       - .env
     environment:
@@ -26,7 +26,7 @@ services:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/utils/datetime"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3

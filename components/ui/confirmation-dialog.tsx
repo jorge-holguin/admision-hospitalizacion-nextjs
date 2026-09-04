@@ -56,7 +56,7 @@ export function ConfirmationDialog({
             {additionalContent}
           </div>
         )}
-        <DialogFooter className="flex flex-row justify-end gap-2 pt-4">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
           <Button
             variant="outline"
             onClick={onClose}
