@@ -786,7 +786,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
                     {/* PASO 3: Fecha */}
                     <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
                         <div className="flex items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consultorio && turno ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>3</div>
                           <Label className="text-sm font-medium text-gray-700">Fecha de la Cita <span className="text-red-500">*</span></Label>
@@ -829,7 +829,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
 
                     {/* PASO 4: Médico */}
                     <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
                         <div className="flex items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consultorio && turno && isFechaConfirmed ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>4</div>
                           <Label className="text-sm font-medium text-gray-700">Médico <span className="text-red-500">*</span></Label>

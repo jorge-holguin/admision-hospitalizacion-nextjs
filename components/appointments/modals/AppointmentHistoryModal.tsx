@@ -1034,7 +1034,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                     <div className="text-sm text-gray-600">
                       Mostrando {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalCount)} de {totalCount} citas
                     </div>
