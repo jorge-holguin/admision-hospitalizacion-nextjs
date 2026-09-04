@@ -71,7 +71,7 @@ const ReleaseAppointmentModal = memo(function ReleaseAppointmentModal({
             </p>
           </div>
           
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => {
               onClose()
               setMotivo('')

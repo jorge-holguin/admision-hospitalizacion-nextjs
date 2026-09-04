@@ -263,7 +263,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
               {/* Foto del Paciente */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
@@ -281,7 +281,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
               </div>
 
               {/* Datos del sistema - 2 filas x 3 columnas */}
-              <div className="flex-1 grid grid-cols-3 gap-4">
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">N° Historia Clínica</p>
                   <p className="text-lg font-semibold text-blue-800">{mappedPatient.hc}</p>
@@ -320,7 +320,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Apellido Paterno</p>
                 <p className="font-medium">{mappedPatient.apellidoPaterno || "N/A"}</p>
@@ -346,7 +346,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Fecha Nacimiento</p>
                 <p className="font-medium">{mappedPatient.fechaNacimiento || mappedPatient.birthDate}</p>
@@ -388,7 +388,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 <p className="text-sm font-medium text-gray-600">Dirección</p>
                 <p className="font-medium">{mappedPatient.direccion || mappedPatient.address}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Distrito de Procedencia</p>
                   <p className="font-medium">{mappedPatient.distritoProcedencia || mappedPatient.district}</p>
@@ -407,7 +407,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Tipo de Seguro</p>
                 <p className="font-medium">{mappedPatient.tipoSeguro || "N/A"}</p>
@@ -465,7 +465,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Padre</p>
                 <p className="font-medium">{mappedPatient.padre || "N/A"}</p>
@@ -508,7 +508,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
                 <p className="text-sm font-medium text-gray-600">Nombre del Acompañante</p>
                 <p className="font-medium">{mappedPatient.nombreAcompanante || "N/A"}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Parentesco</p>
                   <p className="font-medium">{mappedPatient.parentesco || "N/A"}</p>
@@ -537,7 +537,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
             Historia clínica creada el: {new Date().toLocaleDateString("es-PE")}
           </p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-3">
           <Button 
             variant="outline" 
             onClick={async () => {

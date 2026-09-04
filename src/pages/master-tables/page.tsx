@@ -105,13 +105,13 @@ export default function MasterTablesPage() {
 
       {/* Main Content */}
       <main className="page-shell py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <h1 className="text-2xl font-bold">Administración de Tablas Maestras</h1>
 
           <Button
             variant="outline"
             size="lg"
-            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700"
+            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 w-full sm:w-auto"
             onClick={() => (window.location.href = "/dashboard")}
           >
             <Home className="h-10 w-10" />
@@ -120,7 +120,7 @@ export default function MasterTablesPage() {
         </div>
 
         <Tabs defaultValue="medicos" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-2">
             <TabsTrigger value="medicos">Médicos</TabsTrigger>
             <TabsTrigger value="consultorios">Consultorios</TabsTrigger>
             <TabsTrigger value="localidades">Localidades</TabsTrigger>

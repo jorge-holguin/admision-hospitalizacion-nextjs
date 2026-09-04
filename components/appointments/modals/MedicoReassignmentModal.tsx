@@ -186,7 +186,7 @@ export function MedicoReassignmentModal({
           </div>
 
           {/* Botones de acción */}
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex flex-wrap justify-end gap-3 pt-4">
             <Button
               variant="outline"
               onClick={handleCancel}

@@ -120,7 +120,8 @@ export function FormActions({
     if (requiresFuaValidation && patientId) {
       setCheckingFua(true)
       try {
-        const trimmedCode = insuranceCode?.split(' ')[0] || ''        // Usar contexto en lugar de llamada directa
+        const trimmedCode = insuranceCode?.split(' ')[0] || ''
+        // Usar contexto en lugar de llamada directa
         const accountData = await fetchPatientAccountBySeguro(patientId, trimmedCode)
         
         setHasFua(!!accountData)
@@ -188,7 +189,7 @@ export function FormActions({
         title="Cuentas HO activas para el paciente"
       />
 
-      <div className="flex justify-end space-x-2 mt-6">
+      <div className="flex flex-wrap justify-end gap-2 mt-6">
         <Button 
           onClick={handleSaveClick}
           disabled={submitting || isConfirming || !isEditable || multiAccountLoading}
@@ -222,7 +223,7 @@ export function FormActions({
           <>
             {/* Mostrar mensaje de validación de FUA si es necesario */}
             {requiresFuaValidation && checkingFua && (
-              <div className="flex items-center space-x-2 mt-4 p-2 bg-blue-50 text-blue-800 rounded">
+              <div className="flex flex-wrap items-center gap-2 mt-4 p-2 bg-blue-50 text-blue-800 rounded">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <p>Verificando FUA activo...</p>
               </div>
@@ -230,7 +231,7 @@ export function FormActions({
             
             {/* Mensaje de cuenta y FUA válidos */}
             {requiresFuaValidation && hasFua && fuaId && (
-              <div className="flex items-center space-x-2 mt-4 p-2 bg-green-50 text-green-800 rounded">
+              <div className="flex flex-wrap items-center gap-2 mt-4 p-2 bg-green-50 text-green-800 rounded">
                 <CheckCircle2 className="h-4 w-4" />
                 <p>Cuenta SIS válida: <strong>{fuaId}</strong></p>
               </div>
@@ -239,7 +240,7 @@ export function FormActions({
             {/* Mensaje de advertencia si la validación SIS falla */}
             {requiresFuaValidation && !hasFua && showFuaWarning && (
               <div className="space-y-4 mt-4">
-                <div className="flex items-center space-x-2 p-2 bg-red-50 text-red-800 rounded">
+                <div className="flex flex-wrap items-center gap-2 p-2 bg-red-50 text-red-800 rounded">
                   <AlertCircle className="h-4 w-4" />
                   <p className="font-semibold">No se encontró cuenta SIS válida o FUA activo para este paciente.</p>
                 </div>

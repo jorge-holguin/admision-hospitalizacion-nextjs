@@ -173,7 +173,7 @@ export function Step1BasicData({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Foto del Paciente */}
             <div className="flex flex-col items-center space-y-2">
               <div className="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">

@@ -163,7 +163,8 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
         
         // CASO ESPECIAL: Si el origen es EM (Emergencia) y el seguro es 06 (ESSALUD),
         // redirigir automáticamente a 0 (PAGANTE)
-        if (origen.ORIGEN === 'EM' && seguroCode === '06') {          seguroCode = '0';
+        if (origen.ORIGEN === 'EM' && seguroCode === '06') {
+          seguroCode = '0';
         }
         
         if (seguroCode) {
@@ -237,7 +238,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
             </div>
             {onShowAllOriginsChange && (
               <div className="flex items-center px-3 py-2 border-b">
-                <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                <label className="flex flex-wrap items-center gap-2 text-sm cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={showAllOrigins}

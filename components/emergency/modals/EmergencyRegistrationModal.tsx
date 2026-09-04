@@ -132,7 +132,7 @@ export function EmergencyRegistrationModal({
           </div>
         </div>
         
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-4">
           <Button 
             onClick={onClose}
             className="bg-green-600 hover:bg-green-700"
@@ -151,7 +151,7 @@ export function EmergencyRegistrationModal({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 py-4 border-b">
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {onBack && (
               <Button
                 variant="ghost"

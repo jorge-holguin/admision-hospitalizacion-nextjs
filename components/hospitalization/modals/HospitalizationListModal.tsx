@@ -310,7 +310,7 @@ export function HospitalizationListModal({
                             </span>
                           </TableCell>
                           <TableCell>
-                            <div className="flex space-x-2">
+                            <div className="flex flex-wrap gap-2">
                               {/* Botón Ver - siempre disponible incluso para anulados */}
                               <Button
                                 size="sm"

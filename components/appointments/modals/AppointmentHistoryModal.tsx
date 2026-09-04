@@ -450,7 +450,8 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       let paciente: any = null
 
       if (type === 'documento') {
-        const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, { documento: term, tipoDocumento: documentType || 'D' })        const res = await fetch(url, { headers: { accept: '*/*' } })
+        const url = buildUrl(API_ENDPOINTS.filiation.searchByDocument, { documento: term, tipoDocumento: documentType || 'D' })
+        const res = await fetch(url, { headers: { accept: '*/*' } })
 
         if (!res.ok) {
           console.error('❌ Error del servicio de búsqueda por documento:', res.status, await res.text())
@@ -470,7 +471,8 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
           }
         }
       } else if (type === 'nombres') {
-        const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })        const res = await fetch(url, { headers: { accept: '*/*' } })
+        const url = buildUrl(API_ENDPOINTS.filiation.searchByName, { nombres: term })
+        const res = await fetch(url, { headers: { accept: '*/*' } })
 
         if (!res.ok) {
           console.error('❌ Error del servicio de búsqueda por nombre:', res.status, await res.text())
@@ -630,7 +632,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
             </div>
 
             {/* Additional Filters Toggle */}
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Checkbox
                 id="show-filters"
                 checked={showAdditionalFilters}
@@ -665,8 +667,8 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                     Rango de Fechas
                   </Label>
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                      <div className="flex-1 min-w-0">
                         <Label className="text-xs font-medium text-gray-600 mb-1 block">Fecha Desde</Label>
                         <Input
                           type="date"
@@ -675,10 +677,10 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                           className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         />
                       </div>
-                      <div className="flex items-center justify-center pt-6">
-                        <div className="w-6 h-px bg-gradient-to-r from-blue-400 to-purple-400"></div>
+                      <div className="flex items-center justify-center sm:pt-6">
+                        <div className="w-full sm:w-6 h-px sm:h-1 bg-gradient-to-r from-blue-400 to-purple-400"></div>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <Label className="text-xs font-medium text-gray-600 mb-1 block">Fecha Hasta</Label>
                         <Input
                           type="date"

@@ -120,7 +120,8 @@ function AdditionalAppointmentModalContent({
 
   // Initialize form when modal opens
   useEffect(() => {
-    if (isOpen && patient) {      // Set today's date
+    if (isOpen && patient) {
+      // Set today's date
       const today = new Date()
       setSelectedCalendarDate(today)
       setIsFechaConfirmed(true) // Fecha inicial confirmada
@@ -129,7 +130,8 @@ function AdditionalAppointmentModalContent({
       // Set default seguro from patient data
       if (patient.SEGURO) {
         setTipoSeguro(patient.SEGURO)
-      } else {        setTipoSeguro("") // Reset si no hay seguro
+      } else {
+        setTipoSeguro("") // Reset si no hay seguro
       }
       
       // Cargar foto y datos adicionales del paciente
@@ -197,7 +199,8 @@ function AdditionalAppointmentModalContent({
         const response = await fetch(`${apiUrl}/cita/cita-valida-paciente?paciente=${patient.PACIENTE}&limite=25`)
         
         if (response.ok) {
-          const data = await response.json()          // Verificar si hay citas para el consultorio seleccionado
+          const data = await response.json()
+          // Verificar si hay citas para el consultorio seleccionado
           if (Array.isArray(data) && data.length > 0) {
             const citasEnConsultorio = data.filter((cita: any) => 
               cita.consultorio?.trim() === consultorio?.trim() || 
@@ -345,13 +348,16 @@ function AdditionalAppointmentModalContent({
 
   // Función para cargar datos completos del paciente con foto
   const loadPatientPhotoAndData = async (pacienteId: string) => {
-    try {      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
+    try {
+      const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL
       const response = await fetch(`${apiUrl}/cita/paciente-foto/${pacienteId}`)
       
-      if (!response.ok) {        return
+      if (!response.ok) {
+        return
       }
       
-      const data = await response.json()      // Actualizar refreshedPatient con los datos completos incluyendo foto
+      const data = await response.json()
+      // Actualizar refreshedPatient con los datos completos incluyendo foto
       setRefreshedPatient({
         ...patient,
         ...data,
@@ -421,7 +427,8 @@ function AdditionalAppointmentModalContent({
         // recibidoRefcon: 0=manual, 1=pendiente sync (fallido), 2=synced OK (por defecto), 3=reutilizada (estado 5 o 7)
         // Inicialmente asumimos éxito (2), solo cambiamos a 1 si REFCON falla
         recibidoRefcon: esReferenciaManual ? 0 : (skipRefconSync ? 3 : 2)
-      }      // Extraer el ID de la cita creada primero para poder actualizar REFCON después
+      }
+      // Extraer el ID de la cita creada primero para poder actualizar REFCON después
       // (En citas adicionales, necesitamos crear primero y luego actualizar REFCON)
       
       // Call the API
@@ -470,37 +477,49 @@ function AdditionalAppointmentModalContent({
           variant: "destructive"
         })
         return
-      }      // Extraer el ID de la cita creada de la respuesta
-      const citaId = responseData.citaId || responseData.id || responseData.data?.citaId || null      // Guardar datos de la cita creada
+      }
+      // Extraer el ID de la cita creada de la respuesta
+      const citaId = responseData.citaId || responseData.id || responseData.data?.citaId || null
+      // Guardar datos de la cita creada
       setCreatedAppointment(responseData)
-      setShowSuccess(true)      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
+      setShowSuccess(true)
+      // Sincronizar con REFCON solo si hay referencia Y es seguro SIS Y NO es referencia manual Y NO es estado 5 o 7
       const esReferenciaManualSync = referenciaIdSeleccionada?.startsWith('manual-')
       
       if (referenciaIdSeleccionada && citaId && esSeguroSIS(tipoSeguro) && !esReferenciaManualSync && !skipRefconSync) {
-        try {          const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
+        try {
+          const usuarioDni = extractDocumentFromToken() || 'SISTEMA'
           
           // 1. Obtener datos de la cita desde REFCON
           const citaRefconResult = await obtenerDatosCitaRefcon(citaId, usuarioDni)
           
-          if (!citaRefconResult.success || !citaRefconResult.data) {          } else {
-            const datosRefcon = citaRefconResult.data            // 2. Construir payload con datos obtenidos + idReferencia
+          if (!citaRefconResult.success || !citaRefconResult.data) {
+          } else {
+            const datosRefcon = citaRefconResult.data
+            // 2. Construir payload con datos obtenidos + idReferencia
             const refconPayload = {
               codUnicoDestino: datosRefcon.codUnicoDestino || "00005947",
               idReferencia: referenciaIdSeleccionada,
               datosCita: datosRefcon.datosCita || {},
               datosMedico: datosRefcon.datosMedico || {},
               personalRegistra: datosRefcon.personalRegistra || {}
-            }            // 3. Sincronizar con REFCON
+            }
+            // 3. Sincronizar con REFCON
             const syncResult = await sincronizarCitaConRefcon(refconPayload)
             
-            if (syncResult.success) {              setRefconSyncSuccess(true)
+            if (syncResult.success) {
+              setRefconSyncSuccess(true)
               setRefconSyncError(null)
               // Estado REFCON 2 ya fue establecido al crear la cita, no se requiere actualización
-            } else {              setRefconSyncSuccess(false)
+            } else {
+              setRefconSyncSuccess(false)
               setRefconSyncError(syncResult.error || 'Error desconocido al sincronizar con REFCON')
               
-              // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
-              if (estadoRefconResult.success) {              } else {              }
+              // Actualizar estado REFCON a 1 (API consultada, pendiente) porque la sincronización falló
+              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
+              if (estadoRefconResult.success) {
+              } else {
+              }
             }
           }
         } catch (refconError) {
@@ -510,12 +529,18 @@ function AdditionalAppointmentModalContent({
           
           // Actualizar estado REFCON a 1 por error
           if (citaId) {
-            try {              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
-              if (estadoRefconResult.success) {              }
-            } catch (updateError) {            }
+            try {
+              const estadoRefconResult = await actualizarEstadoRefcon(citaId, 1)
+              if (estadoRefconResult.success) {
+              }
+            } catch (updateError) {
+            }
           }
         }
-      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {      } else if (referenciaIdSeleccionada && skipRefconSync) {      } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {      }
+      } else if (referenciaIdSeleccionada && esReferenciaManualSync) {
+      } else if (referenciaIdSeleccionada && skipRefconSync) {
+      } else if (referenciaIdSeleccionada && !esSeguroSIS(tipoSeguro)) {
+      }
       
       // Imprimir la cita automáticamente si tenemos el ID
       if (citaId) {
@@ -544,14 +569,16 @@ function AdditionalAppointmentModalContent({
   }
 
   const imprimirCitaAsignada = async (citaId: string) => {
-    try {      // Obtener datos completos de la cita
+    try {
+      // Obtener datos completos de la cita
       const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/cita/${citaId}`)
       
       if (!response.ok) {
         throw new Error('No se pudo obtener los datos de la cita')
       }
       
-      const citaData = await response.json()      // Obtener el operador desde el JWT
+      const citaData = await response.json()
+      // Obtener el operador desde el JWT
       const operador = extractNombreCompletoFromToken() || 'OPERADOR'
       
       // Formatear turno
@@ -565,10 +592,12 @@ function AdditionalAppointmentModalContent({
         try {
           const entidadResult = await obtenerEntidadSISPorCodigo(citaData.entidadSis.trim())
           if (entidadResult.success && entidadResult.data) {
-            eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}`          } else {
+            eessFormatted = `(${citaData.entidadSis.trim()}) - ${entidadResult.data.NOMBRE}`
+          } else {
             eessFormatted = citaData.entidadSis.trim()
           }
-        } catch (error) {          eessFormatted = citaData.entidadSis.trim()
+        } catch (error) {
+          eessFormatted = citaData.entidadSis.trim()
         }
       }
       
@@ -589,7 +618,9 @@ function AdditionalAppointmentModalContent({
         // Incluir campos SIS si existen
         ...(citaData.numRef && { nroRef: citaData.numRef }),
         ...(eessFormatted && { eess: eessFormatted })
-      }      await imprimirCita(citaDto)    } catch (error) {
+      }
+      await imprimirCita(citaDto)
+    } catch (error) {
       console.error('❌ Error al imprimir cita:', error)
       // No mostrar error al usuario ya que la creación fue exitosa
     }
@@ -956,7 +987,7 @@ function AdditionalAppointmentModalContent({
                       </div>
                       <div className="flex items-center gap-2">
                         {isDevOps && (
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Checkbox
                               id="showPastDates"
                               checked={showPastDates}
@@ -1236,7 +1267,8 @@ function AdditionalAppointmentModalContent({
                             const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                             if (result.success && result.data) {
                               setEessNombreOrigen(result.data.NOMBRE)
-                            } else {                              setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
+                            } else {
+                              setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
                             }
                           } else {
                             // Si no hay código, usar el nombre que viene de la referencia
@@ -1276,7 +1308,7 @@ function AdditionalAppointmentModalContent({
         </div>
 
         {/* Action Buttons - Below both panels */}
-        <div className="flex justify-end space-x-3 pt-4 mt-4 border-t flex-shrink-0">
+        <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t flex-shrink-0">
           <Button
             variant="outline"
             onClick={onClose}

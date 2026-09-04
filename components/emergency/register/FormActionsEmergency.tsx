@@ -96,7 +96,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
         </div>
       )}
       
-        <div className="flex justify-end space-x-4 pt-6">
+        <div className="flex flex-wrap justify-end gap-4 pt-6">
           <Button
             type="button"
             onClick={() => {

@@ -365,7 +365,7 @@ export default function LaboratoryPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Checkbox para búsqueda por ID (en la parte superior) */}
-          <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <Checkbox
               id="searchById"
               checked={searchById}
@@ -445,8 +445,8 @@ export default function LaboratoryPage() {
 
           {/* Segunda fila: Buscador por nombre y botón (solo si no está activo búsqueda por ID) */}
           {!searchById && (
-            <div className="flex gap-4 items-end">
-              <div className="flex-1 space-y-2">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
+              <div className="flex-1 min-w-0 space-y-2">
                 <Label htmlFor="searchCriteria">Buscar por Nombre</Label>
                 <Input
                   id="searchCriteria"
@@ -454,11 +454,12 @@ export default function LaboratoryPage() {
                   value={searchCriteria}
                   onChange={(e) => setSearchCriteria(e.target.value)}
                   onKeyPress={handleKeyPress}
+                  className="w-full"
                 />
               </div>
               <Button 
                 onClick={handleSearch} 
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                 disabled={isLoading}
               >
                 <Search className="w-4 h-4 mr-2" />
@@ -469,8 +470,8 @@ export default function LaboratoryPage() {
           
           {/* Campo de búsqueda por ID (solo visible cuando checkbox está activo) */}
           {searchById && (
-            <div className="flex gap-4 items-end animate-in slide-in-from-top-2 duration-200">
-              <div className="flex-1 space-y-2">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end animate-in slide-in-from-top-2 duration-200">
+              <div className="flex-1 min-w-0 space-y-2">
                 <Label htmlFor="idCitaSearch">ID de Cita</Label>
                 <Input
                   id="idCitaSearch"
@@ -478,12 +479,12 @@ export default function LaboratoryPage() {
                   value={idCitaSearch}
                   onChange={(e) => setIdCitaSearch(e.target.value)}
                   onKeyPress={handleKeyPressId}
-                  className="font-mono"
+                  className="font-mono w-full"
                 />
               </div>
               <Button 
                 onClick={searchByIdCita} 
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                 disabled={isLoading || !idCitaSearch.trim()}
               >
                 <Search className="w-4 h-4 mr-2" />

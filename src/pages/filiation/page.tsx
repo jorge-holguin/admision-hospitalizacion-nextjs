@@ -769,9 +769,9 @@ export default function FiliationPage() {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between font-bold text-gray-900">
+            <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 font-bold text-gray-900">
               <span className="text-lg">Búsqueda de Pacientes</span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2">
                   <ToggleSwitch
                     checked={estadoFiltro === "1"}
@@ -795,8 +795,8 @@ export default function FiliationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2">
-              <div className="w-[200px]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="w-full sm:w-[200px]">
                 <select 
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={searchType}
@@ -812,7 +812,7 @@ export default function FiliationPage() {
               </div>
 
               {searchType === "documento" && (
-                <div className="w-[180px]">
+                <div className="w-full sm:w-[180px]">
                   <select
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value={searchDocumentType}
@@ -831,12 +831,12 @@ export default function FiliationPage() {
                 </div>
               )}
 
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                 
                 <Input
                   placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
-                  className="pl-8 pr-8"
+                  className="pl-8 pr-8 w-full"
                   value={searchTerm}
                   onChange={(e) => {
                     const value = e.target.value
@@ -874,7 +874,7 @@ export default function FiliationPage() {
                 type="submit" 
                 onClick={() => handleSearch()} 
                 disabled={isLoading || isSearching}
-                className="font-medium"
+                className="font-medium w-full sm:w-auto"
               >
                 {isLoading || isSearching ? (
                   <>

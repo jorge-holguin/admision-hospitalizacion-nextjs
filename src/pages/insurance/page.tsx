@@ -387,11 +387,11 @@ export default function InsurancePage() {
 
           <div className="bg-white rounded-xl shadow-sm border border-[#9CD2D3]/30 p-8">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-[#9CD2D3]/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8 pb-6 border-b border-[#9CD2D3]/20">
               <h1 className="text-2xl font-semibold text-[#114C5F]">
                 Lista de Atenciones SIS
               </h1>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                  {canExportar && (
                   <Button
                     onClick={handleExportarExcel}
@@ -476,7 +476,7 @@ export default function InsurancePage() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[360px] p-0" align="start">
+                    <PopoverContent className="w-full max-w-[360px] p-0" align="start">
                       <Command>
                         <CommandInput
                           placeholder="Buscar consultorio..."
@@ -572,7 +572,7 @@ export default function InsurancePage() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[360px] p-0" align="start">
+                    <PopoverContent className="w-full max-w-[360px] p-0" align="start">
                       <Command>
                         <CommandInput
                           placeholder="Buscar tipo de prestación..."
@@ -688,7 +688,7 @@ export default function InsurancePage() {
 
               {/* Checkbox: búsqueda por N° FUA (oculto por defecto) */}
               {canBuscarFua && (
-              <div className="mt-6 flex items-center space-x-2">
+              <div className="mt-6 flex flex-wrap items-center gap-2">
                 <Checkbox
                   id="mostrar-busqueda-fua"
                   checked={mostrarBusquedaFua}
@@ -708,7 +708,7 @@ export default function InsurancePage() {
 
               {mostrarBusquedaFua && (
                 <div className="mt-4 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
-                  <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-4 items-end">
+                  <div className="grid grid-cols-1 sm:grid-cols-[180px,1fr] gap-4 items-end">
                     {/* Origen del FUA */}
                     <div>
                       <Label className="block text-sm font-medium text-[#114C5F] mb-2">
@@ -738,14 +738,14 @@ export default function InsurancePage() {
                       <Label className="block text-sm font-medium text-[#114C5F] mb-2">
                         N° FUA
                       </Label>
-                      <div className="flex items-center gap-1">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-1">
                         <span className="text-sm font-mono text-[#114C5F] bg-gray-100 px-2 py-1.5 rounded-l-md border border-r-0 border-[#9CD2D3] h-[38px] flex items-center">
                           00005947
                         </span>
                         <select
                           value={fuaAnio}
                           onChange={(e) => setFuaAnio(e.target.value)}
-                          className="w-16 text-sm font-mono px-1 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
+                          className="w-full sm:w-16 text-sm font-mono px-1 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
                         >
                           {Array.from({ length: 5 }, (_, i) => {
                             const y = new Date().getFullYear() - 2 + i
@@ -765,12 +765,12 @@ export default function InsurancePage() {
                           onKeyDown={(e) => e.key === "Enter" && buscarPorFua()}
                           placeholder="00073838"
                           maxLength={8}
-                          className="flex-1 text-sm font-mono px-2 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
+                          className="flex-1 min-w-0 text-sm font-mono px-2 py-1.5 border border-[#9CD2D3] rounded-md h-[38px] text-[#114C5F]"
                         />
                         <Button
                           onClick={buscarPorFua}
                           disabled={!fuaNumero.trim() || loading}
-                          className="ml-2 bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white h-[38px] px-4"
+                          className="w-full sm:w-auto bg-[#4F9BB6] hover:bg-[#4A6EB0] text-white h-[38px] px-4"
                         >
                           <Search className="w-4 h-4 mr-2" />
                           Buscar

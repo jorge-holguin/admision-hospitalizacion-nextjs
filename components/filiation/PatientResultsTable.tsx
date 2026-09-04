@@ -71,7 +71,7 @@ export function PatientResultsTable({
               <TableCell>{patient.location}</TableCell>
               <TableCell>{patient.district}</TableCell>
               <TableCell>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     className="bg-red-600 hover:bg-red-700"

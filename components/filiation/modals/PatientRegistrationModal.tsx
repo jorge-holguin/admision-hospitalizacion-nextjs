@@ -689,7 +689,7 @@ export function PatientRegistrationModal({
             )}
           </div>
 
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             {currentStep === 1 ? (
               <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
                 Siguiente

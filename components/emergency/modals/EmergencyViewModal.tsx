@@ -296,7 +296,7 @@ export function EmergencyViewModal({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-4 border-b">
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="ghost"
               size="sm"

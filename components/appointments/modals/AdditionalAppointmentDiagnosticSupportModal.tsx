@@ -793,7 +793,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                         </div>
                         <div className="flex items-center gap-2">
                           {isDevOps && (
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <Checkbox id="showPastDatesDiag" checked={showPastDates} onCheckedChange={(checked) => setShowPastDates(checked as boolean)} />
                               <label htmlFor="showPastDatesDiag" className="text-xs font-medium text-gray-600 cursor-pointer">Permitir fechas pasadas</label>
                             </div>
@@ -1091,7 +1091,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4 mt-4 border-t flex-shrink-0">
+        <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancelar</Button>
           <Button
             onClick={() => { if (!timeValidation.isValid) { setShowTimeConflictDialog(true) } else { handleSave() } }}

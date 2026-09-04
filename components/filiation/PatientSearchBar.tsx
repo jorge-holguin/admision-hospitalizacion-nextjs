@@ -26,9 +26,9 @@ export function PatientSearchBar({ onSearch, searchTerm, setSearchTerm }: Patien
   }
 
   return (
-    <div className="flex space-x-4">
+    <div className="flex flex-col sm:flex-row gap-4">
       <Select value={searchType} onValueChange={setSearchType}>
-        <SelectTrigger className="w-48">
+        <SelectTrigger className="w-full sm:w-48">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -50,7 +50,7 @@ export function PatientSearchBar({ onSearch, searchTerm, setSearchTerm }: Patien
       </div>
       <Button 
         onClick={handleSearch}
-        className="bg-black hover:bg-gray-800 px-8"
+        className="bg-black hover:bg-gray-800 px-8 w-full sm:w-auto"
       >
         Buscar
       </Button>
