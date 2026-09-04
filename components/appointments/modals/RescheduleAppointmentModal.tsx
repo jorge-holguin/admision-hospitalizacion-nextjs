@@ -330,7 +330,7 @@ export function RescheduleAppointmentModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col" onInteractOutside={e => e.preventDefault()}>
         <DialogHeader className="shrink-0">
-          <DialogTitle className="text-blue-800 flex items-center gap-2">
+          <DialogTitle className="text-blue-800 flex flex-wrap items-center gap-2">
             <CalendarClock className="h-5 w-5" />
             Reprogramar Cita — ID: {appointment.id}
           </DialogTitle>
@@ -518,32 +518,32 @@ export function RescheduleAppointmentModal({
             <div className="border border-gray-200 rounded-xl p-3 bg-white">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Cita Original</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                   <span className="text-gray-500">Consultorio</span>
                   <span className="font-medium text-right">{appointment.consultorioNombre || appointment.consultorio || '—'}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                   <span className="text-gray-500">Turno / Hora</span>
                   <span className="font-medium">{turnoLabel(appointment.turnoConsulta)} — {appointment.hora || '—'}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                   <span className="text-gray-500">Fecha</span>
                   <span className="font-medium">{parseFecha(appointment.fecha)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                   <span className="text-gray-500">Médico</span>
-                  <span className="font-medium text-right max-w-[60%] truncate" title={appointment.medicoNombre || appointment.medico}>{appointment.medicoNombre || appointment.medico || '—'}</span>
+                  <span className="font-medium text-right sm:max-w-[60%] truncate" title={appointment.medicoNombre || appointment.medico}>{appointment.medicoNombre || appointment.medico || '—'}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                   <span className="text-gray-500">Paciente</span>
-                  <span className="font-medium text-right max-w-[60%] truncate" title={appointment.nombre || appointment.paciente}>{appointment.nombre || appointment.paciente || '—'}</span>
+                  <span className="font-medium text-right sm:max-w-[60%] truncate" title={appointment.nombre || appointment.paciente}>{appointment.nombre || appointment.paciente || '—'}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                   <span className="text-gray-500">PAGOID</span>
                   <span className={`font-semibold text-sm flex items-center gap-1 ${hasPagoId ? 'text-green-700' : 'text-red-600'}`}>
                     <CreditCard className="h-3.5 w-3.5" />
@@ -556,14 +556,14 @@ export function RescheduleAppointmentModal({
         </div>
 
         {/* ── Footer ─────────────────────────────────────────────────────────── */}
-        <div className="shrink-0 flex justify-end gap-3 pt-3 border-t mt-2">
-          <Button variant="outline" onClick={handleClose} disabled={isConfirming}>
+        <div className="shrink-0 flex flex-col sm:flex-row justify-end gap-3 pt-3 border-t mt-2">
+          <Button variant="outline" onClick={handleClose} disabled={isConfirming} className="w-full sm:w-auto">
             Cancelar
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!hasPagoId || !selectedCita || isConfirming}
-            className="bg-blue-600 hover:bg-blue-700"
+            disabled={!selectedCita || isConfirming}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
           >
             {isConfirming
               ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Reprogramando...</>
