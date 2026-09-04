@@ -765,7 +765,7 @@ function PatientAssignmentReservedModalContent({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Información básica de fecha y hora */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Fecha</Label>
                       <div className="flex items-center gap-2 text-sm">
@@ -783,7 +783,7 @@ function PatientAssignmentReservedModalContent({
                   </div>
 
                   {/* Información médica */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-600">Especialidad</Label>
                       <div className="flex items-center gap-2 text-sm">
