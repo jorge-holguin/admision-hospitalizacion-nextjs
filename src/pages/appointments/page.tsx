@@ -894,7 +894,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                 <div className="lg:col-span-1 space-y-6">
                   <Card className="shadow-lg border-0">
                     <CardHeader className="bg-blue-50 border-b">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <CardTitle className="text-lg text-blue-800 font-semibold">
                           Calendario de Citas
                         </CardTitle>
@@ -985,7 +985,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                 <div className="lg:col-span-3">
                   <Card className="shadow-lg border-0">
                     <CardHeader className="bg-blue-50 border-b">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <CardTitle className="text-lg text-blue-800 font-semibold">
                           Lista de Citas
                           {selectedTime && (
@@ -994,7 +994,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                             </span>
                           )}
                         </CardTitle>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
                             onClick={() => {

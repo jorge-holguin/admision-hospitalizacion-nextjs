@@ -746,7 +746,7 @@ export default function FiliationPage() {
 
       {/* Main Content */}
       <main className="page-shell py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <h1 className="text-2xl font-bold text-gray-900">
             {isClinicalHistory ? 'Historias Clínicas' : 'Hospitalización / Emergencia'}
           </h1>
@@ -754,7 +754,7 @@ export default function FiliationPage() {
           <Button
             variant="outline"
             size="lg"
-            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 font-bold"
+            className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 font-bold w-full sm:w-auto"
             onClick={() => (window.location.href = "/dashboard")}
           >
             <Home className="h-10 w-10" />

@@ -38,7 +38,7 @@ export default function DemandaInsatisfechaPage() {
         />
 
         <main className="page-shell py-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <PhoneOff className="w-6 h-6 text-orange-600" />
@@ -49,7 +49,7 @@ export default function DemandaInsatisfechaPage() {
               </div>
             </div>
             <Button
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-red-700"
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-red-700 w-full sm:w-auto"
               onClick={() => router.push("/dashboard")}
             >
               <Home className="h-4 w-4" />
@@ -57,7 +57,7 @@ export default function DemandaInsatisfechaPage() {
             </Button>
           </div>
 
-          <div className="flex gap-2 mb-4 border-b border-gray-200">
+          <div className="flex flex-wrap gap-2 mb-4 border-b border-gray-200">
             <button
               onClick={() => setActiveTab("registro")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors

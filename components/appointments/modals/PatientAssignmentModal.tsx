@@ -255,7 +255,8 @@ function PatientAssignmentModalContent({
         const idToUse = patient.PACIENTE || patient.HISTORIA
         if (idToUse) {
           loadEnhancedPatientData(idToUse)
-        } else {          setEnhancedPatient(patient)
+        } else {
+          setEnhancedPatient(patient)
         }
       } else {
         setEnhancedPatient(patient)
@@ -388,7 +389,8 @@ function PatientAssignmentModalContent({
               return
             }
           }
-        } catch (checkError) {          // No bloquear la asignación si la verificación falla
+        } catch (checkError) {
+          // No bloquear la asignación si la verificación falla
         }
       }
 
@@ -744,7 +746,7 @@ function PatientAssignmentModalContent({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Fecha</Label>
                     <div className="flex items-center gap-2 mt-1">
@@ -878,7 +880,8 @@ function PatientAssignmentModalContent({
                           const result = await obtenerEntidadSISPorCodigo(refData.codigoestablecimientoOrigen)
                           if (result.success && result.data) {
                             setEessNombreOrigen(result.data.NOMBRE)
-                          } else {                            setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
+                          } else {
+                            setEessNombreOrigen(refData.establecimientoOrigen || 'Establecimiento de origen')
                           }
                         } else {
                           // Si no hay código, usar el nombre que viene de la referencia

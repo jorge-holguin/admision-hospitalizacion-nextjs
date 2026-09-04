@@ -455,10 +455,11 @@ export function RescheduleAppointmentModal({
             )}
             {availableCitas.length > 0 && !loadingCita && (
               <div>
-                <span className="text-xs font-medium text-gray-600 block mb-2">
-                  4. Cupos disponibles
-                  <span className="ml-1 text-green-600 font-normal">({availableCitas.length} cupos)</span>
-                </span>
+                <div className="text-xs font-medium text-gray-600 block mb-2">
+                  <span>4. Cupos disponibles</span>
+                  {' '}
+                  <span className="text-green-600 font-normal">({availableCitas.length} cupos)</span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {availableCitas.map((cita) => {
                     const citaId = cita.citaId || cita.id
