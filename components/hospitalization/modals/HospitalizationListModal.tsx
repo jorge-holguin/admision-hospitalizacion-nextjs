@@ -396,7 +396,7 @@ export function HospitalizationListModal({
 
           {/* Paginación */}
           {!loading && !error && pagination.totalPages > 1 && (
-            <div className="flex-shrink-0 flex items-center justify-between pt-4 border-t">
+            <div className="flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-4 border-t">
               <div className="text-sm font-medium text-gray-700">
                 Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} - {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} hospitalizaciones
               </div>

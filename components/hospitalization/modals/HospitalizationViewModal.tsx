@@ -70,7 +70,8 @@ export function HospitalizationViewModal({
         // Respuesta directa del objeto de hospitalización (con o sin mapeo de mayúsculas)
         hospitalizationData = normalizeHospitalizationData(data)
       } else {
-        // Formato desconocido        throw new Error('Formato de respuesta desconocido')
+        // Formato desconocido
+        throw new Error('Formato de respuesta desconocido')
       }
 
       setHospitalizationData(hospitalizationData) 
@@ -173,8 +174,8 @@ export function HospitalizationViewModal({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 py-4 border-b bg-gray-50 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <DialogTitle className="flex flex-wrap items-center gap-2">
               {onBack && (
                 <Button
                   variant="ghost"

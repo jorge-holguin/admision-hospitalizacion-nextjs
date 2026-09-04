@@ -113,7 +113,7 @@ export const AdditionalFieldsSection: React.FC<AdditionalFieldsSectionProps> = (
     <div className="space-y-6 mt-6">
 
       {/* Cuarta fila - Datos del Acompañante */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
           <h3 className="text-lg font-semibold">Datos del Acompañante</h3>
           <div className="flex flex-wrap items-center gap-2">
             <Checkbox
