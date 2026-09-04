@@ -70,12 +70,14 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
       
       if (validResults.length === 0) {
         throw new Error('No se pudo cargar ningún PDF correctamente')
-      }      setPdfData(validResults)
+      }
+      setPdfData(validResults)
       setLoading(false)
       
       // Esperar a que se carguen los PDFs y luego preparar para imprimir automáticamente
       setTimeout(async () => {
-        try {          if (validResults.length > 0) {
+        try {
+          if (validResults.length > 0) {
             await printMergedPDF(validResults)
           } else {
             console.error('No hay PDFs válidos para imprimir')
@@ -134,7 +136,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center justify-between">
             <span>{title}</span>
-            <div className="flex items-center space-x-2 text-sm font-normal">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-normal">
               {pdfData.length > 0 && (
                 <span className="text-gray-600">
                   {pdfData.length} documento(s)
@@ -191,7 +193,7 @@ export function PDFViewerModal({ open, onClose, pdfUrls, title, patientId }: PDF
         <DialogFooter className="flex justify-between items-center pt-4">
           <div></div> {/* Espacio vacío para mantener la alineación */}
           
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
               size="sm" 

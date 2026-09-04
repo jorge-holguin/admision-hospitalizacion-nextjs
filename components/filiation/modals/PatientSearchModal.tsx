@@ -339,9 +339,8 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
       </DialogHeader>
 
       <div className="space-y-4">
-        {/* Campos en una sola línea horizontal */}
-        <div className="flex items-end gap-3">
-          <div className="w-[250px]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+          <div className="w-full sm:w-[250px]">
             <Label htmlFor="documentType">Tipo de Documento</Label>
             <TipoDocumentoSelector
               value={documentType}
@@ -350,7 +349,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
             />
           </div>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Label htmlFor="documentNumber">Número de Documento</Label>
             <Input
               id="documentNumber"
@@ -359,13 +358,14 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
               onChange={(e) => setDocumentNumber(e.target.value)}
               maxLength={documentType.trim() === "D" ? 8 : 12}
               disabled={isNingunoType} // ✅ Deshabilitar si es "Ninguno"
+              className="w-full"
             />
           </div>
 
           <Button 
             onClick={handleSearchReniec} 
             disabled={isLoadingReniec || (!isNingunoType && documentNumber.length < 1)} 
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
           >
             {isLoadingReniec ? "Consultando..." : "Buscar"}
           </Button>

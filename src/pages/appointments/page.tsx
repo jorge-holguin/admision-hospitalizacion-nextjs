@@ -898,7 +898,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                         <CardTitle className="text-lg text-blue-800 font-semibold">
                           Calendario de Citas
                         </CardTitle>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {canVerPasadas && (
                           <Checkbox
                             id="showPastAppointments"

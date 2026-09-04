@@ -62,10 +62,13 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
       
       const apiUrl = import.meta.env.VITE_API_CITAS_MASTER_URL 
       // desde y hasta deben ser iguales (misma fecha)
-      const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`      const res = await fetch(url, { signal })
-      if (!res.ok) {        return
+      const url = `${apiUrl}/cita/medicos-consultorios?desde=${encodeURIComponent(dateStr)}&hasta=${encodeURIComponent(dateStr)}`
+      const res = await fetch(url, { signal })
+      if (!res.ok) {
+        return
       }
-      const data: MedicoConsultorioItem[] = await res.json()      setMedicoConsultorioItems(data)
+      const data: MedicoConsultorioItem[] = await res.json()
+      setMedicoConsultorioItems(data)
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('❌ MedicoSelector: Error:', error)
@@ -166,7 +169,7 @@ export function MedicoSelector({ label = "Médico", value, onChange, className =
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0" align="start">
+        <PopoverContent className="w-full max-w-[300px] p-0" align="start">
           <Command>
             <CommandInput 
               placeholder="Buscar médico..." 

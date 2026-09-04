@@ -358,7 +358,8 @@ export function CrearOrdenApoyoDiagnosticoModal({
           observacion: truncateObservacion(d.observacion),
         })),
       }
-      if (isEditing) body.idOrden = ordenToEdit!.idOrden      let url: string
+      if (isEditing) body.idOrden = ordenToEdit!.idOrden
+      let url: string
       if (isEditing) {
         url = `${APOYO_DIAGNOSTICO_BASE_URL}/api/apoyo-diagnostico/ordenes/${ordenToEdit!.idOrden}`
       } else if (isPeriferico) {
@@ -438,7 +439,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
                   {referencia.datos_referencia.estado}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-700">
                 <div><span className="font-medium">Fecha:</span> {referencia.datos_referencia.fecha_referencia}</div>
                 <div><span className="font-medium">Origen:</span> {referencia.datos_referencia.codigo_establecimiento_origen}</div>
                 <div className="col-span-2 flex items-center gap-2">

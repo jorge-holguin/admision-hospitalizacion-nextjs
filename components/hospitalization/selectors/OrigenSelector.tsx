@@ -224,7 +224,7 @@ export const OrigenSelector: React.FC<OrigenSelectorProps> = ({
             {!disabled && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0">
+        <PopoverContent className="w-full max-w-[400px] p-0">
           <Command>
             <div className="flex items-center border-b px-3">
               <CommandInput 

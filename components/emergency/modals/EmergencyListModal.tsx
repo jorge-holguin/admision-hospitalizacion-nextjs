@@ -95,7 +95,7 @@ function RelatoDisplay({ relato }: { relato?: string }) {
   }
   
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-1">
       <span>
         {isExpanded ? relato : `${relato.substring(0, maxLength)}...`}
       </span>
@@ -356,7 +356,7 @@ export function EmergencyListModal({
                         <RelatoDisplay relato={emergency.RELATO} />
                       </TableCell>
                       <TableCell>
-                        <div className="flex space-x-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60 inline-flex">
+                        <div className="inline-flex flex-wrap gap-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60">
                           {/* Botón Ver - siempre disponible incluso para anulados */}
                           <Button
                             variant="outline"

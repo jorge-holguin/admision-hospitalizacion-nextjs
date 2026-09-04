@@ -740,7 +740,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Checkbox
                 id="tieneSegundaEspecialidadColegio"
                 checked={tieneSegundaEspecialidadColegio}
@@ -766,7 +766,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Checkbox
                 id="tieneTerceraEspecialidadColegio"
                 checked={tieneTerceraEspecialidadColegio}
@@ -914,7 +914,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
         </div>
 
         {/* Checkbox segunda especialidad */}
-        <div className="flex items-center space-x-2 mt-4">
+        <div className="flex flex-wrap items-center gap-2 mt-4">
           <Checkbox
             id="tieneSegundaEspecialidad"
             checked={tieneSegundaEspecialidad}

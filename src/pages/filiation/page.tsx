@@ -626,7 +626,7 @@ export default function FiliationPage() {
       cell: (patient: any) => {
         const isAnulada = isAnuladaRecord(patient)
         return (
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!isClinicalHistory && !isAnulada && canCrearHosp && (
               <Button
                 variant="default"
