@@ -233,7 +233,7 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew, refre
       key: "actions", 
       header: "Acciones",
       cell: (medico: any) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
             variant="outline"
             size="sm"

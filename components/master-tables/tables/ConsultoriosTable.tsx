@@ -133,7 +133,7 @@ export const ConsultoriosTable: React.FC<ConsultoriosTableProps> = ({ onEdit, on
       key: "actions", 
       header: "Acciones",
       cell: (consultorio: any) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
             variant="outline"
             size="sm"

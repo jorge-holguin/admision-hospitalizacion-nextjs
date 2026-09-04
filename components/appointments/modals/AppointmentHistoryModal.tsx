@@ -848,7 +848,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             {patientInfo.sexo === 'M' ? 'Masculino' : patientInfo.sexo === 'F' ? 'Femenino' : patientInfo.sexo}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 text-xs text-gray-600">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 text-xs text-gray-600">
                           <div>
                             <span className="font-semibold text-gray-500 uppercase text-[10px] tracking-wide">Edad</span>
                             <p className="font-bold text-gray-900 text-sm">

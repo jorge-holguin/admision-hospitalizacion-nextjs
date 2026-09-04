@@ -110,7 +110,7 @@ export function LaboratoryDetailModal({
                 <User className="h-4 w-4 text-blue-600" />
                 Información del Paciente
               </h3>
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <span className="text-sm text-gray-500">Código Paciente</span>
                   <p className="font-medium">{data.idPaciente || data.paciente || "-"}</p>
@@ -119,7 +119,7 @@ export function LaboratoryDetailModal({
                   <span className="text-sm text-gray-500">N° Documento</span>
                   <p className="font-medium">{data.nroDocumento || "-"}</p>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <span className="text-sm text-gray-500">Nombre Completo</span>
                   <p className="font-medium">{(data.nombrePaciente || data.nombres || "").trim() || "-"}</p>
                 </div>
@@ -140,7 +140,7 @@ export function LaboratoryDetailModal({
                 <Calendar className="h-4 w-4 text-blue-600" />
                 Información de la Cita
               </h3>
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <span className="text-sm text-gray-500">Fecha de Cita</span>
                   <p className="font-medium">{formatDate(data.fechaCita)}</p>
@@ -174,12 +174,12 @@ export function LaboratoryDetailModal({
                 <Stethoscope className="h-4 w-4 text-blue-600" />
                 Información del Médico
               </h3>
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <span className="text-sm text-gray-500">Código Médico</span>
                   <p className="font-medium">{data.medico || data.idMedico || "-"}</p>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <span className="text-sm text-gray-500">Nombre del Médico</span>
                   <p className="font-medium">{data.nomMedico || "-"}</p>
                 </div>
@@ -193,7 +193,7 @@ export function LaboratoryDetailModal({
                   <FileText className="h-4 w-4 text-blue-600" />
                   Formulario
                 </h3>
-                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
                     <span className="text-sm text-gray-500">ID Formulario</span>
                     <p className="font-medium font-mono">{data.idFormulario || "-"}</p>
@@ -222,7 +222,7 @@ export function LaboratoryDetailModal({
                 <Building2 className="h-4 w-4 text-blue-600" />
                 Información Adicional
               </h3>
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg text-sm">
                 <div>
                   <span className="text-gray-500">Código Servicio</span>
                   <p className="font-medium font-mono">{data.hisCodservicio?.trim() || "-"}</p>
