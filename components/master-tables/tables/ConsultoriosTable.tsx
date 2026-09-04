@@ -164,9 +164,9 @@ export const ConsultoriosTable: React.FC<ConsultoriosTableProps> = ({ onEdit, on
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <h2 className="text-xl font-bold">Consultorios</h2>
-        <Button onClick={onNew} className="flex items-center gap-1">
+        <Button onClick={onNew} className="flex items-center gap-1 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Nuevo Consultorio
         </Button>
       </div>

@@ -280,9 +280,9 @@ export const MedicosTable: React.FC<MedicosTableProps> = ({ onEdit, onNew, refre
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <h2 className="text-xl font-bold">Médicos</h2>
-        <Button onClick={onNew} className="flex items-center gap-1">
+        <Button onClick={onNew} className="flex items-center gap-1 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Nuevo Médico
         </Button>
       </div>
