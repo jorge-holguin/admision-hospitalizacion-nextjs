@@ -303,8 +303,9 @@ export function EmergencyListModal({
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
+              <div className="overflow-x-auto table-responsive">
+                <Table className="min-w-[900px]">
+                  <TableHeader>
                   <TableRow>
                     <TableHead className="font-bold text-gray-900">Estado</TableHead>
                     <TableHead className="font-bold text-gray-900">ID</TableHead>
@@ -397,12 +398,13 @@ export function EmergencyListModal({
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Paginación */}
               {pagination.totalPages > 1 && (
-                <div className="flex justify-between items-center mt-4 px-4 py-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-4 px-4 py-2">
                   <div className="text-sm font-medium text-gray-700">
                     Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} a {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} registros
                   </div>
