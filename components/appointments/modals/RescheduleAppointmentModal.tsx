@@ -404,7 +404,7 @@ export function RescheduleAppointmentModal({
 
             {/* 3. Calendar */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 gap-2">
                 <Label className="text-xs font-medium text-gray-600">
                   3. Seleccionar Fecha <span className="text-red-500">*</span>
                 </Label>
