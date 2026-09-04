@@ -19,7 +19,7 @@ export function Step3FamilyData({ formData, onInputChange }: Step3FamilyDataProp
       {/* Datos Familiares */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-blue-700 flex items-center">
+          <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
             <Users className="w-5 h-5 mr-2" />
             Datos Familiares (Opcional)
           </CardTitle>
@@ -75,7 +75,7 @@ export function Step3FamilyData({ formData, onInputChange }: Step3FamilyDataProp
 {/* 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-blue-700 flex items-center">
+          <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
             <Heart className="w-5 h-5 mr-2" />
             Datos de Acompañante/Responsable (Opcional)
           </CardTitle>

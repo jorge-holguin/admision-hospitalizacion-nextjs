@@ -257,7 +257,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Información del Sistema */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <FileText className="w-5 h-5 mr-2" />
               Información del Sistema
             </CardTitle>
@@ -314,7 +314,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Datos de Identificación */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <User className="w-5 h-5 mr-2" />
               Datos de Identificación
             </CardTitle>
@@ -340,7 +340,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Datos Personales */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <Calendar className="w-5 h-5 mr-2" />
               Datos Personales
             </CardTitle>
@@ -377,7 +377,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Datos de Ubicación */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <Home className="w-5 h-5 mr-2" />
               Datos de Ubicación
             </CardTitle>
@@ -401,7 +401,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Datos Adicionales */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <Phone className="w-5 h-5 mr-2" />
               Datos Adicionales
             </CardTitle>
@@ -459,7 +459,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Datos Familiares */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <Users className="w-5 h-5 mr-2" />
               Datos Familiares
             </CardTitle>
@@ -497,7 +497,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
         {/* Datos de Acompañante */}
      {/*    <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-blue-700 flex items-center">
+            <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
               <Heart className="w-5 h-5 mr-2" />
               Datos de Acompañante/Responsable
             </CardTitle>

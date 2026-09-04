@@ -167,7 +167,7 @@ export function Step1BasicData({
       {/* Información del Sistema */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-blue-700 flex items-center">
+          <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
             <UserCheck className="w-5 h-5 mr-2" />
             Información del Sistema
           </CardTitle>
@@ -196,11 +196,11 @@ export function Step1BasicData({
             {/* Campos del sistema */}
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="hc" className="flex items-center text-sm font-medium text-gray-700">
+                <Label htmlFor="hc" className="flex flex-wrap items-center text-sm font-medium text-gray-700">
                   <FileText className="w-4 h-4 mr-1" />
                   N° Historia Clínica
                 </Label>
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                   <Input 
                     id="hc" 
                     value={
@@ -229,7 +229,7 @@ export function Step1BasicData({
                 </div>
               </div>
               <div>
-                <Label htmlFor="tipoDocumento" className="flex items-center text-sm font-medium text-gray-700">
+                <Label htmlFor="tipoDocumento" className="flex flex-wrap items-center text-sm font-medium text-gray-700">
                   <CreditCard className="w-4 h-4 mr-1" />
                   Tipo de Documento <span className="text-red-600">*</span>
                 </Label>
@@ -245,11 +245,11 @@ export function Step1BasicData({
                 )}
               </div>
               <div>
-                <Label htmlFor="dni" className="flex items-center text-sm font-medium text-gray-700">
+                <Label htmlFor="dni" className="flex flex-wrap items-center text-sm font-medium text-gray-700">
                   <Hash className="w-4 h-4 mr-1" />
                   N° Documento <span className="text-red-600">*</span>
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Input
                     id="dni"
                     value={
@@ -325,7 +325,7 @@ export function Step1BasicData({
  {/* Datos Personales */}
 <Card>
   <CardHeader>
-    <CardTitle className="text-lg text-blue-700 flex items-center">
+    <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
       <Calendar className="w-5 h-5 mr-2" />
       Datos Personales
     </CardTitle>

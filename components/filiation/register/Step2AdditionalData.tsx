@@ -83,7 +83,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg text-blue-700 flex items-center">
+        <CardTitle className="text-lg text-blue-700 flex flex-wrap items-center">
           <FileText className="w-5 h-5 mr-2" />
           Datos Adicionales del Paciente
         </CardTitle>
@@ -94,7 +94,7 @@ export function Step2AdditionalData({ formData, onInputChange, patientData }: St
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="tipoSeguro">Tipo de Seguro <span className="text-red-600">*</span></Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <div className="flex-1">
                 <SeguroSelector
                   value={formData.tipoSeguro}
