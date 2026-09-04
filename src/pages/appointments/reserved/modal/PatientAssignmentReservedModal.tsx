@@ -964,7 +964,7 @@ function PatientAssignmentReservedModalContent({
           </div>
 
           {/* Botones de acción - Solo Aprobar y Denegar */}
-          <div className="flex justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
             <Button 
               onClick={() => {
                 if (hasEspecialidadMatch && !hasConsultorioMatch) {
@@ -985,7 +985,7 @@ function PatientAssignmentReservedModalContent({
                 // ✅ hasEspecialidadMatch ya NO bloquea, solo muestra advertencia
                 isLoading
               }
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base w-full sm:w-auto min-w-0 sm:min-w-[160px] shadow-lg hover:shadow-xl transition-all"
               size="lg"
               title={
                 hasConsultorioMatch 
@@ -1001,7 +1001,7 @@ function PatientAssignmentReservedModalContent({
               onClick={handleDenyClick}
               disabled={isLoading}
               variant="destructive"
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-6 text-base w-full sm:w-auto min-w-0 sm:min-w-[160px] shadow-lg hover:shadow-xl transition-all"
               size="lg"
             >
               <XCircle className="h-5 w-5 mr-2" />

@@ -864,7 +864,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Fecha</Label>
                         <div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-gray-400" />{appointment.fecha}</div>
@@ -874,7 +874,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                         <div className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4 text-gray-400" />{appointment.hora}</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-600">Especialidad</Label>
                         <div className="flex items-center gap-2 text-sm"><Stethoscope className="h-4 w-4 text-gray-400" />{appointment.especialidadNombre || appointment.especialidad}</div>
@@ -1216,7 +1216,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
             </div>
           </div>
 
-          <div className="flex justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4 border-t mt-4 flex-shrink-0">
             <Button
               onClick={() => {
                 if (hasEspecialidadMatch && !hasConsultorioMatch) { setShowEspecialidadConflictDialog(true); return }
@@ -1224,13 +1224,13 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                 handleApprove()
               }}
               disabled={!selectedTipoCita || !selectedSeguro || (isSisSeguro() && (!selectedEntidadSis || !referencia.trim())) || hasConsultorioMatch || isLoading || loadingPedido || pedidoAlert.show}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-6 text-base w-full sm:w-auto min-w-0 sm:min-w-[160px] shadow-lg hover:shadow-xl transition-all"
               size="lg"
             >
               <CheckCircle className="h-5 w-5 mr-2" />
               {isLoading ? "Aprobando..." : "Aprobar Solicitud"}
             </Button>
-            <Button onClick={handleDenyClick} disabled={isLoading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-6 text-base min-w-[160px] shadow-lg hover:shadow-xl transition-all" size="lg">
+            <Button onClick={handleDenyClick} disabled={isLoading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-6 text-base w-full sm:w-auto min-w-0 sm:min-w-[160px] shadow-lg hover:shadow-xl transition-all" size="lg">
               <XCircle className="h-5 w-5 mr-2" />
               {isLoading ? "Procesando..." : "Denegar Solicitud"}
             </Button>
