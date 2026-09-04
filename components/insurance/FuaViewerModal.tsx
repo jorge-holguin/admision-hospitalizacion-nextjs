@@ -79,7 +79,7 @@ export function FuaViewerModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-[#4F9BB6]/10 to-[#9CD2D3]/10">
-          <DialogTitle className="text-[#114C5F] flex items-center gap-2">
+          <DialogTitle className="text-[#114C5F] flex flex-wrap items-center gap-2">
             <FileText className="w-5 h-5" />
             FUA {numeroFua ? `N° ${numeroFua}` : ""}
             {citaId ? (
@@ -117,12 +117,12 @@ export function FuaViewerModal({
           )}
         </div>
         {/* Footer con acciones */}
-        <div className="px-6 py-3 border-t bg-gray-50 flex items-center justify-end gap-2">
+        <div className="px-6 py-3 border-t bg-gray-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => window.open(documentUrl, "_blank", "noopener,noreferrer")}
-            className="border-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3]/10"
+            className="border-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3]/10 w-full sm:w-auto"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             Abrir en nueva pestaña
