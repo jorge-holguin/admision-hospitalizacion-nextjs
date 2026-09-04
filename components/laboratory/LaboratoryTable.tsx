@@ -67,7 +67,7 @@ export function LaboratoryTable({
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <CardTitle className="text-lg font-semibold text-blue-800">
             Resultados de Búsqueda
           </CardTitle>
@@ -79,8 +79,8 @@ export function LaboratoryTable({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-lg border overflow-hidden">
-          <Table>
+        <div className="rounded-lg border overflow-x-auto table-responsive">
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <TableHead className="font-semibold text-blue-900">ID Cita</TableHead>
