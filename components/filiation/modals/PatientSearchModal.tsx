@@ -254,7 +254,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
             </p>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end">
             <Button 
               onClick={() => {
                 setShowTimeoutDialog(false)
@@ -306,7 +306,7 @@ export function PatientSearchModal({ onSearchComplete, onPatientFound, onCancel,
             </p>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button 
               variant="outline"
               onClick={() => {

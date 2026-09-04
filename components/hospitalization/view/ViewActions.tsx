@@ -12,7 +12,7 @@ interface ViewActionsProps {
 
 export function ViewActions({ onSave, onCancel, submitting, isEditable }: ViewActionsProps) {
   return (
-    <div className="flex justify-end gap-4 mt-6">
+    <div className="flex flex-wrap justify-end gap-4 mt-6">
       {isEditable && (
         <>
           <Button 

@@ -131,7 +131,7 @@ export function Navbar({
               <li className="border-t border-blue-500 pt-2 mt-2">
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-red-100 hover:bg-blue-600"
+                  className="flex flex-wrap w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-red-100 hover:bg-blue-600"
                 >
                   <LogOut className="w-4 h-4" />
                   Cerrar sesión

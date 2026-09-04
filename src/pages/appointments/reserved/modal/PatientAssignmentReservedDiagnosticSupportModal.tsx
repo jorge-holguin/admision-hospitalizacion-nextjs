@@ -192,7 +192,7 @@ function MotivoModal({ isOpen, onClose, onConfirm, title, action, isLoading }: M
             <div className="text-xs text-gray-500 text-right">{motivo.length}/500 caracteres</div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex flex-wrap justify-end gap-3 pt-4">
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>Cancelar</Button>
           <Button
             onClick={handleConfirm}
@@ -838,7 +838,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
               )}
               {!timeValidation.isValid && (
                 <Alert className="bg-red-50 border-red-200">
-                  <AlertDescription className="text-red-800 flex items-start gap-2">
+                  <AlertDescription className="text-red-800 flex flex-wrap items-start gap-2">
                     <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-semibold">⛔ Conflicto de horario</p>
@@ -1134,7 +1134,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
                                   <div key={ord.idOrden}
                                     className={`border rounded-lg p-2.5 transition-colors ${isSel ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'}`}
                                   >
-                                    <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-wrap items-start justify-between gap-2">
                                       <div className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => seleccionable && setSelectedOrdenEcografia(isSel ? '' : String(ord.idOrden))} title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}>
                                         <div className="flex flex-wrap items-center gap-2 flex-wrap">
                                           <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{servicioLabel}</span>
@@ -1251,7 +1251,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
           <div className={`p-6 rounded-lg ${errorDialogData.type === 'warning' ? 'bg-orange-50 border border-orange-200' : 'bg-red-50 border border-red-200'}`}>
             <p className={`text-base ${errorDialogData.type === 'warning' ? 'text-orange-800' : 'text-red-800'}`}>{errorDialogData.message}</p>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-wrap justify-end gap-3 pt-4">
             <Button onClick={() => setShowErrorDialog(false)} className={errorDialogData.type === 'warning' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'}>Entendido</Button>
           </div>
         </DialogContent>
@@ -1265,7 +1265,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-              <div className="flex items-start gap-3">
+              <div className="flex flex-wrap items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-orange-800"><p className="font-semibold mb-2">Detalles del conflicto:</p><p>{timeValidation.message}</p></div>
               </div>
@@ -1275,7 +1275,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
               <p className="text-sm text-red-800">Si decide continuar, <span className="font-bold">usted será responsable</span> de cualquier problema que surja por la superposición de horarios.</p>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex flex-wrap justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setShowTimeConflictDialog(false)} className="flex-1">Cancelar</Button>
             <Button onClick={() => { setShowTimeConflictDialog(false); handleApprove() }} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white">Sí, Continuar Bajo Mi Responsabilidad</Button>
           </div>
@@ -1290,7 +1290,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-              <div className="flex items-start gap-3">
+              <div className="flex flex-wrap items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-orange-800">
                   <p className="font-semibold mb-2">Detalles:</p>
@@ -1303,7 +1303,7 @@ function PatientAssignmentReservedDiagnosticSupportModalContent({
               <p className="text-sm text-red-800">Si decide continuar, <span className="font-bold">usted será responsable</span> de cualquier problema por la duplicidad de citas.</p>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex flex-wrap justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setShowEspecialidadConflictDialog(false)} className="flex-1">Cancelar</Button>
             <Button onClick={() => { setShowEspecialidadConflictDialog(false); if (!timeValidation.isValid) setShowTimeConflictDialog(true); else handleApprove() }} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white">Sí, Continuar Bajo Mi Responsabilidad</Button>
           </div>

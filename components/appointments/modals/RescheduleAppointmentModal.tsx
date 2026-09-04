@@ -338,7 +338,7 @@ export function RescheduleAppointmentModal({
 
         {/* Global alerts */}
         {!hasPagoId && (
-          <div className="shrink-0 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+          <div className="shrink-0 bg-red-50 border border-red-200 rounded-lg p-3 flex flex-wrap items-start gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-red-700 font-semibold text-sm">Sin pago asociado</p>
@@ -347,7 +347,7 @@ export function RescheduleAppointmentModal({
           </div>
         )}
         {errorMsg && (
-          <div className="shrink-0 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+          <div className="shrink-0 bg-red-50 border border-red-200 rounded-lg p-3 flex flex-wrap items-start gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <p className="text-red-700 text-sm">{errorMsg}</p>
           </div>

@@ -181,7 +181,7 @@ export function AppointmentDetailsModal({
       >
         {/* Header compacto */}
         <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-5 text-white">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="bg-white/20 rounded-lg p-2">
                 <FileText className="h-6 w-6" />
@@ -441,7 +441,7 @@ export function AppointmentDetailsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t bg-gray-50 flex justify-end">
+        <div className="px-6 py-4 border-t bg-gray-50 flex flex-wrap justify-end">
           <Button variant="outline" onClick={onClose} className="gap-1">
             <X className="h-4 w-4" /> Cerrar
           </Button>

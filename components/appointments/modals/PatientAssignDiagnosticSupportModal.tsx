@@ -1300,7 +1300,7 @@ function PatientAssignDiagnosticSupportModalContent({
                                   isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'
                                 }`}
                               >
-                                <div className="flex items-start justify-between gap-2">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
                                   <div
                                     className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                                     onClick={() => seleccionable && setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))}
@@ -1395,7 +1395,7 @@ function PatientAssignDiagnosticSupportModalContent({
                                       </div>
                                     )}
                                     {ord.observacionesMedicas && (
-                                      <div className="flex items-start gap-1 text-xs text-gray-500 bg-yellow-50 rounded px-2 py-1 mt-1.5" title={ord.observacionesMedicas}>
+                                      <div className="flex flex-wrap items-start gap-1 text-xs text-gray-500 bg-yellow-50 rounded px-2 py-1 mt-1.5" title={ord.observacionesMedicas}>
                                         <span className="shrink-0">📝</span>
                                         <span className="truncate">{ord.observacionesMedicas}</span>
                                       </div>
@@ -1452,7 +1452,7 @@ function PatientAssignDiagnosticSupportModalContent({
           </div>
 
           {/* Botones */}
-          <div className="flex justify-end gap-3 pt-4 border-t mt-4 flex-shrink-0">
+          <div className="flex flex-wrap justify-end gap-3 pt-4 border-t mt-4 flex-shrink-0">
             <Button variant="outline" onClick={onClose} disabled={isLoading}>
               Cancelar
             </Button>

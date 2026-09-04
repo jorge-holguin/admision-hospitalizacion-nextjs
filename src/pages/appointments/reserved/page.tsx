@@ -917,7 +917,7 @@ export default function ReservedAppointmentsPage() {
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="flex justify-center items-center py-12">
+                  <div className="flex flex-wrap justify-center items-center py-12">
                     <RefreshCw className="h-6 w-6 animate-spin" />
                     <span className="ml-2">Cargando reservas...</span>
                   </div>

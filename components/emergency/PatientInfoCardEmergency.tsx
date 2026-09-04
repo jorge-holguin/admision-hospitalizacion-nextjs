@@ -141,7 +141,7 @@ export const PatientInfoCardEmergency: React.FC<PatientInfoCardEmergencyProps> =
     return (
       <Card className={className}>
         <CardContent className="pt-6">
-          <div className="flex justify-center items-center py-8">
+          <div className="flex flex-wrap justify-center items-center py-8">
             <Spinner size="lg" />
             <span className="ml-3">Cargando datos del paciente...</span>
           </div>

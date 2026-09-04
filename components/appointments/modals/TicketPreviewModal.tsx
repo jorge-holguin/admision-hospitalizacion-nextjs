@@ -332,7 +332,7 @@ export function TicketPreviewModal({ isOpen, onClose, ticketData }: TicketPrevie
           <div id="ticket-cita" className="bg-gradient-to-br from-blue-50 to-white p-6">
             {/* Header con logo */}
             <div className="text-center mb-4 pb-4 border-b-2 border-blue-200">
-              <div className="flex justify-center mb-2">
+              <div className="flex flex-wrap justify-center mb-2">
                 <Image
                   src="/hjatch-logo.jpg"
                   alt="HJATCH Logo"

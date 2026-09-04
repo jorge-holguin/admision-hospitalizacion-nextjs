@@ -659,7 +659,7 @@ function PatientAssignmentModalContent({
           
           {!timeValidation.isValid && (
             <Alert className="bg-red-50 border-red-200">
-              <AlertDescription className="text-red-800 flex items-start gap-2">
+              <AlertDescription className="text-red-800 flex flex-wrap items-start gap-2">
                 <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-semibold">⛔ Conflicto de horario</p>
@@ -918,7 +918,7 @@ function PatientAssignmentModalContent({
         </div>
 
         {/* Botones fuera del grid */}
-        <div className="flex justify-end gap-3 pt-4 border-t mt-4 flex-shrink-0">
+        <div className="flex flex-wrap justify-end gap-3 pt-4 border-t mt-4 flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancelar
           </Button>
@@ -1134,7 +1134,7 @@ function PatientAssignmentModalContent({
         <div className="space-y-4 py-4">
           {/* Mensaje de conflicto */}
           <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-            <div className="flex items-start gap-3">
+            <div className="flex flex-wrap items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-orange-800">
                 <p className="font-semibold mb-2">Detalles del conflicto:</p>

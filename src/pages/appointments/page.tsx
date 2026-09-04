@@ -959,7 +959,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
 
 
                     {/* Botón Horario de Médicos */}
-                <div className="p-4 border-t flex justify-center gap-2">
+                <div className="p-4 border-t flex flex-wrap justify-center gap-2">
                   <a
                     href="https://citas.hospitalchosica.gob.pe/horario-medicos"
                     target="_blank"
@@ -1431,7 +1431,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                       La cita ya está disponible para ser asignada a otros pacientes.
                     </p>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end">
                     <Button 
                       onClick={() => setShowReleaseSuccessDialog(false)}
                       className="bg-green-600 hover:bg-green-700"
@@ -1467,7 +1467,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                       <li>Seguro <strong>05 (Crédito Paciente)</strong> o <strong>13 (Programas)</strong> en estado <strong>3 (Pagado/Con FUA)</strong></li>
                     </ul>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end">
                     <Button 
                       onClick={() => setShowReleaseErrorDialog(false)}
                       variant="outline"
@@ -1640,7 +1640,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                       <li>Luego podrás asignar la cita normalmente</li>
                     </ul>
                   </div>
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button 
                       onClick={() => setShowReservaActivaDialog(false)}
                       variant="outline"

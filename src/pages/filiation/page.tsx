@@ -1078,7 +1078,7 @@ export default function FiliationPage() {
                   </div>
 
                   {/* Botón */}
-                  <div className="mt-4 flex justify-center">
+                  <div className="mt-4 flex flex-wrap justify-center">
                     <Button 
                       onClick={() => setNnConfirmation(null)} 
                       className="bg-green-600 hover:bg-green-700 text-white px-8 py-2"
@@ -1157,7 +1157,7 @@ export default function FiliationPage() {
               {" "}se ha eliminado correctamente.
             </DialogDescription>
           </div>
-          <div className="flex justify-center mt-2">
+          <div className="flex flex-wrap justify-center mt-2">
             <Button
               onClick={() => setAnulacionExitosa({ open: false, patientName: "" })}
               className="bg-green-600 hover:bg-green-700 text-white px-8"

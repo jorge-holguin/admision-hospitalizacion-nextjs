@@ -363,7 +363,7 @@ export function EmergencyViewModal({
           )}
           
           {loading ? (
-            <div className="flex justify-center items-center h-64">
+            <div className="flex flex-wrap justify-center items-center h-64">
               <Spinner size="lg" />
             </div>
           ) : error ? (

@@ -728,7 +728,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
             )}
             {!timeValidation.isValid && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 text-red-800">
-                <div className="flex items-start gap-2">
+                <div className="flex flex-wrap items-start gap-2">
                   <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div><p className="font-semibold">⛔ Conflicto de horario</p><p className="text-sm mt-1">{timeValidation.message}</p></div>
                 </div>
@@ -1016,7 +1016,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                                 const estadoOrdenBadge = ordenEstadoMeta[String(ord.estadoOrden || '')]
                                 return (
                                   <div key={ord.idOrden} className={`border rounded-lg p-2.5 transition-colors ${isSelected ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400' : seleccionable ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
-                                    <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-wrap items-start justify-between gap-2">
                                       <div className={`flex-1 min-w-0 ${seleccionable ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => seleccionable && setSelectedOrdenEcografia(isSelected ? '' : String(ord.idOrden))} title={seleccionable ? 'Haga clic para seleccionar' : 'La orden requiere aprobación médica para poder ser seleccionada'}>
                                         <div className="flex flex-wrap items-center gap-2 flex-wrap">
                                           <span className="font-medium text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{servicioLabel}</span>
@@ -1111,7 +1111,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-              <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" /><div className="text-sm text-orange-800"><p className="font-semibold mb-2">Detalles del conflicto:</p><p>{timeValidation.message}</p></div></div>
+              <div className="flex flex-wrap items-start gap-3"><AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" /><div className="text-sm text-orange-800"><p className="font-semibold mb-2">Detalles del conflicto:</p><p>{timeValidation.message}</p></div></div>
             </div>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-900 font-semibold mb-2">⚠️ IMPORTANTE - Responsabilidad del Admisionista</p>

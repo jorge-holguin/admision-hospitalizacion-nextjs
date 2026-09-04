@@ -66,7 +66,7 @@ export function ErrorAlert({ title = "Error", message, onClose, show }: ErrorAle
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 pt-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex flex-wrap justify-end gap-3 p-6 pt-4 border-t border-gray-200 bg-gray-50">
           {onClose && (
             <Button
               onClick={handleClose}

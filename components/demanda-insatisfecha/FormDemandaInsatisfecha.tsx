@@ -912,7 +912,7 @@ export default function FormDemandaInsatisfecha() {
           <p className="text-sm text-gray-700 py-2">
             ¿Está seguro de eliminar el registro de <strong>{deleteItem?.nombrePaciente || deleteItem?.paciente || "este paciente"}</strong>?
           </p>
-          <DialogFooter className="flex justify-end gap-2 pt-2">
+          <DialogFooter className="flex flex-wrap justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setShowDelete(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={confirmarEliminacion}>Eliminar</Button>
           </DialogFooter>

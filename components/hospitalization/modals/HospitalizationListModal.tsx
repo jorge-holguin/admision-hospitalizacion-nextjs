@@ -214,7 +214,7 @@ export function HospitalizationListModal({
           <div className="flex-1 overflow-hidden">
             {/* Loading state */}
             {loading && (
-              <div className="flex justify-center items-center py-12">
+              <div className="flex flex-wrap justify-center items-center py-12">
                 <Spinner size="lg" />
                 <span className="ml-3">Cargando órdenes de hospitalización...</span>
               </div>

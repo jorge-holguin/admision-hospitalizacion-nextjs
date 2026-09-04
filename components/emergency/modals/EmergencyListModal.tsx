@@ -287,7 +287,7 @@ export function EmergencyListModal({
 
         <div className="flex-1 overflow-auto">
           {loading ? (
-            <div className="flex justify-center items-center h-64">
+            <div className="flex flex-wrap justify-center items-center h-64">
               <Spinner size="lg" />
             </div>
           ) : emergencies.length === 0 ? (

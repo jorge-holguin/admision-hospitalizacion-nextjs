@@ -633,7 +633,7 @@ export function PatientRegistrationModal({
                     : 'bg-blue-50 border-blue-200'
                 }
               >
-                <div className="flex items-start gap-2">
+                <div className="flex flex-wrap items-start gap-2">
                   {alert.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
                   {alert.type === 'warning' && <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />}
                   {alert.type === 'info' && <Info className="h-5 w-5 text-blue-600 mt-0.5" />}
@@ -668,7 +668,7 @@ export function PatientRegistrationModal({
         <div className="min-h-[400px]">
           {renderStepContent()}
           {currentStep === 1 && selectedDocType === "D" && selectedDocNumber?.trim().length === 8 && (
-            <div className="flex justify-center mt-4">
+            <div className="flex flex-wrap justify-center mt-4">
               <ReniecUpdateButton
                 dni={selectedDocNumber.trim()}
                 onSuccess={handleReniecSuccess}

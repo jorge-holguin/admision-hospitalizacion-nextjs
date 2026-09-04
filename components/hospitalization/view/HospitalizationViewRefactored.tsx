@@ -402,7 +402,7 @@ export function HospitalizationViewRefactored({
   // Mostrar spinner mientras carga
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex flex-wrap justify-center items-center min-h-screen">
         <Spinner size="lg" />
       </div>
     );

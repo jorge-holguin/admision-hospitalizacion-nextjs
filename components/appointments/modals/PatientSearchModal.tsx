@@ -390,7 +390,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
           )}
 
           {/* Actions */}
-          <div className="flex justify-end pt-4">
+          <div className="flex flex-wrap justify-end pt-4">
             <Button variant="outline" onClick={onClose}>
               Cancelar
             </Button>

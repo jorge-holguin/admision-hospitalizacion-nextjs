@@ -206,7 +206,7 @@ export function DataTable<T>({
               if (pageNumber === "ellipsis-start" || pageNumber === "ellipsis-end") {
                 return (
                   <PaginationItem key={`ellipsis-${i}`}>
-                    <span className="flex h-9 w-9 items-center justify-center">
+                    <span className="flex flex-wrap h-9 w-9 items-center justify-center">
                       ...
                     </span>
                   </PaginationItem>

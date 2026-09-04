@@ -799,7 +799,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                 </div>
                 
                 {/* Filter Actions */}
-                <div className="flex justify-end mt-4 pt-3 border-t">
+                <div className="flex flex-wrap justify-end mt-4 pt-3 border-t">
                   <Button variant="outline" onClick={resetFilters} size="sm">
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Limpiar Filtros
@@ -822,7 +822,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                       Cargando datos del paciente...
                     </div>
                   ) : patientInfo ? (
-                    <div className="flex items-start gap-4">
+                    <div className="flex flex-wrap items-start gap-4">
                       {/* Foto */}
                       {photoSrc && !photoError ? (
                         <img
@@ -1074,7 +1074,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
           </div>
 
           {/* Close Button */}
-          <div className="flex justify-end pt-4 border-t">
+          <div className="flex flex-wrap justify-end pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
               Cerrar
             </Button>

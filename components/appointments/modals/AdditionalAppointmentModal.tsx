@@ -864,7 +864,7 @@ function AdditionalAppointmentModalContent({
           
           {!timeValidation.isValid && (
             <div className="bg-red-50 border border-red-200 rounded-md p-3 text-red-800">
-              <div className="flex items-start gap-2">
+              <div className="flex flex-wrap items-start gap-2">
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-semibold">⛔ Conflicto de horario</p>
@@ -1362,7 +1362,7 @@ function AdditionalAppointmentModalContent({
           <div className="space-y-4 py-4">
             {/* Mensaje de conflicto */}
             <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-              <div className="flex items-start gap-3">
+              <div className="flex flex-wrap items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-orange-800">
                   <p className="font-semibold mb-2">Detalles del conflicto:</p>

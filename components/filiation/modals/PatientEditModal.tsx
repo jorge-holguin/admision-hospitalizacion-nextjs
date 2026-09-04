@@ -918,7 +918,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
             />
             {/* ✅ Botón RENIEC solo visible para pacientes con tipo de documento 'D' (DNI) */}
             {selectedDocType === 'D' && (
-              <div className="flex justify-center mt-4">
+              <div className="flex flex-wrap justify-center mt-4">
                 <Button 
                   onClick={handleUpdateFromReniec}
                   disabled={isLoadingReniec || reniecButtonUsed}
@@ -990,7 +990,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
                   : 'bg-blue-50 border-blue-200'
               }
             >
-              <div className="flex items-start gap-2">
+              <div className="flex flex-wrap items-start gap-2">
                 {alert.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
                 {alert.type === 'warning' && <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />}
                 {alert.type === 'info' && <Info className="h-5 w-5 text-blue-600 mt-0.5" />}
@@ -1079,7 +1079,7 @@ export function PatientEditModal({ patient, onCancel, onSuccess }: PatientEditMo
               Los datos del paciente se han actualizado correctamente.
             </p>
           </div>
-          <div className="flex justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <Button 
               onClick={() => {
                 setShowSuccessDialog(false);
