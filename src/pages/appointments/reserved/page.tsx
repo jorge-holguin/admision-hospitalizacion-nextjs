@@ -88,7 +88,7 @@ function RevertirModalContent({ reserva, isLoading, onConfirm, onCancel }: Rever
         </div>
       </div>
 
-      <DialogFooter className="flex gap-2">
+      <DialogFooter className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           onClick={onCancel}
@@ -1015,7 +1015,7 @@ export default function ReservedAppointmentsPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1082,7 +1082,7 @@ export default function ReservedAppointmentsPage() {
                     <div className="text-sm text-gray-500">
                       Página {currentPage + 1} de {totalPages} - Total: {totalElements} registros
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
                         size="sm"

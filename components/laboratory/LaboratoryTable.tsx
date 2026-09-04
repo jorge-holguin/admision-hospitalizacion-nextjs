@@ -148,7 +148,7 @@ export function LaboratoryTable({
                       {getEstadoBadge(cita.estado)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 justify-center">
+                      <div className="flex flex-wrap gap-1 justify-center">
                         <Button
                           size="sm"
                           variant="ghost"

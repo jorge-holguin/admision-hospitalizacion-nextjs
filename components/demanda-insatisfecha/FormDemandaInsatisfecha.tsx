@@ -517,7 +517,7 @@ export default function FormDemandaInsatisfecha() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs">
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-100" onClick={() => verDetalle(r)} title="Ver detalle">
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
@@ -552,7 +552,7 @@ export default function FormDemandaInsatisfecha() {
                 Datos del Paciente
               </h4>
 
-              <div className="flex gap-4 items-start">
+              <div className="flex flex-wrap gap-4 items-start">
                 {/* Patient photo */}
                 <div className="flex-shrink-0 flex flex-col items-center gap-1">
                   <div className={`w-20 h-20 rounded-xl border-2 flex items-center justify-center overflow-hidden transition-all ${
@@ -780,7 +780,7 @@ export default function FormDemandaInsatisfecha() {
                   <Clock className="h-3 w-3 text-blue-500" />
                   Turno *
                 </Label>
-                <div className="flex gap-2 pt-0.5">
+                <div className="flex flex-wrap gap-2 pt-0.5">
                   <button
                     type="button"
                     onClick={() => setTurno("M")}

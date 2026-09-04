@@ -341,7 +341,7 @@ export default function LaboratoryPage() {
       <Card>
         <CardHeader className="pb-4 flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg font-semibold text-blue-800">Filtros de Búsqueda</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
               onClick={handleClearFilters}

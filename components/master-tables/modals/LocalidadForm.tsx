@@ -177,7 +177,7 @@ export const LocalidadForm: React.FC<LocalidadFormProps> = ({
 
       <div className="space-y-2">
         <Label>Estado</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant={formData.ACTIVO === "1" ? "default" : "outline"}

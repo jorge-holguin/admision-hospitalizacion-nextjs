@@ -968,7 +968,7 @@ function PatientAssignmentModalContent({
               La cita ha sido asignada exitosamente. ¿Desea imprimir el ticket de la cita?
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-wrap gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={async () => {

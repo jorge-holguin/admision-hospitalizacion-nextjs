@@ -196,7 +196,7 @@ export default function ReportesDemandaInsatisfecha() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between flex-wrap gap-2">
         <h3 className="text-base font-semibold text-gray-800">Filtros de Búsqueda</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => buscar(0)} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Actualizar
           </Button>

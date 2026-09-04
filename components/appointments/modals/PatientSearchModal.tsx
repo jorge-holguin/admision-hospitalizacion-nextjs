@@ -287,7 +287,7 @@ export function PatientSearchModal({ isOpen, onClose, onPatientSelect, onPatient
               )}
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Select value={searchType} onValueChange={setSearchType}>
                 <SelectTrigger className="w-48">
                   <SelectValue />
