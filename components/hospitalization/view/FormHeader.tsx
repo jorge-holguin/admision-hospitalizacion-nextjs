@@ -24,12 +24,12 @@ export const FormHeader: React.FC<FormHeaderProps> = ({
 }) => {
   return (
     <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 mb-6">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="sm:col-span-1">
           <div className="mb-2 font-medium text-sm">Historia Clínica</div>
           <div className="text-lg font-semibold">{historyNumber || 'N/A'}</div>
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <DateTimeFields
             dateValue={date}
             timeValue={time}

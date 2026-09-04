@@ -74,7 +74,7 @@ export function AccountConfirmationDialog({
               Información de la Cuenta
             </div>
             
-            <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-sm">
               <div className="text-gray-600">N° Cuenta:</div>
               <div className="font-medium break-words">{accountInfo.cuentaId}</div>
               
