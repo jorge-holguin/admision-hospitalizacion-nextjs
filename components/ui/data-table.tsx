@@ -175,7 +175,7 @@ export function DataTable<T>({
               value={pageSize.toString()}
               onValueChange={(value) => onPageSizeChange(parseInt(value))}
             >
-              <SelectTrigger className="h-8 w-[70px] font-medium">
+              <SelectTrigger className="h-8 w-full sm:w-[70px] font-medium">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent>

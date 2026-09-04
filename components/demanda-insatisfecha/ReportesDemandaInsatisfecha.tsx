@@ -213,16 +213,16 @@ export default function ReportesDemandaInsatisfecha() {
       <div className="flex flex-wrap gap-3 items-end p-4 bg-gray-50 rounded-lg border">
         <div className="space-y-1">
           <Label className="text-xs text-gray-600">Desde</Label>
-          <Input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className="h-8 text-xs w-36" />
+          <Input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className="h-8 text-xs w-full sm:w-36" />
         </div>
         <div className="space-y-1">
           <Label className="text-xs text-gray-600">Hasta</Label>
-          <Input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); buscar(0) }} className="h-8 text-xs w-36" />
+          <Input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); buscar(0) }} className="h-8 text-xs w-full sm:w-36" />
         </div>
         <div className="space-y-1">
           <Label className="text-xs text-gray-600">Especialidad</Label>
           <Select value={especialidadFilter} onValueChange={v => { setEspecialidadFilter(v); buscar(0) }}>
-            <SelectTrigger className="h-8 text-xs w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs w-full sm:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Todos" className="text-xs">Todas</SelectItem>
               {especialidades.map(e => <SelectItem key={e.Codigo} value={e.Codigo} className="text-xs">{e.Nombre}</SelectItem>)}
@@ -232,7 +232,7 @@ export default function ReportesDemandaInsatisfecha() {
         <div className="space-y-1">
           <Label className="text-xs text-gray-600">Tipo Comunicación</Label>
           <Select value={tipoComunicacionFilter} onValueChange={v => { setTipoComunicacionFilter(v); buscar(0) }}>
-            <SelectTrigger className="h-8 text-xs w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs w-full sm:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Todos" className="text-xs">Todos</SelectItem>
               {tiposComunicacion.map((t: any, i: number) => (
@@ -244,7 +244,7 @@ export default function ReportesDemandaInsatisfecha() {
         <div className="space-y-1">
           <Label className="text-xs text-gray-600">Estado</Label>
           <Select value={estadoFilter} onValueChange={v => { setEstadoFilter(v); buscar(0) }}>
-            <SelectTrigger className="h-8 text-xs w-32"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs w-full sm:w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Todos" className="text-xs">Todos</SelectItem>
               <SelectItem value="1" className="text-xs">Activo</SelectItem>

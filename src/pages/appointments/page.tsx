@@ -1247,7 +1247,7 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
                                 setPageParam(0) // Reset a página 0 al cambiar tamaño
                               }}
                             >
-                              <SelectTrigger className="w-[70px] h-9">
+                              <SelectTrigger className="w-full sm:w-[70px] h-9">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>

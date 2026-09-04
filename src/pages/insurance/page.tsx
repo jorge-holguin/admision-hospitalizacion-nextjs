@@ -1036,7 +1036,7 @@ export default function InsurancePage() {
                       value={String(pageSize)}
                       onValueChange={(v) => setPageSize(Number(v))}
                     >
-                      <SelectTrigger className="h-8 w-[80px] border-[#9CD2D3]">
+                      <SelectTrigger className="h-8 w-full sm:w-[80px] border-[#9CD2D3]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

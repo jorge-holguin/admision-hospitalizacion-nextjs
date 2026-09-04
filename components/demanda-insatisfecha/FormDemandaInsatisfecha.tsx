@@ -458,7 +458,7 @@ export default function FormDemandaInsatisfecha() {
               placeholder="Búsqueda por Paciente (DNI o nombre)"
               value={filterPaciente}
               onChange={e => setFilterPaciente(e.target.value)}
-              className="pl-9 w-72"
+              className="pl-9 w-full sm:w-72"
             />
           </div>
           {filterPaciente && (
