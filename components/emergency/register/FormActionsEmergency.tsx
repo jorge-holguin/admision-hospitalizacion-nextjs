@@ -122,7 +122,7 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center">
+            <AlertDialogTitle className="flex flex-wrap items-center gap-2">
               <AlertCircle className="h-5 w-5 text-orange-500 mr-2" />
               {isUpdate ? 'Actualizar registro de emergencia' : 'Crear nuevo registro de emergencia'}
             </AlertDialogTitle>

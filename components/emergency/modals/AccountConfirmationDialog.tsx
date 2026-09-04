@@ -58,7 +58,7 @@ export function AccountConfirmationDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-600">
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-amber-600">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
             <span>Cuenta Activa Existente</span>
           </DialogTitle>
