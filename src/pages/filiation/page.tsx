@@ -796,8 +796,8 @@ export default function FiliationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] gap-2 items-stretch">
-              <div className="flex flex-row gap-2 min-w-0">
+            <div className="flex flex-row items-stretch gap-2">
+              <div className="flex flex-row gap-2 min-w-0 shrink-0">
                 <Select
                   value={searchType}
                   onValueChange={(value) => {
@@ -805,10 +805,10 @@ export default function FiliationPage() {
                     setSearchTerm("") // Clear search term when changing search type
                   }}
                 >
-                  <SelectTrigger className="w-[120px] h-10">
+                  <SelectTrigger className="w-[90px] sm:w-[120px] h-10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="min-w-[160px]">
                     <SelectItem value="documento">Documento</SelectItem>
                     <SelectItem value="historia">Historia Clínica</SelectItem>
                     <SelectItem value="nombres">Apellidos y Nombres</SelectItem>
@@ -824,7 +824,7 @@ export default function FiliationPage() {
                     }}
                     disabled={isLoadingDocumentTypes}
                   >
-                    <SelectTrigger className="w-[90px] h-10">
+                    <SelectTrigger className="w-[70px] sm:w-[90px] h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -838,12 +838,12 @@ export default function FiliationPage() {
                 )}
               </div>
 
-              <div className="relative min-w-0">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <div className="relative flex-1 min-w-0">
+                <Search className="hidden sm:block absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
 
                 <Input
                   placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
-                  className={`pl-8 w-full ${searchTerm ? "pr-8" : "pr-3"}`}
+                  className={`w-full ${searchTerm ? "pr-8" : "pr-3"} pl-3 sm:pl-8`}
                   value={searchTerm}
                   onChange={(e) => {
                     const value = e.target.value
@@ -881,15 +881,18 @@ export default function FiliationPage() {
                 type="submit"
                 onClick={() => handleSearch()}
                 disabled={isLoading || isSearching}
-                className="font-medium w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+                className="shrink-0 font-medium h-10 w-auto px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isLoading || isSearching ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Buscando...
+                    <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+                    <span className="hidden sm:inline">Buscando...</span>
                   </>
                 ) : (
-                  "Buscar"
+                  <>
+                    <Search className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Buscar</span>
+                  </>
                 )}
               </Button>
             </div>
