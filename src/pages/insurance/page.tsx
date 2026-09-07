@@ -387,16 +387,16 @@ export default function InsurancePage() {
 
           <div className="bg-white rounded-xl shadow-sm border border-[#9CD2D3]/30 p-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8 pb-6 border-b border-[#9CD2D3]/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-10 pb-8 border-b border-[#9CD2D3]/20">
               <h1 className="text-2xl font-semibold text-[#114C5F]">
                 Lista de Atenciones SIS
               </h1>
-              <div className="flex flex-wrap gap-5">
+              <div className="flex flex-wrap gap-3">
                  {canExportar && (
                   <Button
                     onClick={handleExportarExcel}
                     disabled={exportando || loading || !desde || !hasta}
-                    className="text-white bg-green-600 hover:bg-green-700 shadow-md disabled:opacity-60 px-5"
+                    className="text-white bg-green-600 hover:bg-green-700 shadow-md disabled:opacity-60"
                   >
                     {exportando ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -408,7 +408,7 @@ export default function InsurancePage() {
                 )}
                 <Button
                   onClick={handleActualizar}
-                  className="text-white bg-[#4F9BB6] hover:bg-[#4A6EB0] shadow-md px-5"
+                  className="text-white bg-[#4F9BB6] hover:bg-[#4A6EB0] shadow-md"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Actualizar
@@ -416,7 +416,7 @@ export default function InsurancePage() {
                 <Button
                   onClick={handleLimpiarFiltros}
                   variant="outline"
-                  className="border-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3]/10 px-5"
+                  className="border-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3]/10"
                 >
                   <FilterX className="w-4 h-4 mr-2" />
                   Limpiar Filtros
