@@ -396,7 +396,7 @@ export default function InsurancePage() {
                   <Button
                     onClick={handleExportarExcel}
                     disabled={exportando || loading || !desde || !hasta}
-                    className="text-white bg-[#1F7A4D] hover:bg-[#17633D] shadow-md disabled:opacity-60"
+                    className="text-white bg-green-600 hover:bg-green-700 shadow-md disabled:opacity-60"
                   >
                     {exportando ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
