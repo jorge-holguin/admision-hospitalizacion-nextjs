@@ -797,7 +797,7 @@ export default function FiliationPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-row items-stretch gap-2">
-              <div className="flex flex-row gap-2 min-w-0 shrink-0">
+              <div className="flex-1 min-w-0">
                 <Select
                   value={searchType}
                   onValueChange={(value) => {
@@ -805,7 +805,7 @@ export default function FiliationPage() {
                     setSearchTerm("") // Clear search term when changing search type
                   }}
                 >
-                  <SelectTrigger className="w-[90px] sm:w-[120px] h-10">
+                  <SelectTrigger className="w-full h-10 min-w-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="min-w-[160px]">
@@ -814,8 +814,10 @@ export default function FiliationPage() {
                     <SelectItem value="nombres">Apellidos y Nombres</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
 
-                {searchType === "documento" && (
+              {searchType === "documento" && (
+                <div className="flex-1 min-w-0">
                   <Select
                     value={searchDocumentType}
                     onValueChange={(value) => {
@@ -824,10 +826,10 @@ export default function FiliationPage() {
                     }}
                     disabled={isLoadingDocumentTypes}
                   >
-                    <SelectTrigger className="w-[70px] sm:w-[90px] h-10">
+                    <SelectTrigger className="w-full h-10 min-w-0">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[120px]">
                       {documentTypesList.map((t) => (
                         <SelectItem key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
                           {t.nombre}
@@ -835,10 +837,10 @@ export default function FiliationPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="relative flex-1 min-w-0 max-w-[500px]">
+              <div className="relative flex-[2] min-w-0">
                 <Search className="hidden sm:block absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
 
                 <Input
