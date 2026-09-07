@@ -843,7 +843,7 @@ export default function FiliationPage() {
 
                 <Input
                   placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
-                  className={`w-full ${searchTerm ? "pr-8" : "pr-3"} pl-3 sm:pl-8`}
+                  className={`w-full ${searchTerm ? "pr-8" : "pr-3"} pl-3 sm:pl-10`}
                   value={searchTerm}
                   onChange={(e) => {
                     const value = e.target.value
