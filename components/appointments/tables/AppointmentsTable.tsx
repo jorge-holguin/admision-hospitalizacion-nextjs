@@ -137,7 +137,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                 <TableCell className="text-sm">{displayMedico(appointment)}</TableCell>
                 <TableCell className="text-sm">{appointment.nombre || appointment.paciente || '-'}</TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="inline-flex items-center gap-1">
                     {canLiberar && (() => {
                       const seguroCode = getSeguroCode(appointment)
                       const estado = Number(appointment.estado)
@@ -151,6 +151,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                           onClick={() => onAction("release", appointment)}
                           title="Liberar"
                           disabled={!puedeLiberar}
+                          className="shrink-0"
                         >
                           <Unlock className="w-4 h-4" />
                         </Button>
@@ -162,6 +163,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                         variant="outline"
                         onClick={() => onAction("assign", appointment)}
                         title="Asignar"
+                        className="shrink-0"
                         disabled={
                           Number(appointment.estado) !== 1 ||
                           (isPastDate(appointment.fecha) && !canAsignarPasadas)
@@ -176,6 +178,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                         variant="outline"
                         onClick={() => onAction("details", appointment)}
                         title="Ver más"
+                        className="shrink-0"
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -186,6 +189,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                         variant="outline"
                         onClick={() => onAction("print", appointment)}
                         title="Imprimir"
+                        className="shrink-0"
                         disabled={
                           !(Number(appointment.estado) === 2 || 
                             Number(appointment.estado) === 3 || 
@@ -201,7 +205,7 @@ export function AppointmentsTable({ appointments, getEstadoBadge, onAction }: Ap
                         variant="outline"
                         onClick={() => onAction("reschedule", appointment)}
                         title="Reprogramar"
-                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                        className="shrink-0 text-orange-600 border-orange-300 hover:bg-orange-50"
                       >
                         <CalendarClock className="w-4 h-4" />
                       </Button>
