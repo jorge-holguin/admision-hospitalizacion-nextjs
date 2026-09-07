@@ -753,12 +753,12 @@ export default function FiliationPage() {
 
           <Button
             variant="outline"
-            size="lg"
-            className="flex flex-wrap items-center gap-3 bg-red-600 hover:bg-red-700 text-white border-red-700 font-bold w-full sm:w-auto"
+            size="sm"
+            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-red-700 font-semibold w-full sm:w-auto"
             onClick={() => (window.location.href = "/dashboard")}
           >
-            <Home className="h-10 w-10" />
-            <span className="text-lg font-bold">Dashboard</span>
+            <Home className="h-5 w-5" />
+            <span className="text-sm">Dashboard</span>
           </Button>
         </div>
         <div className="mb-6">
@@ -771,7 +771,7 @@ export default function FiliationPage() {
           <CardHeader>
             <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 font-bold text-gray-900">
               <span className="text-lg">Búsqueda de Pacientes</span>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <div className="flex flex-wrap items-center gap-2">
                   <ToggleSwitch
                     checked={estadoFiltro === "1"}
@@ -785,7 +785,7 @@ export default function FiliationPage() {
                 {canCrearPaciente && (
                   <Button
                     onClick={handleNewPatientClick}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
                     Nuevo Paciente
@@ -874,7 +874,7 @@ export default function FiliationPage() {
                 type="submit" 
                 onClick={() => handleSearch()} 
                 disabled={isLoading || isSearching}
-                className="font-medium w-full sm:w-auto"
+                className="font-medium w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isLoading || isSearching ? (
                   <>
