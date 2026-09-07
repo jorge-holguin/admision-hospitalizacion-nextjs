@@ -425,7 +425,7 @@ export default function InsurancePage() {
             </div>
 
             {/* Filtros principales */}
-            <div className="mb-8">
+            <div className="mb-12">
               {/* Fila 1: Rango de fechas | Origen | Consultorio */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Rango de fechas */}
@@ -545,7 +545,7 @@ export default function InsurancePage() {
               </div>
 
               {/* Fila 2: Tipo de Prestación | Estado del FUA | Estado de Cuenta */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
                 {/* Tipo de Prestación (combobox con catálogo) */}
                 <div>
                   <Label className="block text-sm font-medium text-[#114C5F] mb-2">
@@ -688,7 +688,7 @@ export default function InsurancePage() {
 
               {/* Checkbox: búsqueda por N° FUA (oculto por defecto) */}
               {canBuscarFua && (
-              <div className="mt-6 flex flex-wrap items-center gap-2">
+              <div className="mt-8 flex flex-wrap items-center gap-2">
                 <Checkbox
                   id="mostrar-busqueda-fua"
                   checked={mostrarBusquedaFua}
@@ -707,7 +707,7 @@ export default function InsurancePage() {
               )}
 
               {mostrarBusquedaFua && (
-                <div className="mt-4 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
+                <div className="mt-8 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
                   <div className="grid grid-cols-1 sm:grid-cols-[180px,1fr] gap-4 items-end">
                     {/* Origen del FUA */}
                     <div>
