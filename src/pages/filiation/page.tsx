@@ -42,6 +42,7 @@ import { PatientEditModal } from "@/components/filiation/modals/PatientEditModal
 import { ReniecService } from "@/services/filiation/reniecService"
 import { useFiliacion } from "@/hooks/useFiliacion"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { API_ENDPOINTS } from "@/lib/api-config"
 import { DataTable } from "@/components/ui/data-table"
 import { usePermissions } from "@/contexts/PermissionsContext"
@@ -797,39 +798,43 @@ export default function FiliationPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] gap-2 items-stretch">
               <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-                <div className="w-full sm:w-[120px] min-w-0">
-                  <select
-                    className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={searchType}
-                    onChange={(e) => {
-                      setSearchType(e.target.value as "historia" | "documento" | "nombres")
-                      setSearchTerm("") // Clear search term when changing search type
-                    }}
-                  >
-                    <option value="documento">Documento</option>
-                    <option value="historia">Historia Clínica</option>
-                    <option value="nombres">Apellidos y Nombres</option>
-                  </select>
-                </div>
+                <Select
+                  value={searchType}
+                  onValueChange={(value) => {
+                    setSearchType(value as "historia" | "documento" | "nombres")
+                    setSearchTerm("") // Clear search term when changing search type
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[120px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="documento">Documento</SelectItem>
+                    <SelectItem value="historia">Historia Clínica</SelectItem>
+                    <SelectItem value="nombres">Apellidos y Nombres</SelectItem>
+                  </SelectContent>
+                </Select>
 
                 {searchType === "documento" && (
-                  <div className="w-full sm:w-[90px] min-w-0">
-                    <select
-                      className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      value={searchDocumentType}
-                      onChange={(e) => {
-                        setSearchDocumentType(e.target.value)
-                        setSearchTerm("")
-                      }}
-                      disabled={isLoadingDocumentTypes}
-                    >
+                  <Select
+                    value={searchDocumentType}
+                    onValueChange={(value) => {
+                      setSearchDocumentType(value)
+                      setSearchTerm("")
+                    }}
+                    disabled={isLoadingDocumentTypes}
+                  >
+                    <SelectTrigger className="w-full sm:w-[90px] h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
                       {documentTypesList.map((t) => (
-                        <option key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
+                        <SelectItem key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
                           {t.nombre}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                  </div>
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
 
