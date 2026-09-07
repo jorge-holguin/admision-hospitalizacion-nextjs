@@ -627,7 +627,7 @@ export default function FiliationPage() {
       cell: (patient: any) => {
         const isAnulada = isAnuladaRecord(patient)
         return (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             {!isClinicalHistory && !isAnulada && canCrearHosp && (
               <Button
                 variant="default"
@@ -659,12 +659,12 @@ export default function FiliationPage() {
 
             {isClinicalHistory ? (
               /* Iconos con etiquetas para /historias-clinicas */
-              <div className="inline-flex flex-wrap items-center gap-0.5 p-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="inline-flex items-center gap-0.5 p-1 rounded-lg border border-gray-200 bg-white shadow-sm">
                 {canVerPaciente && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 flex flex-wrap items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs font-medium"
+                    className="h-8 px-2.5 flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs font-medium"
                     onClick={() => handleViewPatient(patient)}
                   >
                     <Eye className="h-3.5 w-3.5 shrink-0" />
@@ -678,7 +678,7 @@ export default function FiliationPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 flex flex-wrap items-center gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md text-xs font-medium"
+                    className="h-8 px-2.5 flex items-center gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md text-xs font-medium"
                     onClick={() => handleEditPatient(patient)}
                   >
                     <Edit className="h-3.5 w-3.5 shrink-0" />
@@ -692,7 +692,7 @@ export default function FiliationPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 flex flex-wrap items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md text-xs font-medium"
+                    className="h-8 px-2.5 flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md text-xs font-medium"
                     onClick={() => handleDeletePatient(patient)}
                   >
                     <Trash2 className="h-3.5 w-3.5 shrink-0" />
@@ -839,7 +839,6 @@ export default function FiliationPage() {
               </div>
 
               <div className="relative flex-1 min-w-0 max-w-[500px]">
-                <Search className="hidden sm:block absolute left-2.5 top-1/2 -translate-y-1/2 h-[1.125rem] w-[1.125rem] text-gray-400" />
 
                 <Input
                   placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
