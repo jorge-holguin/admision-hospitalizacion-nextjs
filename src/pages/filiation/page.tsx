@@ -838,7 +838,7 @@ export default function FiliationPage() {
                 )}
               </div>
 
-              <div className="relative flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0 max-w-[500px]">
                 <Search className="hidden sm:block absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
 
                 <Input
