@@ -808,7 +808,7 @@ export default function FiliationPage() {
                   <SelectTrigger className="w-[90px] sm:w-[120px] h-10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="min-w-[200px]">
+                  <SelectContent className="min-w-[220px] p-2">
                     <SelectItem value="documento">Documento</SelectItem>
                     <SelectItem value="historia">Historia Clínica</SelectItem>
                     <SelectItem value="nombres">Apellidos y Nombres</SelectItem>
@@ -827,7 +827,7 @@ export default function FiliationPage() {
                     <SelectTrigger className="w-[70px] sm:w-[90px] h-10">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="min-w-[180px]">
+                    <SelectContent className="min-w-[220px] p-2">
                       {documentTypesList.map((t) => (
                         <SelectItem key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
                           {t.nombre}
@@ -843,7 +843,7 @@ export default function FiliationPage() {
 
                 <Input
                   placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
-                  className={`w-full ${searchTerm ? "pr-8" : "pr-3"} pl-3 sm:pl-10`}
+                  className={`w-full ${searchTerm ? "pr-8" : "pr-3"} pl-3 sm:pl-12`}
                   value={searchTerm}
                   onChange={(e) => {
                     const value = e.target.value
