@@ -391,12 +391,12 @@ export default function InsurancePage() {
               <h1 className="text-2xl font-semibold text-[#114C5F]">
                 Lista de Atenciones SIS
               </h1>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-5">
                  {canExportar && (
                   <Button
                     onClick={handleExportarExcel}
                     disabled={exportando || loading || !desde || !hasta}
-                    className="text-white bg-green-600 hover:bg-green-700 shadow-md disabled:opacity-60"
+                    className="text-white bg-green-600 hover:bg-green-700 shadow-md disabled:opacity-60 px-5"
                   >
                     {exportando ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -408,7 +408,7 @@ export default function InsurancePage() {
                 )}
                 <Button
                   onClick={handleActualizar}
-                  className="text-white bg-[#4F9BB6] hover:bg-[#4A6EB0] shadow-md"
+                  className="text-white bg-[#4F9BB6] hover:bg-[#4A6EB0] shadow-md px-5"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Actualizar
@@ -416,7 +416,7 @@ export default function InsurancePage() {
                 <Button
                   onClick={handleLimpiarFiltros}
                   variant="outline"
-                  className="border-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3]/10"
+                  className="border-[#9CD2D3] text-[#114C5F] hover:bg-[#9CD2D3]/10 px-5"
                 >
                   <FilterX className="w-4 h-4 mr-2" />
                   Limpiar Filtros
