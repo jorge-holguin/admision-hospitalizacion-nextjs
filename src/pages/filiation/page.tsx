@@ -883,7 +883,7 @@ export default function FiliationPage() {
                 type="submit"
                 onClick={() => handleSearch()}
                 disabled={isLoading || isSearching}
-                className="shrink-0 font-medium h-10 w-auto px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 font-medium h-10 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isLoading || isSearching ? (
                   <>
