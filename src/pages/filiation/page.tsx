@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -796,39 +797,43 @@ export default function FiliationPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div className="w-full sm:w-[200px]">
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={searchType}
-                  onChange={(e) => {
-                    setSearchType(e.target.value as "historia" | "documento" | "nombres")
-                    setSearchTerm("") // Clear search term when changing search type
-                  }}
-                >
-                  <option value="documento">Documento</option>
-                  <option value="historia">Historia Clínica</option>
-                  <option value="nombres">Apellidos y Nombres</option>
-                </select>
-              </div>
+              <Select
+                value={searchType}
+                onValueChange={(value) => {
+                  setSearchType(value as "historia" | "documento" | "nombres")
+                  setSearchTerm("") // Clear search term when changing search type
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Buscar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="documento">Documento</SelectItem>
+                  <SelectItem value="historia">Historia Clínica</SelectItem>
+                  <SelectItem value="nombres">Apellidos y Nombres</SelectItem>
+                </SelectContent>
+              </Select>
 
               {searchType === "documento" && (
-                <div className="w-full sm:w-[180px]">
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={searchDocumentType}
-                    onChange={(e) => {
-                      setSearchDocumentType(e.target.value)
-                      setSearchTerm("")
-                    }}
-                    disabled={isLoadingDocumentTypes}
-                  >
+                <Select
+                  value={searchDocumentType}
+                  onValueChange={(value) => {
+                    setSearchDocumentType(value)
+                    setSearchTerm("")
+                  }}
+                  disabled={isLoadingDocumentTypes}
+                >
+                  <SelectTrigger className="w-full sm:w-28">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {documentTypesList.map((t) => (
-                      <option key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
+                      <SelectItem key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
                         {t.nombre}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
-                </div>
+                  </SelectContent>
+                </Select>
               )}
 
               <div className="relative flex-1 min-w-0">
