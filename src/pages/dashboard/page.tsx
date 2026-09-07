@@ -86,21 +86,21 @@ export default function Dashboard() {
         </div>
 
         {/* Module Cards */}
-        <div className="grid-fluid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {/* HOSPITALIZACIÓN / EMERGENCIA - Acceso para todos */}
           {canAccessHospitalizacion && (
             <Card
               className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-blue-200"
               onClick={handleFiliacionClick}
             >
-              <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
-                  <Home className="w-10 h-10 text-blue-600" />
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
+                  <Home className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                   HOSPITALIZACIÓN / EMERGENCIA
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-xs sm:text-sm">
                   Generación de órdenes de Hospitalización y Emergencia
                 </p>
               </CardContent>
@@ -112,14 +112,14 @@ export default function Dashboard() {
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-indigo-200"
             onClick={handleHistoriasClinicasClick}
           >
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-indigo-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
-                <FileText className="w-10 h-10 text-indigo-600" />
+            <CardContent className="p-4 sm:p-6 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                 HISTORIAS CLÍNICAS
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                 Gestión de historias clínicas de pacientes
               </p>
             </CardContent>
@@ -131,12 +131,12 @@ export default function Dashboard() {
               className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-blue-200"
               onClick={handleCitasClick}
             >
-              <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-10 h-10 text-green-600" />
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">CITAS</h3>
-                <p className="text-gray-600 text-sm">Gestión de citas médicas</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">CITAS</h3>
+                <p className="text-gray-600 text-xs sm:text-sm">Gestión de citas médicas</p>
                 <div className="mt-2">
                   <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
                     {userPuesto}
@@ -152,14 +152,14 @@ export default function Dashboard() {
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-purple-200"
             onClick={handleLaboratoryClick}
           >
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-purple-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
-                <FlaskConical className="w-10 h-10 text-purple-600" />
+            <CardContent className="p-4 sm:p-6 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-purple-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
+                <FlaskConical className="w-8 h-8 sm:w-10 sm:h-10 text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                 LABORATORIO
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                 Gestión de citas de laboratorio
               </p>
             </CardContent>
@@ -171,14 +171,14 @@ export default function Dashboard() {
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-cyan-200"
             onClick={handleInsuranceClick}
           >
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4 border border-blue-200">
-                <Shield className="w-10 h-10 text-blue-700" />
+            <CardContent className="p-4 sm:p-6 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4 border border-blue-200">
+                <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-blue-700" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                 SEGUROS
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                FUAs y atenciones SIS
               </p>
             </CardContent>
@@ -189,14 +189,14 @@ export default function Dashboard() {
             className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-orange-200"
             onClick={handleDemandaInsatisfechaClick}
           >
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-orange-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
-                <PhoneOff className="w-10 h-10 text-orange-600" />
+            <CardContent className="p-4 sm:p-6 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
+                <PhoneOff className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                 DEMANDA INSATISFECHA
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                 Registro de comunicaciones de demanda insatisfecha
               </p>
             </CardContent>
@@ -208,14 +208,14 @@ export default function Dashboard() {
               className="hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-green-200"
               onClick={handleTablasMaestrasClick}
             >
-              <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
-                  <Table className="w-10 h-10 text-green-600" />
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex flex-wrap items-center justify-center mx-auto mb-4">
+                  <Table className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
                   Tablas Maestras
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-xs sm:text-sm">
                   Gestión de tablas maestras del sistema
                 </p>
                 <div className="mt-2">
