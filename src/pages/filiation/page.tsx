@@ -795,48 +795,50 @@ export default function FiliationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div className="w-full sm:w-[160px] sm:shrink-0">
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={searchType}
-                  onChange={(e) => {
-                    setSearchType(e.target.value as "historia" | "documento" | "nombres")
-                    setSearchTerm("") // Clear search term when changing search type
-                  }}
-                >
-                  <option value="documento">Documento</option>
-                  <option value="historia">Historia Clínica</option>
-                  <option value="nombres">Apellidos y Nombres</option>
-                </select>
-              </div>
-
-              {searchType === "documento" && (
-                <div className="w-full sm:w-[120px] sm:shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] gap-2 items-stretch">
+              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
+                <div className="w-full sm:w-[120px] min-w-0">
                   <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={searchDocumentType}
+                    className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={searchType}
                     onChange={(e) => {
-                      setSearchDocumentType(e.target.value)
-                      setSearchTerm("")
+                      setSearchType(e.target.value as "historia" | "documento" | "nombres")
+                      setSearchTerm("") // Clear search term when changing search type
                     }}
-                    disabled={isLoadingDocumentTypes}
                   >
-                    {documentTypesList.map((t) => (
-                      <option key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
-                        {t.nombre}
-                      </option>
-                    ))}
+                    <option value="documento">Documento</option>
+                    <option value="historia">Historia Clínica</option>
+                    <option value="nombres">Apellidos y Nombres</option>
                   </select>
                 </div>
-              )}
 
-              <div className="relative flex-1 min-w-0">
+                {searchType === "documento" && (
+                  <div className="w-full sm:w-[90px] min-w-0">
+                    <select
+                      className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={searchDocumentType}
+                      onChange={(e) => {
+                        setSearchDocumentType(e.target.value)
+                        setSearchTerm("")
+                      }}
+                      disabled={isLoadingDocumentTypes}
+                    >
+                      {documentTypesList.map((t) => (
+                        <option key={t.tipoDocumento.trim()} value={t.tipoDocumento.trim()}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative min-w-0">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                
+
                 <Input
                   placeholder={`Buscar por ${searchType === "nombres" ? "apellidos y nombres (mín. 5 caracteres)" : searchType === "historia" ? "historia clínica (mín. 8 dígitos)" : `${documentTypesList.find(t => t.tipoDocumento.trim() === searchDocumentType)?.nombre || 'Documento'} (mín. ${searchDocumentType === 'D' ? '8' : '1'} caracteres)`}`}
-                  className="pl-8 pr-8 w-full"
+                  className={`pl-8 w-full ${searchTerm ? "pr-8" : "pr-3"}`}
                   value={searchTerm}
                   onChange={(e) => {
                     const value = e.target.value
@@ -851,7 +853,7 @@ export default function FiliationPage() {
                   maxLength={searchType === "documento" && searchDocumentType === "D" ? 8 : undefined}
                   disabled={isLoading}
                 />
-                
+
                 {searchTerm && (
                   <button
                     type="button"
@@ -870,9 +872,9 @@ export default function FiliationPage() {
                   </button>
                 )}
               </div>
-              <Button 
-                type="submit" 
-                onClick={() => handleSearch()} 
+              <Button
+                type="submit"
+                onClick={() => handleSearch()}
                 disabled={isLoading || isSearching}
                 className="font-medium w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
               >
