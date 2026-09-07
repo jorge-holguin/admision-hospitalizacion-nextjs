@@ -797,7 +797,7 @@ export default function FiliationPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] gap-2 items-stretch">
-              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
+              <div className="flex flex-row gap-2 min-w-0">
                 <Select
                   value={searchType}
                   onValueChange={(value) => {
@@ -805,7 +805,7 @@ export default function FiliationPage() {
                     setSearchTerm("") // Clear search term when changing search type
                   }}
                 >
-                  <SelectTrigger className="w-full sm:w-[120px] h-10">
+                  <SelectTrigger className="w-[120px] h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -824,7 +824,7 @@ export default function FiliationPage() {
                     }}
                     disabled={isLoadingDocumentTypes}
                   >
-                    <SelectTrigger className="w-full sm:w-[90px] h-10">
+                    <SelectTrigger className="w-[90px] h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
