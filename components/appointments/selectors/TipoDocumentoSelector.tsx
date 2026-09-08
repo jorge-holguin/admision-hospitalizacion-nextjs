@@ -32,7 +32,7 @@ export function TipoDocumentoSelector({
   const loadTiposDocumento = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BACKEND_URL}/maestro/tipoDocumento`)
+      const response = await fetch(`${import.meta.env.VITE_API_CITAS_MASTER_URL}/maestro/tipoDocumento`)
       if (!response.ok) {
         throw new Error('Error al cargar tipos de documento')
       }

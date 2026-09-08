@@ -2,7 +2,7 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Spinner } from './ui/spinner'
+import { PageLoader } from '@/components/ui/PageLoader'
 
 interface LoadingContextType {
   isLoading: boolean
@@ -14,26 +14,26 @@ export const useLoading = () => useContext(LoadingContext)
 
 function LoadingProviderInner({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [showLoading, setShowLoading] = useState(false)
   const { pathname, search } = useLocation()
 
   useEffect(() => {
     setIsLoading(true)
-    const timer = setTimeout(() => {
+    setShowLoading(false)
+    const showTimer = setTimeout(() => setShowLoading(true), 150)
+    const hideTimer = setTimeout(() => {
       setIsLoading(false)
+      setShowLoading(false)
     }, 500)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(showTimer)
+      clearTimeout(hideTimer)
+    }
   }, [pathname, search])
 
   return (
     <LoadingContext.Provider value={{ isLoading }}>
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex flex-wrap items-center justify-center transition-opacity duration-300">
-          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
-            <Spinner size="lg" />
-            <p className="mt-4 text-gray-700 font-medium">Cargando...</p>
-          </div>
-        </div>
-      )}
+      {showLoading && <PageLoader overlay />}
       {children}
     </LoadingContext.Provider>
   )

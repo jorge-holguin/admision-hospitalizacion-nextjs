@@ -3,11 +3,11 @@
  * Esta configuración facilita la migración de Next.js API a Spring Boot
  */
 
-// URL base del backend Spring Boot
-export const API_SPRING_URL = import.meta.env.VITE_API_SPRING_URL || 'http://192.168.5.239:9011/api';
+// URL base unificada de la API
+const API_BASE_URL = import.meta.env.VITE_API_CITAS_MASTER_URL || 'http://192.168.5.239:9011/api';
 
-// URL base del backend legacy (usado por SIS y otras APIs antiguas)
-export const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL || 'http://192.168.0.252:9011/api';
+export const API_SPRING_URL = API_BASE_URL;
+export const API_BACKEND_URL = API_BASE_URL;
 
 // URLs específicas por módulo
 export const API_ENDPOINTS = {
@@ -319,12 +319,21 @@ export function normalizeHospitalizationData(data: any): any {
 /**
  * Helper para construir URLs con query params
  */
-export function buildUrl(baseUrl: string, params?: Record<string, string | number | boolean | undefined>): string {
+export function buildUrl(baseUrl: string, params?: Record<string, string | number | boolean | undefined | (string | number | boolean | undefined)[]>): string {
   if (!params) return baseUrl;
   
   const filteredParams = Object.entries(params)
-    .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .flatMap(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value
+          .filter(v => v !== undefined && v !== null && v !== '')
+          .map(v => `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
+      }
+      if (value !== undefined && value !== null && value !== '') {
+        return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
+      }
+      return [];
+    })
     .join('&');
   
   return filteredParams ? `${baseUrl}?${filteredParams}` : baseUrl;

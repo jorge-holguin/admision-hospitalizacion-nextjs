@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { usePermissions } from "@/contexts/PermissionsContext"
 import { PERMISOS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
@@ -387,7 +388,7 @@ export default function InsurancePage() {
 
           <div className="bg-white rounded-xl shadow-sm border border-[#9CD2D3]/30 p-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-10 pb-8 border-b border-[#9CD2D3]/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-10 pb-4 border-b border-[#9CD2D3]/20">
               <h1 className="text-2xl font-semibold text-[#114C5F]">
                 Lista de Atenciones SIS
               </h1>
@@ -425,7 +426,7 @@ export default function InsurancePage() {
             </div>
 
             {/* Filtros principales */}
-            <div className="mb-12">
+            <div className="mb-6">
               {/* Fila 1: Rango de fechas | Origen | Consultorio */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Rango de fechas */}
@@ -545,7 +546,7 @@ export default function InsurancePage() {
               </div>
 
               {/* Fila 2: Tipo de Prestación | Estado del FUA | Estado de Cuenta */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 {/* Tipo de Prestación (combobox con catálogo) */}
                 <div>
                   <Label className="block text-sm font-medium text-[#114C5F] mb-2">
@@ -688,7 +689,7 @@ export default function InsurancePage() {
 
               {/* Checkbox: búsqueda por N° FUA (oculto por defecto) */}
               {canBuscarFua && (
-              <div className="mt-8 flex flex-wrap items-center gap-2">
+              <div className="mt-6 flex flex-wrap items-center gap-2">
                 <Checkbox
                   id="mostrar-busqueda-fua"
                   checked={mostrarBusquedaFua}
@@ -707,7 +708,7 @@ export default function InsurancePage() {
               )}
 
               {mostrarBusquedaFua && (
-                <div className="mt-8 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
+                <div className="mt-6 p-4 bg-gradient-to-r from-[#4F9BB6]/5 to-[#9CD2D3]/5 rounded-lg border border-[#9CD2D3]/30">
                   <div className="grid grid-cols-1 sm:grid-cols-[180px,1fr] gap-4 items-end">
                     {/* Origen del FUA */}
                     <div>
@@ -808,10 +809,7 @@ export default function InsurancePage() {
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={12} className="text-center py-12">
-                        <div className="flex flex-col items-center gap-3">
-                          <Loader2 className="w-8 h-8 animate-spin text-[#4F9BB6]" />
-                          <p className="text-gray-500">Cargando atenciones...</p>
-                        </div>
+                        <PageLoader overlay={false} color="#4F9BB6" size={40} className="h-40" />
                       </TableCell>
                     </TableRow>
                   ) : error ? (

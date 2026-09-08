@@ -19,10 +19,16 @@ interface LiquidacionViewerModalProps {
 //      GET {FIRMADO_BASE}/ConsultaExterna/Fua056/getDocumentoFirmado?idDocumento=...&idTipoDocumento=11
 //   2ª opción (fallback ante 400/500/error de red):
 //      GET {API_BASE}/reporte/liquidacion?citaId=...
-const API_BASE = import.meta.env.VITE_API_CITAS_MASTER_URL
+const API_BASE = import.meta.env.VITE_API_CITAS_MASTER_URL ?? "http://192.168.0.17:9011/api"
 const FIRMADO_BASE =
-  import.meta.env.VITE_FIRMADO_URL ?? "http://192.168.0.20:9200"
+  import.meta.env.VITE_FIRMADO_URL ?? "http://192.168.0.17:9011"
 const ID_TIPO_DOCUMENTO_LIQUIDACION = "11"
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId))
+}
 
 export function LiquidacionViewerModal({ open, onClose, citaId, cuentaId, idDocumento }: LiquidacionViewerModalProps) {
   const [loading, setLoading] = useState(true)
@@ -47,7 +53,7 @@ export function LiquidacionViewerModal({ open, onClose, citaId, cuentaId, idDocu
       return
     }
     let cancelled = false
-    fetch(firmadoUrl, { method: "HEAD" })
+    fetchWithTimeout(firmadoUrl, { method: "HEAD" }, 5000)
       .then((res) => {
         if (cancelled) return
         if (res.ok) {

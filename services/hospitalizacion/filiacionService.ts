@@ -382,15 +382,16 @@ function normalizeUbigeo(value: any, prefer: 'distrito' | 'provincia' | 'departa
 function mapFromBackend(record: any): any {
   if (!record) return record;
 
-  const rawSeguro    = record.SEGURO    ?? record.seguro;
-  const rawTipoDoc   = record.TIPO_DOCUMENTO ?? record.tipoDocumento;
+  const rawSeguro      = record.SEGURO    ?? record.seguro;
+  const rawTipoDoc     = record.TIPO_DOCUMENTO ?? record.tipoDocumento;
+  const rawEstadoCivil = record.ESTADO_CIVIL ?? record.estadoCivil;
 
   const mapped: any = {
     PACIENTE:                  record.PACIENTE               ?? record.paciente,
     HISTORIA:                  record.HISTORIA               ?? record.historia,
     NOMBRES:                   record.NOMBRES                ?? record.nombres,
     SEXO:                      record.SEXO                   ?? record.sexo,
-    NOMBRE_ESTADO_CIVIL:       record.NOMBRE_ESTADO_CIVIL    ?? record.nombreEstadoCivil,
+    NOMBRE_ESTADO_CIVIL:       record.NOMBRE_ESTADO_CIVIL ?? record.nombreEstadoCivil ?? (typeof rawEstadoCivil === 'object' ? rawEstadoCivil?.nombre : undefined),
     FECHA_APERTURA:            record.FECHA_APERTURA         ?? record.fechaApertura,
     HORA_APERTURA:             record.HORA_APERTURA          ?? record.horaApertura,
     PADRE:                     record.PADRE                  ?? record.padre,
@@ -417,7 +418,7 @@ function mapFromBackend(record: any): any {
     CONSULTORIO:               record.CONSULTORIO            ?? record.consultorio,
     CONSUL:                    record.CONSUL                 ?? record.consul,
     EDAD:                      record.EDAD                   ?? record.edad,
-    ESTADO_CIVIL:              record.ESTADO_CIVIL           ?? record.estadoCivil,
+    ESTADO_CIVIL:              record.ESTADO_CIVIL ?? (typeof rawEstadoCivil === 'object' ? rawEstadoCivil?.estadoCivil : rawEstadoCivil),
     SYSINSERT:                 record.SYSINSERT              ?? record.sysInsert,
     SYSUPDATE:                 record.SYSUPDATE              ?? record.sysUpdate,
     FECHA_CONSULTA:            record.FECHA_CONSULTA         ?? record.fechaConsulta,

@@ -77,7 +77,8 @@ export function SimpleSISVerification({
     setVerificationResult(null);
 
     try {
-      const sisResult = await consultarSIS(documento);      const data = sisResult.data;
+      const sisResult = await consultarSIS(documento);
+      const data = sisResult.data;
       const resultado = (data?.resultado || sisResult.error || '').trim();
 
       const trimField = (value?: string | null) => (value ? value.trim() : undefined);

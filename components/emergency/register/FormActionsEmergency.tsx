@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Loader2, Save, X } from "lucide-react";
+import { AlertCircle, Loader2, Save, User, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +12,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import FuaEmergencyStatusAlert from './FuaEmergencyStatusAlert';
-import { extractDocumentFromToken } from '@/utils/jwtUtils';
+import { extractDocumentFromToken, extractNombreCompletoFromToken } from '@/utils/jwtUtils';
+import { useConsultorios } from '@/contexts/ConsultoriosContext';
+import { useMedicos } from '@/contexts/MedicosContext';
+import { useSeguros } from '@/contexts/SegurosContext';
 
 interface FormActionsEmergencyProps {
   onSave: () => Promise<void>;
@@ -40,12 +43,41 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [fuaValidationPassed, setFuaValidationPassed] = useState(false);
   const [userDocument, setUserDocument] = useState<string>('');
+  const [userName, setUserName] = useState<string>('');
+
+  const f = formData || {};
+
+  const nombres = String(f.nombres || '').trim();
+  const apep = String(f.apellidoPaterno || '').trim();
+  const apem = String(f.apellidoMaterno || '').trim();
+  const nombreTokens = new Set(nombres.toLowerCase().split(/\s+/).filter(Boolean));
+  let patientName = nombres;
+  if (apep && !nombreTokens.has(apep.toLowerCase())) {
+    patientName += ' ' + apep;
+    nombreTokens.add(apep.toLowerCase());
+  }
+  if (apem && !nombreTokens.has(apem.toLowerCase())) {
+    patientName += ' ' + apem;
+    nombreTokens.add(apem.toLowerCase());
+  }
+  patientName = patientName.trim() || '—';
+
+  const { getConsultorioNombre } = useConsultorios();
+  const { getMedicoInfo } = useMedicos();
+  const { getSegurosDescripcion } = useSeguros();
+
+  const consultorioDisplay = getConsultorioNombre(f.consultorio);
+  const medicoDisplay = getMedicoInfo(f.medico);
+  const seguroCode = String(f.seguro || '').split(' - ')[0]?.trim() || String(f.seguro || '').trim();
+  const seguroDisplay = getSegurosDescripcion(seguroCode);
 
   useEffect(() => {
     try {
       setUserDocument(extractDocumentFromToken());
+      setUserName(extractNombreCompletoFromToken());
     } catch {
       setUserDocument('');
+      setUserName('');
     }
   }, []);
   
@@ -128,22 +160,62 @@ export const FormActionsEmergency: React.FC<FormActionsEmergencyProps> = ({
             </AlertDialogTitle>
             <AlertDialogDescription>
               ¿Está seguro que desea {isUpdate ? 'actualizar' : 'crear'} este registro de emergencia?
-              <div className="mt-2 text-sm text-gray-600">
-                Operación bajo usuario: <strong>{userDocument || 'No identificado'}</strong>
-              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          {/* Validación FUA para seguros SIS */}
-          {requiresFuaValidation && (
-            <div className="px-6 pb-4">
+          {/* Detalles del registro de emergencia */}
+          <div className="px-6 py-2 space-y-4">
+            {/* Resumen principal */}
+            <div className="p-3 bg-gray-50 rounded border text-sm text-gray-700 space-y-1">
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">Paciente:</span>
+                <strong className="text-right">{patientName}</strong>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">Consultorio:</span>
+                <strong className="text-right">{consultorioDisplay}</strong>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">Seguro:</span>
+                <strong className="text-right">{seguroDisplay}</strong>
+              </div>
+            </div>
+
+            <div className="space-y-1 text-sm text-gray-700">
+              {formData?.documento && (
+                <p><span className="font-medium">Documento:</span> {formData.documento}</p>
+              )}
+              {formData?.fecha && (
+                <p><span className="font-medium">Fecha:</span> {formData.fecha} <span className="font-medium ml-2">Hora:</span> {formData.hora}</p>
+              )}
+              {formData?.medico && (
+                <p><span className="font-medium">Médico:</span> {medicoDisplay}</p>
+              )}
+              {formData?.diagnostico && (
+                <p><span className="font-medium">Diagnóstico:</span> {formData.diagnostico}</p>
+              )}
+            </div>
+
+            {/* Validación FUA para seguros SIS */}
+            {requiresFuaValidation && (
               <FuaEmergencyStatusAlert 
                 patientId={patientId}
                 insuranceCode={insuranceCode}
                 onValidationChange={setFuaValidationPassed}
               />
+            )}
+
+            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded text-sm">
+              <User className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-blue-900">Usuario que realiza la operación</p>
+                <p className="text-blue-800">
+                  <span className="font-semibold">{userName || 'No identificado'}</span>
+                  <span className="ml-1 text-blue-600">(DNI: {userDocument || 'No identificado'})</span>
+                </p>
+              </div>
             </div>
-          )}
+          </div>
           
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

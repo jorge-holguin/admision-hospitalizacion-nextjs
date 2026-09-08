@@ -317,8 +317,11 @@ export function EmergencyFormRefactored({
 
     // Mapear los campos del contexto a los campos que necesitamos
     return {
-      estadoCivil: getCivilStatusCode(patientDataFromContext.estadoCivil, patientDataFromContext.NOMBRE_ESTADO_CIVIL),
-      NOMBRE_ESTADO_CIVIL: patientDataFromContext.NOMBRE_ESTADO_CIVIL || '',
+      estadoCivil: getCivilStatusCode(
+        patientDataFromContext.estadoCivil || (patientDataFromContext as any).ESTADO_CIVIL || (patientDataFromContext as any).ESTADOCIVIL,
+        patientDataFromContext.NOMBRE_ESTADO_CIVIL || (patientDataFromContext as any).NOMBRE_ESTADO_CIVIL || (patientDataFromContext as any).nombreEstadoCivil
+      ) || '',
+      NOMBRE_ESTADO_CIVIL: (patientDataFromContext as any).NOMBRE_ESTADO_CIVIL || (patientDataFromContext as any).nombreEstadoCivil || '',
       direccion: safeTrim(patientDataFromContext.direccion),
       distrito: safeTrim(patientDataFromContext.distrito),
       telefono1: safeTrim(patientDataFromContext.telefono1),
@@ -354,7 +357,10 @@ export function EmergencyFormRefactored({
       apellidoMaterno: data.apellidoMaterno || '',
       documento: data.documento || '',
       tipoDocumento: data.tipoDocumento || '',
-      estadoCivil: getCivilStatusCode(data.estadoCivil, data.NOMBRE_ESTADO_CIVIL) || '',
+      estadoCivil: getCivilStatusCode(
+        data.estadoCivil || (data as any).ESTADO_CIVIL || (data as any).ESTADOCIVIL,
+        data.NOMBRE_ESTADO_CIVIL || (data as any).NOMBRE_ESTADO_CIVIL || (data as any).nombreEstadoCivil
+      ) || '',
       direccion: data.direccion || '',
       distrito: data.distrito || '',
       telefono1: data.telefono1 || '',
@@ -466,6 +472,10 @@ export function EmergencyFormRefactored({
       observacion1: data.observacion1,
       observacion2: data.observacion2,
       estado: data.estado,
+      estadoCivil: getCivilStatusCode(
+        data.estadoCivil || data.ESTADO_CIVIL || data.ESTADOCIVIL,
+        data.NOMBRE_ESTADO_CIVIL || data.nombreEstadoCivil
+      ) || '',
       // Datos del acompañante
       acompanante: data.acompanante || '',
       tipoDocumentoA: data.tipoDocumentoA || '',
@@ -597,7 +607,7 @@ export function EmergencyFormRefactored({
         OBSERVACION2: (formData.observacion2 || '').substring(0, 100),
         ESTADO: formData.estado.substring(0, 1),
         USUARIO: (primerApellido || 'SISTEMA').substring(0, 10),
-        ORDEN: (ordenToUse || '1').padStart(3, '0').substring(0, 3),
+        ORDEN: String(ordenToUse || 1).padStart(3, '0').substring(0, 3),
         PATERNO: (filiacionData?.apellidoPaterno || formData.apellidoPaterno || '').substring(0, 30),
         MATERNO: (filiacionData?.apellidoMaterno || formData.apellidoMaterno || '').substring(0, 30),
         NOMBRE: (filiacionData?.nombre || formData.nombres || '').substring(0, 30),
@@ -612,13 +622,10 @@ export function EmergencyFormRefactored({
         })(),
         SEXO: (filiacionData?.sexo || formData.sexo || '').substring(0, 1),
         ESTADO_CIVIL: (() => {
-          const raw = getCivilStatusCode(filiacionData?.estadoCivil, filiacionData?.NOMBRE_ESTADO_CIVIL) || getCivilStatusCode(formData.estadoCivil) || '';
-          const padded = raw.padEnd(2, ' ').substring(0, 2);
-          return padded;
-        })(),
-        // También enviar camelCase por si el DTO de Spring espera ese nombre; se rellena a 2 caracteres igual que ESTADO_CIVIL
-        estadoCivil: (() => {
-          const raw = getCivilStatusCode(filiacionData?.estadoCivil, filiacionData?.NOMBRE_ESTADO_CIVIL) || getCivilStatusCode(formData.estadoCivil) || '';
+          const raw = getCivilStatusCode(
+            formData.estadoCivil || filiacionData?.estadoCivil || (patientData as any)?.ESTADO_CIVIL || (patientData as any)?.estadoCivil || (patientData as any)?.ESTADOCIVIL,
+            filiacionData?.NOMBRE_ESTADO_CIVIL || (patientData as any)?.NOMBRE_ESTADO_CIVIL || (patientData as any)?.nombreEstadoCivil
+          ) || '';
           return raw.padEnd(2, ' ').substring(0, 2);
         })(),
         DIRECCION: (filiacionData?.direccion || formData.direccion || '').substring(0, 100),
@@ -900,6 +907,7 @@ export function EmergencyFormRefactored({
         observacion1: emergencyData.OBSERVACION1 || '',
         observacion2: emergencyData.OBSERVACION2 || '',
         estado: emergencyData.ESTADO || '',
+        estadoCivil: emergencyData.ESTADO_CIVIL || emergencyData.estadoCivil || emergencyData.ESTADOCIVIL || '',
         // Datos del acompañante
         acompanante: emergencyData.ACOMPANANTE || emergencyData.acompanante || '',
         tipoDocumentoA: emergencyData.TIPO_DOCUMENTOA || emergencyData.tipoDocumentoA || emergencyData.tipoDocumentoAcompanante || '',

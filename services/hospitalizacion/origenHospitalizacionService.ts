@@ -37,7 +37,7 @@ interface FindAllParams {
   onlyPending?: boolean
 }
 
-const API_SPRING_URL = import.meta.env.VITE_API_SPRING_URL
+const API_SPRING_URL = import.meta.env.VITE_API_CITAS_MASTER_URL
 
 async function fetchAttentions(
   params: FindAllParams
@@ -55,7 +55,7 @@ async function fetchAttentions(
   const effectivePatientId = patientId || pacienteId || ''
 
   if (!API_SPRING_URL) {
-    throw new Error('NEXT_PUBLIC_API_SPRING_URL no está configurada')
+    throw new Error('VITE_API_CITAS_MASTER_URL no está configurada')
   }
 
   const queryParams = new URLSearchParams()
@@ -69,7 +69,8 @@ async function fetchAttentions(
     ? `${API_SPRING_URL}/hospitalization/attentions/${encodeURIComponent(effectivePatientId)}`
     : `${API_SPRING_URL}/hospitalization/attentions`
 
-  const url = `${basePath}?${queryParams.toString()}`  const response = await fetch(url, {
+  const url = `${basePath}?${queryParams.toString()}`
+  const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
     },

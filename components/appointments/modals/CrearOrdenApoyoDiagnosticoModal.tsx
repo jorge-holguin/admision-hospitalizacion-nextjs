@@ -55,6 +55,9 @@ export interface OrdenDetalleEdit {
   observacion?: string | null
   cpmsDescripcion?: string | null
   estadoDetalle?: string
+  tipoDiagnostico?: string | null
+  tipoDx?: string | null
+  tipo_diagnostico?: string | null
 }
 
 export interface OrdenToEdit {
@@ -171,6 +174,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
         ciexQuery: d.ciex || '',
         observacion: truncateObservacion(d.observacion),
         estadoDetalle: d.estadoDetalle,
+        tipoDiagnostico: d.tipoDiagnostico || d.tipoDx || d.tipo_diagnostico || 'P',
       }))
       setDetalles(initial)
       ordenToEdit.detalles.forEach(async (d, i) => {
@@ -204,6 +208,7 @@ export function CrearOrdenApoyoDiagnosticoModal({
         ciex: diagEntry?.codigo_ciex ? { id: 0, codigo: diagEntry.codigo_ciex, nombre: '' } : null,
         ciexQuery: diagEntry?.codigo_ciex || '',
         observacion,
+        tipoDiagnostico: diagEntry?.tipo_diagnostico || 'P',
       }
     })
     setDetalles(initial)
@@ -355,6 +360,8 @@ export function CrearOrdenApoyoDiagnosticoModal({
           cpms: d.examen!.cpms || '',
           cantidad: 1,
           ciex: d.ciex!.codigo,
+          tipo_diagnostico: d.tipoDiagnostico || 'P',
+          tipoDx: d.tipoDiagnostico || 'P',
           observacion: truncateObservacion(d.observacion),
         })),
       }

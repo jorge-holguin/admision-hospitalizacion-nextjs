@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,43 @@ interface MedicoFormProps {
   onSuccess: () => void;
   onRefresh?: () => Promise<void>;
 }
+
+// Input que solo actualiza el formulario padre al perder el foco,
+// evitando re-renderizar todo el formulario en cada tecla.
+const LazyInput = React.memo(function LazyInput({
+  value,
+  onChange,
+  ...props
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> & {
+  value?: string;
+  onChange: (value: string) => void;
+}) {
+  const [localValue, setLocalValue] = useState(value || "");
+  const isDirty = useRef(false);
+
+  useEffect(() => {
+    if (!isDirty.current) {
+      setLocalValue(value || "");
+    }
+  }, [value]);
+
+  return (
+    <Input
+      {...props}
+      value={localValue}
+      onChange={(e) => {
+        isDirty.current = true;
+        setLocalValue(e.target.value);
+      }}
+      onBlur={() => {
+        if (isDirty.current) {
+          onChange(localValue);
+          isDirty.current = false;
+        }
+      }}
+    />
+  );
+});
 
 export const MedicoForm: React.FC<MedicoFormProps> = ({
   medico,
@@ -135,14 +172,6 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
       setConsultorios2([]);
     }
   }, [formData.ESPECIALIDAD2]);
-
-  // Concatenar NOMBRE automáticamente cuando cambian los campos individuales
-  useEffect(() => {
-    const nombreCompleto = `${formData.APATERNO.trim()} ${formData.AMATERNO.trim()} ${formData.NOMBRES.trim()}`.trim();
-    if (nombreCompleto !== formData.NOMBRE) {
-      setFormData(prev => ({ ...prev, NOMBRE: nombreCompleto }));
-    }
-  }, [formData.NOMBRES, formData.APATERNO, formData.AMATERNO]);
 
   // Sugerir códigos cuando cambia NOMBRE (solo en creación)
   useEffect(() => {
@@ -328,64 +357,82 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
   };
 
   // Handlers
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    if (name === "DNI") {
-      const numericValue = value.replace(/\D/g, "");
-      setFormData(prev => ({ ...prev, [name]: numericValue }));
-      return;
-    }
+    setFormData(prev => {
+      const next = { ...prev };
 
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+      if (name === "DNI") {
+        next.DNI = value.replace(/\D/g, "");
+      } else {
+        (next as Record<string, string>)[name] = value;
+      }
 
-  const handleEspecialidadSelect = (especialidad: string) => {
+      if ("APATERNO" === name || "AMATERNO" === name || "NOMBRES" === name) {
+        next.NOMBRE = `${next.APATERNO.trim()} ${next.AMATERNO.trim()} ${next.NOMBRES.trim()}`.trim();
+      }
+
+      return next;
+    });
+  }, []);
+
+  const handleEspecialidadSelect = useCallback((especialidad: string) => {
     setFormData(prev => ({ ...prev, ESPECIALIDAD: especialidad, CONSULTORIO: "" }));
     setEspecialidadOpen(false);
-  };
+  }, []);
 
-  const handleConsultorioSelect = (consultorio: string) => {
+  const handleConsultorioSelect = useCallback((consultorio: string) => {
     setFormData(prev => ({ ...prev, CONSULTORIO: consultorio }));
     setConsultorioOpen(false);
-  };
+  }, []);
 
-  const handleEspecialidad2Select = (especialidad: string) => {
+  const handleEspecialidad2Select = useCallback((especialidad: string) => {
     setFormData(prev => ({ ...prev, ESPECIALIDAD2: especialidad, CONSULTORIO2: "0" }));
     setEspecialidad2Open(false);
-  };
+  }, []);
 
-  const handleConsultorio2Select = (consultorio: string) => {
+  const handleConsultorio2Select = useCallback((consultorio: string) => {
     setFormData(prev => ({ ...prev, CONSULTORIO2: consultorio }));
     setConsultorio2Open(false);
-  };
+  }, []);
 
-  const handleSegundaEspecialidadChange = (checked: boolean | "indeterminate") => {
+  const handleSegundaEspecialidadChange = useCallback((checked: boolean | "indeterminate") => {
     const isChecked = checked === true;
     setTieneSegundaEspecialidad(isChecked);
     if (!isChecked) {
       setFormData(prev => ({ ...prev, ESPECIALIDAD2: "0", CONSULTORIO2: "0", PROFESION_COLEGIO2: "" }));
     }
-  };
+  }, []);
 
-  const handleSegundaEspecialidadColegioChange = (checked: boolean | "indeterminate") => {
+  const handleSegundaEspecialidadColegioChange = useCallback((checked: boolean | "indeterminate") => {
     const isChecked = checked === true;
     setTieneSegundaEspecialidadColegio(isChecked);
     if (!isChecked) {
-      setFormData(prev => ({ ...prev, COLESP2: "" }));
-      // Si se desmarca la segunda, también desmarcar la tercera
       setTieneTerceraEspecialidadColegio(false);
-      setFormData(prev => ({ ...prev, COLESP3: "" }));
+      setFormData(prev => ({ ...prev, COLESP2: "", COLESP3: "" }));
     }
-  };
+  }, []);
 
-  const handleTerceraEspecialidadColegioChange = (checked: boolean | "indeterminate") => {
+  const handleTerceraEspecialidadColegioChange = useCallback((checked: boolean | "indeterminate") => {
     const isChecked = checked === true;
     setTieneTerceraEspecialidadColegio(isChecked);
     if (!isChecked) {
       setFormData(prev => ({ ...prev, COLESP3: "" }));
     }
-  };
+  }, []);
+
+  const handlePaisChange = useCallback((value: string) => setFormData(prev => ({ ...prev, PAIS: value })), []);
+  const handleProfesionColegioChange = useCallback((value: string) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO: value })), []);
+  const handleProfesionColegio2Change = useCallback((value: string) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO2: value })), []);
+
+  const handleColegioChange = useCallback((value: string) => setFormData(prev => ({ ...prev, COLEGIO: value })), []);
+  const handleColespChange = useCallback((value: string) => setFormData(prev => ({ ...prev, COLESP: value })), []);
+  const handleColesp2Change = useCallback((value: string) => setFormData(prev => ({ ...prev, COLESP2: value })), []);
+  const handleColesp3Change = useCallback((value: string) => setFormData(prev => ({ ...prev, COLESP3: value })), []);
+  const handleCorreoChange = useCallback((value: string) => setFormData(prev => ({ ...prev, CORREO: value })), []);
+  const handleTelefonoChange = useCallback((value: string) => setFormData(prev => ({ ...prev, TELEFONO: value })), []);
+  const handleCodhisChange = useCallback((value: string) => setFormData(prev => ({ ...prev, CODHIS: value })), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -583,7 +630,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
           <div className="mt-4">
             <PaisSelector
               value={formData.PAIS}
-              onChange={(value) => setFormData(prev => ({ ...prev, PAIS: value }))}
+              onChange={handlePaisChange}
               label="País de Origen"
               required
             />
@@ -628,12 +675,12 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             <Label htmlFor="CORREO" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Correo Electrónico
             </Label>
-            <Input
+            <LazyInput
               id="CORREO"
               name="CORREO"
               type="email"
               value={formData.CORREO}
-              onChange={handleChange}
+              onChange={handleCorreoChange}
               placeholder="ejemplo@correo.com"
               maxLength={150}
             />
@@ -642,12 +689,12 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             <Label htmlFor="TELEFONO" className="flex flex-wrap items-center">
               <User className="mr-2 h-4 w-4" /> Teléfono
             </Label>
-            <Input
+            <LazyInput
               id="TELEFONO"
               name="TELEFONO"
               type="tel"
               value={formData.TELEFONO}
-              onChange={handleChange}
+              onChange={handleTelefonoChange}
               placeholder="999999999"
               maxLength={20}
             />
@@ -699,11 +746,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             <Label htmlFor="COLEGIO" className="flex flex-wrap items-center">
               <BookOpen className="mr-2 h-4 w-4" /> Colegiatura *
             </Label>
-            <Input
+            <LazyInput
               id="COLEGIO"
               name="COLEGIO"
               value={formData.COLEGIO}
-              onChange={handleChange}
+              onChange={handleColegioChange}
               placeholder="Ej: 15072"
               maxLength={20}
               required
@@ -716,7 +763,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             </Label>
             <ProfesionColegioSelector
               value={formData.PROFESION_COLEGIO}
-              onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO: value }))}
+              onChange={handleProfesionColegioChange}
               label=""
               required={false}
             />
@@ -729,11 +776,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             <Label htmlFor="COLESP" className="flex flex-wrap items-center">
               <Stethoscope className="mr-2 h-4 w-4" /> Col. Especialidad
             </Label>
-            <Input
+            <LazyInput
               id="COLESP"
               name="COLESP"
               value={formData.COLESP}
-              onChange={handleChange}
+              onChange={handleColespChange}
               placeholder="Ej: 787878"
               maxLength={50}
             />
@@ -754,11 +801,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               </Label>
             </div>
             {tieneSegundaEspecialidadColegio && (
-              <Input
+              <LazyInput
                 id="COLESP2"
                 name="COLESP2"
                 value={formData.COLESP2}
-                onChange={handleChange}
+                onChange={handleColesp2Change}
                 placeholder="Ej: 787879"
                 maxLength={50}
               />
@@ -781,11 +828,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
               </Label>
             </div>
             {tieneTerceraEspecialidadColegio && (
-              <Input
+              <LazyInput
                 id="COLESP3"
                 name="COLESP3"
                 value={formData.COLESP3}
-                onChange={handleChange}
+                onChange={handleColesp3Change}
                 placeholder="Ej: 787880"
                 maxLength={50}
               />
@@ -1052,7 +1099,7 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             </Label>
             <ProfesionColegioSelector
               value={formData.PROFESION_COLEGIO2}
-              onChange={(value) => setFormData(prev => ({ ...prev, PROFESION_COLEGIO2: value }))}
+              onChange={handleProfesionColegio2Change}
               label=""
               required={false}
             />
@@ -1071,11 +1118,11 @@ export const MedicoForm: React.FC<MedicoFormProps> = ({
             <Label htmlFor="CODHIS" className="flex flex-wrap items-center">
               <Hash className="mr-2 h-4 w-4" /> Código HIS
             </Label>
-            <Input
+            <LazyInput
               id="CODHIS"
               name="CODHIS"
               value={formData.CODHIS}
-              onChange={handleChange}
+              onChange={handleCodhisChange}
               placeholder="Ej: 10976872001"
               maxLength={20}
             />

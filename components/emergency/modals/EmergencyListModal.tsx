@@ -57,7 +57,7 @@ interface EmergencyListModalProps {
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   '0': { label: 'ANULADO',     className: 'bg-gray-200 text-gray-800' },
   '2': { label: 'REGISTRADO',  className: 'bg-blue-200 text-blue-800' },
-  '3': { label: 'EN ATENCI�N', className: 'bg-yellow-200 text-yellow-800' },
+  '3': { label: 'EN ATENCIÓN', className: 'bg-yellow-200 text-yellow-800' },
   '4': { label: 'ATENDIDO',    className: 'bg-green-200 text-green-800' },
   '5': { label: 'CERRADO',     className: 'bg-purple-200 text-purple-800' },
   '6': { label: 'AUSENCIA',     className: 'bg-indigo-200 text-indigo-800' },
@@ -73,7 +73,7 @@ const getStatusDisplay = (estado: string) => {
   );
 };
 
-// Componente simplificado para mostrar m�dico sin usar contexto
+// Componente simplificado para mostrar médico sin usar contexto
 function MedicoDisplay({ codigoMedico }: { codigoMedico?: string }) {
   if (!codigoMedico) return <span>-</span>;
   
@@ -81,13 +81,13 @@ function MedicoDisplay({ codigoMedico }: { codigoMedico?: string }) {
   return <span>({codigoLimpio})</span>;
 }
 
-// Componente para mostrar relatos con "Leer m�s/menos"
+// Componente para mostrar relatos con "Leer más/menos"
 function RelatoDisplay({ relato }: { relato?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   if (!relato || relato.trim() === '') return <span>-</span>;
   
-  const maxLength = 50; // M�ximo de caracteres antes de truncar
+  const maxLength = 50; // Máximo de caracteres antes de truncar
   const shouldTruncate = relato.length > maxLength;
   
   if (!shouldTruncate) {
@@ -112,7 +112,7 @@ function RelatoDisplay({ relato }: { relato?: string }) {
 }
 
 // El endpoint /emergency/paciente/{id} devuelve un array plano con camelCase
-// Esta funci�n lo convierte al shape uppercase que espera la tabla
+// Esta función lo convierte al shape uppercase que espera la tabla
 function mapApiToEmergencyData(item: any): EmergencyData {
   return {
     EMERGENCIA_ID: item.emergenciaId || item.EMERGENCIA_ID || '',
@@ -197,7 +197,7 @@ export function EmergencyListModal({
     } catch (error: any) {
       console.error('Error fetching emergencies:', error)
       toast({
-        title: "Error de conexi�n",
+        title: "Error de conexión",
         description: "No se pudieron cargar las emergencias",
         variant: "destructive"
       })
@@ -357,8 +357,8 @@ export function EmergencyListModal({
                         <RelatoDisplay relato={emergency.RELATO} />
                       </TableCell>
                       <TableCell>
-                        <div className="inline-flex items-center gap-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60">
-                          {/* Bot�n Ver - siempre disponible incluso para anulados */}
+                        <div className="inline-flex items-center gap-1">
+                          {/* Botón Ver - siempre disponible incluso para anulados */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -369,7 +369,7 @@ export function EmergencyListModal({
                             <Eye className="h-4 w-4" />
                           </Button>
                           
-                          {/* Bot�n Editar - disponible solo para estado 2, deshabilitado para otros */}
+                          {/* Botón Editar - disponible solo para estado 2, deshabilitado para otros */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -380,7 +380,7 @@ export function EmergencyListModal({
                             <Edit className="h-4 w-4" />
                           </Button>
                           
-                          {/* Bot�n Eliminar - disponible solo para estado 2, deshabilitado para otros */}
+                          {/* Botón Eliminar - disponible solo para estado 2, deshabilitado para otros */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -402,7 +402,7 @@ export function EmergencyListModal({
                 </Table>
               </div>
 
-              {/* Paginaci�n */}
+              {/* Paginación */}
               {pagination.totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-4 px-4 py-2">
                   <div className="text-sm font-medium text-gray-700">
@@ -434,13 +434,13 @@ export function EmergencyListModal({
           )}
         </div>
 
-        {/* Dialog de confirmaci�n de eliminaci�n */}
+        {/* Dialog de confirmación de eliminación */}
         <DeleteConfirmationDialog
           isOpen={deleteDialog.isOpen}
           onClose={() => { setDeleteDialog({ isOpen: false, emergencyId: null, emergencyData: null }); setDeleteArgumento('') }}
           onConfirm={() => deleteDialog.emergencyId && handleDelete(deleteDialog.emergencyId)}
           title="Anular Emergencia"
-          description="Esta acci�n anular� el registro. La cuenta asociada tambi�n ser� desactivada."
+          description="Esta acción anulará el registro. La cuenta asociada también será desactivada."
           confirmDisabled={!deleteArgumento.trim()}
           detailContent={
             deleteDialog.emergencyData && (
@@ -479,7 +479,7 @@ export function EmergencyListModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="emergency-delete-argumento" className="text-sm font-medium text-gray-700">
-                    Argumento / Motivo de anulaci�n <span className="text-red-500">*</span>
+                    Argumento / Motivo de anulación <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="emergency-delete-argumento"

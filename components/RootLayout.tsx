@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { AuthProvider } from '@/components/AuthProvider'
-import { LoadingProvider } from '@/components/LoadingProvider'
 import { HideDebugger } from '@/components/HideDebugger'
 import { PatientProvider } from '@/contexts/PatientContext'
 import { PatientAccountProvider } from '@/contexts/PatientAccountContext'
@@ -15,22 +14,20 @@ interface RootLayoutProps {
 export function RootLayout({ children }: Readonly<RootLayoutProps>) {
   return (
     <AuthProvider>
-      <LoadingProvider>
-        <TipoDocumentoProvider>
-          <PatientDataProvider>
-            <PatientAccountProvider>
-              <EmergencyAccountProvider>
-                <PatientProvider>
-                  <HideDebugger />
-                  <div className="min-h-screen w-full overflow-x-hidden bg-background text-foreground">
-                    {children}
-                  </div>
-                </PatientProvider>
-              </EmergencyAccountProvider>
-            </PatientAccountProvider>
-          </PatientDataProvider>
-        </TipoDocumentoProvider>
-      </LoadingProvider>
+      <TipoDocumentoProvider>
+        <PatientDataProvider>
+          <PatientAccountProvider>
+            <EmergencyAccountProvider>
+              <PatientProvider>
+                <HideDebugger />
+                <div className="min-h-screen w-full overflow-x-hidden bg-background text-foreground">
+                  {children}
+                </div>
+              </PatientProvider>
+            </EmergencyAccountProvider>
+          </PatientAccountProvider>
+        </PatientDataProvider>
+      </TipoDocumentoProvider>
     </AuthProvider>
   )
 }

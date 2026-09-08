@@ -13,6 +13,7 @@ interface ConsultorioItem {
   NOMBRE: string
   ESPECIALIDAD?: string
   ACTIVO?: string
+  TIPO?: string
 }
 
 interface ConsultorioCitasSelectorProps {
@@ -32,21 +33,23 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
   const [items, setItems] = useState<ConsultorioItem[]>([])
   const [loading, setLoading] = useState(false)
 
-  const load = async (q: string, signal?: AbortSignal) => {
+  const load = async (q: string, signal?: AbortSignal): Promise<ConsultorioItem[]> => {
     try {
       setLoading(true)
-      const result = await consultorioServerService.getConsultorios(1, 100, { tipo: 'C', search: q })
-      if (signal?.aborted) return
-      setItems(
-        result.data.map((item: any) => ({
-          CONSULTORIO: String(item.CONSULTORIO || item.consultorio || '').trim(),
-          NOMBRE: String(item.NOMBRE || item.nombre || '').trim(),
-          ESPECIALIDAD: item.ESPECIALIDAD || item.especialidad,
-          ACTIVO: item.ACTIVO ?? item.activo,
-        }))
-      )
+      const result = await consultorioServerService.getConsultorios(1, 100, { tipo: ['C', 'D'], search: q })
+      if (signal?.aborted) return []
+      const mapped = result.data.map((item: any) => ({
+        CONSULTORIO: String(item.CONSULTORIO || item.consultorio || '').trim(),
+        NOMBRE: String(item.NOMBRE || item.nombre || '').trim(),
+        ESPECIALIDAD: item.ESPECIALIDAD || item.especialidad,
+        ACTIVO: item.ACTIVO ?? item.activo,
+        TIPO: item.TIPO || item.tipo,
+      }))
+      setItems(mapped)
+      return mapped
     } catch (err: any) {
       if (err?.name !== 'AbortError') console.error('Error cargando consultorios:', err)
+      return []
     } finally {
       setLoading(false)
     }
@@ -68,7 +71,12 @@ export function ConsultorioCitasSelector({ label = "Consultorio", value, onChang
   useEffect(() => {
     if (value === 'all' || !value) return
     const ctrl = new AbortController()
-    load(value.trim(), ctrl.signal)
+    load(value.trim(), ctrl.signal).then((loaded) => {
+      const found = loaded.find(i => i.CONSULTORIO === value)
+      if (found && onConsultorioDataChange) {
+        onConsultorioDataChange(found)
+      }
+    })
     return () => ctrl.abort()
   }, [value])
 

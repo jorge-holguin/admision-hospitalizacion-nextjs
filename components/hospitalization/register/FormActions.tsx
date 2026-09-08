@@ -1,13 +1,13 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
-import { Loader2, Save, AlertCircle, CheckCircle2, X } from "lucide-react"
+import { Loader2, Save, AlertCircle, CheckCircle2, User, X } from "lucide-react"
 import { useRouter } from "@/lib/router"
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useEffect, useState } from 'react'
 import { usePatientAccount } from '@/contexts/PatientAccountContext'
-import { extractDocumentFromToken } from '@/utils/jwtUtils'
+import { extractDocumentFromToken, extractNombreCompletoFromToken } from '@/utils/jwtUtils'
 import { API_ENDPOINTS, buildUrl, fetchApi } from '@/lib/api-config'
 import { MultiAccountSelectorDialog, type ActiveAccount } from '@/components/shared/MultiAccountSelectorDialog'
 
@@ -21,6 +21,7 @@ interface FormActionsProps {
   onBeforeSave?: () => boolean | Promise<boolean>
   onAccountSelected?: (cuentaId: string | null) => void
   onCreateNewAccount?: () => void
+  formData?: any
 }
 
 export function FormActions({
@@ -32,7 +33,8 @@ export function FormActions({
   insuranceCode,
   onBeforeSave,
   onAccountSelected,
-  onCreateNewAccount
+  onCreateNewAccount,
+  formData
 }: FormActionsProps) {
   const router = useRouter()
   const { fetchPatientAccountBySeguro } = usePatientAccount()
@@ -44,6 +46,7 @@ export function FormActions({
   const [bypassFuaCheck, setBypassFuaCheck] = useState(false)
   const [showFuaWarning, setShowFuaWarning] = useState(false)
   const [userDocument, setUserDocument] = useState<string>('')
+  const [userName, setUserName] = useState<string>('')
   const [showMultiAccountDialog, setShowMultiAccountDialog] = useState(false)
   const [activeAccounts, setActiveAccounts] = useState<ActiveAccount[]>([])
   const [multiAccountLoading, setMultiAccountLoading] = useState(false)
@@ -51,8 +54,10 @@ export function FormActions({
   useEffect(() => {
     try {
       setUserDocument(extractDocumentFromToken())
+      setUserName(extractNombreCompletoFromToken())
     } catch {
       setUserDocument('')
+      setUserName('')
     }
   }, [])
 
@@ -177,6 +182,38 @@ export function FormActions({
     router.push(`/emergencia/${patientId}`)
   }
 
+  const f = formData || {}
+
+  const extractDescription = (value: string, defaultValue: string = '—'): string => {
+    if (!value) return defaultValue
+    if (value.includes(' - ')) {
+      return value.split(' - ').slice(1).join(' - ').trim() || value.trim()
+    }
+    const bracketMatch = value.match(/\[(.*?)]/)
+    if (bracketMatch) return bracketMatch[1].trim() || value.trim()
+    return value.trim()
+  }
+
+  const names = String(f.names || '').trim()
+  const paternal = String(f.paternalSurname || '').trim()
+  const maternal = String(f.maternalSurname || '').trim()
+  const nameTokens = new Set(names.toLowerCase().split(/\s+/).filter(Boolean))
+  let patientName = names
+  if (paternal && !nameTokens.has(paternal.toLowerCase())) {
+    patientName += ' ' + paternal
+    nameTokens.add(paternal.toLowerCase())
+  }
+  if (maternal && !nameTokens.has(maternal.toLowerCase())) {
+    patientName += ' ' + maternal
+    nameTokens.add(maternal.toLowerCase())
+  }
+  patientName = patientName.trim() || '—'
+  const roomDisplay = extractDescription(f.hospitalizedIn)
+  const insuranceDisplay = extractDescription(f.financing)
+  const attentionDisplay = extractDescription(f.attentionOrigin)
+  const doctorDisplay = extractDescription(f.authorizingDoctor)
+  const summaryDescription = '¿Está seguro que desea guardar este registro de hospitalización?'
+
   return (
     <>
       <MultiAccountSelectorDialog
@@ -214,13 +251,48 @@ export function FormActions({
         onClose={handleCancelConfirm}
         onConfirm={handleConfirmSave}
         title="Confirmar Hospitalización"
-        description={`¿Está seguro que desea guardar esta hospitalización?`}
+        description={summaryDescription}
         confirmText="Guardar"
         cancelText="Cancelar"
         isConfirming={isConfirming}
         confirmDisabled={requiresFuaValidation && !hasFua && showFuaWarning && !bypassFuaCheck}
         additionalContent={
           <>
+            {/* Resumen principal */}
+            <div className="p-3 bg-gray-50 rounded border text-sm text-gray-700 space-y-1">
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">Paciente:</span>
+                <strong className="text-right">{patientName}</strong>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">Hospitalizado en:</span>
+                <strong className="text-right">{roomDisplay}</strong>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="font-medium">Financiamiento:</span>
+                <strong className="text-right">{insuranceDisplay}</strong>
+              </div>
+            </div>
+
+            {/* Detalles de la hospitalización */}
+            <div className="mt-4 space-y-1 text-sm text-gray-700">
+              {formData?.document && (
+                <p><span className="font-medium">Documento:</span> {formData.document}</p>
+              )}
+              {formData?.date && (
+                <p><span className="font-medium">Fecha:</span> {formData.date} <span className="font-medium ml-2">Hora:</span> {formData.time}</p>
+              )}
+              {formData?.attentionOrigin && (
+                <p><span className="font-medium">Origen de atención:</span> {attentionDisplay}</p>
+              )}
+              {formData?.authorizingDoctor && (
+                <p><span className="font-medium">Médico autorizante:</span> {doctorDisplay}</p>
+              )}
+              {formData?.diagnosis && (
+                <p><span className="font-medium">Diagnóstico:</span> {formData.diagnosis}</p>
+              )}
+            </div>
+
             {/* Mostrar mensaje de validación de FUA si es necesario */}
             {requiresFuaValidation && checkingFua && (
               <div className="flex flex-wrap items-center gap-2 mt-4 p-2 bg-blue-50 text-blue-800 rounded">
@@ -248,8 +320,15 @@ export function FormActions({
             )}
 
             {/* Información del usuario que ejecuta la operación */}
-            <div className="mt-4 text-sm text-gray-600">
-              Operación bajo usuario: <strong>{userDocument || 'No identificado'}</strong>
+            <div className="flex items-start gap-3 mt-4 p-3 bg-blue-50 border border-blue-100 rounded text-sm">
+              <User className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-blue-900">Usuario que realiza la operación</p>
+                <p className="text-blue-800">
+                  <span className="font-semibold">{userName || 'No identificado'}</span>
+                  <span className="ml-1 text-blue-600">(DNI: {userDocument || 'No identificado'})</span>
+                </p>
+              </div>
             </div>
           </>
         }

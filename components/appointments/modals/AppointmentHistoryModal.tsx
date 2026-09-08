@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -98,6 +98,9 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [documentType, setDocumentType] = useState<string>("D")
 
+  // Ref del input de búsqueda: evita re-render en cada tecla
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
   // Contexto de tipos de documento
   const { getTipoDocumentoByCode } = useTipoDocumento()
   
@@ -111,6 +114,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       setError(null)
       setCurrentPage(0)
       setPatientInfo(null)
+      if (searchInputRef.current) searchInputRef.current.value = ""
       // Resetear fecha a 1 año atrás
       const oneYearAgo = new Date()
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
@@ -118,6 +122,13 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       setFechaHasta(new Date())
     }
   }, [isOpen])
+
+  // Resetear input y página cuando cambia el tipo de búsqueda
+  useEffect(() => {
+    setSearchTerm("")
+    setCurrentPage(0)
+    if (searchInputRef.current) searchInputRef.current.value = ""
+  }, [searchType])
 
   // Quick filters
   const [estadoFilter, setEstadoFilter] = useState<string>("all")
@@ -147,7 +158,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
 
   const getEstadoBadge = (estado: number) => {
@@ -182,12 +193,13 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     }
   }
 
-  const searchHistory = async (searchAllHistory = false, isManualSearch = false) => {
+  const searchHistory = async (searchAllHistory = false, isManualSearch = false, page: number = currentPage, size: number = pageSize, overrideTerm?: string) => {
     try {
       setIsLoading(true)
       setError(null)
       
-      if (!searchTerm.trim()) {
+      const term = (overrideTerm ?? searchTerm).trim()
+      if (!term) {
         setError('Debe ingresar un término de búsqueda')
         setIsLoading(false)
         return
@@ -221,14 +233,13 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
         }
       }
 
-      const term = searchTerm.trim()
       let result
 
       // Llamar directamente a Spring, sin pasar por /api/appointments/search-by-...
       if (searchType === 'documento') {
-        result = await searchCitasByDocumento(term, filters, currentPage, 10, documentType)
+        result = await searchCitasByDocumento(term, filters, page, size, documentType)
       } else if (searchType === 'nombres') {
-        result = await searchCitasByNombres(term, filters, currentPage, 10)
+        result = await searchCitasByNombres(term, filters, page, size)
       } else {
         throw new Error('Tipo de búsqueda no soportado')
       }
@@ -237,7 +248,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
       setAppointments(fetchedAppointments)
       setTotalCount(result.totalElements || 0)
       setHasSearched(true)
-      fetchPatientInfo(searchTerm.trim(), searchType, fetchedAppointments[0], documentType)
+      fetchPatientInfo(term, searchType, fetchedAppointments[0], documentType)
       
     } catch (err) {
       console.error('Error searching appointment history:', err)
@@ -251,17 +262,35 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
   }
 
   const handleSearch = () => {
+    const term = (searchInputRef.current?.value || '').trim()
+    setSearchTerm(term)
+    if (!term) {
+      setError('Debe ingresar un término de búsqueda')
+      return
+    }
     setCurrentPage(0)
-    searchHistory(false, true) // Búsqueda manual
+    searchHistory(false, true, 0, pageSize, term) // Búsqueda manual
   }
 
   const handleSearchAllHistory = () => {
+    const term = (searchInputRef.current?.value || '').trim()
+    setSearchTerm(term)
+    if (!term) {
+      setError('Debe ingresar un término de búsqueda')
+      return
+    }
     setCurrentPage(0)
-    searchHistory(true, true) // Búsqueda manual
+    searchHistory(true, true, 0, pageSize, term) // Búsqueda manual
   }
 
   const handleRetry = () => {
-    searchHistory(false, true) // Búsqueda manual
+    const term = (searchInputRef.current?.value || '').trim()
+    setSearchTerm(term)
+    if (!term) {
+      setError('Debe ingresar un término de búsqueda')
+      return
+    }
+    searchHistory(false, true, currentPage, pageSize, term) // Búsqueda manual
   }
 
   const handleViewDetails = (appointment: HistoryAppointment) => {
@@ -553,7 +582,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="w-[95vw] max-w-5xl max-h-[90vh] overflow-y-auto"
+          className="w-[95vw] max-w-6xl max-h-[90vh] overflow-y-auto"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -604,8 +633,8 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                     {searchType === 'documento' ? 'Número de Documento' : 'Apellidos y Nombres'}
                   </Label>
                   <Input
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    ref={searchInputRef}
+                    defaultValue={searchTerm}
                     placeholder={
                       searchType === 'documento' ? 'Ingrese número de documento' : 'Ingrese apellidos y nombres'
                     }
@@ -953,7 +982,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
               <>
                 {/* Results Table */}
                 <div className="border rounded-lg overflow-x-auto table-responsive w-full">
-                  <Table className="text-sm w-full min-w-[800px]">
+                  <Table className="text-sm w-full min-w-[950px]">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
                         <TableHead className="px-1.5 py-1.5">Fecha y Hora</TableHead>
@@ -964,7 +993,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                         <TableHead className="px-1.5 py-1.5">Tipo Seguro</TableHead>
                         <TableHead className="px-1.5 py-1.5">Num Referencia</TableHead>
                         <TableHead className="px-1.5 py-1.5">Diagnóstico</TableHead>
-                        <TableHead className="text-center px-1.5 py-1.5">Acciones</TableHead>
+                        <TableHead className="text-center px-1.5 py-1.5 min-w-[120px] whitespace-nowrap">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -994,10 +1023,11 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             {appointment.diagnostico || <span className="text-gray-400">-</span>}
                           </TableCell>
                           <TableCell className="px-1.5 py-1.5">
-                            <div className="flex flex-wrap items-center justify-center gap-1">
+                            <div className="flex flex-nowrap items-center justify-center gap-1">
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="shrink-0"
                                 onClick={() => handleViewDetails(appointment)}
                                 title="Ver detalles"
                               >
@@ -1006,6 +1036,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="shrink-0"
                                 onClick={() => handlePrintClick(appointment.id)}
                                 disabled={isLoadingTicket === appointment.id}
                                 title="Ver ticket de cita"
@@ -1019,6 +1050,7 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="shrink-0"
                                 onClick={() => handleViewPatient(appointment.paciente)}
                                 title="Ver historia clínica"
                               >
@@ -1033,10 +1065,34 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {totalPages > 0 && (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                    <div className="text-sm text-gray-600">
-                      Mostrando {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalCount)} de {totalCount} citas
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                      <span className="text-sm text-gray-600">
+                        Mostrando {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalCount)} de {totalCount} citas
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={String(pageSize)}
+                          onValueChange={(value) => {
+                            const size = Number(value)
+                            setPageSize(size)
+                            setCurrentPage(0)
+                            if (hasSearched) searchHistory(false, false, 0, size)
+                          }}
+                        >
+                          <SelectTrigger className="w-[70px] h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-sm text-gray-600">por página</span>
+                      </div>
                     </div>
                     <Pagination>
                       <PaginationContent>
@@ -1045,7 +1101,11 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             href="#"
                             onClick={(e) => {
                               e.preventDefault()
-                              if (currentPage > 0) setCurrentPage(currentPage - 1)
+                              if (currentPage > 0) {
+                                const newPage = currentPage - 1
+                                setCurrentPage(newPage)
+                                searchHistory(false, false, newPage, pageSize)
+                              }
                             }}
                             aria-disabled={currentPage <= 0}
                           />
@@ -1060,7 +1120,11 @@ export function AppointmentHistoryModal({ isOpen, onClose }: AppointmentHistoryM
                             href="#"
                             onClick={(e) => {
                               e.preventDefault()
-                              if (currentPage < totalPages - 1) setCurrentPage(currentPage + 1)
+                              if (currentPage < totalPages - 1) {
+                                const newPage = currentPage + 1
+                                setCurrentPage(newPage)
+                                searchHistory(false, false, newPage, pageSize)
+                              }
                             }}
                             aria-disabled={currentPage >= totalPages - 1}
                           />

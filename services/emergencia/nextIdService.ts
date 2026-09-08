@@ -19,7 +19,15 @@ class NextIdService {
    * Obtiene el siguiente ID de emergencia y número de orden
    */
   async getNextIds(): Promise<NextIds> {
-    try {      const response = await fetch(API_ENDPOINTS.emergencia.nextId, {
+    try {
+      const today = new Date();
+      const fecha = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, '0'),
+        String(today.getDate()).padStart(2, '0')
+      ].join('');
+
+      const response = await fetch(`${API_ENDPOINTS.emergencia.nextId}?fecha=${fecha}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -30,9 +38,11 @@ class NextIdService {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      const data: NextIdResponse = await response.json();      return {
+      const data: NextIdResponse = await response.json();
+      const ordenStr = data.orden != null ? String(data.orden) : null;
+      return {
         emergenciaId: data.nextId,
-        orden: data.orden || '001'
+        orden: ordenStr || '001'
       };
     } catch (error) {
       console.error('❌ Error al obtener los siguientes IDs:', error);

@@ -66,6 +66,44 @@ export const getCivilStatusDescription = (code: CivilStatusCode | object | Array
   return civilStatusMap[trimmedCode] || trimmedCode;
 };
 
+// Helper para extraer un código o descripción de objetos/arrays anidados
+const extractCivilStatusField = (input: any, isDescription: boolean = false): string => {
+  if (input == null || input === '') return '';
+
+  if (Array.isArray(input)) {
+    const first = input.find((item) => item != null && item !== '');
+    return extractCivilStatusField(first, isDescription);
+  }
+
+  if (typeof input === 'object') {
+    const obj = input as any;
+    if (isDescription) {
+      const name =
+        obj.nombre ??
+        obj.descripcion ??
+        obj.label ??
+        obj.NOMBRE_ESTADO_CIVIL ??
+        obj.nombreEstadoCivil;
+      if (name != null && name !== '' && typeof name !== 'object') return String(name);
+      return '';
+    }
+
+    const code =
+      obj.estadoCivil ??
+      obj.ESTADO_CIVIL ??
+      obj.ESTADOCIVIL ??
+      obj.codigo ??
+      obj.code ??
+      obj.value ??
+      obj.id ??
+      obj.RENIEC;
+    if (code != null && code !== '' && typeof code !== 'object') return String(code);
+    return '';
+  }
+
+  return String(input);
+};
+
 // Mapa inverso: descripción -> código
 const descriptionToCode: Record<string, CivilStatusCode> = {
   'soltero': 'S',
@@ -94,22 +132,31 @@ const descriptionToCode: Record<string, CivilStatusCode> = {
  * @returns Código válido (S, C, K, D, P, V, E, 0) o cadena vacía si no se reconoce
  */
 export const getCivilStatusCode = (value: any, desc?: any): string => {
-  if (value == null || value === '') {
-    if (desc == null || desc === '') return '';
-    value = desc;
+  const code = extractCivilStatusField(value);
+  const description = extractCivilStatusField(desc, true) || extractCivilStatusField(value, true);
+
+  let candidate = code;
+  if (!candidate) {
+    if (!description) return '';
+    candidate = description;
   }
 
-  const raw = String(value).trim().toUpperCase();
+  const raw = candidate.trim().toUpperCase();
   if (!raw) return '';
 
   // Si ya es un código válido (con o sin espacio), devolverlo limpio
-  const clean = raw.trim();
-  if (civilStatusMap[clean] || civilStatusMap[raw]) {
-    return clean;
+  if (civilStatusMap[raw]) {
+    return raw;
+  }
+
+  // Si tenemos un código corto de BD (1-2 caracteres) y una descripción,
+  // confiamos en el código tal cual (por ej. códigos numéricos como '01')
+  if (code && description && raw.length <= 2) {
+    return raw;
   }
 
   // Si no, buscar en la descripción
-  const descRaw = String(desc ?? value).toLowerCase();
+  const descRaw = (description || candidate).toLowerCase();
   for (const [key, code] of Object.entries(descriptionToCode)) {
     if (descRaw.includes(key)) return code;
   }

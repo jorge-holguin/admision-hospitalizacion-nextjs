@@ -544,7 +544,7 @@ export function PatientViewModal({ patient, onClose, onEdit }: PatientViewModalP
               const historia = (patient.HISTORIA || '').toString().trim()
               if (!historia) return
               if (!API_BASE_URL) {
-                console.error('NEXT_PUBLIC_API_CITAS_MASTER_URL no está configurado')
+                console.error('VITE_API_CITAS_MASTER_URL no está configurado')
                 return
               }
 

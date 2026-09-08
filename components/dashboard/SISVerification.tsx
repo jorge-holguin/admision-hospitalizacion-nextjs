@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle } from "lucide-react"
+import { Loader2, CheckCircle, ShieldCheck, XCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { consultarSIS } from "@/services/sisService"
+import { cn } from '@/lib/utils'
 
 interface SISVerificationProps {
   patientId: string;
@@ -37,7 +38,8 @@ export function SISVerification({
   className = "", 
   buttonSize = "sm",
   onVerificationComplete 
-}: SISVerificationProps) {  const { toast } = useToast();
+}: SISVerificationProps) {
+  const { toast } = useToast();
   
   // Estado para almacenar el resultado de la verificación
   const [verificationState, setVerificationState] = useState<SISVerificationState>({
@@ -51,7 +53,9 @@ export function SISVerification({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Función para verificar SIS
-  const handleVerifySIS = async () => {    if (!documento) {      toast({
+  const handleVerifySIS = async () => {
+    if (!documento) {
+      toast({
         title: "Error",
         description: "No se encontró número de documento para este paciente",
         variant: "destructive"
@@ -68,8 +72,11 @@ export function SISVerification({
     });
 
     // Abrir el modal de inmediato para mostrar progreso
-    setIsDialogOpen(true);    try {      // Usar el servicio existente que lee NEXT_PUBLIC_API_BACKEND_URL / NEXT_PUBLIC_API_CITAS_MASTER_URL
-      const sisResult = await consultarSIS(documento);      const data = sisResult.data;
+    setIsDialogOpen(true);
+    try {
+      // Usar el servicio existente que lee VITE_API_CITAS_MASTER_URL
+      const sisResult = await consultarSIS(documento);
+      const data = sisResult.data;
       const resultado = (data?.resultado || sisResult.error || '').trim();
 
       const trimField = (value?: string | null) => (value ? value.trim() : undefined);
@@ -187,16 +194,36 @@ export function SISVerification({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{renderSISDialogTitle(verificationState)}</DialogTitle>
+            <DialogTitle className={cn('flex items-center gap-2', getTitleClass(verificationState))}>
+              {getTitleIcon(verificationState)}
+              {renderSISDialogTitle(verificationState)}
+            </DialogTitle>
             <DialogDescription>{renderSISDialogDescription(verificationState)}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {renderSISDialogContent(verificationState)}
           </div>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)}>Cerrar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+function getTitleIcon(state: SISVerificationState) {
+  if (state.isLoading) return <Loader2 className="h-5 w-5 animate-spin text-green-500" />
+  if (state.isServerError) return <XCircle className="h-5 w-5 text-red-500" />
+  if (state.isSuccess) return <ShieldCheck className="h-5 w-5 text-green-500" />
+  return <AlertCircle className="h-5 w-5 text-amber-500" />
+}
+
+function getTitleClass(state: SISVerificationState) {
+  if (state.isServerError) return 'text-red-600'
+  if (state.isSuccess) return 'text-green-600'
+  if (state.isLoading) return 'text-foreground'
+  return 'text-amber-600'
 }
 
 function renderSISDialogTitle(state: SISVerificationState) {
@@ -216,37 +243,65 @@ function renderSISDialogDescription(state: SISVerificationState) {
 function renderSISDialogContent(state: SISVerificationState) {
   if (state.isLoading) {
     return (
-      <div className="flex flex-wrap items-center justify-center py-6">
-        <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+      <div className="flex flex-col items-center justify-center py-8 space-y-3">
+        <Loader2 className="h-10 w-10 animate-spin text-green-500" />
+        <p className="text-sm text-muted-foreground">Consultando afiliación SIS...</p>
       </div>
     )
   }
 
   if (state.isSuccess) {
     return (
-      <div className="space-y-3 rounded-lg bg-green-50 p-4 text-sm text-green-900">
+      <div className="rounded-lg border border-green-100 bg-green-50 p-4 text-sm text-green-900 space-y-2">
         {state.contrato && (
-          <p><span className="font-medium">N° Afiliación:</span> {state.contrato}</p>
+          <div className="flex justify-between gap-2">
+            <span className="font-medium text-green-800 whitespace-nowrap">N° Afiliación:</span>
+            <span className="text-right">{state.contrato}</span>
+          </div>
         )}
         {state.descTipoSeguro && (
-          <p><span className="font-medium">Tipo de Seguro:</span> {state.descTipoSeguro}</p>
+          <div className="flex justify-between gap-2">
+            <span className="font-medium text-green-800 whitespace-nowrap">Tipo de Seguro:</span>
+            <span className="text-right">{state.descTipoSeguro}</span>
+          </div>
         )}
         {state.eess && (
-          <p><span className="font-medium">EESS:</span> {state.eess}</p>
+          <div className="flex justify-between gap-2">
+            <span className="font-medium text-green-800 whitespace-nowrap">EESS:</span>
+            <span className="text-right">{state.eess}</span>
+          </div>
         )}
         {state.descEESS && (
-          <p><span className="font-medium">Centro de Salud:</span> {state.descEESS}</p>
+          <div className="flex justify-between gap-2">
+            <span className="font-medium text-green-800 whitespace-nowrap">Centro de Salud:</span>
+            <span className="text-right">{state.descEESS}</span>
+          </div>
         )}
         {state.idPlan && (
-          <p><span className="font-medium">Plan:</span> {formatSISPlan(state.idPlan)}</p>
+          <div className="flex justify-between gap-2">
+            <span className="font-medium text-green-800 whitespace-nowrap">Plan:</span>
+            <span className="text-right">{formatSISPlan(state.idPlan)}</span>
+          </div>
         )}
       </div>
     )
   }
 
+  if (state.isServerError) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-red-100 bg-red-50 p-6 text-center text-sm text-red-900">
+        <XCircle className="h-10 w-10 text-red-500" />
+        <p className="font-medium">No se pudo conectar con el servidor del SIS.</p>
+        <p className="text-red-700">{state.result}</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-900">
-      <p>{state.result || "No se encontró afiliación SIS para el documento consultado"}</p>
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-amber-100 bg-amber-50 p-6 text-center text-sm text-amber-900">
+      <AlertCircle className="h-10 w-10 text-amber-500" />
+      <p className="font-medium">No se encontró afiliación SIS activa.</p>
+      <p className="text-amber-700">{state.result || "No se encontró afiliación SIS para el documento consultado"}</p>
     </div>
   )
 }

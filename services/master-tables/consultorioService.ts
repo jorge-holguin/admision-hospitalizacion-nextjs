@@ -64,7 +64,7 @@ export interface ConsultorioFilters {
   codigo?: string;
   servicio?: string;
   search?: string;
-  tipo?: string;
+  tipo?: string | string[];
 }
 
 export interface PaginatedResponse<T> {
@@ -85,7 +85,8 @@ export const consultorioServerService = {
     pageSize: number = 10,
     filters: ConsultorioFilters = {}
   ): Promise<PaginatedResponse<Consultorio>> {
-    try {      const params: Record<string, string> = {
+    try {
+      const params: Record<string, string | string[]> = {
         page: page.toString(),
         pageSize: pageSize.toString(),
       };
@@ -108,7 +109,8 @@ export const consultorioServerService = {
       // Normalizar respuesta
       const data = Array.isArray(result) ? result : (result.data || []);
       const total = result.total || data.length;
-      const normalized = data.map(normalizeConsultorio);      return {
+      const normalized = data.map(normalizeConsultorio);
+      return {
         data: normalized,
         total,
         page,
@@ -122,17 +124,20 @@ export const consultorioServerService = {
   },
 
   async getConsultorioById(id: string): Promise<Consultorio | null> {
-    try {      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
+    try {
+      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
       const response = await fetchApi(url);
       
-      if (response.status === 404) {        return null;
+      if (response.status === 404) {
+        return null;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();      return normalizeConsultorio(data);
+      const data = await response.json();
+      return normalizeConsultorio(data);
     } catch (error) {
       console.error(`❌ Error in consultorioServerService.getConsultorioById(${id}):`, error);
       throw error;
@@ -140,7 +145,8 @@ export const consultorioServerService = {
   },
 
   async createConsultorio(data: Partial<Consultorio>): Promise<Consultorio> {
-    try {      const url = API_ENDPOINTS.masterTables.consultorios.list;
+    try {
+      const url = API_ENDPOINTS.masterTables.consultorios.list;
       const response = await fetchApi(url, {
         method: 'POST',
         body: JSON.stringify(data),
@@ -151,7 +157,8 @@ export const consultorioServerService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();      return normalizeConsultorio(result);
+      const result = await response.json();
+      return normalizeConsultorio(result);
     } catch (error) {
       console.error('❌ Error in consultorioServerService.createConsultorio:', error);
       throw error;
@@ -159,13 +166,15 @@ export const consultorioServerService = {
   },
 
   async updateConsultorio(id: string, data: Partial<Consultorio>): Promise<Consultorio | null> {
-    try {      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
+    try {
+      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
       const response = await fetchApi(url, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
       
-      if (response.status === 404) {        return null;
+      if (response.status === 404) {
+        return null;
       }
       
       if (!response.ok) {
@@ -173,7 +182,8 @@ export const consultorioServerService = {
         throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
       
-      const result = await response.json();      return normalizeConsultorio(result);
+      const result = await response.json();
+      return normalizeConsultorio(result);
     } catch (error) {
       console.error(`❌ Error in consultorioServerService.updateConsultorio(${id}):`, error);
       throw error;
@@ -181,7 +191,8 @@ export const consultorioServerService = {
   },
 
   async getConsultoriosByEspecialidad(especialidad: string): Promise<Consultorio[]> {
-    try {      const url = buildUrl(API_ENDPOINTS.masterTables.consultorios.bySpecialty, {
+    try {
+      const url = buildUrl(API_ENDPOINTS.masterTables.consultorios.bySpecialty, {
         especialidad,
       });
       const response = await fetchApi(url);
@@ -201,7 +212,8 @@ export const consultorioServerService = {
   },
 
   async getConsultorioTipos(): Promise<{ Codigo: string; Nombre: string }[]> {
-    try {      const url = API_ENDPOINTS.masterTables.consultorios.types;
+    try {
+      const url = API_ENDPOINTS.masterTables.consultorios.types;
       const response = await fetchApi(url);
       
       if (!response.ok) {
@@ -222,17 +234,20 @@ export const consultorioServerService = {
   },
 
   async deleteConsultorio(id: string): Promise<boolean> {
-    try {      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
+    try {
+      const url = API_ENDPOINTS.masterTables.consultorios.byId(id);
       const response = await fetchApi(url, {
         method: 'DELETE',
       });
       
-      if (response.status === 404) {        return false;
+      if (response.status === 404) {
+        return false;
       }
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }      return true;
+      }
+      return true;
     } catch (error) {
       console.error(`❌ Error in consultorioServerService.deleteConsultorio(${id}):`, error);
       throw error;

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, Suspense } from "react"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { Navbar } from "@/components/Navbar"
 import { Toaster } from "@/components/ui/toaster"
 import ProtectedRoute from "@/components/ProtectedRoute"
@@ -18,7 +19,7 @@ const ReportesDemandaInsatisfecha = React.lazy(
 )
 
 const LazyLoading = () => (
-  <div className="flex flex-wrap items-center justify-center py-20 text-blue-600 text-sm">Cargando...</div>
+  <PageLoader overlay={false} className="min-h-[60vh]" />
 )
 
 type Tab = "registro" | "reportes"

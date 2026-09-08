@@ -42,6 +42,7 @@ interface AdditionalAppointmentModalProps {
   patient: any
   onAppointmentCreated?: (appointment: any) => void
   onEcoConsultorioSelected?: (consultorio: string) => void
+  initialConsultorio?: string
 }
 
 // Componente interno
@@ -51,7 +52,8 @@ function AdditionalAppointmentModalContent({
   onBack,
   patient,
   onAppointmentCreated,
-  onEcoConsultorioSelected
+  onEcoConsultorioSelected,
+  initialConsultorio
 }: AdditionalAppointmentModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -141,7 +143,7 @@ function AdditionalAppointmentModalContent({
       }
       
       // Reset ALL fields to avoid stale data from previous patient
-      setConsultorio("")
+      setConsultorio(initialConsultorio || "")
       setMedico("")
       setTurno("")
       setObservacion("")
@@ -919,9 +921,6 @@ function AdditionalAppointmentModalContent({
                         setDatesWithAppointments([])
                         setDatesWithoutAppointments([])
                         setExistingAppointmentsWarning(null)
-                        if (ECOGRAFIA_CONSULTORIOS.includes(value?.trim()) && onEcoConsultorioSelected) {
-                          onEcoConsultorioSelected(value)
-                        }
                       }}
                       onConsultorioDataChange={(data) => {
                         if (data && data.ESPECIALIDAD) {
@@ -930,6 +929,12 @@ function AdditionalAppointmentModalContent({
                         } else {
                           setEspecialidadConsultorio(null)
                           setConsultorioNombreSel("")
+                        }
+                        const isDiagnostico = data
+                          ? (data.TIPO?.trim() === 'D' || ECOGRAFIA_CONSULTORIOS.includes(data.CONSULTORIO?.trim()))
+                          : false
+                        if (isDiagnostico && onEcoConsultorioSelected) {
+                          onEcoConsultorioSelected(data!.CONSULTORIO)
                         }
                       }}
                       className="w-full"

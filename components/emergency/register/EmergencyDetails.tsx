@@ -37,6 +37,7 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
         observacion1: emergencyData.OBSERVACION1 || '',
         observacion2: emergencyData.OBSERVACION2 || '',
         estado: emergencyData.ESTADO || '1',
+        estadoCivil: emergencyData.ESTADO_CIVIL || emergencyData.estadoCivil || emergencyData.ESTADOCIVIL || '',
         // Datos del acompañante
         acompanante: emergencyData.ACOMPANANTE || emergencyData.acompanante || '',
         tipoDocumentoA: emergencyData.TIPO_DOCUMENTOA || emergencyData.tipoDocumentoA || emergencyData.tipoDocumentoAcompanante || '',
@@ -82,6 +83,7 @@ export const EmergencyDetails: React.FC<EmergencyDetailsProps> = ({
             observacion1: emergencyData.OBSERVACION1 || '',
             observacion2: emergencyData.OBSERVACION2 || '',
             estado: emergencyData.ESTADO || '1',
+            estadoCivil: emergencyData.ESTADO_CIVIL || emergencyData.estadoCivil || emergencyData.ESTADOCIVIL || '',
             // Datos del acompañante
             acompanante: emergencyData.ACOMPANANTE || emergencyData.acompanante || '',
             tipoDocumentoA: emergencyData.TIPO_DOCUMENTOA || emergencyData.tipoDocumentoA || emergencyData.tipoDocumentoAcompanante || '',

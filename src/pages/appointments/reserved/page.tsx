@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -795,7 +796,7 @@ export default function ReservedAppointmentsPage() {
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Bandeja de Solicitudes de Reservas</h1>
-                  <p className="text-gray-600">Gestión de citas médicas - Sistema Hospitalario</p>
+                  <p className="text-gray-600"></p>
                 </div>
               </div>
               
@@ -917,10 +918,7 @@ export default function ReservedAppointmentsPage() {
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="flex flex-wrap justify-center items-center py-12">
-                    <RefreshCw className="h-6 w-6 animate-spin" />
-                    <span className="ml-2">Cargando reservas...</span>
-                  </div>
+                  <PageLoader overlay={false} className="min-h-[60vh]" />
                 ) : (
                   <div className="overflow-x-auto table-responsive">
                     <Table className="min-w-[700px]">
@@ -937,7 +935,7 @@ export default function ReservedAppointmentsPage() {
                           <TableHead className="font-semibold">TURNO</TableHead>
                           <TableHead className="font-semibold">FECHA Y HORA</TableHead>
                           <TableHead className="font-semibold">ESTADO</TableHead>
-                          <TableHead className="font-semibold">ACCIONES</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">ACCIONES</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1014,8 +1012,8 @@ export default function ReservedAppointmentsPage() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-2">
+                            <TableCell className="whitespace-nowrap">
+                              <div className="flex items-center gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1027,9 +1025,9 @@ export default function ReservedAppointmentsPage() {
                                     reserva.estado === "ELIMINADO" ||
                                     reserva.estado === "DENEGADO"
                                   }
-                                  className="flex flex-wrap items-center gap-2"
+                                  className="flex items-center gap-2 whitespace-nowrap"
                                 >
-                                  <UserCheck className="h-4 w-4" />
+                                  <UserCheck className="h-4 w-4 flex-shrink-0" />
                                   {loadingReservas.has(reserva.codigo)
                                     ? 'Cargando...' 
                                     : 'Revisar'
@@ -1047,9 +1045,9 @@ export default function ReservedAppointmentsPage() {
                                     reserva.estado === "EN_REVISION" ||
                                     reserva.estado === "EN REVISION"
                                   }
-                                  className="flex flex-wrap items-center gap-2 text-orange-600 hover:text-orange-700"
+                                  className="flex items-center gap-2 whitespace-nowrap text-orange-600 hover:text-orange-700"
                                 >
-                                  <RotateCcw className="h-4 w-4" />
+                                  <RotateCcw className="h-4 w-4 flex-shrink-0" />
                                   Revertir
                                 </Button>
                               </div>

@@ -114,6 +114,8 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
     const [showAdditionalPatientSearchModal, setShowAdditionalPatientSearchModal] = useState(false)
     const [selectedPatientForAdditional, setSelectedPatientForAdditional] = useState<any>(null)
     const [showAdditionalEcoModal, setShowAdditionalEcoModal] = useState(false)
+    const [additionalConsultorio, setAdditionalConsultorio] = useState<string>("")
+    const [additionalEcoConsultorio, setAdditionalEcoConsultorio] = useState<string>("")
     const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [showPrintingModal, setShowPrintingModal] = useState(false)
   const [showTicketPreview, setShowTicketPreview] = useState(false)
@@ -1515,13 +1517,17 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               onClose={() => {
                 setShowAdditionalAppointmentModal(false)
                 setSelectedPatientForAdditional(null)
+                setAdditionalConsultorio("")
+                setAdditionalEcoConsultorio("")
               }}
               onBack={() => {
                 setShowAdditionalAppointmentModal(false)
                 setShowAdditionalPatientSearchModal(true)
               }}
               patient={selectedPatientForAdditional}
-              onEcoConsultorioSelected={() => {
+              initialConsultorio={additionalConsultorio}
+              onEcoConsultorioSelected={(consultorio) => {
+                setAdditionalEcoConsultorio(consultorio)
                 setShowAdditionalAppointmentModal(false)
                 setShowAdditionalEcoModal(true)
               }}
@@ -1543,12 +1549,20 @@ import { PatientRegistrationModal } from "@/components/filiation/modals/PatientR
               onClose={() => {
                 setShowAdditionalEcoModal(false)
                 setSelectedPatientForAdditional(null)
+                setAdditionalConsultorio("")
+                setAdditionalEcoConsultorio("")
               }}
               onBack={() => {
                 setShowAdditionalEcoModal(false)
                 setShowAdditionalAppointmentModal(true)
               }}
+              onRegularConsultorioSelected={(consultorio) => {
+                setAdditionalConsultorio(consultorio)
+                setShowAdditionalEcoModal(false)
+                setShowAdditionalAppointmentModal(true)
+              }}
               patient={selectedPatientForAdditional}
+              initialConsultorio={additionalEcoConsultorio}
               onAppointmentCreated={(appointment) => {
                 const citaId = appointment?.citaId || appointment?.id || appointment?.data?.citaId
                 if (citaId) {

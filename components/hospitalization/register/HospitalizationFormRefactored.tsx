@@ -48,7 +48,7 @@ interface HospitalizationFormProps {
   refreshPatientKey?: number;
 }
 
-const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL;
+const API_BACKEND_URL = import.meta.env.VITE_API_CITAS_MASTER_URL;
 
 export function HospitalizationFormRefactored({ 
   patientId, 
@@ -945,6 +945,7 @@ export function HospitalizationFormRefactored({
         isEditable={isEditable}
         patientId={patientId}
         insuranceCode={formData.financing}
+        formData={formData}
         onAccountSelected={(id) => { selectedCuentaIdRef.current = id; forceCreateNewRef.current = false; }}
         onCreateNewAccount={() => { selectedCuentaIdRef.current = null; forceCreateNewRef.current = true; }}
         onBeforeSave={async () => {

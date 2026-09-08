@@ -64,6 +64,9 @@ interface OrdenDetalle {
   observacion?: string
   observacionEspecifica: string
   estadoDetalle: string
+  tipoDiagnostico?: string | null
+  tipoDx?: string | null
+  tipo_diagnostico?: string | null
 }
 
 interface OrdenApoyoDiagnostico {
@@ -1573,6 +1576,7 @@ function PatientAssignDiagnosticSupportModalContent({
                       observacion: d.observacion ?? null,
                       cpmsDescripcion: d.cpmsDescripcion ?? null,
                       estadoDetalle: d.estadoDetalle,
+                      tipoDiagnostico: d.tipoDx || d.tipo_diagnostico || d.tipoDiagnostico || 'P',
                     })),
                   }
                   setOrdenToEdit(edit)

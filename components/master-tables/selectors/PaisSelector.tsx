@@ -32,7 +32,7 @@ interface PaisSelectorProps {
   disabled?: boolean;
 }
 
-export const PaisSelector: React.FC<PaisSelectorProps> = ({
+export const PaisSelector: React.FC<PaisSelectorProps> = React.memo(({
   value,
   onChange,
   label = "País",
@@ -73,14 +73,16 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
   const loadPaises = async (search: string = "") => {
     setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_BACKEND_URL;
+      const baseUrl = import.meta.env.VITE_API_CITAS_MASTER_URL;
       
       // Si hay búsqueda, usar endpoint de búsqueda por nombre
       // Si no hay búsqueda, obtener por código de país: /maestro/pais/{codigo}
       const url = search 
         ? `${baseUrl}/maestro/pais/buscar?nombre=${encodeURIComponent(search)}`
-        : `${baseUrl}/maestro/pais/${value || ""}`;      const response = await fetch(url);
-      const data = await response.json();      // El backend puede devolver un solo objeto (para /{codigo}) o un arreglo (para /buscar)
+        : `${baseUrl}/maestro/pais/${value || ""}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      // El backend puede devolver un solo objeto (para /{codigo}) o un arreglo (para /buscar)
       if (Array.isArray(data)) {
         setPaises(data);
       } else if (data) {
@@ -159,4 +161,4 @@ export const PaisSelector: React.FC<PaisSelectorProps> = ({
       </Popover>
     </div>
   );
-};
+});

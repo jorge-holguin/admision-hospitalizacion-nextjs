@@ -5,10 +5,21 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, CheckCircle, X, Loader2, Trash2, Plus } from "lucide-react"
 
 // ── Constante compartida ────────────────────────────────────────────────────
 export const MAX_OBSERVACION_LENGTH = 200
+
+const TIPO_DIAGNOSTICO_OPTIONS = [
+  { value: 'P', label: 'Presuntivo' },
+  { value: 'D', label: 'Definitivo' },
+  { value: 'R', label: 'Repetitivo' },
+]
+
+export function getTipoDiagnosticoLabel(value?: string | null) {
+  return TIPO_DIAGNOSTICO_OPTIONS.find(o => o.value === value)?.label ?? value
+}
 
 // ── Tipos compartidos ───────────────────────────────────────────────────────
 export interface MaestroExamen {
@@ -39,6 +50,7 @@ export interface DetalleItem {
   ciexLoading: boolean
   observacion: string
   estadoDetalle?: string
+  tipoDiagnostico?: string
 }
 
 export const emptyDetalle = (): DetalleItem => ({
@@ -51,6 +63,7 @@ export const emptyDetalle = (): DetalleItem => ({
   ciexResults: [],
   ciexLoading: false,
   observacion: '',
+  tipoDiagnostico: 'P',
 })
 
 // ── Badge de estado de detalle ──────────────────────────────────────────────
@@ -250,6 +263,35 @@ export function OrdenDetallesList({
                 </>
               )}
             </div>
+          </div>
+
+          {/* Tipo de diagnóstico */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">
+              Tipo de diagnóstico
+            </Label>
+            <Select
+              value={detalle.tipoDiagnostico || 'P'}
+              onValueChange={(value) => updateDetalle(idx, { tipoDiagnostico: value })}
+            >
+              <SelectTrigger className="h-auto w-full bg-blue-50 border-blue-200 text-xs px-3 py-2 rounded hover:bg-blue-100 transition-colors [&>svg]:text-blue-700 [&>svg]:opacity-100">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-blue-700 shrink-0" />
+                  <span className="font-mono font-bold text-blue-800">{detalle.tipoDiagnostico || 'P'}</span>
+                  <span className="text-gray-700">— {getTipoDiagnosticoLabel(detalle.tipoDiagnostico)}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {TIPO_DIAGNOSTICO_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value} className="text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-blue-800">{o.value}</span>
+                      <span className="text-gray-700">— {o.label}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Observación con contador visual */}

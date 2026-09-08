@@ -48,6 +48,9 @@ interface OrdenDetalle {
   observacion?: string
   observacionEspecifica: string
   estadoDetalle: string
+  tipoDiagnostico?: string | null
+  tipoDx?: string | null
+  tipo_diagnostico?: string | null
 }
 
 interface OrdenApoyoDiagnostico {
@@ -103,6 +106,7 @@ interface AdditionalAppointmentDiagnosticSupportModalProps {
   patient: any
   initialConsultorio?: string
   onAppointmentCreated?: (appointment: any) => void
+  onRegularConsultorioSelected?: (consultorio: string) => void
 }
 
 function AdditionalAppointmentDiagnosticSupportModalContent({
@@ -111,7 +115,8 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
   onBack,
   patient,
   initialConsultorio,
-  onAppointmentCreated
+  onAppointmentCreated,
+  onRegularConsultorioSelected
 }: AdditionalAppointmentDiagnosticSupportModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -386,7 +391,7 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
     const ordenToEdit: OrdenToEdit = {
       idOrden: ord.idOrden, idPaciente: ord.idPaciente, tipoServicio: ord.tipoServicio, idLugar: ord.idLugar,
       origen: ord.origen, origenId: ord.origenId, idTipoSeguro: ord.seguro, idMedico: ord.idMedicoSolicita, cama: ord.cama ?? null,
-      detalles: ord.detalles.map((d) => ({ cpms: d.cpms ?? null, cpmsDescripcion: d.cpmsDescripcion ?? null, ciex: d.ciex ?? null, cantidad: d.cantidad ?? 1, observacion: ((d.observacion ?? d.observacionEspecifica) || '').trim().slice(0, MAX_OBSERVACION_LENGTH) || null, estadoDetalle: d.estadoDetalle })),
+      detalles: ord.detalles.map((d) => ({ cpms: d.cpms ?? null, cpmsDescripcion: d.cpmsDescripcion ?? null, ciex: d.ciex ?? null, cantidad: d.cantidad ?? 1, observacion: ((d.observacion ?? d.observacionEspecifica) || '').trim().slice(0, MAX_OBSERVACION_LENGTH) || null, estadoDetalle: d.estadoDetalle, tipoDiagnostico: d.tipoDx || d.tipo_diagnostico || d.tipoDiagnostico || 'P' })),
     }
     setOrdenToEditEco(ordenToEdit)
     if (!selectedRefItemEco) {
@@ -764,6 +769,9 @@ function AdditionalAppointmentDiagnosticSupportModalContent({
                         onConsultorioDataChange={(data) => {
                           if (data && data.ESPECIALIDAD) { setEspecialidadConsultorio(data.ESPECIALIDAD); if (data.NOMBRE) setConsultorioNombreSel(data.NOMBRE) }
                           else { setEspecialidadConsultorio(null); setConsultorioNombreSel("") }
+                          if (data && data.TIPO?.trim() !== 'D' && onRegularConsultorioSelected) {
+                            onRegularConsultorioSelected(data.CONSULTORIO)
+                          }
                         }}
                         className="w-full"
                       />

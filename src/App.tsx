@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { PageLoader } from '@/components/ui/PageLoader'
 import { RootLayout } from '@/components/RootLayout'
 
 const Home = lazy(() => import('./pages/page'))
@@ -18,7 +19,7 @@ function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <RootLayout>
-        <Suspense fallback={<div className="flex flex-wrap h-screen w-full items-center justify-center text-blue-700">Cargando...</div>}>
+        <Suspense fallback={<PageLoader overlay className="bg-white" />}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />

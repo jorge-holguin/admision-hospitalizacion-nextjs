@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -945,13 +946,7 @@ export default function FiliationPage() {
                 </p>
               </div>
             ) : isLoading ? (
-              <div className="p-8 text-center">
-                <Loader2 className="w-16 h-16 mx-auto mb-4 text-blue-500 animate-spin" />
-                <p className="text-lg font-medium text-gray-700 mb-2">Buscando pacientes...</p>
-                <p className="text-sm text-gray-500">
-                  Por favor espere mientras se realiza la búsqueda
-                </p>
-              </div>
+              <PageLoader overlay={false} className="min-h-[60vh]" />
             ) : patients.length === 0 ? (
               <div className="p-8 text-center">
                 <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />

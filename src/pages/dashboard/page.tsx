@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Home, Table, Calendar, Loader2, FlaskConical, Shield, FileText, PhoneOff } from "lucide-react";
+import { Home, Table, Calendar, FlaskConical, Shield, FileText, PhoneOff } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { Navbar } from "@/components/Navbar";
 import { useRouter } from "@/lib/router"
 
@@ -231,26 +232,7 @@ export default function Dashboard() {
       </main>
 
       {/* Loading Overlay */}
-      {isNavigating && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-wrap items-center justify-center">
-          <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md mx-4">
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Cargando módulo...
-                </h3>
-                <p className="text-gray-600">
-                  {navigatingTo}
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Por favor espere mientras se carga el módulo
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {isNavigating && <PageLoader overlay />}
     </div>
     </ProtectedRoute>
   );
