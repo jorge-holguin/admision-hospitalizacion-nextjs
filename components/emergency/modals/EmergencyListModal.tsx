@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -314,8 +314,8 @@ export function EmergencyListModal({
                     <TableHead className="font-bold text-gray-900">Motivo</TableHead>
                     <TableHead className="font-bold text-gray-900">Seguro Liquidador</TableHead>
                     <TableHead className="font-bold text-gray-900">Cuenta</TableHead>
-                    <TableHead className="font-bold text-gray-900">Diagn�stico</TableHead>
-                    <TableHead className="font-bold text-gray-900">M�dico</TableHead>
+                    <TableHead className="font-bold text-gray-900">Diagnóstico</TableHead>
+                    <TableHead className="font-bold text-gray-900">Médico</TableHead>
                     <TableHead className="font-bold text-gray-900">Relato</TableHead>
                     <TableHead className="font-bold text-gray-900">Acciones</TableHead>
                   </TableRow>
@@ -357,13 +357,13 @@ export function EmergencyListModal({
                         <RelatoDisplay relato={emergency.RELATO} />
                       </TableCell>
                       <TableCell>
-                        <div className="inline-flex flex-wrap gap-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60">
+                        <div className="inline-flex items-center gap-2 p-1.5 rounded-lg border border-blue-200 bg-blue-50/60">
                           {/* Bot�n Ver - siempre disponible incluso para anulados */}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onView(emergency.EMERGENCIA_ID, emergency)}
-                            className="h-8 w-8 p-0"
+                            className="shrink-0 h-8 w-8 p-0"
                             title="Ver emergencia"
                           >
                             <Eye className="h-4 w-4" />
@@ -374,7 +374,7 @@ export function EmergencyListModal({
                             variant="outline"
                             size="sm"
                             onClick={() => emergency.ESTADO === '2' ? onEdit(emergency.EMERGENCIA_ID, emergency) : undefined}
-                            className="h-8 w-8 p-0"
+                            className="shrink-0 h-8 w-8 p-0"
                             disabled={emergency.ESTADO !== '2'}
                           >
                             <Edit className="h-4 w-4" />
@@ -389,7 +389,7 @@ export function EmergencyListModal({
                               emergencyId: emergency.EMERGENCIA_ID,
                               emergencyData: emergency
                             }), setDeleteArgumento('')) : undefined}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:hover:text-gray-400"
+                            className="shrink-0 h-8 w-8 p-0 text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:hover:text-gray-400"
                             disabled={emergency.ESTADO !== '2'}
                           >
                             <Trash2 className="h-4 w-4" />

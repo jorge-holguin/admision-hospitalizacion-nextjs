@@ -310,12 +310,12 @@ export function HospitalizationListModal({
                             </span>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
                               {/* Botón Ver - siempre disponible incluso para anulados */}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="bg-white hover:bg-blue-50 border-blue-200"
+                                className="shrink-0 bg-white hover:bg-blue-50 border-blue-200"
                                 onClick={() => handleViewOrder(hospitalizacionId)}
                                 title="Ver hospitalización"
                               >
@@ -329,6 +329,7 @@ export function HospitalizationListModal({
                                 onClick={() => handleEditOrder(hospitalizacionId)}
                                 disabled={isDeleted || !isOrdenEditable(hospitalizacionId)}
                                 title="Editar hospitalización"
+                                className="shrink-0"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -339,7 +340,7 @@ export function HospitalizationListModal({
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="bg-white hover:bg-blue-50 border-blue-200"
+                                    className="shrink-0 bg-white hover:bg-blue-50 border-blue-200"
                                     disabled={isDeleted}
                                     title="Imprimir documentos"
                                   >
@@ -376,7 +377,7 @@ export function HospitalizationListModal({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600 hover:bg-red-50 border-red-200"
+                                className="shrink-0 text-red-600 hover:bg-red-50 border-red-200"
                                 onClick={() => handleDeleteOrder(hospitalizacionId, orden.NOMBRES || 'Sin nombre', orden.CUENTAID)}
                                 disabled={isDeleted}
                                 title="Eliminar hospitalización"
